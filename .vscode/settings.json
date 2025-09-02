@@ -1,0 +1,12 @@
+{
+    "editor.formatOnSave": true,
+    "files.exclude": {
+      "**/*.g.dart": false,
+      "**/*.freezed.dart": false
+    },
+    "search.exclude": {
+      "**/.dart_tool": true,
+      "**/build": true
+    }
+  }
+  

@@ -1,0 +1,42 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "build_runner:watch",
+        "type": "shell",
+        "command": "./tool/build_runner_watch.bat",
+        "problemMatcher": []
+      },
+      {
+        "label": "build_runner:build",
+        "type": "shell",
+        "command": "./tool/build_runner.bat",
+        "problemMatcher": []
+      },
+      {
+        "label": "flutter:run",
+        "type": "shell",
+        "command": "flutter run",
+        "problemMatcher": []
+      },
+      {
+        "label": "emulators:functions+firestore",
+        "type": "shell",
+        "command": "firebase emulators:start --only functions,firestore",
+        "problemMatcher": []
+      },
+      {
+        "label": "deploy:rules+indexes",
+        "type": "shell",
+        "command": "firebase deploy --only firestore:rules,firestore:indexes",
+        "problemMatcher": []
+      },
+      {
+        "label": "deploy:functions",
+        "type": "shell",
+        "command": "firebase deploy --only functions",
+        "problemMatcher": []
+      }
+    ]
+  }
+  

@@ -1,0 +1,24 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'asset_document_entity.freezed.dart';
+part 'asset_document_entity.g.dart';
+
+@freezed
+@JsonSerializable(explicitToJson: true)
+abstract class AssetDocumentEntity with _$AssetDocumentEntity {
+  const factory AssetDocumentEntity({
+    required String id,
+    required String assetId,
+    required String tipoDoc,
+    required String countryId,
+    String? cityId,
+    DateTime? fechaEmision,
+    DateTime? fechaVencimiento,
+    required String estado, // vigente | vencido | por_vencer
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) = _AssetDocumentEntity;
+
+  factory AssetDocumentEntity.fromJson(Map<String, dynamic> json) =>
+      _$AssetDocumentEntityFromJson(json);
+}
