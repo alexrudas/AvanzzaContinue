@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -44,6 +45,10 @@ class MembershipModel {
       _$MembershipModelFromJson(json);
   Map<String, dynamic> toJson() => _$MembershipModelToJson(this);
 
+  factory MembershipModel.fromFirestore(
+          String docId, Map<String, dynamic> json) =>
+      MembershipModel.fromJson({...json, 'id': docId});
+
   factory MembershipModel.fromEntity(domain.MembershipEntity e) =>
       MembershipModel(
         id: '${e.userId}_${e.orgId}',
@@ -52,8 +57,7 @@ class MembershipModel {
         orgName: e.orgName,
         roles: e.roles,
         estatus: e.estatus,
-        primaryLocationJson:
-            jsonEncode(e.primaryLocation),
+        primaryLocationJson: jsonEncode(e.primaryLocation),
         createdAt: e.createdAt,
         updatedAt: e.updatedAt,
       );

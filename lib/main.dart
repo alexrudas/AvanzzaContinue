@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import 'core/startup/bootstrap.dart';
 import 'app/routes.dart';
+import 'core/startup/bootstrap.dart';
+import 'seed.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -25,5 +26,6 @@ class App extends StatelessWidget {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Bootstrap.init();
+  await seedMain();
   runApp(const App());
 }

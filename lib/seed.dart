@@ -7,8 +7,8 @@ import 'package:avanzza/domain/entities/org/organization_entity.dart';
 import 'package:avanzza/domain/entities/user/membership_entity.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-Future<void> main() async {
-  await Bootstrap.init();
+Future<void> seedMain() async {
+  // await Bootstrap.init();
   final di = DIContainer();
 
   // GEO: country + city
