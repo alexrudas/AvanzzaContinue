@@ -81,7 +81,7 @@ const SupplierResponseModelSchema = CollectionSchema(
   idName: r'isarId',
   indexes: {
     r'id': IndexSchema(
-      id: 3268,
+      id: -3268401673993471357,
       name: r'id',
       unique: true,
       replace: true,

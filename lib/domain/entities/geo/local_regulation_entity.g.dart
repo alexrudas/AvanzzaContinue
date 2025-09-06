@@ -62,8 +62,7 @@ Map<String, dynamic> _$LocalRegulationEntityToJson(
       'id': instance.id,
       'countryId': instance.countryId,
       'cityId': instance.cityId,
-      'picoYPlacaRules':
-          instance.picoYPlacaRules.map((e) => e.toJson()).toList(),
+      'picoYPlacaRules': instance.picoYPlacaRules,
       'circulationExceptions': instance.circulationExceptions,
       'maintenanceBlackoutDates': instance.maintenanceBlackoutDates,
       'updatedBy': instance.updatedBy,

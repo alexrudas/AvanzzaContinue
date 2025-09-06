@@ -419,8 +419,7 @@ extension OrganizationEntityPatterns on OrganizationEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _OrganizationEntity implements OrganizationEntity {
   const _OrganizationEntity(
       {required this.id,

@@ -240,8 +240,7 @@ extension GeoCoordPatterns on GeoCoord {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _GeoCoord implements GeoCoord {
   const _GeoCoord({required this.lat, required this.lng});
   factory _GeoCoord.fromJson(Map<String, dynamic> json) =>

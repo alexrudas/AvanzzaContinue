@@ -4,7 +4,6 @@ part 'supplier_response_entity.freezed.dart';
 part 'supplier_response_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class SupplierResponseEntity with _$SupplierResponseEntity {
   const factory SupplierResponseEntity({
     required String id,
@@ -20,5 +19,6 @@ abstract class SupplierResponseEntity with _$SupplierResponseEntity {
     DateTime? updatedAt,
   }) = _SupplierResponseEntity;
 
-  factory SupplierResponseEntity.fromJson(Map<String, dynamic> json) => _$SupplierResponseEntityFromJson(json);
+  factory SupplierResponseEntity.fromJson(Map<String, dynamic> json) =>
+      _$SupplierResponseEntityFromJson(json);
 }

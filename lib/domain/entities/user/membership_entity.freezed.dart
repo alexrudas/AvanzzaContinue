@@ -356,8 +356,7 @@ extension MembershipEntityPatterns on MembershipEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _MembershipEntity implements MembershipEntity {
   const _MembershipEntity(
       {required this.userId,

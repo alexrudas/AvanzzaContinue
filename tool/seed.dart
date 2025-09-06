@@ -1,7 +1,6 @@
 import 'package:avanzza/core/di/container.dart';
 import 'package:avanzza/core/startup/bootstrap.dart';
 import 'package:avanzza/domain/entities/asset/asset_entity.dart';
-import 'package:avanzza/domain/entities/geo/city_entity.dart';
 import 'package:avanzza/domain/entities/geo/country_entity.dart';
 import 'package:avanzza/domain/entities/maintenance/incidencia_entity.dart';
 import 'package:avanzza/domain/entities/org/organization_entity.dart';
@@ -9,7 +8,7 @@ import 'package:avanzza/domain/entities/user/membership_entity.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 Future<void> main() async {
-  final init = await Bootstrap.init();
+  await Bootstrap.init();
   final di = DIContainer();
 
   // GEO: country + city
@@ -25,17 +24,18 @@ Future<void> main() async {
   );
   await di.geoRepository.upsertCountry(country);
 
-  final city = CityEntity(
-    id: 'bogota',
-    countryId: 'CO',
-    regionId: 'cund',
-    name: 'Bogotá',
-    lat: 4.71,
-    lng: -74.07,
-    isActive: true,
-    createdAt: DateTime.now().toUtc(),
-    updatedAt: DateTime.now().toUtc(),
-  );
+  // final city = CityEntity(
+  //   id: 'bogota',
+  //   countryId: 'CO',
+  //   regionId: 'cund',
+  //   name: 'Bogotá',
+  //   lat: 4.71,
+  //   lng: -74.07,
+  //   isActive: true,
+  //   createdAt: DateTime.now().toUtc(),
+  //   updatedAt: DateTime.now().toUtc(),
+  // );
+
   // No direct upsert on cities; simulate via local DS through repository fetch to trigger sync
   await di.geoRepository.fetchCities(countryId: 'CO');
 

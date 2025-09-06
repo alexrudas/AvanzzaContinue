@@ -15,7 +15,7 @@ extension GetCityModelCollection on Isar {
 
 const CityModelSchema = CollectionSchema(
   name: r'CityModel',
-  id: 6875,
+  id: 6875720243144095242,
   properties: {
     r'countryId': PropertySchema(
       id: 0,
@@ -75,7 +75,7 @@ const CityModelSchema = CollectionSchema(
   idName: r'isarId',
   indexes: {
     r'id': IndexSchema(
-      id: 3268,
+      id: -3268401673993471357,
       name: r'id',
       unique: true,
       replace: true,
@@ -88,7 +88,7 @@ const CityModelSchema = CollectionSchema(
       ],
     ),
     r'countryId': IndexSchema(
-      id: 5115,
+      id: -5115696458787596369,
       name: r'countryId',
       unique: false,
       replace: false,
@@ -101,7 +101,7 @@ const CityModelSchema = CollectionSchema(
       ],
     ),
     r'regionId': IndexSchema(
-      id: 3633,
+      id: -3633044038139156791,
       name: r'regionId',
       unique: false,
       replace: false,
@@ -114,7 +114,7 @@ const CityModelSchema = CollectionSchema(
       ],
     ),
     r'isActive': IndexSchema(
-      id: 8092,
+      id: 8092228061260947457,
       name: r'isActive',
       unique: false,
       replace: false,

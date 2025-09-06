@@ -4,7 +4,6 @@ part 'broadcast_message_entity.freezed.dart';
 part 'broadcast_message_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class BroadcastMessageEntity with _$BroadcastMessageEntity {
   const factory BroadcastMessageEntity({
     required String id,
@@ -18,5 +17,6 @@ abstract class BroadcastMessageEntity with _$BroadcastMessageEntity {
     DateTime? updatedAt,
   }) = _BroadcastMessageEntity;
 
-  factory BroadcastMessageEntity.fromJson(Map<String, dynamic> json) => _$BroadcastMessageEntityFromJson(json);
+  factory BroadcastMessageEntity.fromJson(Map<String, dynamic> json) =>
+      _$BroadcastMessageEntityFromJson(json);
 }

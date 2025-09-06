@@ -4,12 +4,12 @@ part 'date_range.freezed.dart';
 part 'date_range.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class DateRange with _$DateRange {
   const factory DateRange({
     required DateTime start,
     required DateTime end,
   }) = _DateRange;
 
-  factory DateRange.fromJson(Map<String, dynamic> json) => _$DateRangeFromJson(json);
+  factory DateRange.fromJson(Map<String, dynamic> json) =>
+      _$DateRangeFromJson(json);
 }

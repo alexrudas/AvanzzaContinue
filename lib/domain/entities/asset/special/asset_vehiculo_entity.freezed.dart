@@ -312,8 +312,7 @@ extension AssetVehiculoEntityPatterns on AssetVehiculoEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _AssetVehiculoEntity implements AssetVehiculoEntity {
   const _AssetVehiculoEntity(
       {required this.assetId,

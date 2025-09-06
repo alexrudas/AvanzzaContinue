@@ -4,7 +4,6 @@ part 'asset_vehiculo_entity.freezed.dart';
 part 'asset_vehiculo_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class AssetVehiculoEntity with _$AssetVehiculoEntity {
   const factory AssetVehiculoEntity({
     required String assetId,
@@ -17,5 +16,6 @@ abstract class AssetVehiculoEntity with _$AssetVehiculoEntity {
     DateTime? updatedAt,
   }) = _AssetVehiculoEntity;
 
-  factory AssetVehiculoEntity.fromJson(Map<String, dynamic> json) => _$AssetVehiculoEntityFromJson(json);
+  factory AssetVehiculoEntity.fromJson(Map<String, dynamic> json) =>
+      _$AssetVehiculoEntityFromJson(json);
 }

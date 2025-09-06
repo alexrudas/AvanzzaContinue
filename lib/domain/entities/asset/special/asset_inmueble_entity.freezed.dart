@@ -350,8 +350,7 @@ extension AssetInmuebleEntityPatterns on AssetInmuebleEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _AssetInmuebleEntity implements AssetInmuebleEntity {
   const _AssetInmuebleEntity(
       {required this.assetId,

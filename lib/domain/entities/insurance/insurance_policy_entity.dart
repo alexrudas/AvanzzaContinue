@@ -4,7 +4,6 @@ part 'insurance_policy_entity.freezed.dart';
 part 'insurance_policy_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class InsurancePolicyEntity with _$InsurancePolicyEntity {
   const factory InsurancePolicyEntity({
     required String id,
@@ -22,5 +21,6 @@ abstract class InsurancePolicyEntity with _$InsurancePolicyEntity {
     DateTime? updatedAt,
   }) = _InsurancePolicyEntity;
 
-  factory InsurancePolicyEntity.fromJson(Map<String, dynamic> json) => _$InsurancePolicyEntityFromJson(json);
+  factory InsurancePolicyEntity.fromJson(Map<String, dynamic> json) =>
+      _$InsurancePolicyEntityFromJson(json);
 }

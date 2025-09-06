@@ -8,7 +8,7 @@ part of 'ai_advisor_entity.dart';
 
 _AIAdvisorEntity _$AIAdvisorEntityFromJson(Map<String, dynamic> json) =>
     _AIAdvisorEntity(
-      id: json['id'] as String,
+      id: json['id'] as String? ?? '',
       orgId: json['orgId'] as String,
       userId: json['userId'] as String,
       modulo: json['modulo'] as String,

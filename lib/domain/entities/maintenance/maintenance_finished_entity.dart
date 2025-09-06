@@ -4,7 +4,6 @@ part 'maintenance_finished_entity.freezed.dart';
 part 'maintenance_finished_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class MaintenanceFinishedEntity with _$MaintenanceFinishedEntity {
   const factory MaintenanceFinishedEntity({
     required String id,
@@ -20,5 +19,6 @@ abstract class MaintenanceFinishedEntity with _$MaintenanceFinishedEntity {
     DateTime? updatedAt,
   }) = _MaintenanceFinishedEntity;
 
-  factory MaintenanceFinishedEntity.fromJson(Map<String, dynamic> json) => _$MaintenanceFinishedEntityFromJson(json);
+  factory MaintenanceFinishedEntity.fromJson(Map<String, dynamic> json) =>
+      _$MaintenanceFinishedEntityFromJson(json);
 }

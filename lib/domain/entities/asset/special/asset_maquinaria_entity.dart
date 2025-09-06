@@ -4,7 +4,6 @@ part 'asset_maquinaria_entity.freezed.dart';
 part 'asset_maquinaria_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class AssetMaquinariaEntity with _$AssetMaquinariaEntity {
   const factory AssetMaquinariaEntity({
     required String assetId,

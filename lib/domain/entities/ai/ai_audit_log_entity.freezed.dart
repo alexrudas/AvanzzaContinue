@@ -370,8 +370,7 @@ extension AIAuditLogEntityPatterns on AIAuditLogEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _AIAuditLogEntity implements AIAuditLogEntity {
   const _AIAuditLogEntity(
       {required this.id,

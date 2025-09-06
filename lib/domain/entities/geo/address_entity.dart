@@ -4,7 +4,6 @@ part 'address_entity.freezed.dart';
 part 'address_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class AddressEntity with _$AddressEntity {
   const factory AddressEntity({
     required String countryId,
@@ -17,5 +16,6 @@ abstract class AddressEntity with _$AddressEntity {
     double? lng,
   }) = _AddressEntity;
 
-  factory AddressEntity.fromJson(Map<String, dynamic> json) => _$AddressEntityFromJson(json);
+  factory AddressEntity.fromJson(Map<String, dynamic> json) =>
+      _$AddressEntityFromJson(json);
 }

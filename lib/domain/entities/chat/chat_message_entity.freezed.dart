@@ -434,8 +434,7 @@ extension ChatMessageEntityPatterns on ChatMessageEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _ChatMessageEntity implements ChatMessageEntity {
   const _ChatMessageEntity(
       {required this.id,

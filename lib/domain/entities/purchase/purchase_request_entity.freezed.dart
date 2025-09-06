@@ -452,8 +452,7 @@ extension PurchaseRequestEntityPatterns on PurchaseRequestEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _PurchaseRequestEntity implements PurchaseRequestEntity {
   const _PurchaseRequestEntity(
       {required this.id,

@@ -4,7 +4,6 @@ part 'organization_entity.freezed.dart';
 part 'organization_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class OrganizationEntity with _$OrganizationEntity {
   const factory OrganizationEntity({
     required String id,
@@ -21,5 +20,6 @@ abstract class OrganizationEntity with _$OrganizationEntity {
     DateTime? updatedAt,
   }) = _OrganizationEntity;
 
-  factory OrganizationEntity.fromJson(Map<String, dynamic> json) => _$OrganizationEntityFromJson(json);
+  factory OrganizationEntity.fromJson(Map<String, dynamic> json) =>
+      _$OrganizationEntityFromJson(json);
 }

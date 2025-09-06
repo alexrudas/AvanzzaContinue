@@ -378,8 +378,7 @@ extension AssetDocumentEntityPatterns on AssetDocumentEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _AssetDocumentEntity implements AssetDocumentEntity {
   const _AssetDocumentEntity(
       {required this.id,

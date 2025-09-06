@@ -350,8 +350,7 @@ extension AssetMaquinariaEntityPatterns on AssetMaquinariaEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _AssetMaquinariaEntity implements AssetMaquinariaEntity {
   const _AssetMaquinariaEntity(
       {required this.assetId,

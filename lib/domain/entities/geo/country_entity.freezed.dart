@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 
 /// @nodoc
 mixin _$CountryEntity {
-  String get id; // ISO-3166 alpha-2
+  String get id; // se rellena por doc.id/path
   String get name;
   String get iso3;
   String? get phoneCode;
@@ -25,7 +25,7 @@ mixin _$CountryEntity {
   double? get taxRateDefault;
   List<String> get documentTypes;
   String? get plateFormatRegex;
-  List<String> get nationalHolidays; // YYYY-MM-DD
+  List<String> get nationalHolidays;
   bool get isActive;
   DateTime? get createdAt;
   DateTime? get updatedAt;
@@ -469,11 +469,10 @@ extension CountryEntityPatterns on CountryEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _CountryEntity implements CountryEntity {
   const _CountryEntity(
-      {required this.id,
+      {this.id = '',
       required this.name,
       required this.iso3,
       this.phoneCode,
@@ -494,8 +493,9 @@ class _CountryEntity implements CountryEntity {
       _$CountryEntityFromJson(json);
 
   @override
+  @JsonKey()
   final String id;
-// ISO-3166 alpha-2
+// se rellena por doc.id/path
   @override
   final String name;
   @override
@@ -533,7 +533,6 @@ class _CountryEntity implements CountryEntity {
     return EqualUnmodifiableListView(_nationalHolidays);
   }
 
-// YYYY-MM-DD
   @override
   @JsonKey()
   final bool isActive;

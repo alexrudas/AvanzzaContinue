@@ -436,8 +436,7 @@ extension InsurancePolicyEntityPatterns on InsurancePolicyEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _InsurancePolicyEntity implements InsurancePolicyEntity {
   const _InsurancePolicyEntity(
       {required this.id,

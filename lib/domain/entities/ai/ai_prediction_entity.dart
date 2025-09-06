@@ -4,7 +4,6 @@ part 'ai_prediction_entity.freezed.dart';
 part 'ai_prediction_entity.g.dart';
 
 @freezed
-@JsonSerializable(explicitToJson: true)
 abstract class AIPredictionEntity with _$AIPredictionEntity {
   const factory AIPredictionEntity({
     required String id,

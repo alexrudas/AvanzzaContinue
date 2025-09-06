@@ -364,8 +364,7 @@ extension BroadcastMessageEntityPatterns on BroadcastMessageEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _BroadcastMessageEntity implements BroadcastMessageEntity {
   const _BroadcastMessageEntity(
       {required this.id,

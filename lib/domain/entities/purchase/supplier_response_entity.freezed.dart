@@ -406,8 +406,7 @@ extension SupplierResponseEntityPatterns on SupplierResponseEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _SupplierResponseEntity implements SupplierResponseEntity {
   const _SupplierResponseEntity(
       {required this.id,

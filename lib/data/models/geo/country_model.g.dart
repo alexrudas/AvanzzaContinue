@@ -15,7 +15,7 @@ extension GetCountryModelCollection on Isar {
 
 const CountryModelSchema = CollectionSchema(
   name: r'CountryModel',
-  id: 4989,
+  id: 4989162708159869563,
   properties: {
     r'createdAt': PropertySchema(
       id: 0,
@@ -100,7 +100,7 @@ const CountryModelSchema = CollectionSchema(
   idName: r'isarId',
   indexes: {
     r'id': IndexSchema(
-      id: 3268,
+      id: -3268401673993471357,
       name: r'id',
       unique: true,
       replace: true,
@@ -113,7 +113,7 @@ const CountryModelSchema = CollectionSchema(
       ],
     ),
     r'isActive': IndexSchema(
-      id: 8092,
+      id: 8092228061260947457,
       name: r'isActive',
       unique: false,
       replace: false,

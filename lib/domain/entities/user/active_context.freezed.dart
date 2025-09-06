@@ -250,8 +250,7 @@ extension ActiveContextPatterns on ActiveContext {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _ActiveContext implements ActiveContext {
   const _ActiveContext(
       {required this.orgId, required this.orgName, required this.rol});

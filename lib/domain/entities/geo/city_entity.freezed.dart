@@ -377,8 +377,7 @@ extension CityEntityPatterns on CityEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _CityEntity implements CityEntity {
   const _CityEntity(
       {required this.id,

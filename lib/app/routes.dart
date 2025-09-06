@@ -34,7 +34,7 @@ class AppRoutes {
 
 class _PlaceholderPage extends StatelessWidget {
   final String title;
-  const _PlaceholderPage({super.key, required this.title});
+  const _PlaceholderPage({ required this.title});
 
   @override
   Widget build(BuildContext context) {

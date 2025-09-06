@@ -4,7 +4,6 @@ part 'incidencia_entity.freezed.dart';
 part 'incidencia_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class IncidenciaEntity with _$IncidenciaEntity {
   const factory IncidenciaEntity({
     required String id,
@@ -20,5 +19,6 @@ abstract class IncidenciaEntity with _$IncidenciaEntity {
     DateTime? updatedAt,
   }) = _IncidenciaEntity;
 
-  factory IncidenciaEntity.fromJson(Map<String, dynamic> json) => _$IncidenciaEntityFromJson(json);
+  factory IncidenciaEntity.fromJson(Map<String, dynamic> json) =>
+      _$IncidenciaEntityFromJson(json);
 }

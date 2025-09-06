@@ -327,8 +327,7 @@ extension AddressEntityPatterns on AddressEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _AddressEntity implements AddressEntity {
   const _AddressEntity(
       {required this.countryId,

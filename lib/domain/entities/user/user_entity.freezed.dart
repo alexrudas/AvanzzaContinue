@@ -432,8 +432,7 @@ extension UserEntityPatterns on UserEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _UserEntity implements UserEntity {
   const _UserEntity(
       {required this.uid,

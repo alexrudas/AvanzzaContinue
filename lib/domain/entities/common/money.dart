@@ -4,7 +4,6 @@ part 'money.freezed.dart';
 part 'money.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class Money with _$Money {
   const factory Money({
     required double amount,

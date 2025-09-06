@@ -4,8 +4,8 @@ part 'maintenance_programming_entity.freezed.dart';
 part 'maintenance_programming_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
-abstract class MaintenanceProgrammingEntity with _$MaintenanceProgrammingEntity {
+abstract class MaintenanceProgrammingEntity
+    with _$MaintenanceProgrammingEntity {
   const factory MaintenanceProgrammingEntity({
     required String id,
     required String orgId,
@@ -19,5 +19,6 @@ abstract class MaintenanceProgrammingEntity with _$MaintenanceProgrammingEntity 
     DateTime? updatedAt,
   }) = _MaintenanceProgrammingEntity;
 
-  factory MaintenanceProgrammingEntity.fromJson(Map<String, dynamic> json) => _$MaintenanceProgrammingEntityFromJson(json);
+  factory MaintenanceProgrammingEntity.fromJson(Map<String, dynamic> json) =>
+      _$MaintenanceProgrammingEntityFromJson(json);
 }

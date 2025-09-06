@@ -4,7 +4,6 @@ part 'region_entity.freezed.dart';
 part 'region_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class RegionEntity with _$RegionEntity {
   const factory RegionEntity({
     required String id,
@@ -16,5 +15,6 @@ abstract class RegionEntity with _$RegionEntity {
     DateTime? updatedAt,
   }) = _RegionEntity;
 
-  factory RegionEntity.fromJson(Map<String, dynamic> json) => _$RegionEntityFromJson(json);
+  factory RegionEntity.fromJson(Map<String, dynamic> json) =>
+      _$RegionEntityFromJson(json);
 }

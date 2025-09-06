@@ -40,8 +40,8 @@ Map<String, dynamic> _$UserEntityToJson(_UserEntity instance) =>
       'numDoc': instance.numDoc,
       'countryId': instance.countryId,
       'preferredLanguage': instance.preferredLanguage,
-      'activeContext': instance.activeContext?.toJson(),
-      'addresses': instance.addresses?.map((e) => e.toJson()).toList(),
+      'activeContext': instance.activeContext,
+      'addresses': instance.addresses,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
     };

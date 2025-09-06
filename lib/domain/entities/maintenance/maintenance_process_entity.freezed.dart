@@ -404,8 +404,7 @@ extension MaintenanceProcessEntityPatterns on MaintenanceProcessEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _MaintenanceProcessEntity implements MaintenanceProcessEntity {
   const _MaintenanceProcessEntity(
       {required this.id,

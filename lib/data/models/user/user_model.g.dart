@@ -15,7 +15,7 @@ extension GetUserModelCollection on Isar {
 
 const UserModelSchema = CollectionSchema(
   name: r'UserModel',
-  id: 7195,
+  id: 7195426469378571114,
   properties: {
     r'activeContext': PropertySchema(
       id: 0,
@@ -87,7 +87,7 @@ const UserModelSchema = CollectionSchema(
   idName: r'isarId',
   indexes: {
     r'uid': IndexSchema(
-      id: 8193,
+      id: 8193695471701937315,
       name: r'uid',
       unique: true,
       replace: true,

@@ -403,8 +403,7 @@ extension IncidenciaEntityPatterns on IncidenciaEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _IncidenciaEntity implements IncidenciaEntity {
   const _IncidenciaEntity(
       {required this.id,

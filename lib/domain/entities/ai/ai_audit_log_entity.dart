@@ -4,7 +4,6 @@ part 'ai_audit_log_entity.freezed.dart';
 part 'ai_audit_log_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class AIAuditLogEntity with _$AIAuditLogEntity {
   const factory AIAuditLogEntity({
     required String id,

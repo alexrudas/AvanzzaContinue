@@ -29,7 +29,7 @@ class AssetListPage extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           // Mock add
-          final nowId = DateTime.now().millisecondsSinceEpoch.toString();
+          // final nowId = DateTime.now().millisecondsSinceEpoch.toString();
           // TODO: construct AssetEntity via a form; using placeholder here
         },
         child: const Icon(Icons.add),

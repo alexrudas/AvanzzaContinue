@@ -4,7 +4,6 @@ part 'purchase_request_entity.freezed.dart';
 part 'purchase_request_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class PurchaseRequestEntity with _$PurchaseRequestEntity {
   const factory PurchaseRequestEntity({
     required String id,
@@ -23,5 +22,6 @@ abstract class PurchaseRequestEntity with _$PurchaseRequestEntity {
     DateTime? updatedAt,
   }) = _PurchaseRequestEntity;
 
-  factory PurchaseRequestEntity.fromJson(Map<String, dynamic> json) => _$PurchaseRequestEntityFromJson(json);
+  factory PurchaseRequestEntity.fromJson(Map<String, dynamic> json) =>
+      _$PurchaseRequestEntityFromJson(json);
 }

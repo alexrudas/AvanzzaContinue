@@ -6,7 +6,6 @@ part 'user_entity.freezed.dart';
 part 'user_entity.g.dart';
 
 @freezed
-@JsonSerializable(explicitToJson: true)
 abstract class UserEntity with _$UserEntity {
   const factory UserEntity({
     required String uid,

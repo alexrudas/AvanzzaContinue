@@ -390,8 +390,7 @@ extension MaintenanceProgrammingEntityPatterns on MaintenanceProgrammingEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _MaintenanceProgrammingEntity implements MaintenanceProgrammingEntity {
   const _MaintenanceProgrammingEntity(
       {required this.id,

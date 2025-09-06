@@ -33,7 +33,7 @@ Map<String, dynamic> _$InsurancePurchaseEntityToJson(
       'compradorId': instance.compradorId,
       'orgId': instance.orgId,
       'contactEmail': instance.contactEmail,
-      'address': instance.address.toJson(),
+      'address': instance.address,
       'currencyCode': instance.currencyCode,
       'estadoCompra': instance.estadoCompra,
       'createdAt': instance.createdAt?.toIso8601String(),

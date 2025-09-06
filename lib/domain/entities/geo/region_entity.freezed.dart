@@ -298,8 +298,7 @@ extension RegionEntityPatterns on RegionEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _RegionEntity implements RegionEntity {
   const _RegionEntity(
       {required this.id,

@@ -4,7 +4,6 @@ part 'local_regulation_entity.freezed.dart';
 part 'local_regulation_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class PicoYPlacaRule with _$PicoYPlacaRule {
   const factory PicoYPlacaRule({
     required int dayOfWeek, // 1=Mon .. 7=Sun
@@ -14,11 +13,11 @@ abstract class PicoYPlacaRule with _$PicoYPlacaRule {
     String? notes,
   }) = _PicoYPlacaRule;
 
-  factory PicoYPlacaRule.fromJson(Map<String, dynamic> json) => _$PicoYPlacaRuleFromJson(json);
+  factory PicoYPlacaRule.fromJson(Map<String, dynamic> json) =>
+      _$PicoYPlacaRuleFromJson(json);
 }
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class LocalRegulationEntity with _$LocalRegulationEntity {
   const factory LocalRegulationEntity({
     required String id,
@@ -33,5 +32,6 @@ abstract class LocalRegulationEntity with _$LocalRegulationEntity {
     DateTime? updatedAt,
   }) = _LocalRegulationEntity;
 
-  factory LocalRegulationEntity.fromJson(Map<String, dynamic> json) => _$LocalRegulationEntityFromJson(json);
+  factory LocalRegulationEntity.fromJson(Map<String, dynamic> json) =>
+      _$LocalRegulationEntityFromJson(json);
 }

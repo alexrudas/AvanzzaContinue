@@ -14,11 +14,10 @@ T _$identity<T>(T value) => value;
 
 /// @nodoc
 mixin _$AIAdvisorEntity {
-  String get id;
+  String get id; // se completa con doc.id fuera del JSON
   String get orgId;
   String get userId;
-  String
-      get modulo; // activos | mantenimiento | compras | contabilidad | seguros | chat
+  String get modulo;
   String get inputText;
   Map<String, dynamic>? get structuredContext;
   String? get outputText;
@@ -390,11 +389,10 @@ extension AIAdvisorEntityPatterns on AIAdvisorEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _AIAdvisorEntity implements AIAdvisorEntity {
   const _AIAdvisorEntity(
-      {required this.id,
+      {this.id = '',
       required this.orgId,
       required this.userId,
       required this.modulo,
@@ -410,14 +408,15 @@ class _AIAdvisorEntity implements AIAdvisorEntity {
       _$AIAdvisorEntityFromJson(json);
 
   @override
+  @JsonKey()
   final String id;
+// se completa con doc.id fuera del JSON
   @override
   final String orgId;
   @override
   final String userId;
   @override
   final String modulo;
-// activos | mantenimiento | compras | contabilidad | seguros | chat
   @override
   final String inputText;
   final Map<String, dynamic>? _structuredContext;

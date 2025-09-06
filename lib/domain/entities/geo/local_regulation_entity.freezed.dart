@@ -287,8 +287,7 @@ extension PicoYPlacaRulePatterns on PicoYPlacaRule {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _PicoYPlacaRule implements PicoYPlacaRule {
   const _PicoYPlacaRule(
       {required this.dayOfWeek,
@@ -808,8 +807,7 @@ extension LocalRegulationEntityPatterns on LocalRegulationEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _LocalRegulationEntity implements LocalRegulationEntity {
   const _LocalRegulationEntity(
       {required this.id,

@@ -391,8 +391,7 @@ extension InsurancePurchaseEntityPatterns on InsurancePurchaseEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _InsurancePurchaseEntity implements InsurancePurchaseEntity {
   const _InsurancePurchaseEntity(
       {required this.id,

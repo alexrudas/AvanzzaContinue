@@ -4,7 +4,6 @@ part 'city_entity.freezed.dart';
 part 'city_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class CityEntity with _$CityEntity {
   const factory CityEntity({
     required String id,
@@ -19,5 +18,6 @@ abstract class CityEntity with _$CityEntity {
     DateTime? updatedAt,
   }) = _CityEntity;
 
-  factory CityEntity.fromJson(Map<String, dynamic> json) => _$CityEntityFromJson(json);
+  factory CityEntity.fromJson(Map<String, dynamic> json) =>
+      _$CityEntityFromJson(json);
 }

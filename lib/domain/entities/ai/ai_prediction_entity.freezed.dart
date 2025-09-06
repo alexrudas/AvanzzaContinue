@@ -373,8 +373,7 @@ extension AIPredictionEntityPatterns on AIPredictionEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _AIPredictionEntity implements AIPredictionEntity {
   const _AIPredictionEntity(
       {required this.id,

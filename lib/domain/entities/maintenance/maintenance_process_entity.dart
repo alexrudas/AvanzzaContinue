@@ -4,7 +4,6 @@ part 'maintenance_process_entity.freezed.dart';
 part 'maintenance_process_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class MaintenanceProcessEntity with _$MaintenanceProcessEntity {
   const factory MaintenanceProcessEntity({
     required String id,
@@ -20,5 +19,6 @@ abstract class MaintenanceProcessEntity with _$MaintenanceProcessEntity {
     DateTime? updatedAt,
   }) = _MaintenanceProcessEntity;
 
-  factory MaintenanceProcessEntity.fromJson(Map<String, dynamic> json) => _$MaintenanceProcessEntityFromJson(json);
+  factory MaintenanceProcessEntity.fromJson(Map<String, dynamic> json) =>
+      _$MaintenanceProcessEntityFromJson(json);
 }

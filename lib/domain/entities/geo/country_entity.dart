@@ -4,10 +4,9 @@ part 'country_entity.freezed.dart';
 part 'country_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class CountryEntity with _$CountryEntity {
   const factory CountryEntity({
-    required String id, // ISO-3166 alpha-2
+    @Default('') String id, // se rellena por doc.id/path
     required String name,
     required String iso3,
     String? phoneCode,
@@ -18,11 +17,16 @@ abstract class CountryEntity with _$CountryEntity {
     double? taxRateDefault,
     @Default(<String>[]) List<String> documentTypes,
     String? plateFormatRegex,
-    @Default(<String>[]) List<String> nationalHolidays, // YYYY-MM-DD
+    @Default(<String>[]) List<String> nationalHolidays,
     @Default(true) bool isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _CountryEntity;
 
-  factory CountryEntity.fromJson(Map<String, dynamic> json) => _$CountryEntityFromJson(json);
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  String get id;
+
+  factory CountryEntity.fromJson(Map<String, dynamic> json) =>
+      _$CountryEntityFromJson(json);
 }

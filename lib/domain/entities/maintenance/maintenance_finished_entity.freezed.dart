@@ -405,8 +405,7 @@ extension MaintenanceFinishedEntityPatterns on MaintenanceFinishedEntity {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _MaintenanceFinishedEntity implements MaintenanceFinishedEntity {
   const _MaintenanceFinishedEntity(
       {required this.id,

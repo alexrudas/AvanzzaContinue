@@ -16,7 +16,7 @@ extension GetLocalRegulationModelCollection on Isar {
 
 const LocalRegulationModelSchema = CollectionSchema(
   name: r'LocalRegulationModel',
-  id: 3465,
+  id: 3465837939489549027,
   properties: {
     r'circulationExceptions': PropertySchema(
       id: 0,
@@ -77,7 +77,7 @@ const LocalRegulationModelSchema = CollectionSchema(
   idName: r'isarId',
   indexes: {
     r'id': IndexSchema(
-      id: 3268,
+      id: -3268401673993471357,
       name: r'id',
       unique: true,
       replace: true,
@@ -90,7 +90,7 @@ const LocalRegulationModelSchema = CollectionSchema(
       ],
     ),
     r'countryId': IndexSchema(
-      id: 5115,
+      id: -5115696458787596369,
       name: r'countryId',
       unique: false,
       replace: false,
@@ -103,7 +103,7 @@ const LocalRegulationModelSchema = CollectionSchema(
       ],
     ),
     r'cityId': IndexSchema(
-      id: 7617,
+      id: 7617551301138149930,
       name: r'cityId',
       unique: false,
       replace: false,
@@ -2470,7 +2470,7 @@ extension LocalRegulationModelQueryProperty on QueryBuilder<
 
 const PicoYPlacaRuleModelSchema = Schema(
   name: r'PicoYPlacaRuleModel',
-  id: 2450,
+  id: -2450595409067699231,
   properties: {
     r'dayOfWeek': PropertySchema(
       id: 0,

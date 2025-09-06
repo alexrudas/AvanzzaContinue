@@ -240,8 +240,7 @@ extension DateRangePatterns on DateRange {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _DateRange implements DateRange {
   const _DateRange({required this.start, required this.end});
   factory _DateRange.fromJson(Map<String, dynamic> json) =>

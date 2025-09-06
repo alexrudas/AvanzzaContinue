@@ -15,7 +15,7 @@ extension GetRegionModelCollection on Isar {
 
 const RegionModelSchema = CollectionSchema(
   name: r'RegionModel',
-  id: 3568,
+  id: 3568151106562102397,
   properties: {
     r'code': PropertySchema(
       id: 0,
@@ -60,7 +60,7 @@ const RegionModelSchema = CollectionSchema(
   idName: r'isarId',
   indexes: {
     r'id': IndexSchema(
-      id: 3268,
+      id: -3268401673993471357,
       name: r'id',
       unique: true,
       replace: true,
@@ -73,7 +73,7 @@ const RegionModelSchema = CollectionSchema(
       ],
     ),
     r'countryId': IndexSchema(
-      id: 5115,
+      id: -5115696458787596369,
       name: r'countryId',
       unique: false,
       replace: false,
@@ -86,7 +86,7 @@ const RegionModelSchema = CollectionSchema(
       ],
     ),
     r'isActive': IndexSchema(
-      id: 8092,
+      id: 8092228061260947457,
       name: r'isActive',
       unique: false,
       replace: false,

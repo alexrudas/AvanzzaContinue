@@ -4,7 +4,6 @@ part 'chat_message_entity.freezed.dart';
 part 'chat_message_entity.g.dart';
 
 @freezed
-  @JsonSerializable(explicitToJson: true)
 abstract class ChatMessageEntity with _$ChatMessageEntity {
   const factory ChatMessageEntity({
     required String id,
@@ -22,5 +21,6 @@ abstract class ChatMessageEntity with _$ChatMessageEntity {
     DateTime? updatedAt,
   }) = _ChatMessageEntity;
 
-  factory ChatMessageEntity.fromJson(Map<String, dynamic> json) => _$ChatMessageEntityFromJson(json);
+  factory ChatMessageEntity.fromJson(Map<String, dynamic> json) =>
+      _$ChatMessageEntityFromJson(json);
 }

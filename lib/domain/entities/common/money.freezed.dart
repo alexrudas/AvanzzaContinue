@@ -241,8 +241,7 @@ extension MoneyPatterns on Money {
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _Money implements Money {
   const _Money({required this.amount, required this.currencyCode});
   factory _Money.fromJson(Map<String, dynamic> json) => _$MoneyFromJson(json);
