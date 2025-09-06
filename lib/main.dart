@@ -26,6 +26,6 @@ class App extends StatelessWidget {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Bootstrap.init();
-  await seedMain();
+  // await seedMain(); // datos demos para las bds
   runApp(const App());
 }
