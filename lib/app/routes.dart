@@ -1,4 +1,7 @@
+import 'package:avanzza/presentation/pages/asset_list_page.dart';
 import 'package:avanzza/presentation/pages/login_page.dart';
+import 'package:avanzza/presentation/pages/org_selection_page.dart';
+import 'package:avanzza/presentation/pages/purchase_request_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -16,11 +19,11 @@ class AppRoutes {
     ),
     GetPage(
       name: orgSelect,
-      page: () => const _PlaceholderPage(title: 'Seleccionar Organización'),
+      page: () => const OrgSelectionPage(),
     ),
     GetPage(
       name: assets,
-      page: () => const _PlaceholderPage(title: 'Activos'),
+      page: () => const AssetListPage(),
     ),
     GetPage(
       name: incidencia,
@@ -28,7 +31,7 @@ class AppRoutes {
     ),
     GetPage(
       name: purchase,
-      page: () => const _PlaceholderPage(title: 'Compras'),
+      page: () => const PurchaseRequestPage(),
     ),
   ];
 }
