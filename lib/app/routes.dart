@@ -1,3 +1,4 @@
+import 'package:avanzza/presentation/pages/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -11,7 +12,7 @@ class AppRoutes {
   static final List<GetPage<dynamic>> pages = [
     GetPage(
       name: login,
-      page: () => const _PlaceholderPage(title: 'Login'),
+      page: () => const LoginPage(),
     ),
     GetPage(
       name: orgSelect,
@@ -34,7 +35,7 @@ class AppRoutes {
 
 class _PlaceholderPage extends StatelessWidget {
   final String title;
-  const _PlaceholderPage({ required this.title});
+  const _PlaceholderPage({required this.title});
 
   @override
   Widget build(BuildContext context) {

@@ -1,3 +1,4 @@
+import 'package:avanzza/firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:isar_community/isar.dart';
@@ -10,7 +11,9 @@ import '../sync/sync_observer.dart';
 
 class Bootstrap {
   static Future<BootstrapResult> init() async {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
 
     final isar = await openIsar();
     await runMigrations(isar);

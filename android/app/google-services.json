@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "778457383096",
+    "project_id": "avanzzaplus-98e47",
+    "storage_bucket": "avanzzaplus-98e47.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:778457383096:android:8c0f90e4e8a427b2fa744d",
+        "android_client_info": {
+          "package_name": "com.example.avanzza"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBoo6jdlBA7UOag2OVxKG8nQEvtJYcRd4s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
