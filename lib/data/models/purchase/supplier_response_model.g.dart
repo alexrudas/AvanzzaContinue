@@ -2401,12 +2401,8 @@ SupplierResponseModel _$SupplierResponseModelFromJson(
       catalogoUrl: json['catalogoUrl'] as String?,
       notas: json['notas'] as String?,
       leadTimeDays: (json['leadTimeDays'] as num?)?.toInt(),
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$SupplierResponseModelToJson(
@@ -2422,6 +2418,8 @@ Map<String, dynamic> _$SupplierResponseModelToJson(
       'catalogoUrl': instance.catalogoUrl,
       'notas': instance.notas,
       'leadTimeDays': instance.leadTimeDays,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

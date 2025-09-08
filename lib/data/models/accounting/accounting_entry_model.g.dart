@@ -111,7 +111,7 @@ const AccountingEntryModelSchema = CollectionSchema(
   idName: r'isarId',
   indexes: {
     r'id': IndexSchema(
-      id: 3268,
+      id: -3268401673993471357,
       name: r'id',
       unique: true,
       replace: true,
@@ -137,7 +137,7 @@ const AccountingEntryModelSchema = CollectionSchema(
       ],
     ),
     r'countryId': IndexSchema(
-      id: 5115,
+      id: -5115696458787596369,
       name: r'countryId',
       unique: false,
       replace: false,
@@ -150,7 +150,7 @@ const AccountingEntryModelSchema = CollectionSchema(
       ],
     ),
     r'cityId': IndexSchema(
-      id: 7617,
+      id: 7617551301138149930,
       name: r'cityId',
       unique: false,
       replace: false,
@@ -3669,12 +3669,8 @@ AccountingEntryModel _$AccountingEntryModelFromJson(
       method: json['method'] as String,
       taxAmount: (json['taxAmount'] as num?)?.toDouble(),
       taxRate: (json['taxRate'] as num?)?.toDouble(),
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$AccountingEntryModelToJson(
@@ -3696,6 +3692,8 @@ Map<String, dynamic> _$AccountingEntryModelToJson(
       'method': instance.method,
       'taxAmount': instance.taxAmount,
       'taxRate': instance.taxRate,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

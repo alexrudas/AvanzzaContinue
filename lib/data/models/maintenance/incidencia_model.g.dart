@@ -2703,12 +2703,8 @@ IncidenciaModel _$IncidenciaModelFromJson(Map<String, dynamic> json) =>
       estado: json['estado'] as String,
       reportedBy: json['reportedBy'] as String,
       cityId: json['cityId'] as String?,
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$IncidenciaModelToJson(IncidenciaModel instance) =>
@@ -2723,6 +2719,8 @@ Map<String, dynamic> _$IncidenciaModelToJson(IncidenciaModel instance) =>
       'estado': instance.estado,
       'reportedBy': instance.reportedBy,
       'cityId': instance.cityId,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

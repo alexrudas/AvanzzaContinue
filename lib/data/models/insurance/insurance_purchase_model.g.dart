@@ -2210,12 +2210,8 @@ InsurancePurchaseModel _$InsurancePurchaseModelFromJson(
       address: AddressModel.fromJson(json['address'] as Map<String, dynamic>),
       currencyCode: json['currencyCode'] as String,
       estadoCompra: json['estadoCompra'] as String,
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$InsurancePurchaseModelToJson(
@@ -2230,6 +2226,8 @@ Map<String, dynamic> _$InsurancePurchaseModelToJson(
       'address': instance.address.toJson(),
       'currencyCode': instance.currencyCode,
       'estadoCompra': instance.estadoCompra,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

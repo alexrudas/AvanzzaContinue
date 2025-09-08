@@ -9,7 +9,6 @@ class OrgSelectionPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(OrgSelectionController());
-
     return Scaffold(
       appBar: AppBar(title: const Text('Seleccionar Organización')),
       body: Obx(() {

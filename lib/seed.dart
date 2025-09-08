@@ -1,5 +1,4 @@
 import 'package:avanzza/core/di/container.dart';
-import 'package:avanzza/core/startup/bootstrap.dart';
 import 'package:avanzza/domain/entities/asset/asset_entity.dart';
 import 'package:avanzza/domain/entities/geo/country_entity.dart';
 import 'package:avanzza/domain/entities/maintenance/incidencia_entity.dart';

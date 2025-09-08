@@ -1,3 +1,4 @@
+import 'package:avanzza/core/utils/datetime_timestamp_converter.dart';
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -24,7 +25,9 @@ class InsurancePurchaseModel {
   final String currencyCode;
   @Index()
   final String estadoCompra; // pendiente | pagado | confirmado
+  @DateTimeTimestampConverter()
   final DateTime? createdAt;
+  @DateTimeTimestampConverter()
   final DateTime? updatedAt;
 
   InsurancePurchaseModel({

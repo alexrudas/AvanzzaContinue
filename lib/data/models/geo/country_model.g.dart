@@ -3213,12 +3213,8 @@ CountryModel _$CountryModelFromJson(Map<String, dynamic> json) => CountryModel(
               .toList() ??
           const [],
       isActive: json['isActive'] as bool? ?? true,
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$CountryModelToJson(CountryModel instance) =>
@@ -3237,6 +3233,8 @@ Map<String, dynamic> _$CountryModelToJson(CountryModel instance) =>
       'plateFormatRegex': instance.plateFormatRegex,
       'nationalHolidays': instance.nationalHolidays,
       'isActive': instance.isActive,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

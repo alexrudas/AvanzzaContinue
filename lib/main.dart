@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 
 import 'app/routes.dart';
 import 'core/startup/bootstrap.dart';
-import 'seed.dart';
 
 class App extends StatelessWidget {
   const App({super.key});

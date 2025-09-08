@@ -1,3 +1,4 @@
+import 'package:avanzza/core/utils/datetime_timestamp_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'broadcast_message_entity.freezed.dart';

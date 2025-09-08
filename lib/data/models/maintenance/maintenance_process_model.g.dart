@@ -2594,12 +2594,8 @@ MaintenanceProcessModel _$MaintenanceProcessModelFromJson(
       startedAt: DateTime.parse(json['startedAt'] as String),
       purchaseRequestId: json['purchaseRequestId'] as String?,
       cityId: json['cityId'] as String?,
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$MaintenanceProcessModelToJson(
@@ -2615,6 +2611,8 @@ Map<String, dynamic> _$MaintenanceProcessModelToJson(
       'startedAt': instance.startedAt.toIso8601String(),
       'purchaseRequestId': instance.purchaseRequestId,
       'cityId': instance.cityId,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

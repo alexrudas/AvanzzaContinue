@@ -1,9 +1,9 @@
 import 'package:get/get.dart';
 
-import '../../core/di/container.dart';
-import '../../domain/entities/user/active_context.dart';
-import '../../domain/entities/org/organization_entity.dart';
 import '../../app/routes.dart';
+import '../../core/di/container.dart';
+import '../../domain/entities/org/organization_entity.dart';
+import '../../domain/entities/user/active_context.dart';
 import 'session_context_controller.dart';
 
 class OrgSelectionController extends GetxController {
@@ -18,6 +18,7 @@ class OrgSelectionController extends GetxController {
     final di = DIContainer();
     session = Get.find<SessionContextController>();
     final uid = session.user?.uid;
+    print("[OrgSelectionController] uid $uid");
     if (uid != null) {
       di.orgRepository.watchOrgsByUser(uid).listen((list) {
         _orgs.assignAll(list);

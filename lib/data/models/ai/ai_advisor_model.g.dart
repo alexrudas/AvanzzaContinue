@@ -2312,9 +2312,7 @@ AIAdvisorModel _$AIAdvisorModelFromJson(Map<String, dynamic> json) =>
               .toList() ??
           const [],
       createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$AIAdvisorModelToJson(AIAdvisorModel instance) =>
@@ -2329,5 +2327,6 @@ Map<String, dynamic> _$AIAdvisorModelToJson(AIAdvisorModel instance) =>
       'outputText': instance.outputText,
       'suggestions': instance.suggestions,
       'createdAt': instance.createdAt.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

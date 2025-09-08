@@ -2793,12 +2793,8 @@ InsurancePolicyModel _$InsurancePolicyModelFromJson(
       fechaInicio: DateTime.parse(json['fechaInicio'] as String),
       fechaFin: DateTime.parse(json['fechaFin'] as String),
       estado: json['estado'] as String,
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$InsurancePolicyModelToJson(
@@ -2816,6 +2812,8 @@ Map<String, dynamic> _$InsurancePolicyModelToJson(
       'fechaInicio': instance.fechaInicio.toIso8601String(),
       'fechaFin': instance.fechaFin.toIso8601String(),
       'estado': instance.estado,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

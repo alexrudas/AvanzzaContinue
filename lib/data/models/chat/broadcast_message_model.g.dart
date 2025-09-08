@@ -2347,12 +2347,8 @@ BroadcastMessageModel _$BroadcastMessageModelFromJson(
       message: json['message'] as String,
       timestamp: DateTime.parse(json['timestamp'] as String),
       countryId: json['countryId'] as String?,
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$BroadcastMessageModelToJson(
@@ -2366,6 +2362,8 @@ Map<String, dynamic> _$BroadcastMessageModelToJson(
       'message': instance.message,
       'timestamp': instance.timestamp.toIso8601String(),
       'countryId': instance.countryId,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

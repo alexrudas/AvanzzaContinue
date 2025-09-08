@@ -1,3 +1,4 @@
+import 'package:avanzza/core/utils/datetime_timestamp_converter.dart';
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -20,7 +21,9 @@ class AssetVehiculoModel {
   final String marca;
   final String modelo;
   final int anio;
+  @DateTimeTimestampConverter()
   final DateTime? createdAt;
+  @DateTimeTimestampConverter()
   final DateTime? updatedAt;
 
   AssetVehiculoModel({

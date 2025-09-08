@@ -2242,9 +2242,7 @@ AIPredictionModel _$AIPredictionModelFromJson(Map<String, dynamic> json) =>
               .toList() ??
           const [],
       createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$AIPredictionModelToJson(AIPredictionModel instance) =>
@@ -2258,5 +2256,6 @@ Map<String, dynamic> _$AIPredictionModelToJson(AIPredictionModel instance) =>
       'explicacion': instance.explicacion,
       'recomendaciones': instance.recomendaciones,
       'createdAt': instance.createdAt.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

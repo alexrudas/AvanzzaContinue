@@ -1,3 +1,4 @@
+import 'package:avanzza/core/utils/datetime_timestamp_converter.dart';
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -18,13 +19,16 @@ class MaintenanceFinishedModel {
   @Index()
   final String assetId;
   final String descripcion;
+  @DateTimeTimestampConverter()
   final DateTime fechaFin;
   final double costoTotal;
   final List<String> itemsUsados;
   final List<String> comprobantesUrls;
   @Index()
   final String? cityId;
+  @DateTimeTimestampConverter()
   final DateTime? createdAt;
+  @DateTimeTimestampConverter()
   final DateTime? updatedAt;
 
   MaintenanceFinishedModel({

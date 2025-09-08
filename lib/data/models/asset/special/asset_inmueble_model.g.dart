@@ -1736,12 +1736,8 @@ AssetInmuebleModel _$AssetInmuebleModelFromJson(Map<String, dynamic> json) =>
       metrosCuadrados: (json['metrosCuadrados'] as num?)?.toDouble(),
       uso: json['uso'] as String,
       valorCatastral: (json['valorCatastral'] as num?)?.toDouble(),
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$AssetInmuebleModelToJson(AssetInmuebleModel instance) =>
@@ -1753,6 +1749,8 @@ Map<String, dynamic> _$AssetInmuebleModelToJson(AssetInmuebleModel instance) =>
       'metrosCuadrados': instance.metrosCuadrados,
       'uso': instance.uso,
       'valorCatastral': instance.valorCatastral,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

@@ -2582,12 +2582,8 @@ MaintenanceFinishedModel _$MaintenanceFinishedModelFromJson(
               .toList() ??
           const [],
       cityId: json['cityId'] as String?,
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$MaintenanceFinishedModelToJson(
@@ -2603,6 +2599,8 @@ Map<String, dynamic> _$MaintenanceFinishedModelToJson(
       'itemsUsados': instance.itemsUsados,
       'comprobantesUrls': instance.comprobantesUrls,
       'cityId': instance.cityId,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

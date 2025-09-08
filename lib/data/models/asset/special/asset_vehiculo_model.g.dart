@@ -1819,12 +1819,8 @@ AssetVehiculoModel _$AssetVehiculoModelFromJson(Map<String, dynamic> json) =>
       marca: json['marca'] as String,
       modelo: json['modelo'] as String,
       anio: (json['anio'] as num).toInt(),
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$AssetVehiculoModelToJson(AssetVehiculoModel instance) =>
@@ -1836,6 +1832,8 @@ Map<String, dynamic> _$AssetVehiculoModelToJson(AssetVehiculoModel instance) =>
       'marca': instance.marca,
       'modelo': instance.modelo,
       'anio': instance.anio,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

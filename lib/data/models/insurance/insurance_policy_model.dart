@@ -1,3 +1,4 @@
+import 'package:avanzza/core/utils/datetime_timestamp_converter.dart';
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -23,11 +24,15 @@ class InsurancePolicyModel {
   final String countryId;
   @Index()
   final String? cityId;
+  @DateTimeTimestampConverter()
   final DateTime fechaInicio;
+  @DateTimeTimestampConverter()
   final DateTime fechaFin;
   @Index()
   final String estado;
+  @DateTimeTimestampConverter()
   final DateTime? createdAt;
+  @DateTimeTimestampConverter()
   final DateTime? updatedAt;
 
   InsurancePolicyModel({

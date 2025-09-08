@@ -3086,15 +3086,10 @@ PurchaseRequestModel _$PurchaseRequestModelFromJson(
       estado: json['estado'] as String,
       respuestasCount: (json['respuestasCount'] as num?)?.toInt() ?? 0,
       currencyCode: json['currencyCode'] as String,
-      expectedDate: json['expectedDate'] == null
-          ? null
-          : DateTime.parse(json['expectedDate'] as String),
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      expectedDate:
+          const DateTimeTimestampConverter().fromJson(json['expectedDate']),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$PurchaseRequestModelToJson(
@@ -3112,7 +3107,10 @@ Map<String, dynamic> _$PurchaseRequestModelToJson(
       'estado': instance.estado,
       'respuestasCount': instance.respuestasCount,
       'currencyCode': instance.currencyCode,
-      'expectedDate': instance.expectedDate?.toIso8601String(),
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'expectedDate':
+          const DateTimeTimestampConverter().toJson(instance.expectedDate),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

@@ -2511,12 +2511,8 @@ MaintenanceProgrammingModel _$MaintenanceProgrammingModelFromJson(
       assignedToTechId: json['assignedToTechId'] as String?,
       notes: json['notes'] as String?,
       cityId: json['cityId'] as String?,
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$MaintenanceProgrammingModelToJson(
@@ -2532,6 +2528,8 @@ Map<String, dynamic> _$MaintenanceProgrammingModelToJson(
       'assignedToTechId': instance.assignedToTechId,
       'notes': instance.notes,
       'cityId': instance.cityId,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

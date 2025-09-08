@@ -1,3 +1,4 @@
+import 'package:avanzza/core/utils/datetime_timestamp_converter.dart';
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -21,11 +22,14 @@ class MaintenanceProcessModel {
   final String tecnicoId;
   @Index()
   final String estado;
+  @DateTimeTimestampConverter()
   final DateTime startedAt;
   final String? purchaseRequestId;
   @Index()
   final String? cityId;
+  @DateTimeTimestampConverter()
   final DateTime? createdAt;
+  @DateTimeTimestampConverter()
   final DateTime? updatedAt;
 
   MaintenanceProcessModel({

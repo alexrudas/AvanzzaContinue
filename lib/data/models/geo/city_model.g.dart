@@ -2035,12 +2035,8 @@ CityModel _$CityModelFromJson(Map<String, dynamic> json) => CityModel(
       lng: (json['lng'] as num?)?.toDouble(),
       timezoneOverride: json['timezoneOverride'] as String?,
       isActive: json['isActive'] as bool? ?? true,
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$CityModelToJson(CityModel instance) => <String, dynamic>{
@@ -2053,6 +2049,8 @@ Map<String, dynamic> _$CityModelToJson(CityModel instance) => <String, dynamic>{
       'lng': instance.lng,
       'timezoneOverride': instance.timezoneOverride,
       'isActive': instance.isActive,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

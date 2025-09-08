@@ -1,3 +1,4 @@
+import 'package:avanzza/core/utils/datetime_timestamp_converter.dart';
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -24,6 +25,7 @@ class AccountingEntryModel {
   final double monto;
   final String currencyCode;
   final String descripcion;
+  @DateTimeTimestampConverter()
   final DateTime fecha;
   @Index()
   final String referenciaType;
@@ -33,7 +35,9 @@ class AccountingEntryModel {
   final String method;
   final double? taxAmount;
   final double? taxRate;
+  @DateTimeTimestampConverter()
   final DateTime? createdAt;
+  @DateTimeTimestampConverter()
   final DateTime? updatedAt;
 
   AccountingEntryModel({

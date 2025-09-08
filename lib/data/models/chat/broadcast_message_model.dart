@@ -1,3 +1,4 @@
+import 'package:avanzza/core/utils/datetime_timestamp_converter.dart';
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -20,10 +21,13 @@ class BroadcastMessageModel {
   final String? rolObjetivo;
   final String message;
   @Index()
+  @DateTimeTimestampConverter()
   final DateTime timestamp;
   @Index()
   final String? countryId;
+  @DateTimeTimestampConverter()
   final DateTime? createdAt;
+  @DateTimeTimestampConverter()
   final DateTime? updatedAt;
 
   BroadcastMessageModel({

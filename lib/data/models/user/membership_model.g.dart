@@ -2165,12 +2165,8 @@ MembershipModel _$MembershipModelFromJson(Map<String, dynamic> json) =>
               const [],
       estatus: json['estatus'] as String,
       primaryLocationJson: json['primaryLocationJson'] as String?,
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$MembershipModelToJson(MembershipModel instance) =>
@@ -2183,6 +2179,8 @@ Map<String, dynamic> _$MembershipModelToJson(MembershipModel instance) =>
       'roles': instance.roles,
       'estatus': instance.estatus,
       'primaryLocationJson': instance.primaryLocationJson,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

@@ -1,3 +1,4 @@
+import 'package:avanzza/core/utils/datetime_timestamp_converter.dart';
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -27,8 +28,11 @@ class PurchaseRequestModel {
   final String estado;
   final int respuestasCount;
   final String currencyCode;
+  @DateTimeTimestampConverter()
   final DateTime? expectedDate;
+  @DateTimeTimestampConverter()
   final DateTime? createdAt;
+  @DateTimeTimestampConverter()
   final DateTime? updatedAt;
 
   PurchaseRequestModel({

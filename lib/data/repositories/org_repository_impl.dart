@@ -1,6 +1,4 @@
-
 import 'dart:async';
-
 
 import 'package:avanzza/data/models/org/organization_model.dart';
 import 'package:avanzza/data/sources/local/org_local_ds.dart';
@@ -15,14 +13,19 @@ class OrgRepositoryImpl implements OrgRepository {
   OrgRepositoryImpl({required this.local, required this.remote});
 
   @override
-  Stream<List<OrganizationEntity>> watchOrgsByUser(String uid, {String? countryId, String? cityId}) async* {
+  Stream<List<OrganizationEntity>> watchOrgsByUser(String uid,
+      {String? countryId, String? cityId}) async* {
     final controller = StreamController<List<OrganizationEntity>>();
     Future(() async {
-      final locals = await local.orgsByUser(uid, countryId: countryId, cityId: cityId);
+      final locals =
+          await local.orgsByUser(uid, countryId: countryId, cityId: cityId);
       controller.add(locals.map((e) => e.toEntity()).toList());
-      final remotes = await remote.orgsByUser(uid, countryId: countryId, cityId: cityId);
+      final remotes =
+          await remote.orgsByUser(uid, countryId: countryId, cityId: cityId);
       await _sync(locals, remotes);
-      final updated = await local.orgsByUser(uid, countryId: countryId, cityId: cityId);
+      print("[watchOrgsByUser] remotes $remotes");
+      final updated =
+          await local.orgsByUser(uid, countryId: countryId, cityId: cityId);
       controller.add(updated.map((e) => e.toEntity()).toList());
       await controller.close();
     });
@@ -30,16 +33,20 @@ class OrgRepositoryImpl implements OrgRepository {
   }
 
   @override
-  Future<List<OrganizationEntity>> fetchOrgsByUser(String uid, {String? countryId, String? cityId}) async {
-    final locals = await local.orgsByUser(uid, countryId: countryId, cityId: cityId);
+  Future<List<OrganizationEntity>> fetchOrgsByUser(String uid,
+      {String? countryId, String? cityId}) async {
+    final locals =
+        await local.orgsByUser(uid, countryId: countryId, cityId: cityId);
     unawaited(() async {
-      final remotes = await remote.orgsByUser(uid, countryId: countryId, cityId: cityId);
+      final remotes =
+          await remote.orgsByUser(uid, countryId: countryId, cityId: cityId);
       await _sync(locals, remotes);
     }());
     return locals.map((e) => e.toEntity()).toList();
   }
 
-  Future<void> _sync(List<OrganizationModel> locals, List<OrganizationModel> remotes) async {
+  Future<void> _sync(
+      List<OrganizationModel> locals, List<OrganizationModel> remotes) async {
     final map = {for (final l in locals) l.id: l};
     for (final r in remotes) {
       final l = map[r.id];
@@ -81,13 +88,15 @@ class OrgRepositoryImpl implements OrgRepository {
   @override
   Future<void> upsertOrg(OrganizationEntity org) async {
     final now = DateTime.now().toUtc();
-    final m = OrganizationModel.fromEntity(org.copyWith(updatedAt: org.updatedAt ?? now));
+    final m = OrganizationModel.fromEntity(
+        org.copyWith(updatedAt: org.updatedAt ?? now));
     await local.upsertOrg(m);
     await remote.upsertOrg(m);
   }
 
   @override
-  Future<void> updateOrgLocation(String orgId, {required String countryId, String? regionId, String? cityId}) async {
+  Future<void> updateOrgLocation(String orgId,
+      {required String countryId, String? regionId, String? cityId}) async {
     // optimistic local update if present
     final current = await local.getOrg(orgId);
     if (current != null) {
@@ -101,13 +110,14 @@ class OrgRepositoryImpl implements OrgRepository {
         cityId: cityId,
         ownerUid: current.ownerUid,
         logoUrl: current.logoUrl,
-      //  metadata: current.metadata,
+        //  metadata: current.metadata,
         isActive: current.isActive,
         createdAt: current.createdAt,
         updatedAt: DateTime.now().toUtc(),
       );
       await local.upsertOrg(updated);
     }
-    await remote.updateOrgLocation(orgId, countryId: countryId, regionId: regionId, cityId: cityId);
+    await remote.updateOrgLocation(orgId,
+        countryId: countryId, regionId: regionId, cityId: cityId);
   }
 }

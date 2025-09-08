@@ -2310,19 +2310,13 @@ AssetDocumentModel _$AssetDocumentModelFromJson(Map<String, dynamic> json) =>
       tipoDoc: json['tipoDoc'] as String,
       countryId: json['countryId'] as String,
       cityId: json['cityId'] as String?,
-      fechaEmision: json['fechaEmision'] == null
-          ? null
-          : DateTime.parse(json['fechaEmision'] as String),
-      fechaVencimiento: json['fechaVencimiento'] == null
-          ? null
-          : DateTime.parse(json['fechaVencimiento'] as String),
+      fechaEmision:
+          const DateTimeTimestampConverter().fromJson(json['fechaEmision']),
+      fechaVencimiento:
+          const DateTimeTimestampConverter().fromJson(json['fechaVencimiento']),
       estado: json['estado'] as String,
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$AssetDocumentModelToJson(AssetDocumentModel instance) =>
@@ -2333,9 +2327,13 @@ Map<String, dynamic> _$AssetDocumentModelToJson(AssetDocumentModel instance) =>
       'tipoDoc': instance.tipoDoc,
       'countryId': instance.countryId,
       'cityId': instance.cityId,
-      'fechaEmision': instance.fechaEmision?.toIso8601String(),
-      'fechaVencimiento': instance.fechaVencimiento?.toIso8601String(),
+      'fechaEmision':
+          const DateTimeTimestampConverter().toJson(instance.fechaEmision),
+      'fechaVencimiento':
+          const DateTimeTimestampConverter().toJson(instance.fechaVencimiento),
       'estado': instance.estado,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

@@ -1941,12 +1941,8 @@ AssetMaquinariaModel _$AssetMaquinariaModelFromJson(
       capacidad: json['capacidad'] as String,
       categoria: json['categoria'] as String,
       certificadoOperacion: json['certificadoOperacion'] as String?,
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$AssetMaquinariaModelToJson(
@@ -1959,6 +1955,8 @@ Map<String, dynamic> _$AssetMaquinariaModelToJson(
       'capacidad': instance.capacidad,
       'categoria': instance.categoria,
       'certificadoOperacion': instance.certificadoOperacion,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };

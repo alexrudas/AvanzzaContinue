@@ -3373,12 +3373,8 @@ ChatMessageModel _$ChatMessageModelFromJson(Map<String, dynamic> json) =>
       orgId: json['orgId'] as String?,
       cityId: json['cityId'] as String?,
       assetId: json['assetId'] as String?,
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
+      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
+      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$ChatMessageModelToJson(ChatMessageModel instance) =>
@@ -3395,6 +3391,8 @@ Map<String, dynamic> _$ChatMessageModelToJson(ChatMessageModel instance) =>
       'orgId': instance.orgId,
       'cityId': instance.cityId,
       'assetId': instance.assetId,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'createdAt':
+          const DateTimeTimestampConverter().toJson(instance.createdAt),
+      'updatedAt':
+          const DateTimeTimestampConverter().toJson(instance.updatedAt),
     };
