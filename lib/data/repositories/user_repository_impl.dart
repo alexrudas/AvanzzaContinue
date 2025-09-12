@@ -1,16 +1,23 @@
 import 'dart:async';
 
-
+import 'package:avanzza/data/datasources/local/isar_session_ds.dart';
+import 'package:avanzza/data/models/role_permission_model.dart';
 import 'package:avanzza/data/models/user/active_context_model.dart';
 import 'package:avanzza/data/models/user/membership_model.dart';
 import 'package:avanzza/data/models/user/user_model.dart';
+import 'package:avanzza/data/models/user_profile_model.dart';
 import 'package:avanzza/data/sources/local/user_local_ds.dart';
 import 'package:avanzza/data/sources/remote/user_remote_ds.dart';
+import 'package:avanzza/domain/entities/role_permission_entity.dart';
+import 'package:avanzza/domain/entities/user_profile_entity.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get/get.dart';
 
 import '../../../domain/entities/user/user_entity.dart';
 import '../../../domain/entities/user/membership_entity.dart';
 import '../../../domain/entities/user/active_context.dart';
 import '../../../domain/repositories/user_repository.dart';
+import '../datasources/firestore/user_firestore_ds.dart';
 
 class UserRepositoryImpl implements UserRepository {
   final UserLocalDataSource local;
@@ -47,7 +54,8 @@ class UserRepositoryImpl implements UserRepository {
   @override
   Future<void> upsertUser(UserEntity user) async {
     final now = DateTime.now().toUtc();
-    final m = UserModel.fromEntity(user.copyWith(updatedAt: user.updatedAt ?? now));
+    final m =
+        UserModel.fromEntity(user.copyWith(updatedAt: user.updatedAt ?? now));
     await local.upsertUser(m);
     await remote.upsertUser(m);
   }
@@ -103,7 +111,8 @@ class UserRepositoryImpl implements UserRepository {
     return locals.map((e) => e.toEntity()).toList();
   }
 
-  Future<void> _syncMemberships(List<MembershipModel> locals, List<MembershipModel> remotes) async {
+  Future<void> _syncMemberships(
+      List<MembershipModel> locals, List<MembershipModel> remotes) async {
     final map = {for (final l in locals) l.id: l};
     for (final r in remotes) {
       final l = map[r.id];
@@ -114,4 +123,68 @@ class UserRepositoryImpl implements UserRepository {
       }
     }
   }
+  @override
+  Future<UserProfileEntity> getOrBootstrapProfile({required String uid, required String phone}) async {
+    final userFirestore = Get.find<UserFirestoreDS>();
+    final isarSession = Get.find<IsarSessionDS>();
+
+    final existing = await userFirestore.getProfile(uid);
+    if (existing != null) {
+      await isarSession.saveProfileCache(existing);
+      return existing.toEntity();
+    }
+
+    final model = UserProfileModel(
+      uid: uid,
+      phone: phone,
+      countryId: null,
+      cityId: null,
+      roles: const [],
+      orgIds: const [],
+      status: 'active',
+      createdAt: null,
+      updatedAt: null,
+    );
+    await userFirestore.createProfile(uid, model);
+    await userFirestore.updateProfile(uid, {
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    await isarSession.saveProfileCache(model);
+    return model.toEntity();
+  }
+
+  @override
+  Future<void> cacheProfile(UserProfileEntity profile) async {
+    final isarSession = Get.find<IsarSessionDS>();
+    final m = UserProfileModel.fromJson(profile.toJson());
+    await isarSession.saveProfileCache(m);
+  }
+
+  @override
+  Future<List<RolePermissionEntity>> loadRolePermissions(List<String> roles) async {
+    final userFirestore = Get.find<UserFirestoreDS>();
+    final list = await userFirestore.getRolePermissions(roles);
+    return list.map((RolePermissionModel e) => e.toEntity()).toList();
+  }
+
+  @override
+  Future<void> setActiveContext(String uid, Map<String, dynamic> activeContext) async {
+    final userFirestore = Get.find<UserFirestoreDS>();
+    final isarSession = Get.find<IsarSessionDS>();
+
+    await userFirestore.updateProfile(uid, {
+      'lastContext': activeContext,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    final cached = await isarSession.getProfileCache(uid);
+    if (cached != null) {
+      final updated = cached.copyWith(updatedAt: DateTime.now().toUtc());
+      await isarSession.saveProfileCache(updated);
+    }
+  }
+
+
+
 }

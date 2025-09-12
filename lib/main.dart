@@ -1,7 +1,7 @@
+import 'package:avanzza/routes/app_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import 'app/routes.dart';
 import 'core/startup/bootstrap.dart';
 
 class App extends StatelessWidget {
@@ -10,10 +10,11 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
+      // initialBinding: [],
       title: 'Avanzza 2.0',
       debugShowCheckedModeBanner: false,
-      initialRoute: AppRoutes.login,
-      getPages: AppRoutes.pages,
+      initialRoute: Routes.welcome,
+      getPages: Routes.pages,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,

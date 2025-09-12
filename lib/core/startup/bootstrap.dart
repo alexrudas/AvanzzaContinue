@@ -1,3 +1,4 @@
+import 'package:avanzza/core/di/app_bindings.dart';
 import 'package:avanzza/firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -26,8 +27,11 @@ class Bootstrap {
     await initDI(isar: isar, firestore: firestore);
     syncObserver.start();
 
-    return BootstrapResult(
+    final bootsTrap = BootstrapResult(
         isar: isar, firestore: firestore, syncObserver: syncObserver);
+    final appBinding = AppBindings(bootsTrap);
+    appBinding.dependencies();
+    return bootsTrap;
   }
 }
 

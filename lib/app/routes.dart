@@ -1,5 +1,5 @@
+import 'package:avanzza/presentation/auth/pages/auth_welcome_page.dart';
 import 'package:avanzza/presentation/pages/asset_list_page.dart';
-import 'package:avanzza/presentation/pages/login_page.dart';
 import 'package:avanzza/presentation/pages/org_selection_page.dart';
 import 'package:avanzza/presentation/pages/purchase_request_page.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +15,7 @@ class AppRoutes {
   static final List<GetPage<dynamic>> pages = [
     GetPage(
       name: login,
-      page: () => const LoginPage(),
+      page: () => const AuthWelcomePage(),
     ),
     GetPage(
       name: orgSelect,
