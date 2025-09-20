@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:avanzza/core/di/container.dart';
 import 'package:avanzza/data/models/asset/asset_document_model.dart';
 import 'package:avanzza/data/models/asset/asset_model.dart';
 import 'package:avanzza/data/models/asset/special/asset_inmueble_model.dart';
@@ -8,11 +9,11 @@ import 'package:avanzza/data/models/asset/special/asset_vehiculo_model.dart';
 import 'package:avanzza/data/sources/local/asset_local_ds.dart';
 import 'package:avanzza/data/sources/remote/asset_remote_ds.dart';
 
-import '../../../domain/entities/asset/asset_entity.dart';
 import '../../../domain/entities/asset/asset_document_entity.dart';
-import '../../../domain/entities/asset/special/asset_vehiculo_entity.dart';
+import '../../../domain/entities/asset/asset_entity.dart';
 import '../../../domain/entities/asset/special/asset_inmueble_entity.dart';
 import '../../../domain/entities/asset/special/asset_maquinaria_entity.dart';
+import '../../../domain/entities/asset/special/asset_vehiculo_entity.dart';
 import '../../../domain/repositories/asset_repository.dart';
 
 class AssetRepositoryImpl implements AssetRepository {
@@ -99,7 +100,11 @@ class AssetRepositoryImpl implements AssetRepository {
     final m = AssetModel.fromEntity(
         asset.copyWith(updatedAt: asset.updatedAt ?? now));
     await local.upsertAsset(m);
-    await remote.upsertAsset(m);
+    try {
+      await remote.upsertAsset(m);
+    } catch (_) {
+      DIContainer().syncService.enqueue(() => remote.upsertAsset(m));
+    }
   }
 
   @override
@@ -136,7 +141,11 @@ class AssetRepositoryImpl implements AssetRepository {
     final m = AssetVehiculoModel.fromEntity(
         vehiculo.copyWith(updatedAt: vehiculo.updatedAt ?? now));
     await local.upsertVehiculo(m);
-    await remote.upsertVehiculo(m);
+    try {
+      await remote.upsertVehiculo(m);
+    } catch (_) {
+      DIContainer().syncService.enqueue(() => remote.upsertVehiculo(m));
+    }
   }
 
   @override
@@ -145,7 +154,11 @@ class AssetRepositoryImpl implements AssetRepository {
     final m = AssetInmuebleModel.fromEntity(
         inmueble.copyWith(updatedAt: inmueble.updatedAt ?? now));
     await local.upsertInmueble(m);
-    await remote.upsertInmueble(m);
+    try {
+      await remote.upsertInmueble(m);
+    } catch (_) {
+      DIContainer().syncService.enqueue(() => remote.upsertInmueble(m));
+    }
   }
 
   @override
@@ -154,7 +167,11 @@ class AssetRepositoryImpl implements AssetRepository {
     final m = AssetMaquinariaModel.fromEntity(
         maquinaria.copyWith(updatedAt: maquinaria.updatedAt ?? now));
     await local.upsertMaquinaria(m);
-    await remote.upsertMaquinaria(m);
+    try {
+      await remote.upsertMaquinaria(m);
+    } catch (_) {
+      DIContainer().syncService.enqueue(() => remote.upsertMaquinaria(m));
+    }
   }
 
   // Documents
@@ -209,6 +226,10 @@ class AssetRepositoryImpl implements AssetRepository {
     final m = AssetDocumentModel.fromEntity(
         document.copyWith(updatedAt: document.updatedAt ?? now));
     await local.upsertDocument(m);
-    await remote.upsertDocument(m);
+    try {
+      await remote.upsertDocument(m);
+    } catch (_) {
+      DIContainer().syncService.enqueue(() => remote.upsertDocument(m));
+    }
   }
 }

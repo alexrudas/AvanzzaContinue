@@ -16,11 +16,19 @@ import '../../data/datasources/auth/firebase_auth_ds.dart';
 import '../../data/datasources/firestore/user_firestore_ds.dart';
 import '../../data/datasources/local/isar_session_ds.dart';
 import '../../data/repositories/auth_repository_impl.dart';
+import '../../data/datasources/local/registration_progress_ds.dart';
 import '../../data/repositories/user_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/user_repository.dart';
 import '../../domain/usecases/send_otp_uc.dart';
+import '../../domain/usecases/check_username_available_uc.dart';
+import '../../domain/usecases/sign_up_username_password_uc.dart';
+import '../../domain/usecases/sign_in_username_password_uc.dart';
+import '../../domain/usecases/send_mfa_code_uc.dart';
+import '../../domain/usecases/verify_mfa_uc.dart';
+import '../../domain/usecases/finalize_registration_uc.dart';
 import '../../presentation/auth/controllers/auth_controller.dart';
+import '../../presentation/auth/controllers/registration_controller.dart';
 import '../../services/telemetry/telemetry_service.dart';
 import '../startup/bootstrap.dart';
 
@@ -42,6 +50,7 @@ class AppBindings extends Bindings {
     Get.put<FirebaseAuthDS>(FirebaseAuthDS(Get.find()), permanent: true);
     Get.put<UserFirestoreDS>(UserFirestoreDS(Get.find()), permanent: true);
     Get.put<IsarSessionDS>(IsarSessionDS(Get.find()), permanent: true);
+    Get.put<RegistrationProgressDS>(RegistrationProgressDS(Get.find()), permanent: true);
 
     // Repos
     Get.put<AuthRepository>(AuthRepositoryImpl(Get.find(), Get.find()),
@@ -57,6 +66,12 @@ class AppBindings extends Bindings {
 
     // Use cases
     Get.put<SendOtpUC>(SendOtpUC(Get.find()), permanent: true);
+    Get.put<CheckUsernameAvailableUC>(CheckUsernameAvailableUC(Get.find()), permanent: true);
+    Get.put<SignUpUsernamePasswordUC>(SignUpUsernamePasswordUC(Get.find()), permanent: true);
+    Get.put<SignInUsernamePasswordUC>(SignInUsernamePasswordUC(Get.find()), permanent: true);
+    Get.put<SendMfaCodeUC>(SendMfaCodeUC(Get.find()), permanent: true);
+    Get.put<VerifyMfaUC>(VerifyMfaUC(Get.find()), permanent: true);
+    Get.put<FinalizeRegistrationUC>(FinalizeRegistrationUC(Get.find()), permanent: true);
     Get.put<BootstrapFirstLoginUC>(BootstrapFirstLoginUC(Get.find()),
         permanent: true);
     Get.put<LoadInitialCacheUC>(LoadInitialCacheUC(Get.find()),
@@ -74,6 +89,17 @@ class AppBindings extends Bindings {
         permanent: true);
 
     // Controllers
+    // Registration controller
+    Get.put<RegistrationController>(
+      RegistrationController(
+        checkUsername: Get.find(),
+        signUp: Get.find(),
+        progressDS: Get.find(),
+        finalizeUC: Get.find(),
+      ),
+      permanent: true,
+    );
+
     Get.put<AuthController>(
         AuthController(
           sendOtpUC: Get.find(),

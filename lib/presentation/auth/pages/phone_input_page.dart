@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/registration_controller.dart';
 import 'otp_verify_page.dart'; // importa tu ruta/página
 
 class PhoneInputPage extends StatefulWidget {
@@ -12,13 +13,16 @@ class PhoneInputPage extends StatefulWidget {
 class _PhoneInputPageState extends State<PhoneInputPage> {
   final textCtrl = TextEditingController();
   late final AuthController controller;
+  late final RegistrationController reg;
 
   @override
   void initState() {
     super.initState();
     controller = Get.find<AuthController>();
+    reg = Get.find<RegistrationController>();
     ever<AuthState>(controller.state, (s) {
       if (s.status == 'sent' && s.verificationId != null) {
+        reg.setPhone(textCtrl.text.trim());
         Get.to(() => const OtpVerifyPage());
       }
       if (s.status == 'authenticated') {

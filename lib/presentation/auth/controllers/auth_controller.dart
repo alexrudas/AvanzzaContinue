@@ -59,7 +59,7 @@ class AuthController extends GetxController {
       if (res.autoVerified && res.uid != null) {
         telemetry.log('auth_otp_auto_verify_success', {'uid': res.uid});
         await loadInitialCacheUC(res.uid!);
-        Get.offAllNamed(Routes.home);
+        Get.offAllNamed(Routes.registerUsername);
         state.value = const AuthState('authenticated');
         return;
       }
@@ -92,7 +92,7 @@ class AuthController extends GetxController {
       final uid = await verifyOtpUC(verificationId: vid, smsCode: smsCode);
       telemetry.log('auth_otp_verify_success', {'uid': uid});
       await loadInitialCacheUC(uid);
-      Get.offAllNamed(Routes.home);
+      Get.offAllNamed(Routes.registerUsername);
       state.value = const AuthState('authenticated');
     } on FirebaseAuthException catch (e) {
       telemetry.log('auth_otp_verify_fail', {'code': e.code});

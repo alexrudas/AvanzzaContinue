@@ -1,12 +1,14 @@
 import 'dart:async';
 
-import '../sources/local/accounting_local_ds.dart';
-import '../sources/remote/accounting_remote_ds.dart';
-import '../models/accounting/accounting_entry_model.dart';
-import '../models/accounting/adjustment_model.dart';
+import 'package:avanzza/core/di/container.dart';
+
 import '../../domain/entities/accounting/accounting_entry_entity.dart';
 import '../../domain/entities/accounting/adjustment_entity.dart';
 import '../../domain/repositories/accounting_repository.dart';
+import '../models/accounting/accounting_entry_model.dart';
+import '../models/accounting/adjustment_model.dart';
+import '../sources/local/accounting_local_ds.dart';
+import '../sources/remote/accounting_remote_ds.dart';
 
 class AccountingRepositoryImpl implements AccountingRepository {
   final AccountingLocalDataSource local;
@@ -16,15 +18,19 @@ class AccountingRepositoryImpl implements AccountingRepository {
 
   // READ: local-first with background sync
   @override
-  Stream<List<AccountingEntryEntity>> watchEntriesByOrg(String orgId, {String? countryId, String? cityId}) async* {
+  Stream<List<AccountingEntryEntity>> watchEntriesByOrg(String orgId,
+      {String? countryId, String? cityId}) async* {
     final controller = StreamController<List<AccountingEntryEntity>>();
     Future(() async {
       try {
-        final localList = await local.entriesByOrg(orgId, countryId: countryId, cityId: cityId);
+        final localList = await local.entriesByOrg(orgId,
+            countryId: countryId, cityId: cityId);
         controller.add(localList.map((e) => e.toEntity()).toList());
-        final remoteList = await remote.entriesByOrg(orgId, countryId: countryId, cityId: cityId);
+        final remoteList = await remote.entriesByOrg(orgId,
+            countryId: countryId, cityId: cityId);
         await _syncEntries(localList, remoteList);
-        final updated = await local.entriesByOrg(orgId, countryId: countryId, cityId: cityId);
+        final updated = await local.entriesByOrg(orgId,
+            countryId: countryId, cityId: cityId);
         controller.add(updated.map((e) => e.toEntity()).toList());
       } catch (e) {
         // TODO: log error
@@ -36,13 +42,16 @@ class AccountingRepositoryImpl implements AccountingRepository {
   }
 
   @override
-  Future<List<AccountingEntryEntity>> fetchEntriesByOrg(String orgId, {String? countryId, String? cityId}) async {
+  Future<List<AccountingEntryEntity>> fetchEntriesByOrg(String orgId,
+      {String? countryId, String? cityId}) async {
     try {
-      final localList = await local.entriesByOrg(orgId, countryId: countryId, cityId: cityId);
+      final localList =
+          await local.entriesByOrg(orgId, countryId: countryId, cityId: cityId);
       // background sync
       unawaited(() async {
         try {
-          final remoteList = await remote.entriesByOrg(orgId, countryId: countryId, cityId: cityId);
+          final remoteList = await remote.entriesByOrg(orgId,
+              countryId: countryId, cityId: cityId);
           await _syncEntries(localList, remoteList);
         } catch (e) {
           // TODO: log error
@@ -55,7 +64,8 @@ class AccountingRepositoryImpl implements AccountingRepository {
     }
   }
 
-  Future<void> _syncEntries(List<AccountingEntryModel> locals, List<AccountingEntryModel> remotes) async {
+  Future<void> _syncEntries(List<AccountingEntryModel> locals,
+      List<AccountingEntryModel> remotes) async {
     final byId = {for (final l in locals) l.id: l};
     for (final r in remotes) {
       final l = byId[r.id];
@@ -73,13 +83,15 @@ class AccountingRepositoryImpl implements AccountingRepository {
     Future(() async {
       try {
         // No direct local get by id method; filter from org read is typical, but for simplicity we fetch by org elsewhere.
-        final localList = await local.entriesByOrg('', cityId: null, countryId: null);
+        final localList =
+            await local.entriesByOrg('', cityId: null, countryId: null);
         final localItem = localList.where((e) => e.id == id).toList();
         controller.add(localItem.isEmpty ? null : localItem.first.toEntity());
         final remoteItem = await remote.getEntry(id);
         if (remoteItem != null) {
           await local.upsertEntry(remoteItem);
-          final updatedList = await local.entriesByOrg('', cityId: null, countryId: null);
+          final updatedList =
+              await local.entriesByOrg('', cityId: null, countryId: null);
           controller.add(updatedList.firstWhere((e) => e.id == id).toEntity());
         }
       } catch (e) {
@@ -94,7 +106,8 @@ class AccountingRepositoryImpl implements AccountingRepository {
   @override
   Future<AccountingEntryEntity?> getEntry(String id) async {
     try {
-      final localList = await local.entriesByOrg('', cityId: null, countryId: null);
+      final localList =
+          await local.entriesByOrg('', cityId: null, countryId: null);
       final localItem = localList.where((e) => e.id == id).toList();
       // background sync
       unawaited(() async {
@@ -116,7 +129,8 @@ class AccountingRepositoryImpl implements AccountingRepository {
   @override
   Future<void> upsertEntry(AccountingEntryEntity entry) async {
     final now = DateTime.now().toUtc();
-    final model = AccountingEntryModel.fromEntity(entry.copyWith(updatedAt: entry.updatedAt ?? now));
+    final model = AccountingEntryModel.fromEntity(
+        entry.copyWith(updatedAt: entry.updatedAt ?? now));
     try {
       await local.upsertEntry(model);
     } catch (e) {
@@ -125,7 +139,7 @@ class AccountingRepositoryImpl implements AccountingRepository {
     try {
       await remote.upsertEntry(model);
     } catch (e) {
-      // TODO: enqueue for retry using OfflineSyncService
+      DIContainer().syncService.enqueue(() => remote.upsertEntry(model));
     }
   }
 
@@ -169,7 +183,8 @@ class AccountingRepositoryImpl implements AccountingRepository {
     }
   }
 
-  Future<void> _syncAdjustments(List<AdjustmentModel> locals, List<AdjustmentModel> remotes) async {
+  Future<void> _syncAdjustments(
+      List<AdjustmentModel> locals, List<AdjustmentModel> remotes) async {
     final byId = {for (final l in locals) l.id: l};
     for (final r in remotes) {
       final l = byId[r.id];
@@ -184,7 +199,8 @@ class AccountingRepositoryImpl implements AccountingRepository {
   @override
   Future<void> upsertAdjustment(AdjustmentEntity adjustment) async {
     final now = DateTime.now().toUtc();
-    final model = AdjustmentModel.fromEntity(adjustment.copyWith(updatedAt: adjustment.updatedAt ?? now));
+    final model = AdjustmentModel.fromEntity(
+        adjustment.copyWith(updatedAt: adjustment.updatedAt ?? now));
     try {
       await local.upsertAdjustment(model);
     } catch (e) {
@@ -193,7 +209,7 @@ class AccountingRepositoryImpl implements AccountingRepository {
     try {
       await remote.upsertAdjustment(model);
     } catch (e) {
-      // TODO: enqueue for retry using OfflineSyncService
+      DIContainer().syncService.enqueue(() => remote.upsertAdjustment(model));
     }
   }
 }

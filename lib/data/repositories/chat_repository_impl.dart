@@ -1,12 +1,14 @@
 import 'dart:async';
 
+import 'package:avanzza/core/di/container.dart';
+
+import '../../domain/entities/chat/broadcast_message_entity.dart';
+import '../../domain/entities/chat/chat_message_entity.dart';
+import '../../domain/repositories/chat_repository.dart';
+import '../models/chat/broadcast_message_model.dart';
+import '../models/chat/chat_message_model.dart';
 import '../sources/local/chat_local_ds.dart';
 import '../sources/remote/chat_remote_ds.dart';
-import '../models/chat/chat_message_model.dart';
-import '../models/chat/broadcast_message_model.dart';
-import '../../domain/entities/chat/chat_message_entity.dart';
-import '../../domain/entities/chat/broadcast_message_entity.dart';
-import '../../domain/repositories/chat_repository.dart';
 
 class ChatRepositoryImpl implements ChatRepository {
   final ChatLocalDataSource local;
@@ -55,7 +57,8 @@ class ChatRepositoryImpl implements ChatRepository {
     }
   }
 
-  Future<void> _syncMessages(List<ChatMessageModel> locals, List<ChatMessageModel> remotes) async {
+  Future<void> _syncMessages(
+      List<ChatMessageModel> locals, List<ChatMessageModel> remotes) async {
     final byId = {for (final l in locals) l.id: l};
     for (final r in remotes) {
       final l = byId[r.id];
@@ -70,7 +73,8 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Future<void> upsertMessage(ChatMessageEntity message) async {
     final now = DateTime.now().toUtc();
-    final model = ChatMessageModel.fromEntity(message.copyWith(updatedAt: message.updatedAt ?? now));
+    final model = ChatMessageModel.fromEntity(
+        message.copyWith(updatedAt: message.updatedAt ?? now));
     try {
       await local.upsertMessage(model);
     } catch (e) {
@@ -79,13 +83,14 @@ class ChatRepositoryImpl implements ChatRepository {
     try {
       await remote.upsertMessage(model);
     } catch (e) {
-      // TODO: enqueue retry via OfflineSyncService
+      DIContainer().syncService.enqueue(() => remote.upsertMessage(model));
     }
   }
 
   // Broadcasts
   @override
-  Stream<List<BroadcastMessageEntity>> watchBroadcastsByOrg(String orgId) async* {
+  Stream<List<BroadcastMessageEntity>> watchBroadcastsByOrg(
+      String orgId) async* {
     final controller = StreamController<List<BroadcastMessageEntity>>();
     Future(() async {
       try {
@@ -105,7 +110,8 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
-  Future<List<BroadcastMessageEntity>> fetchBroadcastsByOrg(String orgId) async {
+  Future<List<BroadcastMessageEntity>> fetchBroadcastsByOrg(
+      String orgId) async {
     try {
       final locals = await local.broadcastsByOrg(orgId);
       unawaited(() async {
@@ -123,7 +129,8 @@ class ChatRepositoryImpl implements ChatRepository {
     }
   }
 
-  Future<void> _syncBroadcasts(List<BroadcastMessageModel> locals, List<BroadcastMessageModel> remotes) async {
+  Future<void> _syncBroadcasts(List<BroadcastMessageModel> locals,
+      List<BroadcastMessageModel> remotes) async {
     final byId = {for (final l in locals) l.id: l};
     for (final r in remotes) {
       final l = byId[r.id];
@@ -138,7 +145,8 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Future<void> upsertBroadcast(BroadcastMessageEntity message) async {
     final now = DateTime.now().toUtc();
-    final model = BroadcastMessageModel.fromEntity(message.copyWith(updatedAt: message.updatedAt ?? now));
+    final model = BroadcastMessageModel.fromEntity(
+        message.copyWith(updatedAt: message.updatedAt ?? now));
     try {
       await local.upsertBroadcast(model);
     } catch (e) {
@@ -147,7 +155,7 @@ class ChatRepositoryImpl implements ChatRepository {
     try {
       await remote.upsertBroadcast(model);
     } catch (e) {
-      // TODO: enqueue retry via OfflineSyncService
+      DIContainer().syncService.enqueue(() => remote.upsertBroadcast(model));
     }
   }
 }

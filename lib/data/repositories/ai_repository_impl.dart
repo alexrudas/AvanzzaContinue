@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:avanzza/core/di/container.dart';
+
 import '../../domain/entities/ai/ai_advisor_entity.dart';
 import '../../domain/entities/ai/ai_audit_log_entity.dart';
 import '../../domain/entities/ai/ai_prediction_entity.dart';
@@ -39,8 +41,12 @@ class AIRepositoryImpl implements AIRepository {
     final model = AIAdvisorModel.fromEntity(temp);
     // Optimistic local insert
     await local.upsertAdvisor(model);
-    // Remote call (stub: write-through)
-    await remote.upsertAdvisor(model);
+    // Remote call with enqueue on failure
+    try {
+      await remote.upsertAdvisor(model);
+    } catch (_) {
+      DIContainer().syncService.enqueue(() => remote.upsertAdvisor(model));
+    }
     return temp;
   }
 
@@ -119,7 +125,11 @@ class AIRepositoryImpl implements AIRepository {
     );
     final m = AIPredictionModel.fromEntity(e);
     await local.upsertPrediction(m);
-    await remote.upsertPrediction(m);
+    try {
+      await remote.upsertPrediction(m);
+    } catch (e) {
+      DIContainer().syncService.enqueue(() => remote.upsertPrediction(m));
+    }
     return e;
   }
 
@@ -142,7 +152,11 @@ class AIRepositoryImpl implements AIRepository {
     );
     final m = AIPredictionModel.fromEntity(e);
     await local.upsertPrediction(m);
-    await remote.upsertPrediction(m);
+    try {
+      await remote.upsertPrediction(m);
+    } catch (e) {
+      DIContainer().syncService.enqueue(() => remote.upsertPrediction(m));
+    }
     return e;
   }
 
@@ -167,7 +181,11 @@ class AIRepositoryImpl implements AIRepository {
     );
     final m = AIPredictionModel.fromEntity(e);
     await local.upsertPrediction(m);
-    await remote.upsertPrediction(m);
+    try {
+      await remote.upsertPrediction(m);
+    } catch (e) {
+      DIContainer().syncService.enqueue(() => remote.upsertPrediction(m));
+    }
     return e;
   }
 
@@ -191,7 +209,11 @@ class AIRepositoryImpl implements AIRepository {
     );
     final m = AIPredictionModel.fromEntity(e);
     await local.upsertPrediction(m);
-    await remote.upsertPrediction(m);
+    try {
+      await remote.upsertPrediction(m);
+    } catch (e) {
+      DIContainer().syncService.enqueue(() => remote.upsertPrediction(m));
+    }
     return e;
   }
 
@@ -316,7 +338,7 @@ class AIRepositoryImpl implements AIRepository {
     try {
       await remote.upsertAuditLog(m);
     } catch (e) {
-      // TODO: queue for retry
+      DIContainer().syncService.enqueue(() => remote.upsertAuditLog(m));
     }
   }
 
@@ -334,7 +356,7 @@ class AIRepositoryImpl implements AIRepository {
     try {
       await remote.upsertAdvisor(m);
     } catch (e) {
-      // TODO: queue para retry
+      DIContainer().syncService.enqueue(() => remote.upsertAdvisor(m));
     }
   }
 
@@ -352,7 +374,7 @@ class AIRepositoryImpl implements AIRepository {
     try {
       await remote.upsertPrediction(m);
     } catch (e) {
-      // TODO: queue para retry
+      DIContainer().syncService.enqueue(() => remote.upsertPrediction(m));
     }
   }
 }

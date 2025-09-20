@@ -16,10 +16,19 @@ T _$identity<T>(T value) => value;
 mixin _$UserProfileModel {
   String get uid;
   String get phone;
+  String? get username;
+  String? get email;
   String? get countryId;
+  String? get regionId;
   String? get cityId;
   List<String> get roles;
   List<String> get orgIds;
+  String? get docType;
+  String? get docNumber;
+  String? get identityRaw;
+  String? get termsVersion;
+  @DateTimeTimestampConverter()
+  DateTime? get termsAcceptedAt;
   String get status;
   @DateTimeTimestampConverter()
   DateTime? get createdAt;
@@ -44,11 +53,25 @@ mixin _$UserProfileModel {
             other is UserProfileModel &&
             (identical(other.uid, uid) || other.uid == uid) &&
             (identical(other.phone, phone) || other.phone == phone) &&
+            (identical(other.username, username) ||
+                other.username == username) &&
+            (identical(other.email, email) || other.email == email) &&
             (identical(other.countryId, countryId) ||
                 other.countryId == countryId) &&
+            (identical(other.regionId, regionId) ||
+                other.regionId == regionId) &&
             (identical(other.cityId, cityId) || other.cityId == cityId) &&
             const DeepCollectionEquality().equals(other.roles, roles) &&
             const DeepCollectionEquality().equals(other.orgIds, orgIds) &&
+            (identical(other.docType, docType) || other.docType == docType) &&
+            (identical(other.docNumber, docNumber) ||
+                other.docNumber == docNumber) &&
+            (identical(other.identityRaw, identityRaw) ||
+                other.identityRaw == identityRaw) &&
+            (identical(other.termsVersion, termsVersion) ||
+                other.termsVersion == termsVersion) &&
+            (identical(other.termsAcceptedAt, termsAcceptedAt) ||
+                other.termsAcceptedAt == termsAcceptedAt) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
@@ -62,17 +85,25 @@ mixin _$UserProfileModel {
       runtimeType,
       uid,
       phone,
+      username,
+      email,
       countryId,
+      regionId,
       cityId,
       const DeepCollectionEquality().hash(roles),
       const DeepCollectionEquality().hash(orgIds),
+      docType,
+      docNumber,
+      identityRaw,
+      termsVersion,
+      termsAcceptedAt,
       status,
       createdAt,
       updatedAt);
 
   @override
   String toString() {
-    return 'UserProfileModel(uid: $uid, phone: $phone, countryId: $countryId, cityId: $cityId, roles: $roles, orgIds: $orgIds, status: $status, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'UserProfileModel(uid: $uid, phone: $phone, username: $username, email: $email, countryId: $countryId, regionId: $regionId, cityId: $cityId, roles: $roles, orgIds: $orgIds, docType: $docType, docNumber: $docNumber, identityRaw: $identityRaw, termsVersion: $termsVersion, termsAcceptedAt: $termsAcceptedAt, status: $status, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -85,10 +116,18 @@ abstract mixin class $UserProfileModelCopyWith<$Res> {
   $Res call(
       {String uid,
       String phone,
+      String? username,
+      String? email,
       String? countryId,
+      String? regionId,
       String? cityId,
       List<String> roles,
       List<String> orgIds,
+      String? docType,
+      String? docNumber,
+      String? identityRaw,
+      String? termsVersion,
+      @DateTimeTimestampConverter() DateTime? termsAcceptedAt,
       String status,
       @DateTimeTimestampConverter() DateTime? createdAt,
       @DateTimeTimestampConverter() DateTime? updatedAt});
@@ -109,10 +148,18 @@ class _$UserProfileModelCopyWithImpl<$Res>
   $Res call({
     Object? uid = null,
     Object? phone = null,
+    Object? username = freezed,
+    Object? email = freezed,
     Object? countryId = freezed,
+    Object? regionId = freezed,
     Object? cityId = freezed,
     Object? roles = null,
     Object? orgIds = null,
+    Object? docType = freezed,
+    Object? docNumber = freezed,
+    Object? identityRaw = freezed,
+    Object? termsVersion = freezed,
+    Object? termsAcceptedAt = freezed,
     Object? status = null,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
@@ -126,9 +173,21 @@ class _$UserProfileModelCopyWithImpl<$Res>
           ? _self.phone
           : phone // ignore: cast_nullable_to_non_nullable
               as String,
+      username: freezed == username
+          ? _self.username
+          : username // ignore: cast_nullable_to_non_nullable
+              as String?,
+      email: freezed == email
+          ? _self.email
+          : email // ignore: cast_nullable_to_non_nullable
+              as String?,
       countryId: freezed == countryId
           ? _self.countryId
           : countryId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      regionId: freezed == regionId
+          ? _self.regionId
+          : regionId // ignore: cast_nullable_to_non_nullable
               as String?,
       cityId: freezed == cityId
           ? _self.cityId
@@ -142,6 +201,26 @@ class _$UserProfileModelCopyWithImpl<$Res>
           ? _self.orgIds
           : orgIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      docType: freezed == docType
+          ? _self.docType
+          : docType // ignore: cast_nullable_to_non_nullable
+              as String?,
+      docNumber: freezed == docNumber
+          ? _self.docNumber
+          : docNumber // ignore: cast_nullable_to_non_nullable
+              as String?,
+      identityRaw: freezed == identityRaw
+          ? _self.identityRaw
+          : identityRaw // ignore: cast_nullable_to_non_nullable
+              as String?,
+      termsVersion: freezed == termsVersion
+          ? _self.termsVersion
+          : termsVersion // ignore: cast_nullable_to_non_nullable
+              as String?,
+      termsAcceptedAt: freezed == termsAcceptedAt
+          ? _self.termsAcceptedAt
+          : termsAcceptedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       status: null == status
           ? _self.status
           : status // ignore: cast_nullable_to_non_nullable
@@ -254,10 +333,18 @@ extension UserProfileModelPatterns on UserProfileModel {
     TResult Function(
             String uid,
             String phone,
+            String? username,
+            String? email,
             String? countryId,
+            String? regionId,
             String? cityId,
             List<String> roles,
             List<String> orgIds,
+            String? docType,
+            String? docNumber,
+            String? identityRaw,
+            String? termsVersion,
+            @DateTimeTimestampConverter() DateTime? termsAcceptedAt,
             String status,
             @DateTimeTimestampConverter() DateTime? createdAt,
             @DateTimeTimestampConverter() DateTime? updatedAt)?
@@ -270,10 +357,18 @@ extension UserProfileModelPatterns on UserProfileModel {
         return $default(
             _that.uid,
             _that.phone,
+            _that.username,
+            _that.email,
             _that.countryId,
+            _that.regionId,
             _that.cityId,
             _that.roles,
             _that.orgIds,
+            _that.docType,
+            _that.docNumber,
+            _that.identityRaw,
+            _that.termsVersion,
+            _that.termsAcceptedAt,
             _that.status,
             _that.createdAt,
             _that.updatedAt);
@@ -300,10 +395,18 @@ extension UserProfileModelPatterns on UserProfileModel {
     TResult Function(
             String uid,
             String phone,
+            String? username,
+            String? email,
             String? countryId,
+            String? regionId,
             String? cityId,
             List<String> roles,
             List<String> orgIds,
+            String? docType,
+            String? docNumber,
+            String? identityRaw,
+            String? termsVersion,
+            @DateTimeTimestampConverter() DateTime? termsAcceptedAt,
             String status,
             @DateTimeTimestampConverter() DateTime? createdAt,
             @DateTimeTimestampConverter() DateTime? updatedAt)
@@ -315,10 +418,18 @@ extension UserProfileModelPatterns on UserProfileModel {
         return $default(
             _that.uid,
             _that.phone,
+            _that.username,
+            _that.email,
             _that.countryId,
+            _that.regionId,
             _that.cityId,
             _that.roles,
             _that.orgIds,
+            _that.docType,
+            _that.docNumber,
+            _that.identityRaw,
+            _that.termsVersion,
+            _that.termsAcceptedAt,
             _that.status,
             _that.createdAt,
             _that.updatedAt);
@@ -344,10 +455,18 @@ extension UserProfileModelPatterns on UserProfileModel {
     TResult? Function(
             String uid,
             String phone,
+            String? username,
+            String? email,
             String? countryId,
+            String? regionId,
             String? cityId,
             List<String> roles,
             List<String> orgIds,
+            String? docType,
+            String? docNumber,
+            String? identityRaw,
+            String? termsVersion,
+            @DateTimeTimestampConverter() DateTime? termsAcceptedAt,
             String status,
             @DateTimeTimestampConverter() DateTime? createdAt,
             @DateTimeTimestampConverter() DateTime? updatedAt)?
@@ -359,10 +478,18 @@ extension UserProfileModelPatterns on UserProfileModel {
         return $default(
             _that.uid,
             _that.phone,
+            _that.username,
+            _that.email,
             _that.countryId,
+            _that.regionId,
             _that.cityId,
             _that.roles,
             _that.orgIds,
+            _that.docType,
+            _that.docNumber,
+            _that.identityRaw,
+            _that.termsVersion,
+            _that.termsAcceptedAt,
             _that.status,
             _that.createdAt,
             _that.updatedAt);
@@ -378,10 +505,18 @@ class _UserProfileModel implements UserProfileModel {
   const _UserProfileModel(
       {required this.uid,
       required this.phone,
+      this.username,
+      this.email,
       this.countryId,
+      this.regionId,
       this.cityId,
       final List<String> roles = const <String>[],
       final List<String> orgIds = const <String>[],
+      this.docType,
+      this.docNumber,
+      this.identityRaw,
+      this.termsVersion,
+      @DateTimeTimestampConverter() this.termsAcceptedAt,
       this.status = 'active',
       @DateTimeTimestampConverter() this.createdAt,
       @DateTimeTimestampConverter() this.updatedAt})
@@ -395,7 +530,13 @@ class _UserProfileModel implements UserProfileModel {
   @override
   final String phone;
   @override
+  final String? username;
+  @override
+  final String? email;
+  @override
   final String? countryId;
+  @override
+  final String? regionId;
   @override
   final String? cityId;
   final List<String> _roles;
@@ -416,6 +557,17 @@ class _UserProfileModel implements UserProfileModel {
     return EqualUnmodifiableListView(_orgIds);
   }
 
+  @override
+  final String? docType;
+  @override
+  final String? docNumber;
+  @override
+  final String? identityRaw;
+  @override
+  final String? termsVersion;
+  @override
+  @DateTimeTimestampConverter()
+  final DateTime? termsAcceptedAt;
   @override
   @JsonKey()
   final String status;
@@ -448,11 +600,25 @@ class _UserProfileModel implements UserProfileModel {
             other is _UserProfileModel &&
             (identical(other.uid, uid) || other.uid == uid) &&
             (identical(other.phone, phone) || other.phone == phone) &&
+            (identical(other.username, username) ||
+                other.username == username) &&
+            (identical(other.email, email) || other.email == email) &&
             (identical(other.countryId, countryId) ||
                 other.countryId == countryId) &&
+            (identical(other.regionId, regionId) ||
+                other.regionId == regionId) &&
             (identical(other.cityId, cityId) || other.cityId == cityId) &&
             const DeepCollectionEquality().equals(other._roles, _roles) &&
             const DeepCollectionEquality().equals(other._orgIds, _orgIds) &&
+            (identical(other.docType, docType) || other.docType == docType) &&
+            (identical(other.docNumber, docNumber) ||
+                other.docNumber == docNumber) &&
+            (identical(other.identityRaw, identityRaw) ||
+                other.identityRaw == identityRaw) &&
+            (identical(other.termsVersion, termsVersion) ||
+                other.termsVersion == termsVersion) &&
+            (identical(other.termsAcceptedAt, termsAcceptedAt) ||
+                other.termsAcceptedAt == termsAcceptedAt) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
@@ -466,17 +632,25 @@ class _UserProfileModel implements UserProfileModel {
       runtimeType,
       uid,
       phone,
+      username,
+      email,
       countryId,
+      regionId,
       cityId,
       const DeepCollectionEquality().hash(_roles),
       const DeepCollectionEquality().hash(_orgIds),
+      docType,
+      docNumber,
+      identityRaw,
+      termsVersion,
+      termsAcceptedAt,
       status,
       createdAt,
       updatedAt);
 
   @override
   String toString() {
-    return 'UserProfileModel(uid: $uid, phone: $phone, countryId: $countryId, cityId: $cityId, roles: $roles, orgIds: $orgIds, status: $status, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'UserProfileModel(uid: $uid, phone: $phone, username: $username, email: $email, countryId: $countryId, regionId: $regionId, cityId: $cityId, roles: $roles, orgIds: $orgIds, docType: $docType, docNumber: $docNumber, identityRaw: $identityRaw, termsVersion: $termsVersion, termsAcceptedAt: $termsAcceptedAt, status: $status, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -491,10 +665,18 @@ abstract mixin class _$UserProfileModelCopyWith<$Res>
   $Res call(
       {String uid,
       String phone,
+      String? username,
+      String? email,
       String? countryId,
+      String? regionId,
       String? cityId,
       List<String> roles,
       List<String> orgIds,
+      String? docType,
+      String? docNumber,
+      String? identityRaw,
+      String? termsVersion,
+      @DateTimeTimestampConverter() DateTime? termsAcceptedAt,
       String status,
       @DateTimeTimestampConverter() DateTime? createdAt,
       @DateTimeTimestampConverter() DateTime? updatedAt});
@@ -515,10 +697,18 @@ class __$UserProfileModelCopyWithImpl<$Res>
   $Res call({
     Object? uid = null,
     Object? phone = null,
+    Object? username = freezed,
+    Object? email = freezed,
     Object? countryId = freezed,
+    Object? regionId = freezed,
     Object? cityId = freezed,
     Object? roles = null,
     Object? orgIds = null,
+    Object? docType = freezed,
+    Object? docNumber = freezed,
+    Object? identityRaw = freezed,
+    Object? termsVersion = freezed,
+    Object? termsAcceptedAt = freezed,
     Object? status = null,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
@@ -532,9 +722,21 @@ class __$UserProfileModelCopyWithImpl<$Res>
           ? _self.phone
           : phone // ignore: cast_nullable_to_non_nullable
               as String,
+      username: freezed == username
+          ? _self.username
+          : username // ignore: cast_nullable_to_non_nullable
+              as String?,
+      email: freezed == email
+          ? _self.email
+          : email // ignore: cast_nullable_to_non_nullable
+              as String?,
       countryId: freezed == countryId
           ? _self.countryId
           : countryId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      regionId: freezed == regionId
+          ? _self.regionId
+          : regionId // ignore: cast_nullable_to_non_nullable
               as String?,
       cityId: freezed == cityId
           ? _self.cityId
@@ -548,6 +750,26 @@ class __$UserProfileModelCopyWithImpl<$Res>
           ? _self._orgIds
           : orgIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      docType: freezed == docType
+          ? _self.docType
+          : docType // ignore: cast_nullable_to_non_nullable
+              as String?,
+      docNumber: freezed == docNumber
+          ? _self.docNumber
+          : docNumber // ignore: cast_nullable_to_non_nullable
+              as String?,
+      identityRaw: freezed == identityRaw
+          ? _self.identityRaw
+          : identityRaw // ignore: cast_nullable_to_non_nullable
+              as String?,
+      termsVersion: freezed == termsVersion
+          ? _self.termsVersion
+          : termsVersion // ignore: cast_nullable_to_non_nullable
+              as String?,
+      termsAcceptedAt: freezed == termsAcceptedAt
+          ? _self.termsAcceptedAt
+          : termsAcceptedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       status: null == status
           ? _self.status
           : status // ignore: cast_nullable_to_non_nullable

@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import '../network/connectivity_service.dart';
-import '../platform/offline_sync_service.dart';
 import '../di/container.dart';
 import '../log/logger.dart';
+import '../network/connectivity_service.dart';
+import '../platform/offline_sync_service.dart';
 
 class SyncObserver {
   final ConnectivityService connectivityService;
@@ -19,8 +19,8 @@ class SyncObserver {
         // Trigger the global sync service
         try {
           final OfflineSyncService svc = DIContainer().syncService;
-          // currently OfflineSyncService exposes internal queue; here we simply call setOnline(true)
           svc.setOnline(true);
+          await svc.sync();
         } catch (e, st) {
           Logger.error('Failed to trigger offline sync', e, st);
         }

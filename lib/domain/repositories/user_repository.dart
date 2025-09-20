@@ -19,6 +19,7 @@ abstract class UserRepository {
   Future<List<MembershipEntity>> fetchMemberships(String uid);
 
   Future<UserProfileEntity> getOrBootstrapProfile({required String uid, required String phone});
+  Future<void> updateUserProfile(UserProfileEntity profile);
   Future<void> cacheProfile(UserProfileEntity profile);
   Future<List<RolePermissionEntity>> loadRolePermissions(List<String> roles);
   Future<void> setActiveContext(String uid, Map<String, dynamic> activeContext);

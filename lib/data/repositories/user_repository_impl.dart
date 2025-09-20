@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:avanzza/core/di/container.dart';
 import 'package:avanzza/data/datasources/local/isar_session_ds.dart';
 import 'package:avanzza/data/models/role_permission_model.dart';
 import 'package:avanzza/data/models/user/active_context_model.dart';
@@ -11,11 +12,13 @@ import 'package:avanzza/data/sources/remote/user_remote_ds.dart';
 import 'package:avanzza/domain/entities/role_permission_entity.dart';
 import 'package:avanzza/domain/entities/user_profile_entity.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../datasources/firestore/user_firestore_ds.dart';
+import '../models/user_profile_model.dart';
 import 'package:get/get.dart';
 
-import '../../../domain/entities/user/user_entity.dart';
-import '../../../domain/entities/user/membership_entity.dart';
 import '../../../domain/entities/user/active_context.dart';
+import '../../../domain/entities/user/membership_entity.dart';
+import '../../../domain/entities/user/user_entity.dart';
 import '../../../domain/repositories/user_repository.dart';
 import '../datasources/firestore/user_firestore_ds.dart';
 
@@ -57,7 +60,11 @@ class UserRepositoryImpl implements UserRepository {
     final m =
         UserModel.fromEntity(user.copyWith(updatedAt: user.updatedAt ?? now));
     await local.upsertUser(m);
-    await remote.upsertUser(m);
+    try {
+      await remote.upsertUser(m);
+    } catch (_) {
+      DIContainer().syncService.enqueue(() => remote.upsertUser(m));
+    }
   }
 
   @override
@@ -83,7 +90,13 @@ class UserRepositoryImpl implements UserRepository {
       );
       await local.upsertUser(updated);
     }
-    await remote.updateActiveContext(uid, ctxModel);
+    try {
+      await remote.updateActiveContext(uid, ctxModel);
+    } catch (_) {
+      DIContainer()
+          .syncService
+          .enqueue(() => remote.updateActiveContext(uid, ctxModel));
+    }
   }
 
   @override
@@ -123,8 +136,10 @@ class UserRepositoryImpl implements UserRepository {
       }
     }
   }
+
   @override
-  Future<UserProfileEntity> getOrBootstrapProfile({required String uid, required String phone}) async {
+  Future<UserProfileEntity> getOrBootstrapProfile(
+      {required String uid, required String phone}) async {
     final userFirestore = Get.find<UserFirestoreDS>();
     final isarSession = Get.find<IsarSessionDS>();
 
@@ -137,10 +152,18 @@ class UserRepositoryImpl implements UserRepository {
     final model = UserProfileModel(
       uid: uid,
       phone: phone,
+      username: null,
+      email: null,
       countryId: null,
+      regionId: null,
       cityId: null,
       roles: const [],
       orgIds: const [],
+      docType: null,
+      docNumber: null,
+      identityRaw: null,
+      termsVersion: null,
+      termsAcceptedAt: null,
       status: 'active',
       createdAt: null,
       updatedAt: null,
@@ -155,6 +178,13 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
+  Future<void> updateUserProfile(UserProfileEntity profile) async {
+    final userFirestore = Get.find<UserFirestoreDS>();
+    final m = UserProfileModel.fromJson(profile.toJson());
+    await userFirestore.updateProfile(profile.uid, m.toJson());
+  }
+
+  @override
   Future<void> cacheProfile(UserProfileEntity profile) async {
     final isarSession = Get.find<IsarSessionDS>();
     final m = UserProfileModel.fromJson(profile.toJson());
@@ -162,14 +192,16 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
-  Future<List<RolePermissionEntity>> loadRolePermissions(List<String> roles) async {
+  Future<List<RolePermissionEntity>> loadRolePermissions(
+      List<String> roles) async {
     final userFirestore = Get.find<UserFirestoreDS>();
     final list = await userFirestore.getRolePermissions(roles);
     return list.map((RolePermissionModel e) => e.toEntity()).toList();
   }
 
   @override
-  Future<void> setActiveContext(String uid, Map<String, dynamic> activeContext) async {
+  Future<void> setActiveContext(
+      String uid, Map<String, dynamic> activeContext) async {
     final userFirestore = Get.find<UserFirestoreDS>();
     final isarSession = Get.find<IsarSessionDS>();
 
@@ -184,7 +216,4 @@ class UserRepositoryImpl implements UserRepository {
       await isarSession.saveProfileCache(updated);
     }
   }
-
-
-
 }

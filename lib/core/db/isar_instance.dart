@@ -31,6 +31,7 @@ import '../../data/models/purchase/purchase_request_model.dart';
 import '../../data/models/purchase/supplier_response_model.dart';
 import '../../data/models/user/membership_model.dart';
 import '../../data/models/user/user_model.dart';
+import '../../data/models/auth/registration_progress_model.dart';
 
 Future<Isar> openIsar() async {
   final dir = await pp.getApplicationDocumentsDirectory();
@@ -63,7 +64,8 @@ Future<Isar> openIsar() async {
       AIAdvisorModelSchema,
       AIPredictionModelSchema,
       AIAuditLogModelSchema,
-      UserProfileCacheModelSchema
+      UserProfileCacheModelSchema,
+      RegistrationProgressModelSchema
     ],
     directory: dir.path,
     inspector: true,

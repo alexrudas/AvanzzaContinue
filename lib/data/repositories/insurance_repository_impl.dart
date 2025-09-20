@@ -1,12 +1,14 @@
 import 'dart:async';
 
-import '../sources/local/insurance_local_ds.dart';
-import '../sources/remote/insurance_remote_ds.dart';
-import '../models/insurance/insurance_policy_model.dart';
-import '../models/insurance/insurance_purchase_model.dart';
+import 'package:avanzza/core/di/container.dart';
+
 import '../../domain/entities/insurance/insurance_policy_entity.dart';
 import '../../domain/entities/insurance/insurance_purchase_entity.dart';
 import '../../domain/repositories/insurance_repository.dart';
+import '../models/insurance/insurance_policy_model.dart';
+import '../models/insurance/insurance_purchase_model.dart';
+import '../sources/local/insurance_local_ds.dart';
+import '../sources/remote/insurance_remote_ds.dart';
 
 class InsuranceRepositoryImpl implements InsuranceRepository {
   final InsuranceLocalDataSource local;
@@ -16,15 +18,19 @@ class InsuranceRepositoryImpl implements InsuranceRepository {
 
   // Policies
   @override
-  Stream<List<InsurancePolicyEntity>> watchPoliciesByAsset(String assetId, {String? countryId, String? cityId}) async* {
+  Stream<List<InsurancePolicyEntity>> watchPoliciesByAsset(String assetId,
+      {String? countryId, String? cityId}) async* {
     final controller = StreamController<List<InsurancePolicyEntity>>();
     Future(() async {
       try {
-        final localList = await local.policiesByAsset(assetId, countryId: countryId, cityId: cityId);
+        final localList = await local.policiesByAsset(assetId,
+            countryId: countryId, cityId: cityId);
         controller.add(localList.map((e) => e.toEntity()).toList());
-        final remoteList = await remote.policiesByAsset(assetId, countryId: countryId, cityId: cityId);
+        final remoteList = await remote.policiesByAsset(assetId,
+            countryId: countryId, cityId: cityId);
         await _syncPolicies(localList, remoteList);
-        final updated = await local.policiesByAsset(assetId, countryId: countryId, cityId: cityId);
+        final updated = await local.policiesByAsset(assetId,
+            countryId: countryId, cityId: cityId);
         controller.add(updated.map((e) => e.toEntity()).toList());
       } catch (e) {
         // TODO: log error
@@ -36,12 +42,15 @@ class InsuranceRepositoryImpl implements InsuranceRepository {
   }
 
   @override
-  Future<List<InsurancePolicyEntity>> fetchPoliciesByAsset(String assetId, {String? countryId, String? cityId}) async {
+  Future<List<InsurancePolicyEntity>> fetchPoliciesByAsset(String assetId,
+      {String? countryId, String? cityId}) async {
     try {
-      final localList = await local.policiesByAsset(assetId, countryId: countryId, cityId: cityId);
+      final localList = await local.policiesByAsset(assetId,
+          countryId: countryId, cityId: cityId);
       unawaited(() async {
         try {
-          final remoteList = await remote.policiesByAsset(assetId, countryId: countryId, cityId: cityId);
+          final remoteList = await remote.policiesByAsset(assetId,
+              countryId: countryId, cityId: cityId);
           await _syncPolicies(localList, remoteList);
         } catch (e) {
           // TODO: log error
@@ -54,7 +63,8 @@ class InsuranceRepositoryImpl implements InsuranceRepository {
     }
   }
 
-  Future<void> _syncPolicies(List<InsurancePolicyModel> locals, List<InsurancePolicyModel> remotes) async {
+  Future<void> _syncPolicies(List<InsurancePolicyModel> locals,
+      List<InsurancePolicyModel> remotes) async {
     final map = {for (final l in locals) l.id: l};
     for (final r in remotes) {
       final l = map[r.id];
@@ -71,13 +81,15 @@ class InsuranceRepositoryImpl implements InsuranceRepository {
     final controller = StreamController<InsurancePolicyEntity?>();
     Future(() async {
       try {
-        final localList = await local.policiesByAsset('', countryId: null, cityId: null);
+        final localList =
+            await local.policiesByAsset('', countryId: null, cityId: null);
         final localItem = localList.where((e) => e.id == id).toList();
         controller.add(localItem.isEmpty ? null : localItem.first.toEntity());
         final remoteItem = await remote.getPolicy(id);
         if (remoteItem != null) {
           await local.upsertPolicy(remoteItem);
-          final updated = await local.policiesByAsset('', countryId: null, cityId: null);
+          final updated =
+              await local.policiesByAsset('', countryId: null, cityId: null);
           controller.add(updated.firstWhere((e) => e.id == id).toEntity());
         }
       } catch (e) {
@@ -92,7 +104,8 @@ class InsuranceRepositoryImpl implements InsuranceRepository {
   @override
   Future<InsurancePolicyEntity?> getPolicy(String id) async {
     try {
-      final localList = await local.policiesByAsset('', countryId: null, cityId: null);
+      final localList =
+          await local.policiesByAsset('', countryId: null, cityId: null);
       final localItem = localList.where((e) => e.id == id).toList();
       unawaited(() async {
         try {
@@ -112,7 +125,8 @@ class InsuranceRepositoryImpl implements InsuranceRepository {
   @override
   Future<void> upsertPolicy(InsurancePolicyEntity policy) async {
     final now = DateTime.now().toUtc();
-    final model = InsurancePolicyModel.fromEntity(policy.copyWith(updatedAt: policy.updatedAt ?? now));
+    final model = InsurancePolicyModel.fromEntity(
+        policy.copyWith(updatedAt: policy.updatedAt ?? now));
     try {
       await local.upsertPolicy(model);
     } catch (e) {
@@ -121,13 +135,14 @@ class InsuranceRepositoryImpl implements InsuranceRepository {
     try {
       await remote.upsertPolicy(model);
     } catch (e) {
-      // TODO: enqueue for retry
+      DIContainer().syncService.enqueue(() => remote.upsertPolicy(model));
     }
   }
 
   // Purchases
   @override
-  Stream<List<InsurancePurchaseEntity>> watchPurchasesByOrg(String orgId) async* {
+  Stream<List<InsurancePurchaseEntity>> watchPurchasesByOrg(
+      String orgId) async* {
     final controller = StreamController<List<InsurancePurchaseEntity>>();
     Future(() async {
       try {
@@ -147,7 +162,8 @@ class InsuranceRepositoryImpl implements InsuranceRepository {
   }
 
   @override
-  Future<List<InsurancePurchaseEntity>> fetchPurchasesByOrg(String orgId) async {
+  Future<List<InsurancePurchaseEntity>> fetchPurchasesByOrg(
+      String orgId) async {
     try {
       final localList = await local.purchasesByOrg(orgId);
       unawaited(() async {
@@ -165,7 +181,8 @@ class InsuranceRepositoryImpl implements InsuranceRepository {
     }
   }
 
-  Future<void> _syncPurchases(List<InsurancePurchaseModel> locals, List<InsurancePurchaseModel> remotes) async {
+  Future<void> _syncPurchases(List<InsurancePurchaseModel> locals,
+      List<InsurancePurchaseModel> remotes) async {
     final map = {for (final l in locals) l.id: l};
     for (final r in remotes) {
       final l = map[r.id];
@@ -223,7 +240,8 @@ class InsuranceRepositoryImpl implements InsuranceRepository {
   @override
   Future<void> upsertPurchase(InsurancePurchaseEntity purchase) async {
     final now = DateTime.now().toUtc();
-    final model = InsurancePurchaseModel.fromEntity(purchase.copyWith(updatedAt: purchase.updatedAt ?? now));
+    final model = InsurancePurchaseModel.fromEntity(
+        purchase.copyWith(updatedAt: purchase.updatedAt ?? now));
     try {
       await local.upsertPurchase(model);
     } catch (e) {
@@ -232,7 +250,7 @@ class InsuranceRepositoryImpl implements InsuranceRepository {
     try {
       await remote.upsertPurchase(model);
     } catch (e) {
-      // TODO: enqueue for retry
+      DIContainer().syncService.enqueue(() => remote.upsertPurchase(model));
     }
   }
 }

@@ -15,7 +15,8 @@ class OfflineSyncService {
   final _queue = <_QueuedOp>[];
   Timer? _timer;
 
-  OfflineSyncService({this.retryDelay = const Duration(seconds: 3), this.maxRetries = 5});
+  OfflineSyncService(
+      {this.retryDelay = const Duration(seconds: 3), this.maxRetries = 5});
 
   void setOnline(bool online) {
     _online = online;
@@ -27,6 +28,15 @@ class OfflineSyncService {
   void enqueue(Future<void> Function() op) {
     _queue.add(_QueuedOp(op));
     _drain();
+  }
+
+  // Expose queue size (useful for tests/telemetry)
+  int get pendingCount => _queue.length;
+
+  // Force immediate drain if online
+  Future<void> sync() async {
+    if (!_online) return;
+    await _process();
   }
 
   void _drain() {

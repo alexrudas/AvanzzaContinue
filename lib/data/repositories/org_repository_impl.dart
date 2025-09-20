@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:avanzza/core/di/container.dart';
 import 'package:avanzza/data/models/org/organization_model.dart';
 import 'package:avanzza/data/sources/local/org_local_ds.dart';
 import 'package:avanzza/data/sources/remote/org_remote_ds.dart';
@@ -91,7 +92,11 @@ class OrgRepositoryImpl implements OrgRepository {
     final m = OrganizationModel.fromEntity(
         org.copyWith(updatedAt: org.updatedAt ?? now));
     await local.upsertOrg(m);
-    await remote.upsertOrg(m);
+    try {
+      await remote.upsertOrg(m);
+    } catch (_) {
+      DIContainer().syncService.enqueue(() => remote.upsertOrg(m));
+    }
   }
 
   @override
@@ -117,7 +122,12 @@ class OrgRepositoryImpl implements OrgRepository {
       );
       await local.upsertOrg(updated);
     }
-    await remote.updateOrgLocation(orgId,
-        countryId: countryId, regionId: regionId, cityId: cityId);
+    try {
+      await remote.updateOrgLocation(orgId,
+          countryId: countryId, regionId: regionId, cityId: cityId);
+    } catch (_) {
+      DIContainer().syncService.enqueue(() => remote.updateOrgLocation(orgId,
+          countryId: countryId, regionId: regionId, cityId: cityId));
+    }
   }
 }

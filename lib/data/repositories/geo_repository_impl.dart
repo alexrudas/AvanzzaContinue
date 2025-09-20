@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:avanzza/core/di/container.dart';
 import 'package:avanzza/data/models/geo/city_model.dart';
 import 'package:avanzza/data/models/geo/country_model.dart';
 import 'package:avanzza/data/models/geo/local_regulation_model.dart';
@@ -7,11 +8,10 @@ import 'package:avanzza/data/models/geo/region_model.dart';
 import 'package:avanzza/data/sources/local/geo_local_ds.dart';
 import 'package:avanzza/data/sources/remote/geo_remote_ds.dart';
 
-
-import '../../../domain/entities/geo/country_entity.dart';
-import '../../../domain/entities/geo/region_entity.dart';
 import '../../../domain/entities/geo/city_entity.dart';
+import '../../../domain/entities/geo/country_entity.dart';
 import '../../../domain/entities/geo/local_regulation_entity.dart';
+import '../../../domain/entities/geo/region_entity.dart';
 import '../../../domain/repositories/geo_repository.dart';
 
 class GeoRepositoryImpl implements GeoRepository {
@@ -47,7 +47,8 @@ class GeoRepositoryImpl implements GeoRepository {
     return locals.map((e) => e.toEntity()).toList();
   }
 
-  Future<void> _syncCountries(List<CountryModel> locals, List<CountryModel> remotes) async {
+  Future<void> _syncCountries(
+      List<CountryModel> locals, List<CountryModel> remotes) async {
     final mapLocal = {for (final c in locals) c.id: c};
     for (final r in remotes) {
       final l = mapLocal[r.id];
@@ -64,7 +65,10 @@ class GeoRepositoryImpl implements GeoRepository {
     final controller = StreamController<CountryEntity?>();
     Future(() async {
       final list = await local.countries();
-      controller.add(list.firstWhere((e) => e.id == id, orElse: () => CountryModel(id: id, name: '', iso3: '')).toEntity());
+      controller.add(list
+          .firstWhere((e) => e.id == id,
+              orElse: () => CountryModel(id: id, name: '', iso3: ''))
+          .toEntity());
       final remoteItem = await remote.getCountry(id);
       if (remoteItem != null) {
         await local.upsertCountry(remoteItem);
@@ -89,21 +93,30 @@ class GeoRepositoryImpl implements GeoRepository {
 
   @override
   Future<void> upsertCountry(CountryEntity country) async {
-    final model = CountryModel.fromEntity(country.copyWith(updatedAt: country.updatedAt ?? DateTime.now().toUtc()));
+    final model = CountryModel.fromEntity(country.copyWith(
+        updatedAt: country.updatedAt ?? DateTime.now().toUtc()));
     await local.upsertCountry(model);
-    await remote.upsertCountry(model);
+    try {
+      await remote.upsertCountry(model);
+    } catch (_) {
+      DIContainer().syncService.enqueue(() => remote.upsertCountry(model));
+    }
   }
 
   // Regions
   @override
-  Stream<List<RegionEntity>> watchRegions({required String countryId, bool? isActive}) async* {
+  Stream<List<RegionEntity>> watchRegions(
+      {required String countryId, bool? isActive}) async* {
     final controller = StreamController<List<RegionEntity>>();
     Future(() async {
-      final locals = await local.regions(countryId: countryId, isActive: isActive);
+      final locals =
+          await local.regions(countryId: countryId, isActive: isActive);
       controller.add(locals.map((e) => e.toEntity()).toList());
-      final remotes = await remote.regions(countryId: countryId, isActive: isActive);
+      final remotes =
+          await remote.regions(countryId: countryId, isActive: isActive);
       await _syncRegions(locals, remotes);
-      final updated = await local.regions(countryId: countryId, isActive: isActive);
+      final updated =
+          await local.regions(countryId: countryId, isActive: isActive);
       controller.add(updated.map((e) => e.toEntity()).toList());
       await controller.close();
     });
@@ -111,16 +124,20 @@ class GeoRepositoryImpl implements GeoRepository {
   }
 
   @override
-  Future<List<RegionEntity>> fetchRegions({required String countryId, bool? isActive}) async {
-    final locals = await local.regions(countryId: countryId, isActive: isActive);
+  Future<List<RegionEntity>> fetchRegions(
+      {required String countryId, bool? isActive}) async {
+    final locals =
+        await local.regions(countryId: countryId, isActive: isActive);
     unawaited(() async {
-      final remotes = await remote.regions(countryId: countryId, isActive: isActive);
+      final remotes =
+          await remote.regions(countryId: countryId, isActive: isActive);
       await _syncRegions(locals, remotes);
     }());
     return locals.map((e) => e.toEntity()).toList();
   }
 
-  Future<void> _syncRegions(List<RegionModel> locals, List<RegionModel> remotes) async {
+  Future<void> _syncRegions(
+      List<RegionModel> locals, List<RegionModel> remotes) async {
     final mapLocal = {for (final c in locals) c.id: c};
     for (final r in remotes) {
       final l = mapLocal[r.id];
@@ -163,21 +180,30 @@ class GeoRepositoryImpl implements GeoRepository {
 
   @override
   Future<void> upsertRegion(RegionEntity region) async {
-    final m = RegionModel.fromEntity(region.copyWith(updatedAt: region.updatedAt ?? DateTime.now().toUtc()));
+    final m = RegionModel.fromEntity(
+        region.copyWith(updatedAt: region.updatedAt ?? DateTime.now().toUtc()));
     await local.upsertRegion(m);
-    await remote.upsertRegion(m);
+    try {
+      await remote.upsertRegion(m);
+    } catch (_) {
+      DIContainer().syncService.enqueue(() => remote.upsertRegion(m));
+    }
   }
 
   // Cities
   @override
-  Stream<List<CityEntity>> watchCities({required String countryId, String? regionId, bool? isActive}) async* {
+  Stream<List<CityEntity>> watchCities(
+      {required String countryId, String? regionId, bool? isActive}) async* {
     final controller = StreamController<List<CityEntity>>();
     Future(() async {
-      final locals = await local.cities(countryId: countryId, regionId: regionId, isActive: isActive);
+      final locals = await local.cities(
+          countryId: countryId, regionId: regionId, isActive: isActive);
       controller.add(locals.map((e) => e.toEntity()).toList());
-      final remotes = await remote.cities(countryId: countryId, regionId: regionId, isActive: isActive);
+      final remotes = await remote.cities(
+          countryId: countryId, regionId: regionId, isActive: isActive);
       await _syncCities(locals, remotes);
-      final updated = await local.cities(countryId: countryId, regionId: regionId, isActive: isActive);
+      final updated = await local.cities(
+          countryId: countryId, regionId: regionId, isActive: isActive);
       controller.add(updated.map((e) => e.toEntity()).toList());
       await controller.close();
     });
@@ -185,16 +211,20 @@ class GeoRepositoryImpl implements GeoRepository {
   }
 
   @override
-  Future<List<CityEntity>> fetchCities({required String countryId, String? regionId, bool? isActive}) async {
-    final locals = await local.cities(countryId: countryId, regionId: regionId, isActive: isActive);
+  Future<List<CityEntity>> fetchCities(
+      {required String countryId, String? regionId, bool? isActive}) async {
+    final locals = await local.cities(
+        countryId: countryId, regionId: regionId, isActive: isActive);
     unawaited(() async {
-      final remotes = await remote.cities(countryId: countryId, regionId: regionId, isActive: isActive);
+      final remotes = await remote.cities(
+          countryId: countryId, regionId: regionId, isActive: isActive);
       await _syncCities(locals, remotes);
     }());
     return locals.map((e) => e.toEntity()).toList();
   }
 
-  Future<void> _syncCities(List<CityModel> locals, List<CityModel> remotes) async {
+  Future<void> _syncCities(
+      List<CityModel> locals, List<CityModel> remotes) async {
     final mapLocal = {for (final c in locals) c.id: c};
     for (final r in remotes) {
       final l = mapLocal[r.id];
@@ -208,14 +238,18 @@ class GeoRepositoryImpl implements GeoRepository {
 
   // Local Regulations
   @override
-  Stream<List<LocalRegulationEntity>> watchLocalRegulations({String? countryId, String? cityId}) async* {
+  Stream<List<LocalRegulationEntity>> watchLocalRegulations(
+      {String? countryId, String? cityId}) async* {
     final controller = StreamController<List<LocalRegulationEntity>>();
     Future(() async {
-      final locals = await local.localRegulations(countryId: countryId, cityId: cityId);
+      final locals =
+          await local.localRegulations(countryId: countryId, cityId: cityId);
       controller.add(locals.map((e) => e.toEntity()).toList());
-      final remotes = await remote.localRegulations(countryId: countryId, cityId: cityId);
+      final remotes =
+          await remote.localRegulations(countryId: countryId, cityId: cityId);
       await _syncRegs(locals, remotes);
-      final updated = await local.localRegulations(countryId: countryId, cityId: cityId);
+      final updated =
+          await local.localRegulations(countryId: countryId, cityId: cityId);
       controller.add(updated.map((e) => e.toEntity()).toList());
       await controller.close();
     });
@@ -223,16 +257,20 @@ class GeoRepositoryImpl implements GeoRepository {
   }
 
   @override
-  Future<List<LocalRegulationEntity>> fetchLocalRegulations({String? countryId, String? cityId}) async {
-    final locals = await local.localRegulations(countryId: countryId, cityId: cityId);
+  Future<List<LocalRegulationEntity>> fetchLocalRegulations(
+      {String? countryId, String? cityId}) async {
+    final locals =
+        await local.localRegulations(countryId: countryId, cityId: cityId);
     unawaited(() async {
-      final remotes = await remote.localRegulations(countryId: countryId, cityId: cityId);
+      final remotes =
+          await remote.localRegulations(countryId: countryId, cityId: cityId);
       await _syncRegs(locals, remotes);
     }());
     return locals.map((e) => e.toEntity()).toList();
   }
 
-  Future<void> _syncRegs(List<LocalRegulationModel> locals, List<LocalRegulationModel> remotes) async {
+  Future<void> _syncRegs(List<LocalRegulationModel> locals,
+      List<LocalRegulationModel> remotes) async {
     final mapLocal = {for (final c in locals) c.id: c};
     for (final r in remotes) {
       final l = mapLocal[r.id];
@@ -275,15 +313,21 @@ class GeoRepositoryImpl implements GeoRepository {
 
   @override
   Future<void> upsertLocalRegulation(LocalRegulationEntity regulation) async {
-    final m = LocalRegulationModel.fromEntity(regulation.copyWith(updatedAt: regulation.updatedAt ?? DateTime.now().toUtc()));
+    final m = LocalRegulationModel.fromEntity(regulation.copyWith(
+        updatedAt: regulation.updatedAt ?? DateTime.now().toUtc()));
     await local.upsertLocalRegulation(m);
-    await remote.upsertLocalRegulation(m);
+    try {
+      await remote.upsertLocalRegulation(m);
+    } catch (_) {
+      DIContainer().syncService.enqueue(() => remote.upsertLocalRegulation(m));
+    }
   }
-  
-    @override
+
+  @override
   Future<CityEntity?> getCity(String id) async {
     // 1) Lee local
-    final locals = await local.cities(countryId: '', regionId: null, isActive: null);
+    final locals =
+        await local.cities(countryId: '', regionId: null, isActive: null);
     final l = locals.where((e) => e.id == id).toList();
 
     // 2) Sincroniza en background
@@ -305,7 +349,11 @@ class GeoRepositoryImpl implements GeoRepository {
     );
     // write-through
     await local.upsertCity(m);
-    await remote.upsertCity(m);
+    try {
+      await remote.upsertCity(m);
+    } catch (_) {
+      DIContainer().syncService.enqueue(() => remote.upsertCity(m));
+    }
   }
 
   @override
@@ -314,7 +362,8 @@ class GeoRepositoryImpl implements GeoRepository {
     Future(() async {
       try {
         // 1) Emite valor local (si existe)
-        final locals = await local.cities(countryId: '', regionId: null, isActive: null);
+        final locals =
+            await local.cities(countryId: '', regionId: null, isActive: null);
         final l = locals.where((e) => e.id == id).toList();
         controller.add(l.isEmpty ? null : l.first.toEntity());
 
@@ -322,7 +371,8 @@ class GeoRepositoryImpl implements GeoRepository {
         final r = await remote.getCity(id);
         if (r != null) {
           await local.upsertCity(r);
-          final updated = await local.cities(countryId: '', regionId: null, isActive: null);
+          final updated =
+              await local.cities(countryId: '', regionId: null, isActive: null);
           final u = updated.where((e) => e.id == id).toList();
           controller.add(u.isEmpty ? null : u.first.toEntity());
         }
@@ -334,5 +384,4 @@ class GeoRepositoryImpl implements GeoRepository {
     });
     yield* controller.stream;
   }
-
 }
