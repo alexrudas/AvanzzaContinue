@@ -16,7 +16,9 @@ T _$identity<T>(T value) => value;
 mixin _$AssetEntity {
   String get id;
   String get orgId;
-  String get assetType; // vehiculo | inmueble | maquinaria | otro
+  String
+      get assetType; // vehiculos | inmuebles | maquinaria | equipos | otros (normalizado)
+  String? get assetSegmentId; // NUEVO: 'moto'|'auto'|'camion'|...
   String get countryId;
   String? get regionId;
   String? get cityId;
@@ -25,6 +27,7 @@ mixin _$AssetEntity {
   String get estado; // activo | inactivo
   List<String> get etiquetas;
   List<String> get fotosUrls;
+  List<Map<String, dynamic>> get access; // NUEVO: ACL de acceso
   DateTime? get createdAt;
   DateTime? get updatedAt;
 
@@ -47,6 +50,8 @@ mixin _$AssetEntity {
             (identical(other.orgId, orgId) || other.orgId == orgId) &&
             (identical(other.assetType, assetType) ||
                 other.assetType == assetType) &&
+            (identical(other.assetSegmentId, assetSegmentId) ||
+                other.assetSegmentId == assetSegmentId) &&
             (identical(other.countryId, countryId) ||
                 other.countryId == countryId) &&
             (identical(other.regionId, regionId) ||
@@ -58,6 +63,7 @@ mixin _$AssetEntity {
             (identical(other.estado, estado) || other.estado == estado) &&
             const DeepCollectionEquality().equals(other.etiquetas, etiquetas) &&
             const DeepCollectionEquality().equals(other.fotosUrls, fotosUrls) &&
+            const DeepCollectionEquality().equals(other.access, access) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -71,6 +77,7 @@ mixin _$AssetEntity {
       id,
       orgId,
       assetType,
+      assetSegmentId,
       countryId,
       regionId,
       cityId,
@@ -79,12 +86,13 @@ mixin _$AssetEntity {
       estado,
       const DeepCollectionEquality().hash(etiquetas),
       const DeepCollectionEquality().hash(fotosUrls),
+      const DeepCollectionEquality().hash(access),
       createdAt,
       updatedAt);
 
   @override
   String toString() {
-    return 'AssetEntity(id: $id, orgId: $orgId, assetType: $assetType, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerType: $ownerType, ownerId: $ownerId, estado: $estado, etiquetas: $etiquetas, fotosUrls: $fotosUrls, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'AssetEntity(id: $id, orgId: $orgId, assetType: $assetType, assetSegmentId: $assetSegmentId, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerType: $ownerType, ownerId: $ownerId, estado: $estado, etiquetas: $etiquetas, fotosUrls: $fotosUrls, access: $access, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -98,6 +106,7 @@ abstract mixin class $AssetEntityCopyWith<$Res> {
       {String id,
       String orgId,
       String assetType,
+      String? assetSegmentId,
       String countryId,
       String? regionId,
       String? cityId,
@@ -106,6 +115,7 @@ abstract mixin class $AssetEntityCopyWith<$Res> {
       String estado,
       List<String> etiquetas,
       List<String> fotosUrls,
+      List<Map<String, dynamic>> access,
       DateTime? createdAt,
       DateTime? updatedAt});
 }
@@ -125,6 +135,7 @@ class _$AssetEntityCopyWithImpl<$Res> implements $AssetEntityCopyWith<$Res> {
     Object? id = null,
     Object? orgId = null,
     Object? assetType = null,
+    Object? assetSegmentId = freezed,
     Object? countryId = null,
     Object? regionId = freezed,
     Object? cityId = freezed,
@@ -133,6 +144,7 @@ class _$AssetEntityCopyWithImpl<$Res> implements $AssetEntityCopyWith<$Res> {
     Object? estado = null,
     Object? etiquetas = null,
     Object? fotosUrls = null,
+    Object? access = null,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
@@ -149,6 +161,10 @@ class _$AssetEntityCopyWithImpl<$Res> implements $AssetEntityCopyWith<$Res> {
           ? _self.assetType
           : assetType // ignore: cast_nullable_to_non_nullable
               as String,
+      assetSegmentId: freezed == assetSegmentId
+          ? _self.assetSegmentId
+          : assetSegmentId // ignore: cast_nullable_to_non_nullable
+              as String?,
       countryId: null == countryId
           ? _self.countryId
           : countryId // ignore: cast_nullable_to_non_nullable
@@ -181,6 +197,10 @@ class _$AssetEntityCopyWithImpl<$Res> implements $AssetEntityCopyWith<$Res> {
           ? _self.fotosUrls
           : fotosUrls // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      access: null == access
+          ? _self.access
+          : access // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, dynamic>>,
       createdAt: freezed == createdAt
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -290,6 +310,7 @@ extension AssetEntityPatterns on AssetEntity {
             String id,
             String orgId,
             String assetType,
+            String? assetSegmentId,
             String countryId,
             String? regionId,
             String? cityId,
@@ -298,6 +319,7 @@ extension AssetEntityPatterns on AssetEntity {
             String estado,
             List<String> etiquetas,
             List<String> fotosUrls,
+            List<Map<String, dynamic>> access,
             DateTime? createdAt,
             DateTime? updatedAt)?
         $default, {
@@ -310,6 +332,7 @@ extension AssetEntityPatterns on AssetEntity {
             _that.id,
             _that.orgId,
             _that.assetType,
+            _that.assetSegmentId,
             _that.countryId,
             _that.regionId,
             _that.cityId,
@@ -318,6 +341,7 @@ extension AssetEntityPatterns on AssetEntity {
             _that.estado,
             _that.etiquetas,
             _that.fotosUrls,
+            _that.access,
             _that.createdAt,
             _that.updatedAt);
       case _:
@@ -344,6 +368,7 @@ extension AssetEntityPatterns on AssetEntity {
             String id,
             String orgId,
             String assetType,
+            String? assetSegmentId,
             String countryId,
             String? regionId,
             String? cityId,
@@ -352,6 +377,7 @@ extension AssetEntityPatterns on AssetEntity {
             String estado,
             List<String> etiquetas,
             List<String> fotosUrls,
+            List<Map<String, dynamic>> access,
             DateTime? createdAt,
             DateTime? updatedAt)
         $default,
@@ -363,6 +389,7 @@ extension AssetEntityPatterns on AssetEntity {
             _that.id,
             _that.orgId,
             _that.assetType,
+            _that.assetSegmentId,
             _that.countryId,
             _that.regionId,
             _that.cityId,
@@ -371,6 +398,7 @@ extension AssetEntityPatterns on AssetEntity {
             _that.estado,
             _that.etiquetas,
             _that.fotosUrls,
+            _that.access,
             _that.createdAt,
             _that.updatedAt);
       case _:
@@ -396,6 +424,7 @@ extension AssetEntityPatterns on AssetEntity {
             String id,
             String orgId,
             String assetType,
+            String? assetSegmentId,
             String countryId,
             String? regionId,
             String? cityId,
@@ -404,6 +433,7 @@ extension AssetEntityPatterns on AssetEntity {
             String estado,
             List<String> etiquetas,
             List<String> fotosUrls,
+            List<Map<String, dynamic>> access,
             DateTime? createdAt,
             DateTime? updatedAt)?
         $default,
@@ -415,6 +445,7 @@ extension AssetEntityPatterns on AssetEntity {
             _that.id,
             _that.orgId,
             _that.assetType,
+            _that.assetSegmentId,
             _that.countryId,
             _that.regionId,
             _that.cityId,
@@ -423,6 +454,7 @@ extension AssetEntityPatterns on AssetEntity {
             _that.estado,
             _that.etiquetas,
             _that.fotosUrls,
+            _that.access,
             _that.createdAt,
             _that.updatedAt);
       case _:
@@ -438,6 +470,7 @@ class _AssetEntity implements AssetEntity {
       {required this.id,
       required this.orgId,
       required this.assetType,
+      this.assetSegmentId,
       required this.countryId,
       this.regionId,
       this.cityId,
@@ -446,10 +479,12 @@ class _AssetEntity implements AssetEntity {
       required this.estado,
       final List<String> etiquetas = const <String>[],
       final List<String> fotosUrls = const <String>[],
+      final List<Map<String, dynamic>> access = const <Map<String, dynamic>>[],
       this.createdAt,
       this.updatedAt})
       : _etiquetas = etiquetas,
-        _fotosUrls = fotosUrls;
+        _fotosUrls = fotosUrls,
+        _access = access;
   factory _AssetEntity.fromJson(Map<String, dynamic> json) =>
       _$AssetEntityFromJson(json);
 
@@ -459,7 +494,10 @@ class _AssetEntity implements AssetEntity {
   final String orgId;
   @override
   final String assetType;
-// vehiculo | inmueble | maquinaria | otro
+// vehiculos | inmuebles | maquinaria | equipos | otros (normalizado)
+  @override
+  final String? assetSegmentId;
+// NUEVO: 'moto'|'auto'|'camion'|...
   @override
   final String countryId;
   @override
@@ -493,6 +531,16 @@ class _AssetEntity implements AssetEntity {
     return EqualUnmodifiableListView(_fotosUrls);
   }
 
+  final List<Map<String, dynamic>> _access;
+  @override
+  @JsonKey()
+  List<Map<String, dynamic>> get access {
+    if (_access is EqualUnmodifiableListView) return _access;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_access);
+  }
+
+// NUEVO: ACL de acceso
   @override
   final DateTime? createdAt;
   @override
@@ -522,6 +570,8 @@ class _AssetEntity implements AssetEntity {
             (identical(other.orgId, orgId) || other.orgId == orgId) &&
             (identical(other.assetType, assetType) ||
                 other.assetType == assetType) &&
+            (identical(other.assetSegmentId, assetSegmentId) ||
+                other.assetSegmentId == assetSegmentId) &&
             (identical(other.countryId, countryId) ||
                 other.countryId == countryId) &&
             (identical(other.regionId, regionId) ||
@@ -535,6 +585,7 @@ class _AssetEntity implements AssetEntity {
                 .equals(other._etiquetas, _etiquetas) &&
             const DeepCollectionEquality()
                 .equals(other._fotosUrls, _fotosUrls) &&
+            const DeepCollectionEquality().equals(other._access, _access) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -548,6 +599,7 @@ class _AssetEntity implements AssetEntity {
       id,
       orgId,
       assetType,
+      assetSegmentId,
       countryId,
       regionId,
       cityId,
@@ -556,12 +608,13 @@ class _AssetEntity implements AssetEntity {
       estado,
       const DeepCollectionEquality().hash(_etiquetas),
       const DeepCollectionEquality().hash(_fotosUrls),
+      const DeepCollectionEquality().hash(_access),
       createdAt,
       updatedAt);
 
   @override
   String toString() {
-    return 'AssetEntity(id: $id, orgId: $orgId, assetType: $assetType, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerType: $ownerType, ownerId: $ownerId, estado: $estado, etiquetas: $etiquetas, fotosUrls: $fotosUrls, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'AssetEntity(id: $id, orgId: $orgId, assetType: $assetType, assetSegmentId: $assetSegmentId, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerType: $ownerType, ownerId: $ownerId, estado: $estado, etiquetas: $etiquetas, fotosUrls: $fotosUrls, access: $access, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -577,6 +630,7 @@ abstract mixin class _$AssetEntityCopyWith<$Res>
       {String id,
       String orgId,
       String assetType,
+      String? assetSegmentId,
       String countryId,
       String? regionId,
       String? cityId,
@@ -585,6 +639,7 @@ abstract mixin class _$AssetEntityCopyWith<$Res>
       String estado,
       List<String> etiquetas,
       List<String> fotosUrls,
+      List<Map<String, dynamic>> access,
       DateTime? createdAt,
       DateTime? updatedAt});
 }
@@ -604,6 +659,7 @@ class __$AssetEntityCopyWithImpl<$Res> implements _$AssetEntityCopyWith<$Res> {
     Object? id = null,
     Object? orgId = null,
     Object? assetType = null,
+    Object? assetSegmentId = freezed,
     Object? countryId = null,
     Object? regionId = freezed,
     Object? cityId = freezed,
@@ -612,6 +668,7 @@ class __$AssetEntityCopyWithImpl<$Res> implements _$AssetEntityCopyWith<$Res> {
     Object? estado = null,
     Object? etiquetas = null,
     Object? fotosUrls = null,
+    Object? access = null,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
@@ -628,6 +685,10 @@ class __$AssetEntityCopyWithImpl<$Res> implements _$AssetEntityCopyWith<$Res> {
           ? _self.assetType
           : assetType // ignore: cast_nullable_to_non_nullable
               as String,
+      assetSegmentId: freezed == assetSegmentId
+          ? _self.assetSegmentId
+          : assetSegmentId // ignore: cast_nullable_to_non_nullable
+              as String?,
       countryId: null == countryId
           ? _self.countryId
           : countryId // ignore: cast_nullable_to_non_nullable
@@ -660,6 +721,10 @@ class __$AssetEntityCopyWithImpl<$Res> implements _$AssetEntityCopyWith<$Res> {
           ? _self._fotosUrls
           : fotosUrls // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      access: null == access
+          ? _self._access
+          : access // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, dynamic>>,
       createdAt: freezed == createdAt
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable

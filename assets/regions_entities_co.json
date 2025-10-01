@@ -1,0 +1,290 @@
+[
+  {
+    "id": "CO-AMA",
+    "countryId": "CO",
+    "name": "Amazonas",
+    "code": "CO-AMA",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-ANT",
+    "countryId": "CO",
+    "name": "Antioquia",
+    "code": "CO-ANT",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-ARA",
+    "countryId": "CO",
+    "name": "Arauca",
+    "code": "CO-ARA",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-ATL",
+    "countryId": "CO",
+    "name": "Atlántico",
+    "code": "CO-ATL",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-BOL",
+    "countryId": "CO",
+    "name": "Bolívar",
+    "code": "CO-BOL",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-BOY",
+    "countryId": "CO",
+    "name": "Boyacá",
+    "code": "CO-BOY",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-CAL",
+    "countryId": "CO",
+    "name": "Caldas",
+    "code": "CO-CAL",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-CAQ",
+    "countryId": "CO",
+    "name": "Caquetá",
+    "code": "CO-CAQ",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-CAS",
+    "countryId": "CO",
+    "name": "Casanare",
+    "code": "CO-CAS",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-CAU",
+    "countryId": "CO",
+    "name": "Cauca",
+    "code": "CO-CAU",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-CES",
+    "countryId": "CO",
+    "name": "Cesar",
+    "code": "CO-CES",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-CHO",
+    "countryId": "CO",
+    "name": "Chocó",
+    "code": "CO-CHO",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-CUN",
+    "countryId": "CO",
+    "name": "Cundinamarca",
+    "code": "CO-CUN",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-COR",
+    "countryId": "CO",
+    "name": "Córdoba",
+    "code": "CO-COR",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-GUA",
+    "countryId": "CO",
+    "name": "Guainía",
+    "code": "CO-GUA",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-GUV",
+    "countryId": "CO",
+    "name": "Guaviare",
+    "code": "CO-GUV",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-HUI",
+    "countryId": "CO",
+    "name": "Huila",
+    "code": "CO-HUI",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-LAG",
+    "countryId": "CO",
+    "name": "La Guajira",
+    "code": "CO-LAG",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-MAG",
+    "countryId": "CO",
+    "name": "Magdalena",
+    "code": "CO-MAG",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-MET",
+    "countryId": "CO",
+    "name": "Meta",
+    "code": "CO-MET",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-NAR",
+    "countryId": "CO",
+    "name": "Nariño",
+    "code": "CO-NAR",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-NSA",
+    "countryId": "CO",
+    "name": "Norte de Santander",
+    "code": "CO-NSA",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-PUT",
+    "countryId": "CO",
+    "name": "Putumayo",
+    "code": "CO-PUT",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-QUI",
+    "countryId": "CO",
+    "name": "Quindío",
+    "code": "CO-QUI",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-RIS",
+    "countryId": "CO",
+    "name": "Risaralda",
+    "code": "CO-RIS",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-SAP",
+    "countryId": "CO",
+    "name": "San Andrés y Providencia",
+    "code": "CO-SAP",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-SAN",
+    "countryId": "CO",
+    "name": "Santander",
+    "code": "CO-SAN",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-SUC",
+    "countryId": "CO",
+    "name": "Sucre",
+    "code": "CO-SUC",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-TOL",
+    "countryId": "CO",
+    "name": "Tolima",
+    "code": "CO-TOL",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-VAC",
+    "countryId": "CO",
+    "name": "Valle del Cauca",
+    "code": "CO-VAC",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-VAU",
+    "countryId": "CO",
+    "name": "Vaupés",
+    "code": "CO-VAU",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": "CO-VID",
+    "countryId": "CO",
+    "name": "Vichada",
+    "code": "CO-VID",
+    "isActive": true,
+    "createdAt": null,
+    "updatedAt": null
+  }
+]

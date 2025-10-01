@@ -23,6 +23,19 @@ class RegistrationProgressModel {
   String? regionId;
   String? cityId;
 
+  // Onboarding consolidado
+  String? titularType; // 'persona' | 'empresa'
+  String? providerType; // 'servicios' | 'articulos'
+  // Consolidado proveedor
+  List<String> assetTypeIds =
+      []; // ['vehiculos','inmuebles','maquinaria','equipos','otros']
+  String?
+      businessCategoryId; // ej: 'lubricentro'|'ferreteria'|'mecanico_independiente'
+  List<String> assetSegmentIds = []; // ['moto','auto','camion'] si aplica
+  List<String> offeringLineIds = []; // opcional
+  List<String> coverageCities = []; // ['CO/ANT/MEDELLIN', ...]
+  List<String> categories = []; // legacy (mantener por compatibilidad)
+
   String? selectedRole;
   bool termsAccepted = false;
 

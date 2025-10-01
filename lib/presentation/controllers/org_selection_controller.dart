@@ -1,6 +1,6 @@
+import 'package:avanzza/routes/app_pages.dart';
 import 'package:get/get.dart';
 
-import '../../app/routes.dart';
 import '../../core/di/container.dart';
 import '../../domain/entities/org/organization_entity.dart';
 import '../../domain/entities/user/active_context.dart';
@@ -29,6 +29,6 @@ class OrgSelectionController extends GetxController {
   Future<void> selectOrg(OrganizationEntity org) async {
     final ctx = ActiveContext(orgId: org.id, orgName: org.nombre, rol: 'admin');
     await session.setActiveContext(ctx);
-    Get.offAllNamed(AppRoutes.assets);
+    Get.offAllNamed(Routes.assets);
   }
 }

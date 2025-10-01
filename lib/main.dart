@@ -13,7 +13,7 @@ class App extends StatelessWidget {
       // initialBinding: [],
       title: 'Avanzza 2.0',
       debugShowCheckedModeBanner: false,
-      initialRoute: Routes.welcome,
+      initialRoute: Routes.home,
       getPages: Routes.pages,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),

@@ -1,4 +1,3 @@
-import 'package:avanzza/core/utils/datetime_timestamp_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'organization_entity.freezed.dart';
@@ -15,6 +14,7 @@ abstract class OrganizationEntity with _$OrganizationEntity {
     String? cityId,
     String? ownerUid,
     String? logoUrl,
+    String? nitOrTaxId, // NUEVO
     Map<String, dynamic>? metadata,
     @Default(true) bool isActive,
     DateTime? createdAt,

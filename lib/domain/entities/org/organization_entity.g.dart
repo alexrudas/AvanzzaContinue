@@ -16,6 +16,7 @@ _OrganizationEntity _$OrganizationEntityFromJson(Map<String, dynamic> json) =>
       cityId: json['cityId'] as String?,
       ownerUid: json['ownerUid'] as String?,
       logoUrl: json['logoUrl'] as String?,
+      nitOrTaxId: json['nitOrTaxId'] as String?,
       metadata: json['metadata'] as Map<String, dynamic>?,
       isActive: json['isActive'] as bool? ?? true,
       createdAt: json['createdAt'] == null
@@ -36,6 +37,7 @@ Map<String, dynamic> _$OrganizationEntityToJson(_OrganizationEntity instance) =>
       'cityId': instance.cityId,
       'ownerUid': instance.ownerUid,
       'logoUrl': instance.logoUrl,
+      'nitOrTaxId': instance.nitOrTaxId,
       'metadata': instance.metadata,
       'isActive': instance.isActive,
       'createdAt': instance.createdAt?.toIso8601String(),

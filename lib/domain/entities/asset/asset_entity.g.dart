@@ -10,6 +10,7 @@ _AssetEntity _$AssetEntityFromJson(Map<String, dynamic> json) => _AssetEntity(
       id: json['id'] as String,
       orgId: json['orgId'] as String,
       assetType: json['assetType'] as String,
+      assetSegmentId: json['assetSegmentId'] as String?,
       countryId: json['countryId'] as String,
       regionId: json['regionId'] as String?,
       cityId: json['cityId'] as String?,
@@ -24,6 +25,10 @@ _AssetEntity _$AssetEntityFromJson(Map<String, dynamic> json) => _AssetEntity(
               ?.map((e) => e as String)
               .toList() ??
           const <String>[],
+      access: (json['access'] as List<dynamic>?)
+              ?.map((e) => e as Map<String, dynamic>)
+              .toList() ??
+          const <Map<String, dynamic>>[],
       createdAt: json['createdAt'] == null
           ? null
           : DateTime.parse(json['createdAt'] as String),
@@ -37,6 +42,7 @@ Map<String, dynamic> _$AssetEntityToJson(_AssetEntity instance) =>
       'id': instance.id,
       'orgId': instance.orgId,
       'assetType': instance.assetType,
+      'assetSegmentId': instance.assetSegmentId,
       'countryId': instance.countryId,
       'regionId': instance.regionId,
       'cityId': instance.cityId,
@@ -45,6 +51,7 @@ Map<String, dynamic> _$AssetEntityToJson(_AssetEntity instance) =>
       'estado': instance.estado,
       'etiquetas': instance.etiquetas,
       'fotosUrls': instance.fotosUrls,
+      'access': instance.access,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
     };

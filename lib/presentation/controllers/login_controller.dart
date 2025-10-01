@@ -1,6 +1,6 @@
+import 'package:avanzza/routes/app_pages.dart';
 import 'package:get/get.dart';
 
-import '../../app/routes.dart';
 import '../../core/di/container.dart';
 import 'session_context_controller.dart';
 
@@ -20,6 +20,6 @@ class LoginController extends GetxController {
 
   Future<void> login(String uid) async {
     await session.init(uid);
-    Get.offAllNamed(AppRoutes.orgSelect);
+    Get.offAllNamed(Routes.orgSelect);
   }
 }

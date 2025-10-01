@@ -1,12 +1,13 @@
 // data/repositories/auth_repository_impl.dart
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth/firebase_auth_ds.dart';
 import '../datasources/firestore/user_firestore_ds.dart';
 import '../models/user_profile_model.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final FirebaseAuthDS authDS;
@@ -14,7 +15,8 @@ class AuthRepositoryImpl implements AuthRepository {
 
   AuthRepositoryImpl(this.authDS, this.userFS);
 
-  String _aliasFromUsername(String username) => 'u:${username.toLowerCase()}@avz.local';
+  String _aliasFromUsername(String username) =>
+      '${username.toLowerCase()}@avz.local';
 
   @override
   Future<SendOtpResult> sendOtp(String phoneNumber) async {
@@ -89,12 +91,14 @@ class AuthRepositoryImpl implements AuthRepository {
     required String phoneNumber,
   }) async {
     final alias = _aliasFromUsername(username);
-    final cred = await authDS.signUpWithAliasEmail(aliasEmail: alias, password: password);
+    final cred = await authDS.signUpWithAliasEmail(
+        aliasEmail: alias, password: password);
     final uid = cred.user!.uid;
 
     // Registrar username → uid (unicidad simple)
     await userFS.db.runTransaction((txn) async {
-      final docRef = userFS.db.collection('usernames').doc(username.toLowerCase());
+      final docRef =
+          userFS.db.collection('usernames').doc(username.toLowerCase());
       final snap = await txn.get(docRef);
       if (snap.exists) {
         throw FirebaseException(plugin: 'auth', message: 'username_taken');
@@ -135,7 +139,8 @@ class AuthRepositoryImpl implements AuthRepository {
   }) async {
     final alias = _aliasFromUsername(username);
     try {
-      final cred = await authDS.signInWithAliasEmail(aliasEmail: alias, password: password);
+      final cred = await authDS.signInWithAliasEmail(
+          aliasEmail: alias, password: password);
       return SignInResult(uid: cred.user?.uid);
     } on FirebaseAuthMultiFactorException catch (e) {
       // Exponer un resolver simple (wrapper minimalista)
@@ -178,4 +183,3 @@ class _FirebaseMfaResolver implements SignInMfaResolver {
   String? verificationId;
   _FirebaseMfaResolver(this._resolver);
 }
-

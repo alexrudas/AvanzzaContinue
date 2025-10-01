@@ -22,6 +22,7 @@ mixin _$OrganizationEntity {
   String? get cityId;
   String? get ownerUid;
   String? get logoUrl;
+  String? get nitOrTaxId; // NUEVO
   Map<String, dynamic>? get metadata;
   bool get isActive;
   DateTime? get createdAt;
@@ -54,6 +55,8 @@ mixin _$OrganizationEntity {
             (identical(other.ownerUid, ownerUid) ||
                 other.ownerUid == ownerUid) &&
             (identical(other.logoUrl, logoUrl) || other.logoUrl == logoUrl) &&
+            (identical(other.nitOrTaxId, nitOrTaxId) ||
+                other.nitOrTaxId == nitOrTaxId) &&
             const DeepCollectionEquality().equals(other.metadata, metadata) &&
             (identical(other.isActive, isActive) ||
                 other.isActive == isActive) &&
@@ -75,6 +78,7 @@ mixin _$OrganizationEntity {
       cityId,
       ownerUid,
       logoUrl,
+      nitOrTaxId,
       const DeepCollectionEquality().hash(metadata),
       isActive,
       createdAt,
@@ -82,7 +86,7 @@ mixin _$OrganizationEntity {
 
   @override
   String toString() {
-    return 'OrganizationEntity(id: $id, nombre: $nombre, tipo: $tipo, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerUid: $ownerUid, logoUrl: $logoUrl, metadata: $metadata, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'OrganizationEntity(id: $id, nombre: $nombre, tipo: $tipo, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerUid: $ownerUid, logoUrl: $logoUrl, nitOrTaxId: $nitOrTaxId, metadata: $metadata, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -101,6 +105,7 @@ abstract mixin class $OrganizationEntityCopyWith<$Res> {
       String? cityId,
       String? ownerUid,
       String? logoUrl,
+      String? nitOrTaxId,
       Map<String, dynamic>? metadata,
       bool isActive,
       DateTime? createdAt,
@@ -128,6 +133,7 @@ class _$OrganizationEntityCopyWithImpl<$Res>
     Object? cityId = freezed,
     Object? ownerUid = freezed,
     Object? logoUrl = freezed,
+    Object? nitOrTaxId = freezed,
     Object? metadata = freezed,
     Object? isActive = null,
     Object? createdAt = freezed,
@@ -165,6 +171,10 @@ class _$OrganizationEntityCopyWithImpl<$Res>
       logoUrl: freezed == logoUrl
           ? _self.logoUrl
           : logoUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      nitOrTaxId: freezed == nitOrTaxId
+          ? _self.nitOrTaxId
+          : nitOrTaxId // ignore: cast_nullable_to_non_nullable
               as String?,
       metadata: freezed == metadata
           ? _self.metadata
@@ -288,6 +298,7 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             String? cityId,
             String? ownerUid,
             String? logoUrl,
+            String? nitOrTaxId,
             Map<String, dynamic>? metadata,
             bool isActive,
             DateTime? createdAt,
@@ -307,6 +318,7 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             _that.cityId,
             _that.ownerUid,
             _that.logoUrl,
+            _that.nitOrTaxId,
             _that.metadata,
             _that.isActive,
             _that.createdAt,
@@ -340,6 +352,7 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             String? cityId,
             String? ownerUid,
             String? logoUrl,
+            String? nitOrTaxId,
             Map<String, dynamic>? metadata,
             bool isActive,
             DateTime? createdAt,
@@ -358,6 +371,7 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             _that.cityId,
             _that.ownerUid,
             _that.logoUrl,
+            _that.nitOrTaxId,
             _that.metadata,
             _that.isActive,
             _that.createdAt,
@@ -390,6 +404,7 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             String? cityId,
             String? ownerUid,
             String? logoUrl,
+            String? nitOrTaxId,
             Map<String, dynamic>? metadata,
             bool isActive,
             DateTime? createdAt,
@@ -408,6 +423,7 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             _that.cityId,
             _that.ownerUid,
             _that.logoUrl,
+            _that.nitOrTaxId,
             _that.metadata,
             _that.isActive,
             _that.createdAt,
@@ -430,6 +446,7 @@ class _OrganizationEntity implements OrganizationEntity {
       this.cityId,
       this.ownerUid,
       this.logoUrl,
+      this.nitOrTaxId,
       final Map<String, dynamic>? metadata,
       this.isActive = true,
       this.createdAt,
@@ -455,7 +472,11 @@ class _OrganizationEntity implements OrganizationEntity {
   final String? ownerUid;
   @override
   final String? logoUrl;
+  @override
+  final String? nitOrTaxId;
+// NUEVO
   final Map<String, dynamic>? _metadata;
+// NUEVO
   @override
   Map<String, dynamic>? get metadata {
     final value = _metadata;
@@ -504,6 +525,8 @@ class _OrganizationEntity implements OrganizationEntity {
             (identical(other.ownerUid, ownerUid) ||
                 other.ownerUid == ownerUid) &&
             (identical(other.logoUrl, logoUrl) || other.logoUrl == logoUrl) &&
+            (identical(other.nitOrTaxId, nitOrTaxId) ||
+                other.nitOrTaxId == nitOrTaxId) &&
             const DeepCollectionEquality().equals(other._metadata, _metadata) &&
             (identical(other.isActive, isActive) ||
                 other.isActive == isActive) &&
@@ -525,6 +548,7 @@ class _OrganizationEntity implements OrganizationEntity {
       cityId,
       ownerUid,
       logoUrl,
+      nitOrTaxId,
       const DeepCollectionEquality().hash(_metadata),
       isActive,
       createdAt,
@@ -532,7 +556,7 @@ class _OrganizationEntity implements OrganizationEntity {
 
   @override
   String toString() {
-    return 'OrganizationEntity(id: $id, nombre: $nombre, tipo: $tipo, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerUid: $ownerUid, logoUrl: $logoUrl, metadata: $metadata, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'OrganizationEntity(id: $id, nombre: $nombre, tipo: $tipo, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerUid: $ownerUid, logoUrl: $logoUrl, nitOrTaxId: $nitOrTaxId, metadata: $metadata, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -553,6 +577,7 @@ abstract mixin class _$OrganizationEntityCopyWith<$Res>
       String? cityId,
       String? ownerUid,
       String? logoUrl,
+      String? nitOrTaxId,
       Map<String, dynamic>? metadata,
       bool isActive,
       DateTime? createdAt,
@@ -580,6 +605,7 @@ class __$OrganizationEntityCopyWithImpl<$Res>
     Object? cityId = freezed,
     Object? ownerUid = freezed,
     Object? logoUrl = freezed,
+    Object? nitOrTaxId = freezed,
     Object? metadata = freezed,
     Object? isActive = null,
     Object? createdAt = freezed,
@@ -617,6 +643,10 @@ class __$OrganizationEntityCopyWithImpl<$Res>
       logoUrl: freezed == logoUrl
           ? _self.logoUrl
           : logoUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      nitOrTaxId: freezed == nitOrTaxId
+          ? _self.nitOrTaxId
+          : nitOrTaxId // ignore: cast_nullable_to_non_nullable
               as String?,
       metadata: freezed == metadata
           ? _self._metadata

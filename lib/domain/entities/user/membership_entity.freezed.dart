@@ -18,8 +18,10 @@ mixin _$MembershipEntity {
   String get orgId;
   String get orgName;
   List<String> get roles;
-  String get estatus; // activo | inactivo
+  List<ProviderProfile> get providerProfiles;
+  String get estatus; // activo | inactivo | invited | suspended | left
   Map<String, String> get primaryLocation; // { countryId, regionId?, cityId? }
+  bool? get isOwner;
   DateTime? get createdAt;
   DateTime? get updatedAt;
 
@@ -43,9 +45,12 @@ mixin _$MembershipEntity {
             (identical(other.orgId, orgId) || other.orgId == orgId) &&
             (identical(other.orgName, orgName) || other.orgName == orgName) &&
             const DeepCollectionEquality().equals(other.roles, roles) &&
+            const DeepCollectionEquality()
+                .equals(other.providerProfiles, providerProfiles) &&
             (identical(other.estatus, estatus) || other.estatus == estatus) &&
             const DeepCollectionEquality()
                 .equals(other.primaryLocation, primaryLocation) &&
+            (identical(other.isOwner, isOwner) || other.isOwner == isOwner) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -60,14 +65,16 @@ mixin _$MembershipEntity {
       orgId,
       orgName,
       const DeepCollectionEquality().hash(roles),
+      const DeepCollectionEquality().hash(providerProfiles),
       estatus,
       const DeepCollectionEquality().hash(primaryLocation),
+      isOwner,
       createdAt,
       updatedAt);
 
   @override
   String toString() {
-    return 'MembershipEntity(userId: $userId, orgId: $orgId, orgName: $orgName, roles: $roles, estatus: $estatus, primaryLocation: $primaryLocation, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'MembershipEntity(userId: $userId, orgId: $orgId, orgName: $orgName, roles: $roles, providerProfiles: $providerProfiles, estatus: $estatus, primaryLocation: $primaryLocation, isOwner: $isOwner, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -82,8 +89,10 @@ abstract mixin class $MembershipEntityCopyWith<$Res> {
       String orgId,
       String orgName,
       List<String> roles,
+      List<ProviderProfile> providerProfiles,
       String estatus,
       Map<String, String> primaryLocation,
+      bool? isOwner,
       DateTime? createdAt,
       DateTime? updatedAt});
 }
@@ -105,8 +114,10 @@ class _$MembershipEntityCopyWithImpl<$Res>
     Object? orgId = null,
     Object? orgName = null,
     Object? roles = null,
+    Object? providerProfiles = null,
     Object? estatus = null,
     Object? primaryLocation = null,
+    Object? isOwner = freezed,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
@@ -127,6 +138,10 @@ class _$MembershipEntityCopyWithImpl<$Res>
           ? _self.roles
           : roles // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      providerProfiles: null == providerProfiles
+          ? _self.providerProfiles
+          : providerProfiles // ignore: cast_nullable_to_non_nullable
+              as List<ProviderProfile>,
       estatus: null == estatus
           ? _self.estatus
           : estatus // ignore: cast_nullable_to_non_nullable
@@ -135,6 +150,10 @@ class _$MembershipEntityCopyWithImpl<$Res>
           ? _self.primaryLocation
           : primaryLocation // ignore: cast_nullable_to_non_nullable
               as Map<String, String>,
+      isOwner: freezed == isOwner
+          ? _self.isOwner
+          : isOwner // ignore: cast_nullable_to_non_nullable
+              as bool?,
       createdAt: freezed == createdAt
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -245,8 +264,10 @@ extension MembershipEntityPatterns on MembershipEntity {
             String orgId,
             String orgName,
             List<String> roles,
+            List<ProviderProfile> providerProfiles,
             String estatus,
             Map<String, String> primaryLocation,
+            bool? isOwner,
             DateTime? createdAt,
             DateTime? updatedAt)?
         $default, {
@@ -260,8 +281,10 @@ extension MembershipEntityPatterns on MembershipEntity {
             _that.orgId,
             _that.orgName,
             _that.roles,
+            _that.providerProfiles,
             _that.estatus,
             _that.primaryLocation,
+            _that.isOwner,
             _that.createdAt,
             _that.updatedAt);
       case _:
@@ -289,8 +312,10 @@ extension MembershipEntityPatterns on MembershipEntity {
             String orgId,
             String orgName,
             List<String> roles,
+            List<ProviderProfile> providerProfiles,
             String estatus,
             Map<String, String> primaryLocation,
+            bool? isOwner,
             DateTime? createdAt,
             DateTime? updatedAt)
         $default,
@@ -303,8 +328,10 @@ extension MembershipEntityPatterns on MembershipEntity {
             _that.orgId,
             _that.orgName,
             _that.roles,
+            _that.providerProfiles,
             _that.estatus,
             _that.primaryLocation,
+            _that.isOwner,
             _that.createdAt,
             _that.updatedAt);
       case _:
@@ -331,8 +358,10 @@ extension MembershipEntityPatterns on MembershipEntity {
             String orgId,
             String orgName,
             List<String> roles,
+            List<ProviderProfile> providerProfiles,
             String estatus,
             Map<String, String> primaryLocation,
+            bool? isOwner,
             DateTime? createdAt,
             DateTime? updatedAt)?
         $default,
@@ -345,8 +374,10 @@ extension MembershipEntityPatterns on MembershipEntity {
             _that.orgId,
             _that.orgName,
             _that.roles,
+            _that.providerProfiles,
             _that.estatus,
             _that.primaryLocation,
+            _that.isOwner,
             _that.createdAt,
             _that.updatedAt);
       case _:
@@ -363,11 +394,14 @@ class _MembershipEntity implements MembershipEntity {
       required this.orgId,
       required this.orgName,
       final List<String> roles = const <String>[],
+      final List<ProviderProfile> providerProfiles = const <ProviderProfile>[],
       required this.estatus,
       required final Map<String, String> primaryLocation,
+      this.isOwner,
       this.createdAt,
       this.updatedAt})
       : _roles = roles,
+        _providerProfiles = providerProfiles,
         _primaryLocation = primaryLocation;
   factory _MembershipEntity.fromJson(Map<String, dynamic> json) =>
       _$MembershipEntityFromJson(json);
@@ -387,11 +421,21 @@ class _MembershipEntity implements MembershipEntity {
     return EqualUnmodifiableListView(_roles);
   }
 
+  final List<ProviderProfile> _providerProfiles;
+  @override
+  @JsonKey()
+  List<ProviderProfile> get providerProfiles {
+    if (_providerProfiles is EqualUnmodifiableListView)
+      return _providerProfiles;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_providerProfiles);
+  }
+
   @override
   final String estatus;
-// activo | inactivo
+// activo | inactivo | invited | suspended | left
   final Map<String, String> _primaryLocation;
-// activo | inactivo
+// activo | inactivo | invited | suspended | left
   @override
   Map<String, String> get primaryLocation {
     if (_primaryLocation is EqualUnmodifiableMapView) return _primaryLocation;
@@ -400,6 +444,8 @@ class _MembershipEntity implements MembershipEntity {
   }
 
 // { countryId, regionId?, cityId? }
+  @override
+  final bool? isOwner;
   @override
   final DateTime? createdAt;
   @override
@@ -429,9 +475,12 @@ class _MembershipEntity implements MembershipEntity {
             (identical(other.orgId, orgId) || other.orgId == orgId) &&
             (identical(other.orgName, orgName) || other.orgName == orgName) &&
             const DeepCollectionEquality().equals(other._roles, _roles) &&
+            const DeepCollectionEquality()
+                .equals(other._providerProfiles, _providerProfiles) &&
             (identical(other.estatus, estatus) || other.estatus == estatus) &&
             const DeepCollectionEquality()
                 .equals(other._primaryLocation, _primaryLocation) &&
+            (identical(other.isOwner, isOwner) || other.isOwner == isOwner) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -446,14 +495,16 @@ class _MembershipEntity implements MembershipEntity {
       orgId,
       orgName,
       const DeepCollectionEquality().hash(_roles),
+      const DeepCollectionEquality().hash(_providerProfiles),
       estatus,
       const DeepCollectionEquality().hash(_primaryLocation),
+      isOwner,
       createdAt,
       updatedAt);
 
   @override
   String toString() {
-    return 'MembershipEntity(userId: $userId, orgId: $orgId, orgName: $orgName, roles: $roles, estatus: $estatus, primaryLocation: $primaryLocation, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'MembershipEntity(userId: $userId, orgId: $orgId, orgName: $orgName, roles: $roles, providerProfiles: $providerProfiles, estatus: $estatus, primaryLocation: $primaryLocation, isOwner: $isOwner, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -470,8 +521,10 @@ abstract mixin class _$MembershipEntityCopyWith<$Res>
       String orgId,
       String orgName,
       List<String> roles,
+      List<ProviderProfile> providerProfiles,
       String estatus,
       Map<String, String> primaryLocation,
+      bool? isOwner,
       DateTime? createdAt,
       DateTime? updatedAt});
 }
@@ -493,8 +546,10 @@ class __$MembershipEntityCopyWithImpl<$Res>
     Object? orgId = null,
     Object? orgName = null,
     Object? roles = null,
+    Object? providerProfiles = null,
     Object? estatus = null,
     Object? primaryLocation = null,
+    Object? isOwner = freezed,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
@@ -515,6 +570,10 @@ class __$MembershipEntityCopyWithImpl<$Res>
           ? _self._roles
           : roles // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      providerProfiles: null == providerProfiles
+          ? _self._providerProfiles
+          : providerProfiles // ignore: cast_nullable_to_non_nullable
+              as List<ProviderProfile>,
       estatus: null == estatus
           ? _self.estatus
           : estatus // ignore: cast_nullable_to_non_nullable
@@ -523,6 +582,10 @@ class __$MembershipEntityCopyWithImpl<$Res>
           ? _self._primaryLocation
           : primaryLocation // ignore: cast_nullable_to_non_nullable
               as Map<String, String>,
+      isOwner: freezed == isOwner
+          ? _self.isOwner
+          : isOwner // ignore: cast_nullable_to_non_nullable
+              as bool?,
       createdAt: freezed == createdAt
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable

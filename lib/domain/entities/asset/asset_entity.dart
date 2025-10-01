@@ -1,4 +1,3 @@
-import 'package:avanzza/core/utils/datetime_timestamp_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'asset_entity.freezed.dart';
@@ -9,7 +8,9 @@ abstract class AssetEntity with _$AssetEntity {
   const factory AssetEntity({
     required String id,
     required String orgId,
-    required String assetType, // vehiculo | inmueble | maquinaria | otro
+    required String
+        assetType, // vehiculos | inmuebles | maquinaria | equipos | otros (normalizado)
+    String? assetSegmentId, // NUEVO: 'moto'|'auto'|'camion'|...
     required String countryId,
     String? regionId,
     String? cityId,
@@ -18,9 +19,12 @@ abstract class AssetEntity with _$AssetEntity {
     required String estado, // activo | inactivo
     @Default(<String>[]) List<String> etiquetas,
     @Default(<String>[]) List<String> fotosUrls,
+    @Default(<Map<String, dynamic>>[])
+    List<Map<String, dynamic>> access, // NUEVO: ACL de acceso
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _AssetEntity;
 
-  factory AssetEntity.fromJson(Map<String, dynamic> json) => _$AssetEntityFromJson(json);
+  factory AssetEntity.fromJson(Map<String, dynamic> json) =>
+      _$AssetEntityFromJson(json);
 }

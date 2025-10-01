@@ -14,8 +14,13 @@ _MembershipEntity _$MembershipEntityFromJson(Map<String, dynamic> json) =>
       roles:
           (json['roles'] as List<dynamic>?)?.map((e) => e as String).toList() ??
               const <String>[],
+      providerProfiles: (json['providerProfiles'] as List<dynamic>?)
+              ?.map((e) => ProviderProfile.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <ProviderProfile>[],
       estatus: json['estatus'] as String,
       primaryLocation: Map<String, String>.from(json['primaryLocation'] as Map),
+      isOwner: json['isOwner'] as bool?,
       createdAt: json['createdAt'] == null
           ? null
           : DateTime.parse(json['createdAt'] as String),
@@ -30,8 +35,10 @@ Map<String, dynamic> _$MembershipEntityToJson(_MembershipEntity instance) =>
       'orgId': instance.orgId,
       'orgName': instance.orgName,
       'roles': instance.roles,
+      'providerProfiles': instance.providerProfiles,
       'estatus': instance.estatus,
       'primaryLocation': instance.primaryLocation,
+      'isOwner': instance.isOwner,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
     };

@@ -16,7 +16,11 @@ T _$identity<T>(T value) => value;
 mixin _$ActiveContext {
   String get orgId;
   String get orgName;
-  String get rol;
+  String
+      get rol; // 'administrador'|'propietario'|'arrendatario'|'proveedor'|...
+  String? get providerType; // 'servicios'|'articulos'
+  List<String> get categories; // categorías proveedor seleccionadas
+  List<String> get assetTypes;
 
   /// Create a copy of ActiveContext
   /// with the given fields replaced by the non-null parameter values.
@@ -36,16 +40,29 @@ mixin _$ActiveContext {
             other is ActiveContext &&
             (identical(other.orgId, orgId) || other.orgId == orgId) &&
             (identical(other.orgName, orgName) || other.orgName == orgName) &&
-            (identical(other.rol, rol) || other.rol == rol));
+            (identical(other.rol, rol) || other.rol == rol) &&
+            (identical(other.providerType, providerType) ||
+                other.providerType == providerType) &&
+            const DeepCollectionEquality()
+                .equals(other.categories, categories) &&
+            const DeepCollectionEquality()
+                .equals(other.assetTypes, assetTypes));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, orgId, orgName, rol);
+  int get hashCode => Object.hash(
+      runtimeType,
+      orgId,
+      orgName,
+      rol,
+      providerType,
+      const DeepCollectionEquality().hash(categories),
+      const DeepCollectionEquality().hash(assetTypes));
 
   @override
   String toString() {
-    return 'ActiveContext(orgId: $orgId, orgName: $orgName, rol: $rol)';
+    return 'ActiveContext(orgId: $orgId, orgName: $orgName, rol: $rol, providerType: $providerType, categories: $categories, assetTypes: $assetTypes)';
   }
 }
 
@@ -55,7 +72,13 @@ abstract mixin class $ActiveContextCopyWith<$Res> {
           ActiveContext value, $Res Function(ActiveContext) _then) =
       _$ActiveContextCopyWithImpl;
   @useResult
-  $Res call({String orgId, String orgName, String rol});
+  $Res call(
+      {String orgId,
+      String orgName,
+      String rol,
+      String? providerType,
+      List<String> categories,
+      List<String> assetTypes});
 }
 
 /// @nodoc
@@ -74,6 +97,9 @@ class _$ActiveContextCopyWithImpl<$Res>
     Object? orgId = null,
     Object? orgName = null,
     Object? rol = null,
+    Object? providerType = freezed,
+    Object? categories = null,
+    Object? assetTypes = null,
   }) {
     return _then(_self.copyWith(
       orgId: null == orgId
@@ -88,6 +114,18 @@ class _$ActiveContextCopyWithImpl<$Res>
           ? _self.rol
           : rol // ignore: cast_nullable_to_non_nullable
               as String,
+      providerType: freezed == providerType
+          ? _self.providerType
+          : providerType // ignore: cast_nullable_to_non_nullable
+              as String?,
+      categories: null == categories
+          ? _self.categories
+          : categories // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      assetTypes: null == assetTypes
+          ? _self.assetTypes
+          : assetTypes // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ));
   }
 }
@@ -185,13 +223,21 @@ extension ActiveContextPatterns on ActiveContext {
 
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>(
-    TResult Function(String orgId, String orgName, String rol)? $default, {
+    TResult Function(
+            String orgId,
+            String orgName,
+            String rol,
+            String? providerType,
+            List<String> categories,
+            List<String> assetTypes)?
+        $default, {
     required TResult orElse(),
   }) {
     final _that = this;
     switch (_that) {
       case _ActiveContext() when $default != null:
-        return $default(_that.orgId, _that.orgName, _that.rol);
+        return $default(_that.orgId, _that.orgName, _that.rol,
+            _that.providerType, _that.categories, _that.assetTypes);
       case _:
         return orElse();
     }
@@ -212,12 +258,20 @@ extension ActiveContextPatterns on ActiveContext {
 
   @optionalTypeArgs
   TResult when<TResult extends Object?>(
-    TResult Function(String orgId, String orgName, String rol) $default,
+    TResult Function(
+            String orgId,
+            String orgName,
+            String rol,
+            String? providerType,
+            List<String> categories,
+            List<String> assetTypes)
+        $default,
   ) {
     final _that = this;
     switch (_that) {
       case _ActiveContext():
-        return $default(_that.orgId, _that.orgName, _that.rol);
+        return $default(_that.orgId, _that.orgName, _that.rol,
+            _that.providerType, _that.categories, _that.assetTypes);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -237,12 +291,20 @@ extension ActiveContextPatterns on ActiveContext {
 
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>(
-    TResult? Function(String orgId, String orgName, String rol)? $default,
+    TResult? Function(
+            String orgId,
+            String orgName,
+            String rol,
+            String? providerType,
+            List<String> categories,
+            List<String> assetTypes)?
+        $default,
   ) {
     final _that = this;
     switch (_that) {
       case _ActiveContext() when $default != null:
-        return $default(_that.orgId, _that.orgName, _that.rol);
+        return $default(_that.orgId, _that.orgName, _that.rol,
+            _that.providerType, _that.categories, _that.assetTypes);
       case _:
         return null;
     }
@@ -253,7 +315,14 @@ extension ActiveContextPatterns on ActiveContext {
 @JsonSerializable()
 class _ActiveContext implements ActiveContext {
   const _ActiveContext(
-      {required this.orgId, required this.orgName, required this.rol});
+      {required this.orgId,
+      required this.orgName,
+      required this.rol,
+      this.providerType,
+      final List<String> categories = const <String>[],
+      final List<String> assetTypes = const <String>[]})
+      : _categories = categories,
+        _assetTypes = assetTypes;
   factory _ActiveContext.fromJson(Map<String, dynamic> json) =>
       _$ActiveContextFromJson(json);
 
@@ -263,6 +332,30 @@ class _ActiveContext implements ActiveContext {
   final String orgName;
   @override
   final String rol;
+// 'administrador'|'propietario'|'arrendatario'|'proveedor'|...
+  @override
+  final String? providerType;
+// 'servicios'|'articulos'
+  final List<String> _categories;
+// 'servicios'|'articulos'
+  @override
+  @JsonKey()
+  List<String> get categories {
+    if (_categories is EqualUnmodifiableListView) return _categories;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_categories);
+  }
+
+// categorías proveedor seleccionadas
+  final List<String> _assetTypes;
+// categorías proveedor seleccionadas
+  @override
+  @JsonKey()
+  List<String> get assetTypes {
+    if (_assetTypes is EqualUnmodifiableListView) return _assetTypes;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_assetTypes);
+  }
 
   /// Create a copy of ActiveContext
   /// with the given fields replaced by the non-null parameter values.
@@ -286,16 +379,29 @@ class _ActiveContext implements ActiveContext {
             other is _ActiveContext &&
             (identical(other.orgId, orgId) || other.orgId == orgId) &&
             (identical(other.orgName, orgName) || other.orgName == orgName) &&
-            (identical(other.rol, rol) || other.rol == rol));
+            (identical(other.rol, rol) || other.rol == rol) &&
+            (identical(other.providerType, providerType) ||
+                other.providerType == providerType) &&
+            const DeepCollectionEquality()
+                .equals(other._categories, _categories) &&
+            const DeepCollectionEquality()
+                .equals(other._assetTypes, _assetTypes));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, orgId, orgName, rol);
+  int get hashCode => Object.hash(
+      runtimeType,
+      orgId,
+      orgName,
+      rol,
+      providerType,
+      const DeepCollectionEquality().hash(_categories),
+      const DeepCollectionEquality().hash(_assetTypes));
 
   @override
   String toString() {
-    return 'ActiveContext(orgId: $orgId, orgName: $orgName, rol: $rol)';
+    return 'ActiveContext(orgId: $orgId, orgName: $orgName, rol: $rol, providerType: $providerType, categories: $categories, assetTypes: $assetTypes)';
   }
 }
 
@@ -307,7 +413,13 @@ abstract mixin class _$ActiveContextCopyWith<$Res>
       __$ActiveContextCopyWithImpl;
   @override
   @useResult
-  $Res call({String orgId, String orgName, String rol});
+  $Res call(
+      {String orgId,
+      String orgName,
+      String rol,
+      String? providerType,
+      List<String> categories,
+      List<String> assetTypes});
 }
 
 /// @nodoc
@@ -326,6 +438,9 @@ class __$ActiveContextCopyWithImpl<$Res>
     Object? orgId = null,
     Object? orgName = null,
     Object? rol = null,
+    Object? providerType = freezed,
+    Object? categories = null,
+    Object? assetTypes = null,
   }) {
     return _then(_ActiveContext(
       orgId: null == orgId
@@ -340,6 +455,18 @@ class __$ActiveContextCopyWithImpl<$Res>
           ? _self.rol
           : rol // ignore: cast_nullable_to_non_nullable
               as String,
+      providerType: freezed == providerType
+          ? _self.providerType
+          : providerType // ignore: cast_nullable_to_non_nullable
+              as String?,
+      categories: null == categories
+          ? _self._categories
+          : categories // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      assetTypes: null == assetTypes
+          ? _self._assetTypes
+          : assetTypes // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ));
   }
 }
