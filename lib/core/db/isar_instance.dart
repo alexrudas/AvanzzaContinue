@@ -12,6 +12,7 @@ import '../../data/models/asset/asset_model.dart';
 import '../../data/models/asset/special/asset_inmueble_model.dart';
 import '../../data/models/asset/special/asset_maquinaria_model.dart';
 import '../../data/models/asset/special/asset_vehiculo_model.dart';
+import '../../data/models/auth/registration_progress_model.dart';
 import '../../data/models/chat/broadcast_message_model.dart';
 import '../../data/models/chat/chat_message_model.dart';
 import '../../data/models/geo/city_model.dart';
@@ -29,9 +30,9 @@ import '../../data/models/maintenance/maintenance_programming_model.dart';
 import '../../data/models/org/organization_model.dart';
 import '../../data/models/purchase/purchase_request_model.dart';
 import '../../data/models/purchase/supplier_response_model.dart';
+import '../../data/models/settings/theme_pref_model.dart';
 import '../../data/models/user/membership_model.dart';
 import '../../data/models/user/user_model.dart';
-import '../../data/models/auth/registration_progress_model.dart';
 
 Future<Isar> openIsar() async {
   final dir = await pp.getApplicationDocumentsDirectory();
@@ -65,7 +66,8 @@ Future<Isar> openIsar() async {
       AIPredictionModelSchema,
       AIAuditLogModelSchema,
       UserProfileCacheModelSchema,
-      RegistrationProgressModelSchema
+      RegistrationProgressModelSchema,
+      ThemePreferenceModelSchema
     ],
     directory: dir.path,
     inspector: true,

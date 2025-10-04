@@ -1169,3 +1169,88 @@ Proveedores: providerType + assetTypeIds + businessCategoryId + coverage.cityId.
 Refinar con assetSegments y offeringLineIds si existen.
 
 ----------------------------------------------------------------------
+
+
+---
+
+# IA Arquitecta – Avanzza 2.0 Workspaces
+# Objetivo: implementar un sistema de workspaces por rol (Administrador, Propietario, Arrendatario, Proveedor de Servicios, Proveedor de Artículos/Aseguradora)
+# usando configuración centralizada, Clean Architecture, GetX y un widget genérico para BottomNavigationBar.
+
+## Requerimientos globales
+- Cada usuario entra a un workspace definido por su `Membership.roles[]` y `Organization.tipo`.
+- Persona natural y empresa comparten el mismo workspace por rol. La diferencia (colaboradores, sucursales) va en menú secundario, no en BottomNavigation.
+- BottomNavigationBar con máximo 5 tabs por rol.
+- Workspaces definidos por configuración centralizada (mapa role→WorkspaceConfig).
+- Layout base: `WorkspaceShell(config: WorkspaceConfig)` → Scaffold con BottomNavigationBar dinámico.
+- Control de estado: GetX.
+
+## Implementación
+1. Crear entidad de configuración:
+```dart
+class WorkspaceConfig {
+  final String role;
+  final List<WorkspaceTab> tabs;
+  const WorkspaceConfig({required this.role, required this.tabs});
+}
+
+class WorkspaceTab {
+  final String title;
+  final IconData icon;
+  final Widget page;
+  const WorkspaceTab({required this.title, required this.icon, required this.page});
+}
+
+2. Definir mapa de roles→workspaces según tabla 📊:
+
+Administrador de Activos
+
+Home · Mantenimientos · Contabilidad · Compras · Chat
+
+Proveedor de Servicios
+
+Home · Agenda · Órdenes · Contabilidad · Chat
+
+Proveedor de Artículos
+
+Comercios: Home · Catálogo · Cotizaciones · Órdenes · Chat
+
+Aseguradoras/Brokers: Home · Planes · Cotizaciones · Pólizas · Chat
+
+Arrendatario
+
+Home · Pagos · Activo · Documentos · Chat
+
+Propietario
+
+Home · Portafolio · Contratos · Contabilidad · Chat
+
+Crear widget genérico WorkspaceShell:
+
+Usa WorkspaceConfig para construir BottomNavigationBar.
+
+Controlador GetX para cambiar de tab.
+
+Body = página del tab activo.
+
+Integración con sesión:
+
+SessionContextController.activeContext.rol se usa como key para seleccionar WorkspaceConfig.
+
+Si rol = "proveedor", usar ProviderProfile.providerType para decidir entre Servicios o Artículos (y si es aseguradora/broker, usar variante de Artículos).
+
+Reutilización:
+
+Páginas (ej. ChatPage, AccountingPage, PurchasePage) son inyectadas en WorkspaceTab.
+
+Un mismo módulo puede aparecer en varios workspaces.
+
+Archivos a generar
+
+lib/presentation/workspace/workspace_config.dart (WorkspaceConfig + mapa roles→config).
+
+lib/presentation/workspace/workspace_shell.dart (widget base con BottomNavigationBar dinámico).
+
+lib/presentation/controllers/workspace_controller.dart (GetX controller para navegación de tabs).
+
+Actualizar bootstrap de sesión para cargar el workspace correcto basado en activeContext.

@@ -19,20 +19,11 @@ import '../presentation/auth/pages/select_role_page.dart';
 import '../presentation/auth/pages/summary_page.dart';
 import '../presentation/auth/pages/terms_page.dart';
 import '../presentation/auth/pages/username_password_page.dart';
-import '../presentation/bindings/admin/admin_shell_binding.dart';
 import '../presentation/bindings/home_binding.dart';
 import '../presentation/home/pages/home_router.dart';
 import '../presentation/pages/incidencia_page.dart';
 import '../presentation/pages/org_selection_page.dart';
 import '../presentation/pages/purchase_request_page.dart';
-import '../presentation/pages/workspaces/insurance_advisor_workspace_page.dart';
-import '../presentation/pages/workspaces/insurer_workspace_page.dart';
-import '../presentation/pages/workspaces/legal_workspace_page.dart';
-import '../presentation/pages/workspaces/owner_workspace_page.dart';
-import '../presentation/pages/workspaces/provider_articles_workspace_page.dart';
-import '../presentation/pages/workspaces/provider_services_workspace_page.dart';
-import '../presentation/pages/workspaces/renter_workspace_page.dart';
-import '../presentation/shell/admin_shell.dart';
 
 class Routes {
   static const welcome = '/auth/welcome';
@@ -58,28 +49,11 @@ class Routes {
   static const providerSegments = '/auth/provider/segments';
   static const providerCoverage = '/auth/provider/coverage';
 
-  // Admin deep-links
-  static const admin = '/admin';
-  static const adminHome = '/admin/home';
-  static const adminMaintenance = '/admin/maintenance';
-  static const adminAccounting = '/admin/accounting';
-  static const adminPurchase = '/admin/purchase';
-  static const adminChat = '/admin/chat';
-
   // Módulos ya existentes
   static const incidencia = '/incidencia';
   static const purchase = '/purchase';
 
   static const String assets = '/assets';
-
-  // Workspaces
-  static const wsOwner = '/ws/owner';
-  static const wsRenter = '/ws/renter';
-  static const wsProviderServices = '/ws/provider/services';
-  static const wsProviderArticles = '/ws/provider/articles';
-  static const wsInsuranceAdvisor = '/ws/insurance/advisor';
-  static const wsInsurer = '/ws/insurance/insurer';
-  static const wsLegal = '/ws/legal';
 
   static final pages = <GetPage<dynamic>>[
     GetPage(name: welcome, page: () => AuthWelcomePage()),
@@ -115,47 +89,6 @@ class Routes {
         page: () => const IncidenciaPage(assetId: 'asset_mock')),
     GetPage(name: purchase, page: () => const PurchaseRequestPage()),
 
-    // Admin workspace deep-links
-    GetPage(
-        name: admin,
-        page: () => const AdminShell(),
-        binding: AdminShellBinding()),
-    GetPage(
-        name: adminHome,
-        page: () => const AdminShell(),
-        binding: AdminShellBinding()),
-    GetPage(
-        name: adminMaintenance,
-        page: () => const AdminShell(),
-        binding: AdminShellBinding()),
-    GetPage(
-        name: adminAccounting,
-        page: () => const AdminShell(),
-        binding: AdminShellBinding()),
-    GetPage(
-        name: adminPurchase,
-        page: () => const AdminShell(),
-        binding: AdminShellBinding()),
-    GetPage(
-        name: adminChat,
-        page: () => const AdminShell(),
-        binding: AdminShellBinding()),
-
     GetPage(name: assets, page: () => const AssetListPage()),
-
-    // Workspaces stubs
-    GetPage(name: wsOwner, page: () => const OwnerWorkspacePage()),
-    GetPage(name: wsRenter, page: () => const RenterWorkspacePage()),
-    GetPage(
-        name: wsProviderServices,
-        page: () => const ProviderServicesWorkspacePage()),
-    GetPage(
-        name: wsProviderArticles,
-        page: () => const ProviderArticlesWorkspacePage()),
-    GetPage(
-        name: wsInsuranceAdvisor,
-        page: () => const InsuranceAdvisorWorkspacePage()),
-    GetPage(name: wsInsurer, page: () => const InsurerWorkspacePage()),
-    GetPage(name: wsLegal, page: () => const LegalWorkspacePage()),
   ];
 }
