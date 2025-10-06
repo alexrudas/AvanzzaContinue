@@ -77,13 +77,27 @@ class _SelectRolePageState extends State<SelectRolePage> {
               onPressed: _role == null
                   ? null
                   : () async {
-                      await _reg.setRole(_role!);
-                      if (_role == 'proveedor') {
+                      final role = _role!;
+                      await _reg.setRole(role);
+
+                      if (role == 'proveedor') {
+                        // Proveedor sigue el wizard de segmentación
                         Get.toNamed(Routes.providerSubtype);
-                      } else {
-                        // Entrar a workspace sin registrarse
-                        Get.offAllNamed(Routes.home);
+                        return;
                       }
+
+                      // Aseguradora y Asesor de seguros usan providerType 'articulos'
+                      if (role == 'aseguradora' || role == 'asesor_seguros') {
+                        await _reg.setProviderType('articulos');
+                      }
+
+                      // Legal (abogado / firma) usa providerType 'servicios'
+                      if (role == 'abogado' || role == 'abogados_firma') {
+                        await _reg.setProviderType('servicios');
+                      }
+
+                      // Entrar a workspace sin registrarse (exploración)
+                      Get.offAllNamed(Routes.home);
                     },
               child: const Text('Continuar'),
             ),
@@ -98,3 +112,4 @@ class _SelectRolePageState extends State<SelectRolePage> {
     );
   }
 }
+

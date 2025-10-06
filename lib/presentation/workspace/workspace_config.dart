@@ -26,8 +26,6 @@ import '../pages/provider/articles/catalog/provider_articles_catalog_page.dart';
 import '../pages/provider/articles/chat/provider_articles_chat_page.dart';
 // Provider Articles pages
 import '../pages/provider/articles/home/provider_articles_home_page.dart';
-import '../pages/provider/articles/orders/provider_articles_orders_page.dart';
-import '../pages/provider/articles/quotes/provider_articles_quotes_page.dart';
 import '../pages/provider/services/agenda/provider_services_agenda_page.dart';
 import '../pages/provider/services/chat/provider_services_chat_page.dart';
 // Provider Services pages
@@ -39,6 +37,9 @@ import '../pages/renter/documents/renter_documents_page.dart';
 // Renter pages
 import '../pages/renter/home/renter_home_page.dart';
 import '../pages/renter/payments/renter_payments_page.dart';
+import '../pages/workspaces/provider_articles_commercial_page.dart';
+import '../pages/workspaces/provider_articles_orders_shell.dart';
+import '../pages/workspaces/provider_articles_profile_page.dart';
 
 class WorkspaceConfig {
   final String roleKey;
@@ -56,22 +57,23 @@ class WorkspaceTab {
       {required this.title, required this.icon, required this.page});
 }
 
-bool _isAdmin(String rol) => rol.contains('admin');
-bool _isOwner(String rol) => rol.contains('propietario');
-bool _isRenter(String rol) => rol.contains('arrendatario');
-bool _isProvider(String rol) => rol.contains('proveedor');
-bool _isAdvisor(String rol) => rol.contains('asesor');
-bool _isInsurer(String rol) =>
+bool isAdmin(String rol) => rol.contains('admin');
+bool isOwner(String rol) => rol.contains('propietario');
+bool isRenter(String rol) => rol.contains('arrendatario');
+bool isProvider(String rol) => rol.contains('proveedor');
+bool isAdvisor(String rol) => rol.contains('asesor');
+bool isInsurer(String rol) =>
     rol.contains('aseguradora') || rol.contains('broker');
-bool _isLegal(String rol) => rol.contains('abog');
+bool isLegal(String rol) => rol.contains('abog');
 
 WorkspaceConfig workspaceFor({
   required String rol,
   String? providerType,
+  String? orgType,
 }) {
   final r = rol.toLowerCase();
 
-  if (_isAdmin(r)) {
+  if (isAdmin(r)) {
     return WorkspaceConfig(
       roleKey: 'admin_activos',
       tabs: const [
@@ -106,33 +108,52 @@ WorkspaceConfig workspaceFor({
   }
 
   // Normalización de roles “proveedor de productos”
-  if (_isProvider(r) || _isAdvisor(r) || _isInsurer(r) || _isLegal(r)) {
+  if (isProvider(r) || isAdvisor(r) || isInsurer(r) || isLegal(r)) {
     final pt = (providerType ?? 'articulos').toLowerCase();
     if (pt == 'articulos') {
+      // Detectar tipo de organización para adaptar tabs
+      final isEmpresa = (orgType ?? 'personal').toLowerCase() == 'empresa';
       return WorkspaceConfig(
         roleKey: 'prov_articulos',
-        tabs: const [
-          WorkspaceTab(
+        tabs: [
+          const WorkspaceTab(
               title: 'Home',
               icon: Icons.home_outlined,
               page: ProviderArticlesHomePage()),
-          WorkspaceTab(
-              title: 'Catálogo',
+          const WorkspaceTab(
+              title: 'Productos',
               icon: Icons.view_list_outlined,
               page: ProviderArticlesCatalogPage()),
-          WorkspaceTab(
-              title: 'Cotizaciones',
-              icon: Icons.request_quote_outlined,
-              page: ProviderArticlesQuotesPage()),
-          WorkspaceTab(
-              title: 'Órdenes',
+          const WorkspaceTab(
+              title: 'Pedidos',
               icon: Icons.assignment_outlined,
-              page: ProviderArticlesOrdersPage()),
-          // Si deseas contabilidad para artículos, reemplaza alguno de los tabs por ProviderArticlesAccountingPage
-          WorkspaceTab(
+              page: ProviderArticlesOrdersShell()),
+          // Slot 4 depende del tipo de titular
+          if (isEmpresa)
+            const WorkspaceTab(
+              title: 'Comercial',
+              icon: Icons.campaign_outlined,
+              page: ProviderArticlesCommercialPage(),
+            )
+          else
+            const WorkspaceTab(
               title: 'Chat',
               icon: Icons.chat_bubble_outline,
-              page: ProviderArticlesChatPage()),
+              page: ProviderArticlesChatPage(),
+            ),
+          // Slot 5
+          if (isEmpresa)
+            const WorkspaceTab(
+              title: 'Chat',
+              icon: Icons.chat_bubble_outline,
+              page: ProviderArticlesChatPage(),
+            )
+          else
+            const WorkspaceTab(
+              title: 'Perfil',
+              icon: Icons.person_outline,
+              page: ProviderArticlesProfilePage(),
+            ),
         ],
         onInit: () => ProviderArticlesBinding().dependencies(),
       );
@@ -166,7 +187,7 @@ WorkspaceConfig workspaceFor({
     );
   }
 
-  if (_isOwner(r)) {
+  if (isOwner(r)) {
     return WorkspaceConfig(
       roleKey: 'propietario',
       tabs: const [
@@ -193,7 +214,7 @@ WorkspaceConfig workspaceFor({
     );
   }
 
-  if (_isRenter(r)) {
+  if (isRenter(r)) {
     return WorkspaceConfig(
       roleKey: 'arrendatario',
       tabs: const [

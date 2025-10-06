@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 
-import '../../domain/entities/user/user_entity.dart';
-import '../../domain/entities/user/membership_entity.dart';
 import '../../domain/entities/user/active_context.dart';
+import '../../domain/entities/user/membership_entity.dart';
+import '../../domain/entities/user/user_entity.dart';
 import '../../domain/repositories/user_repository.dart';
 
 /// SessionContextController
@@ -21,6 +21,9 @@ class SessionContextController extends GetxController {
 
   final RxList<MembershipEntity> _memberships = <MembershipEntity>[].obs;
   List<MembershipEntity> get memberships => _memberships;
+
+  // Exponer Rx para reactividad en otros controladores
+  Rxn<UserEntity> get userRx => _user;
 
   StreamSubscription<UserEntity?>? _userSub;
   StreamSubscription<List<MembershipEntity>>? _mbrSub;
@@ -46,7 +49,8 @@ class SessionContextController extends GetxController {
     // Local observable update (optimistic)
     final current = user;
     if (current != null) {
-      _user.value = current.copyWith(activeContext: ctx, updatedAt: DateTime.now().toUtc());
+      _user.value = current.copyWith(
+          activeContext: ctx, updatedAt: DateTime.now().toUtc());
     }
   }
 

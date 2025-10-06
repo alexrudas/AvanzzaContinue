@@ -1,8 +1,10 @@
+import 'package:avanzza/domain/entities/user/user_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import '../../../core/di/container.dart';
-import '../../controllers/session_context_controller.dart';
 import '../../../domain/repositories/accounting_repository.dart';
+import '../../controllers/session_context_controller.dart';
 
 abstract class BaseAccountingController extends GetxController {
   final loading = true.obs;
@@ -27,6 +29,16 @@ abstract class BaseAccountingController extends GetxController {
     _repo = di.accountingRepository;
     final session = Get.find<SessionContextController>();
     _orgId = session.user?.activeContext?.orgId;
+
+    // Reactividad: si cambia el activeContext, recargar con la nueva org
+    ever<UserEntity?>(session.userRx, (u) {
+      final newOrg = u?.activeContext?.orgId;
+      if (newOrg != _orgId) {
+        _orgId = newOrg;
+        _loadLocal();
+      }
+    });
+
     _loadLocal();
     di.syncService.sync();
   }
@@ -61,7 +73,8 @@ abstract class BaseAccountingController extends GetxController {
       entriesTiles
         ..clear()
         ..addAll(delMes.map((e) => ListTile(
-              title: Text('${e.tipo} ${e.monto.toStringAsFixed(2)} ${e.currencyCode}'),
+              title: Text(
+                  '${e.tipo} ${e.monto.toStringAsFixed(2)} ${e.currencyCode}'),
               subtitle: Text(e.descripcion),
             )));
     } catch (e) {
