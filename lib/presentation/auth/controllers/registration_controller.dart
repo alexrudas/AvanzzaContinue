@@ -89,6 +89,44 @@ class RegistrationController extends GetxController {
     progress.value = await progressDS.upsert(p);
   }
 
+  // Perfil de proveedor unificado
+  Future<void> setSegment(String segment, {String id = 'current'}) async {
+    final p = progress.value ??
+        (RegistrationProgressModel()
+          ..id = id
+          ..updatedAt = DateTime.now().toUtc());
+    p.segment = segment;
+    // Cambiar segmento limpia dependencias
+    p.vehicleType = null;
+    p.providerCategory = null;
+    p.updatedAt = DateTime.now().toUtc();
+    progress.value = await progressDS.upsert(p);
+  }
+
+  Future<void> setVehicleType(String vehicleType,
+      {String id = 'current'}) async {
+    final p = progress.value ??
+        (RegistrationProgressModel()
+          ..id = id
+          ..updatedAt = DateTime.now().toUtc());
+    p.vehicleType = vehicleType;
+    // Cambiar tipo de vehículo limpia categoría
+    p.providerCategory = null;
+    p.updatedAt = DateTime.now().toUtc();
+    progress.value = await progressDS.upsert(p);
+  }
+
+  Future<void> setProviderCategory(String category,
+      {String id = 'current'}) async {
+    final p = progress.value ??
+        (RegistrationProgressModel()
+          ..id = id
+          ..updatedAt = DateTime.now().toUtc());
+    p.providerCategory = category;
+    p.updatedAt = DateTime.now().toUtc();
+    progress.value = await progressDS.upsert(p);
+  }
+
   Future<void> setTitularType(String tipo, {String id = 'current'}) async {
     final p = progress.value ??
         (RegistrationProgressModel()

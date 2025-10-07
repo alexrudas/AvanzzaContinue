@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -19,6 +20,7 @@ class BottomSheetSelector<T> extends StatefulWidget {
   final IconData? leadingIcon;
   final String emptyStateText;
   final Widget? header;
+  final bool showSearch;
 
   const BottomSheetSelector({
     super.key,
@@ -31,6 +33,7 @@ class BottomSheetSelector<T> extends StatefulWidget {
     this.leadingIcon,
     this.emptyStateText = 'Sin resultados',
     this.header,
+    this.showSearch = true,
   });
 
   @override
@@ -92,19 +95,21 @@ class _BottomSheetSelectorState<T> extends State<BottomSheetSelector<T>> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Text(widget.title, style: Theme.of(context).textTheme.titleLarge),
+              child: Text(widget.title,
+                  style: Theme.of(context).textTheme.titleLarge),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: TextField(
-                controller: _searchCtrl,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.search),
-                  hintText: 'Buscar...',
+            if (widget.showSearch)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: TextField(
+                  controller: _searchCtrl,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.search),
+                    hintText: 'Buscar...',
+                  ),
+                  onChanged: _onQueryChanged,
                 ),
-                onChanged: _onQueryChanged,
               ),
-            ),
             if (widget.header != null) widget.header!,
             if (_loading)
               const Padding(
@@ -115,26 +120,36 @@ class _BottomSheetSelectorState<T> extends State<BottomSheetSelector<T>> {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Center(
-                  child: Text(widget.emptyStateText, style: Theme.of(context).textTheme.bodyMedium),
+                  child: Text(widget.emptyStateText,
+                      style: Theme.of(context).textTheme.bodyMedium),
                 ),
               )
             else
               ..._data.map((item) {
                 final isSelected = widget.selectedValue == item.value;
                 return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  leading: widget.leadingIcon != null ? Icon(widget.leadingIcon) : null,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  leading: widget.leadingIcon != null
+                      ? Icon(widget.leadingIcon)
+                      : null,
                   title: Text(item.label),
                   subtitle: item.subtitle != null
-                      ? Text(item.subtitle!, style: TextStyle(color: Theme.of(context).hintColor))
+                      ? Text(item.subtitle!,
+                          style: TextStyle(color: Theme.of(context).hintColor))
                       : null,
-                  trailing: isSelected ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary) : null,
+                  trailing: isSelected
+                      ? Icon(Icons.check,
+                          color: Theme.of(context).colorScheme.primary)
+                      : null,
                   minVerticalPadding: 12,
                   onTap: () {
                     HapticFeedback.lightImpact();
                     widget.onSelect(item);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Seleccionado: ${item.label}'), duration: const Duration(seconds: 1)),
+                      SnackBar(
+                          content: Text('Seleccionado: ${item.label}'),
+                          duration: const Duration(seconds: 1)),
                     );
                     Navigator.of(context).pop();
                   },
