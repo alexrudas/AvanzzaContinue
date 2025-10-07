@@ -14,8 +14,7 @@ import '../presentation/auth/pages/provider_coverage_page.dart';
 import '../presentation/auth/pages/provider_segments_page.dart';
 import '../presentation/auth/pages/provider_subtype_page.dart';
 import '../presentation/auth/pages/select_country_city_page.dart';
-import '../presentation/auth/pages/select_holder_type_page.dart';
-import '../presentation/auth/pages/select_role_page.dart';
+import '../presentation/auth/pages/select_profile_page.dart';
 import '../presentation/auth/pages/summary_page.dart';
 import '../presentation/auth/pages/terms_page.dart';
 import '../presentation/auth/pages/username_password_page.dart';
@@ -30,7 +29,8 @@ class Routes {
   static const phone = '/auth/phone';
   static const otp = '/auth/otp';
   static const countryCity = '/auth/country-city';
-  static const role = '/auth/role';
+  static const role = '/auth/role'; // legacy alias
+  static const profile = '/auth/profile';
   static const home = '/home';
   static const orgSelect = '/org_select';
 
@@ -60,7 +60,9 @@ class Routes {
     GetPage(name: phone, page: () => const PhoneInputPage()),
     GetPage(name: otp, page: () => const OtpVerifyPage()),
     GetPage(name: countryCity, page: () => const SelectCountryCityPage()),
-    GetPage(name: role, page: () => const SelectRolePage()),
+    GetPage(name: profile, page: () => const SelectProfilePage()),
+    // legacy aliases
+    GetPage(name: role, page: () => const SelectProfilePage()),
     GetPage(name: orgSelect, page: () => const OrgSelectionPage()),
 
     // HomeRouter decide workspace según activeContext
@@ -74,7 +76,8 @@ class Routes {
     GetPage(name: loginUserPass, page: () => const LoginUsernamePasswordPage()),
     GetPage(name: loginMfa, page: () => const MfaOtpPage()),
     GetPage(name: registerSummary, page: () => const SummaryPage()),
-    GetPage(name: holderType, page: () => const SelectHolderTypePage()),
+    // legacy alias
+    GetPage(name: holderType, page: () => const SelectProfilePage()),
     GetPage(name: providerSubtype, page: () => const ProviderSubtypePage()),
     GetPage(
         name: providerCategories, page: () => const ProviderCategoriesPage()),

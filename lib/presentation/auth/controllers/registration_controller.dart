@@ -49,7 +49,8 @@ class RegistrationController extends GetxController {
     progress.value = await progressDS.upsert(p);
   }
 
-  Future<void> setBusinessCategory(String catId, {String id = 'current'}) async {
+  Future<void> setBusinessCategory(String catId,
+      {String id = 'current'}) async {
     final p = progress.value ??
         (RegistrationProgressModel()
           ..id = id
@@ -58,7 +59,8 @@ class RegistrationController extends GetxController {
     progress.value = await progressDS.upsert(p);
   }
 
-  Future<void> setAssetSegments(List<String> segs, {String id = 'current'}) async {
+  Future<void> setAssetSegments(List<String> segs,
+      {String id = 'current'}) async {
     final p = progress.value ??
         (RegistrationProgressModel()
           ..id = id
@@ -67,7 +69,8 @@ class RegistrationController extends GetxController {
     progress.value = await progressDS.upsert(p);
   }
 
-  Future<void> setOfferingLines(List<String> lines, {String id = 'current'}) async {
+  Future<void> setOfferingLines(List<String> lines,
+      {String id = 'current'}) async {
     final p = progress.value ??
         (RegistrationProgressModel()
           ..id = id
@@ -76,7 +79,8 @@ class RegistrationController extends GetxController {
     progress.value = await progressDS.upsert(p);
   }
 
-  Future<void> setProviderCoverage(List<String> cities, {String id = 'current'}) async {
+  Future<void> setProviderCoverage(List<String> cities,
+      {String id = 'current'}) async {
     final p = progress.value ??
         (RegistrationProgressModel()
           ..id = id
@@ -95,7 +99,8 @@ class RegistrationController extends GetxController {
     progress.value = await progressDS.upsert(p);
   }
 
-  Future<void> setProviderTypeEphemeral(String type, {String id = 'current'}) async {
+  Future<void> setProviderTypeEphemeral(String type,
+      {String id = 'current'}) async {
     final p = progress.value ??
         (RegistrationProgressModel()
           ..id = id
@@ -105,7 +110,8 @@ class RegistrationController extends GetxController {
     progress.value = await progressDS.upsert(p);
   }
 
-  Future<void> setProviderCategoriesEphemeral(List<String> cats, {String id = 'current'}) async {
+  Future<void> setProviderCategoriesEphemeral(List<String> cats,
+      {String id = 'current'}) async {
     final p = progress.value ??
         (RegistrationProgressModel()
           ..id = id
@@ -215,6 +221,15 @@ class RegistrationController extends GetxController {
           ..updatedAt = DateTime.now().toUtc());
     p.selectedRole = role;
     p.step = 5;
+    progress.value = await progressDS.upsert(p);
+  }
+
+  Future<void> clearSelectedRole({String id = 'current'}) async {
+    final p = progress.value ??
+        (RegistrationProgressModel()
+          ..id = id
+          ..updatedAt = DateTime.now().toUtc());
+    p.selectedRole = null;
     progress.value = await progressDS.upsert(p);
   }
 
