@@ -198,18 +198,19 @@ class RegistrationController extends GetxController {
     progress.value = await progressDS.upsert(p);
   }
 
-  Future<void> setLocation(
-      {required String countryId,
-      String? regionId,
-      required String cityId,
-      String id = 'current'}) async {
+  Future<void> setLocation({
+    required String countryId,
+    String? regionId,
+    String? cityId,
+    String id = 'current',
+  }) async {
     final p = progress.value ??
         (RegistrationProgressModel()
           ..id = id
           ..updatedAt = DateTime.now().toUtc());
     p.countryId = countryId;
-    p.regionId = regionId;
-    p.cityId = cityId;
+    p.regionId = regionId; // puede ser null
+    p.cityId = cityId; // puede ser null
     p.step = 4;
     progress.value = await progressDS.upsert(p);
   }
