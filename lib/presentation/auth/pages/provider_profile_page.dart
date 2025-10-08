@@ -345,9 +345,7 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
           ListTile(
             title: const Text('Categoría'),
             subtitle: Text(
-              _category != null
-                  ? _categoryLabel(_category!)
-                  : '¿Qué tipo de negocio eres?',
+              _category ?? '¿Qué tipo de negocio eres?',
               style: TextStyle(color: Theme.of(context).hintColor),
             ),
             trailing: const Icon(Icons.keyboard_arrow_down),
@@ -393,37 +391,6 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
         return 'Pesados/Amarillos';
       case 'flotas_mixtas':
         return 'Flotas mixtas';
-      default:
-        return v;
-    }
-  }
-
-  String _categoryLabel(String v) {
-    switch (v) {
-      case 'lubricentro':
-        return 'Lubricentro';
-      case 'llanteria':
-        return 'Llantería';
-      case 'carwash':
-        return 'CarWash';
-      case 'taller_mecanico':
-        return 'Taller mecánico';
-      case 'accesorios':
-        return 'Accesorios';
-      case 'ferreteria':
-        return 'Ferretería';
-      case 'pisos_enchapes':
-        return 'Pisos y enchapes';
-      case 'pinturas':
-        return 'Pinturas';
-      case 'plomeria':
-        return 'Plomería';
-      case 'arriendo':
-        return 'Arriendo';
-      case 'mantenimiento':
-        return 'Mantenimiento';
-      case 'repuestos':
-        return 'Repuestos';
       default:
         return v;
     }

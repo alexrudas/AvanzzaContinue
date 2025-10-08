@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/di/container.dart';
+import '../../../domain/repositories/catalog_repository.dart';
 import '../controllers/registration_controller.dart';
 
 class ProviderCategoriesPage extends StatefulWidget {
@@ -12,68 +14,114 @@ class ProviderCategoriesPage extends StatefulWidget {
 
 class _ProviderCategoriesPageState extends State<ProviderCategoriesPage> {
   String? _selected;
-
-  List<Map<String, String>> _options(
-      String providerType, List<String> assetTypeIds, String titularType) {
-    final list = <Map<String, String>>[];
-    if (providerType == 'articulos') {
-      if (assetTypeIds.contains('vehiculos'))
-        list.add({'id': 'lubricentro', 'label': 'Lubricentro'});
-      if (assetTypeIds.contains('inmuebles'))
-        list.add({'id': 'ferreteria', 'label': 'Ferretería'});
-      list.add({'id': 'insumos_generales', 'label': 'Insumos generales'});
-    } else {
-      list.add(
-          {'id': 'mecanico_independiente', 'label': 'Mecánico independiente'});
-      if (titularType == 'empresa') {
-        list.add({'id': 'taller', 'label': 'Taller'});
-        list.add({'id': 'facility', 'label': 'Facility management'});
-      }
-      list.add({
-        'id': 'servicios_especializados',
-        'label': 'Servicios especializados'
-      });
-    }
-    return list;
-  }
+  DateTime? _openedAt;
 
   @override
   Widget build(BuildContext context) {
     final reg = Get.find<RegistrationController>();
-    final tipo = reg.titularType.value.isNotEmpty
-        ? reg.titularType.value
-        : (reg.progress.value?.titularType ?? 'persona');
-    final provType = reg.providerType.value.isNotEmpty
-        ? reg.providerType.value
-        : (reg.progress.value?.providerType ?? 'servicios');
-    final assetTypes = reg.progress.value?.assetTypeIds ?? const <String>[];
-    final opts = _options(provType, assetTypes, tipo);
+    final di = DIContainer();
+    final catalog = di.catalogRepository;
+
+    final providerType = reg.progress.value?.providerType;
+    final segment = reg.progress.value?.segment;
+
+    final title = 'Categorías de '
+        '${providerType == 'articulos' ? 'Productos' : 'Servicios'} '
+        'para '
+        '${_segmentLabel(segment ?? '')}';
+
+    List<Map<String, dynamic>> items = [];
+    if (providerType != null && segment != null) {
+      items = catalog.getProviderCategories(providerType, segment);
+    }
+
+    _openedAt ??= DateTime.now();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Categorías proveedor')),
-      body: ListView(
-        children: [
-          for (final o in opts)
-            RadioListTile<String>(
-              title: Text(o['label']!),
-              value: o['id']!,
-              groupValue: _selected,
-              onChanged: (v) => setState(() => _selected = v),
-            ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: FilledButton(
-              onPressed: _selected == null
-                  ? null
-                  : () async {
-                      await reg.setBusinessCategory(_selected!);
-                      Get.back();
+      appBar: AppBar(title: Text(title)),
+      body: Builder(builder: (context) {
+        if (providerType == null || segment == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text(
+                    'Selecciona primero el tipo de proveedor y el segmento que atiendes')),
+          );
+          return const SizedBox.shrink();
+        }
+
+        if (items.isEmpty) {
+          // Telemetría GAP, CTA sugerir categoría
+          // ignore: avoid_print
+          print(
+              '[Telemetry] category_gap providerType=$providerType segment=$segment');
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                      'No hay categorías disponibles para esta combinación.'),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: () {
+                      // TODO: abrir formulario de sugerencia
                     },
-              child: const Text('Guardar categoría'),
+                    child: const Text('Sugerir categoría'),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
+          );
+        }
+
+        return ListView(
+          children: [
+            for (final o in items)
+              RadioListTile<String>(
+                title: Text(o['label'] as String),
+                value: o['id'] as String,
+                groupValue: _selected,
+                onChanged: (v) => setState(() => _selected = v),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: FilledButton(
+                onPressed: _selected == null
+                    ? null
+                    : () async {
+                        final elapsed = DateTime.now()
+                            .difference(_openedAt!)
+                            .inMilliseconds;
+                        // ignore: avoid_print
+                        print(
+                            '[Telemetry] category_select id=$_selected duration_ms=$elapsed providerType=$providerType segment=$segment');
+                        await reg.setProviderCategory(_selected!);
+                        Get.back(result: _selected);
+                      },
+                child: const Text('Guardar categoría'),
+              ),
+            ),
+          ],
+        );
+      }),
     );
+  }
+
+  String _segmentLabel(String v) {
+    switch (v) {
+      case 'vehiculos':
+        return 'Vehículos';
+      case 'inmuebles':
+        return 'Inmuebles';
+      case 'equipos_construccion':
+        return 'Equipos de construcción';
+      case 'maquinaria':
+        return 'Maquinaria';
+      case 'otros_equipos':
+        return 'Otros equipos';
+      default:
+        return v.isEmpty ? '—' : v;
+    }
   }
 }
