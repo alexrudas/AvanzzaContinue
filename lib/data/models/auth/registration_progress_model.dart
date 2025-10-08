@@ -23,10 +23,16 @@ class RegistrationProgressModel {
   String? regionId;
   String? cityId;
 
+  // Perfil del proveedor (unificado)
+  String?
+      segment; // 'vehiculos'|'inmuebles'|'equipos_construccion'|'maquinaria'|'otros_equipos'
+  String? vehicleType; // si segment == 'vehiculos'
+  String? providerCategory; // categoría dependiente del segmento
+
   // Onboarding consolidado
   String? titularType; // 'persona' | 'empresa'
   String? providerType; // 'servicios' | 'articulos'
-  // Consolidado proveedor
+  // Consolidado proveedor (legacy)
   List<String> assetTypeIds =
       []; // ['vehiculos','inmuebles','maquinaria','equipos','otros']
   String?

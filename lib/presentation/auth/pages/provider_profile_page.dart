@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import '../../../routes/app_pages.dart';
 import '../../widgets/wizard/wizard_bottom_bar.dart';
 import '../../widgets/wizard/bottom_sheet_selector.dart';
 import '../controllers/registration_controller.dart';
