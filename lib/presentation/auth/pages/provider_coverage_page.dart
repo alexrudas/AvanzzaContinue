@@ -1,5 +1,8 @@
+import 'package:avanzza/routes/app_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
+import '../../widgets/wizard/wizard_bottom_bar.dart';
 import '../controllers/registration_controller.dart';
 
 class ProviderCoveragePage extends StatefulWidget {
@@ -27,24 +30,24 @@ class _ProviderCoveragePageState extends State<ProviderCoveragePage> {
                   trailing: Checkbox(
                     value: _cities.contains('CO/ANT/MEDELLIN'),
                     onChanged: (v) => setState(() {
-                      v == true ? _cities.add('CO/ANT/MEDELLIN') : _cities.remove('CO/ANT/MEDELLIN');
+                      v == true
+                          ? _cities.add('CO/ANT/MEDELLIN')
+                          : _cities.remove('CO/ANT/MEDELLIN');
                     }),
                   ),
                 ),
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: FilledButton(
-              onPressed: () async {
-                await reg.setProviderCoverage(_cities.toList());
-                Get.back(result: true);
-              },
-              child: const Text('Guardar'),
-            ),
-          )
         ],
+      ),
+      bottomNavigationBar: WizardBottomBar(
+        onBack: () => Get.back(),
+        onContinue: () async {
+          await reg.setProviderCoverage(_cities.toList());
+          Get.offNamed(Routes.providerHomeArticles);
+        },
+        continueEnabled: _cities.isNotEmpty,
       ),
     );
   }

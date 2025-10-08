@@ -13,6 +13,8 @@ import '../presentation/auth/pages/provider_categories_page.dart';
 import '../presentation/auth/pages/provider_coverage_page.dart';
 import '../presentation/auth/pages/provider_profile_page.dart';
 import '../presentation/auth/pages/provider_segments_page.dart';
+import '../presentation/pages/provider/articles/home/provider_articles_home_page.dart';
+import '../presentation/pages/provider/services/home/provider_services_home_page.dart';
 import '../presentation/auth/pages/select_country_city_page.dart';
 import '../presentation/auth/pages/select_profile_page.dart';
 import '../presentation/auth/pages/summary_page.dart';
@@ -49,6 +51,8 @@ class Routes {
   static const providerAssetTypes = '/auth/provider/asset-types';
   static const providerSegments = '/auth/provider/segments';
   static const providerCoverage = '/auth/provider/coverage';
+  static const providerHomeArticles = '/provider/home/articles';
+  static const providerHomeServices = '/provider/home/services';
 
   // Módulos ya existentes
   static const incidencia = '/incidencia';
@@ -88,6 +92,8 @@ class Routes {
         name: providerAssetTypes, page: () => const ProviderAssetTypesPage()),
     GetPage(name: providerSegments, page: () => const ProviderSegmentsPage()),
     GetPage(name: providerCoverage, page: () => const ProviderCoveragePage()),
+    GetPage(name: providerHomeArticles, page: () => const ProviderArticlesHomePage()),
+    GetPage(name: providerHomeServices, page: () => const ProviderServicesHomePage()),
 
     // Módulos legacy
     GetPage(
