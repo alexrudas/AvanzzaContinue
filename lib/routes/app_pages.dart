@@ -1,4 +1,7 @@
 import 'package:avanzza/presentation/pages/asset_list_page.dart';
+import 'package:avanzza/presentation/pages/workspaces/provider_articles_workspace_page.dart'
+    show ProviderArticlesWorkspacePage;
+import 'package:avanzza/presentation/pages/workspaces/provider_services_workspace_page.dart';
 import 'package:get/get.dart';
 
 import '../presentation/auth/pages/auth_welcome_page.dart';
@@ -8,13 +11,8 @@ import '../presentation/auth/pages/login_username_password_page.dart';
 import '../presentation/auth/pages/mfa_otp_page.dart';
 import '../presentation/auth/pages/otp_verify_page.dart';
 import '../presentation/auth/pages/phone_input_page.dart';
-import '../presentation/auth/pages/provider_asset_types_page.dart';
-import '../presentation/auth/pages/provider_categories_page.dart';
 import '../presentation/auth/pages/provider_coverage_page.dart';
 import '../presentation/auth/pages/provider_profile_page.dart';
-import '../presentation/auth/pages/provider_segments_page.dart';
-import '../presentation/pages/provider/articles/home/provider_articles_home_page.dart';
-import '../presentation/pages/provider/services/home/provider_services_home_page.dart';
 import '../presentation/auth/pages/select_country_city_page.dart';
 import '../presentation/auth/pages/select_profile_page.dart';
 import '../presentation/auth/pages/summary_page.dart';
@@ -45,14 +43,13 @@ class Routes {
   static const loginMfa = '/auth/login/mfa';
   static const registerSummary = '/auth/register/summary';
   static const holderType = '/auth/holder-type';
-  static const providerSubtype = '/auth/provider/subtype'; // legacy alias
   static const providerProfile = '/auth/provider/profile';
-  static const providerCategories = '/auth/provider/categories';
-  static const providerAssetTypes = '/auth/provider/asset-types';
-  static const providerSegments = '/auth/provider/segments';
+
   static const providerCoverage = '/auth/provider/coverage';
   static const providerHomeArticles = '/provider/home/articles';
   static const providerHomeServices = '/provider/home/services';
+  static const providerWorkspaceArticles = '/provider/workspace/articles';
+  static const providerWorkspaceServices = '/provider/workspace/services';
 
   // Módulos ya existentes
   static const incidencia = '/incidencia';
@@ -85,15 +82,20 @@ class Routes {
     GetPage(name: holderType, page: () => const SelectProfilePage()),
     // Perfil proveedor unificado y alias legacy
     GetPage(name: providerProfile, page: () => const ProviderProfilePage()),
-    GetPage(name: providerSubtype, page: () => const ProviderProfilePage()),
-    GetPage(
-        name: providerCategories, page: () => const ProviderCategoriesPage()),
-    GetPage(
-        name: providerAssetTypes, page: () => const ProviderAssetTypesPage()),
-    GetPage(name: providerSegments, page: () => const ProviderSegmentsPage()),
+
     GetPage(name: providerCoverage, page: () => const ProviderCoveragePage()),
-    GetPage(name: providerHomeArticles, page: () => const ProviderArticlesHomePage()),
-    GetPage(name: providerHomeServices, page: () => const ProviderServicesHomePage()),
+    GetPage(
+        name: providerHomeArticles,
+        page: () => const ProviderArticlesWorkspacePage()),
+    GetPage(
+        name: providerHomeServices,
+        page: () => const ProviderServicesWorkspacePage()),
+    GetPage(
+        name: providerWorkspaceArticles,
+        page: () => const ProviderArticlesWorkspacePage()),
+    GetPage(
+        name: providerWorkspaceServices,
+        page: () => const ProviderServicesWorkspacePage()),
 
     // Módulos legacy
     GetPage(

@@ -12,18 +12,27 @@ class ProviderArticlesHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(ProviderArticlesHomeController());
-    return Obx(() {
-      if (controller.loading.value) return const LoadingState();
-      if (controller.error.value != null)
-        return ErrorState(message: controller.error.value!);
-      return ListView(
-        padding: const EdgeInsets.all(16),
-        children: const [
-          Text('Home Proveedor de Artículos'),
-          SizedBox(height: 12),
-          EmptyState(title: 'Resumen de tienda', subtitle: 'Próximamente...'),
-        ],
-      );
-    });
+
+    // solo el contenido; el Scaffold superior mantiene el BottomNavigationBar
+    return Container(
+      color: Theme.of(context).colorScheme.surface,
+      child: SafeArea(
+        child: Obx(() {
+          if (controller.loading.value) return const LoadingState();
+          final err = controller.error.value;
+          if (err != null) return ErrorState(message: err);
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: const [
+              Text('Home Proveedor de Artículos'),
+              SizedBox(height: 12),
+              EmptyState(
+                  title: 'Resumen de tienda', subtitle: 'Próximamente...'),
+            ],
+          );
+        }),
+      ),
+    );
   }
 }

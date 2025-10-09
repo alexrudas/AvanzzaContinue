@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../../../services/telemetry/telemetry_service.dart';
 import '../../../routes/app_pages.dart';
+import '../../widgets/wizard/bottom_sheet_selector.dart';
 import '../../widgets/wizard/wizard_bottom_bar.dart';
 import '../controllers/registration_controller.dart';
 
@@ -48,12 +49,9 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
       'city': p?.cityId,
     });
 
-    // Log si viene desde rutas legacy
     if (Get.currentRoute == Routes.holderType ||
         Get.currentRoute == Routes.role) {
-      _log('legacy_profile_route_access', extra: {
-        'from': Get.currentRoute,
-      });
+      _log('legacy_profile_route_access', extra: {'from': Get.currentRoute});
     }
   }
 
@@ -63,27 +61,58 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
       _role != null &&
       _role!.isNotEmpty;
 
-  void _onTapCard(String type) async {
-    final changed = _holderType != type;
-    setState(() {
-      _holderType = type;
-      if (changed) {
-        _role = null;
-        _roleLabel = null;
-      }
+  Future<void> _selectHolderType() async {
+    final items = [
+      SelectorItem(
+          value: 'persona',
+          label: 'Persona',
+          subtitle: 'Actúas como persona natural'),
+      SelectorItem(
+          value: 'empresa',
+          label: 'Empresa',
+          subtitle: 'Actúas representando a una empresa'),
+    ];
+    _log('sheet_open', extra: {
+      'step': 'holder_type',
+      'items_count': items.length,
+      'holderType': _holderType
     });
-    await _reg.setTitularType(type);
-    if (changed) await _reg.clearSelectedRole();
+    final openedAt = DateTime.now();
 
-    _log('holder_select', extra: {
-      'holderType': _holderType,
-      'role': _role,
-      'country': _reg.progress.value?.countryId,
-      'region': _reg.progress.value?.regionId,
-      'city': _reg.progress.value?.cityId,
-    });
-
-    _openRolesBottomSheet(type);
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => BottomSheetSelector<String>(
+        title: 'Tipo de usuario',
+        items: items,
+        selectedValue: _holderType,
+        onSelect: (it) async {
+          HapticFeedback.lightImpact();
+          final changed = _holderType != it.value;
+          setState(() {
+            _holderType = it.value;
+            if (changed) {
+              _role = null;
+              _roleLabel = null;
+            }
+          });
+          await _reg.setTitularType(it.value);
+          if (changed) await _reg.clearSelectedRole();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Seleccionado: ${it.label}')),
+          );
+          _log('sheet_select', extra: {
+            'step': 'holder_type',
+            'selected_id': it.value,
+            'duration_ms': DateTime.now().difference(openedAt).inMilliseconds,
+          });
+        },
+      ),
+    );
   }
 
   void _onSelectRole(_RoleItem role) async {
@@ -114,7 +143,8 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
 
   void _onBack() async {
     try {
-      Get.offNamed(Routes.countryCity);
+      Get.back();
+      // Get.offNamed(Routes.countryCity);
     } catch (e) {
       debugPrint('[WARN] Navigation back to ${Routes.countryCity} failed: $e');
     }
@@ -139,9 +169,13 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
     final passedNext = (Get.parameters['next'] ??
         (Get.arguments is String ? Get.arguments as String : null));
     final nextRoute = passedNext ??
-        (_role == 'proveedor' ? Routes.providerSubtype : Routes.home);
+        (_role == 'proveedor' ? Routes.providerProfile : Routes.home);
     try {
-      Get.toNamed(nextRoute);
+      if (_role == 'proveedor') {
+        Get.toNamed(nextRoute);
+      } else {
+        Get.offAllNamed(nextRoute);
+      }
     } catch (e) {
       debugPrint('[WARN] Navigation to $nextRoute failed: $e');
     }
@@ -149,10 +183,7 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
 
   void _openRolesBottomSheet(String type) {
     final items = _rolesByHolder(type);
-    _log('sheet_open', extra: {
-      'holderType': type,
-      'role': _role,
-    });
+    _log('sheet_open', extra: {'holderType': type, 'role': _role});
 
     showModalBottomSheet(
       context: context,
@@ -218,23 +249,23 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
       ];
     }
     return const [
-      _RoleItem('propietario', 'Propietario de activos', 'Dueños de activos'),
+      _RoleItem('propietario', 'Propietario de activos',
+          'Dueños de activos que son administrados por otros'),
       _RoleItem('admin_activos_ind', 'Administrador de activos',
-          'Gestiona activos propios o de terceros'),
+          'Gestiona y administra activos propios o de terceros'),
       _RoleItem('arrendatario', 'Arrendatario de activos',
-          'Acceso a activos asignados'),
-      _RoleItem('proveedor', 'Proveedor', 'Servicios o artículos'),
+          'Recibien un activo en calidad de arriendo. Ej. Conductor (Vehículo), Inquilino (Inmueble)'),
+      _RoleItem('proveedor', 'Proveedor',
+          'Ofrece Productos o Servicios para mantenimiento y reparación de activos (Ej. Vehículos, Inmuebles)'),
       _RoleItem('asesor_seguros', 'Asesor de seguros',
-          'Profesionales que asesoran/venden seguros'),
-      _RoleItem('abogado', 'Abogado', 'Especialistas legales'),
+          'Profesionales que asesoran/venden distintos tipos de seguros'),
+      _RoleItem('abogado', 'Abogado',
+          'Especialistas legales (Accidentes de tránsito, reclamaciones, ventas o arriendos de activos, etc)'),
     ];
   }
 
   @override
   Widget build(BuildContext context) {
-    final selectedPersona = _holderType == 'persona';
-    final selectedEmpresa = _holderType == 'empresa';
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Perfil'),
@@ -242,7 +273,7 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
           preferredSize: const Size.fromHeight(24),
           child: Padding(
             padding: const EdgeInsets.only(bottom: 8.0),
-            child: Text('Selecciona tu perfil',
+            child: Text('Completa la información de tu perfil',
                 style: Theme.of(context).textTheme.bodyMedium),
           ),
         ),
@@ -252,27 +283,39 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
           tooltip: 'Volver',
         ),
       ),
-      body: Padding(
+      body: ListView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _ProfileCard(
-              title: 'Persona',
-              subtitle: 'Actúas como persona natural',
-              selected: selectedPersona,
-              roleLabel: selectedPersona ? _roleLabel : null,
-              onTap: () => _onTapCard('persona'),
+        children: [
+          ListTile(
+            title: const Text('Tipo de usuario'),
+            subtitle: Text(
+              _holderType == null
+                  ? 'Selecciona tu tipo'
+                  : (_holderType == 'persona' ? 'Persona' : 'Empresa'),
+              style: TextStyle(color: Theme.of(context).hintColor),
             ),
-            const SizedBox(height: 16),
-            _ProfileCard(
-              title: 'Empresa',
-              subtitle: 'Actúas representando a una empresa',
-              selected: selectedEmpresa,
-              roleLabel: selectedEmpresa ? _roleLabel : null,
-              onTap: () => _onTapCard('empresa'),
+            trailing: const Icon(Icons.keyboard_arrow_down),
+            onTap: _selectHolderType,
+          ),
+          const Divider(),
+          ListTile(
+            title: const Text('Tu rol'),
+            subtitle: Text(
+              _roleLabel ?? 'Selecciona un rol',
+              style: TextStyle(color: Theme.of(context).hintColor),
             ),
-          ],
-        ),
+            trailing: const Icon(Icons.keyboard_arrow_down),
+            onTap: () {
+              if (_holderType == null) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Primero elige el tipo de usuario')));
+                return;
+              }
+              _openRolesBottomSheet(_holderType!);
+            },
+          ),
+          const Divider(),
+        ],
       ),
       bottomNavigationBar: WizardBottomBar(
         onBack: _onBack,
@@ -301,76 +344,4 @@ class _RoleItem {
   final String label;
   final String description;
   const _RoleItem(this.value, this.label, this.description);
-}
-
-class _ProfileCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final bool selected;
-  final String? roleLabel;
-  final VoidCallback onTap;
-
-  const _ProfileCard({
-    super.key,
-    required this.title,
-    required this.subtitle,
-    required this.selected,
-    this.roleLabel,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final borderColor = selected
-        ? Theme.of(context).colorScheme.primary
-        : Theme.of(context).dividerColor;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Ink(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: Theme.of(context).colorScheme.surface,
-          border: Border.all(color: borderColor, width: selected ? 2 : 1),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(Icons.person_outline,
-                  color:
-                      selected ? Theme.of(context).colorScheme.primary : null),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 4),
-                    Text(subtitle,
-                        style: TextStyle(color: Theme.of(context).hintColor)),
-                    AnimatedSize(
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeInOut,
-                      child: roleLabel == null
-                          ? const SizedBox.shrink()
-                          : Padding(
-                              padding: const EdgeInsets.only(top: 6),
-                              child: Text(
-                                'Rol seleccionado: $roleLabel',
-                                style: TextStyle(
-                                    color: Theme.of(context).hintColor),
-                              ),
-                            ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.keyboard_arrow_down),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

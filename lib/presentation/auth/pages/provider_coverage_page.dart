@@ -45,7 +45,7 @@ class _ProviderCoveragePageState extends State<ProviderCoveragePage> {
         onBack: () => Get.back(),
         onContinue: () async {
           await reg.setProviderCoverage(_cities.toList());
-          Get.offNamed(Routes.providerHomeArticles);
+          Get.offAllNamed(Routes.home);
         },
         continueEnabled: _cities.isNotEmpty,
       ),

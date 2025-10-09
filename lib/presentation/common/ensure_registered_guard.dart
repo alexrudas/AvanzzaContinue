@@ -32,13 +32,8 @@ class EnsureRegisteredGuard {
     await Get.toNamed(Routes.role);
 
     if ((reg.progress.value?.selectedRole ?? '') == 'proveedor') {
-      await Get.toNamed(Routes.providerSubtype);
-      await Get.toNamed(Routes.providerAssetTypes);
-      await Get.toNamed(Routes.providerCategories);
-      final ats = reg.progress.value?.assetTypeIds ?? const <String>[];
-      if (ats.contains('vehiculos')) {
-        await Get.toNamed(Routes.providerSegments);
-      }
+      await Get.toNamed(Routes.providerProfile);
+
       await Get.toNamed(Routes.providerCoverage);
     } else {
       final p = reg.progress.value;

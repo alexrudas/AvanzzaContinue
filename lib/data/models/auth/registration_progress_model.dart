@@ -31,7 +31,9 @@ class RegistrationProgressModel {
 
   // Onboarding consolidado
   String? titularType; // 'persona' | 'empresa'
-  String? providerType; // 'servicios' | 'articulos'
+  String? providerType; // 'servicios' | 'articulos' (tipo activo)
+  List<String> providerTypes =
+      []; // NUEVO: tipos seleccionados ['articulos','servicios']
   // Consolidado proveedor (legacy)
   List<String> assetTypeIds =
       []; // ['vehiculos','inmuebles','maquinaria','equipos','otros']

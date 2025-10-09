@@ -37,12 +37,23 @@ class CatalogRepositoryImpl implements CatalogRepository {
     ],
   };
 
-  String _key(String type, String segment) => '${type.toLowerCase()}|${segment.toLowerCase()}';
+  String _key(String type, String segment) =>
+      '${type.toLowerCase()}|${segment.toLowerCase()}';
 
   @override
-  List<Map<String, dynamic>> getProviderCategories(String providerType, String segment) {
+  List<Map<String, dynamic>> getProviderCategories(
+      String providerType, String segment) {
     final list = _categories[_key(providerType, segment)] ?? const [];
-    final ordered = [...list]..sort((a, b) => (a['order'] as int).compareTo(b['order'] as int));
+    final ordered = [...list]..sort(
+        (a, b) => (a['order'] as int).compareTo(b['order'] as int),
+      );
     return ordered;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchProviderCategories(
+      String providerType, String segment) async {
+    // Por ahora retorna la lista local. Listo para extender a Firestore.
+    return Future.value(getProviderCategories(providerType, segment));
   }
 }

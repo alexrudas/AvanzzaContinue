@@ -82,7 +82,7 @@ class _SelectRolePageState extends State<SelectRolePage> {
 
                       if (role == 'proveedor') {
                         // Proveedor sigue el wizard de segmentación
-                        Get.toNamed(Routes.providerSubtype);
+                        Get.toNamed(Routes.providerProfile);
                         return;
                       }
 
@@ -112,4 +112,3 @@ class _SelectRolePageState extends State<SelectRolePage> {
     );
   }
 }
-

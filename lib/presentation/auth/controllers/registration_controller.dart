@@ -116,7 +116,7 @@ class RegistrationController extends GetxController {
     progress.value = await progressDS.upsert(p);
   }
 
-  Future<void> setProviderCategory(String category,
+  Future<void> setProviderCategory(String? category,
       {String id = 'current'}) async {
     final p = progress.value ??
         (RegistrationProgressModel()
@@ -124,6 +124,13 @@ class RegistrationController extends GetxController {
           ..updatedAt = DateTime.now().toUtc());
     p.providerCategory = category;
     p.updatedAt = DateTime.now().toUtc();
+    progress.value = await progressDS.upsert(p);
+  }
+
+  Future<void> clearProviderCategory({String id = 'current'}) async {
+    final p = progress.value;
+    if (p == null) return;
+    p.providerCategory = null;
     progress.value = await progressDS.upsert(p);
   }
 
@@ -143,7 +150,10 @@ class RegistrationController extends GetxController {
         (RegistrationProgressModel()
           ..id = id
           ..updatedAt = DateTime.now().toUtc());
-    p.providerType = type;
+    p.providerType = type; // tipo activo
+    if (!p.providerTypes.contains(type)) {
+      p.providerTypes.add(type);
+    }
     providerType.value = type;
     progress.value = await progressDS.upsert(p);
   }
@@ -159,12 +169,40 @@ class RegistrationController extends GetxController {
     progress.value = await progressDS.upsert(p);
   }
 
+  // NUEVO: lista de tipos del proveedor
+  Future<void> setProviderTypes(List<String> types,
+      {String id = 'current'}) async {
+    final p = progress.value ??
+        (RegistrationProgressModel()
+          ..id = id
+          ..updatedAt = DateTime.now().toUtc());
+    final unique = types.toSet().toList();
+    p.providerTypes = unique;
+    if ((p.providerType == null || p.providerType!.isEmpty) &&
+        unique.isNotEmpty) {
+      p.providerType = unique.first; // set tipo activo por defecto
+      providerType.value = p.providerType!;
+    }
+    progress.value = await progressDS.upsert(p);
+  }
+
+  bool isProviderOf(String type) {
+    final list = progress.value?.providerTypes ?? const <String>[];
+    return list.contains(type);
+  }
+
   Future<void> loadProgress([String id = 'current']) async {
-    progress.value = await progressDS.get(id) ??
+    final p = await progressDS.get(id) ??
         (RegistrationProgressModel()
           ..id = id
           ..step = 0
           ..updatedAt = DateTime.now().toUtc());
+    // Migración: providerType -> providerTypes si lista está vacía
+    if ((p.providerTypes.isEmpty) &&
+        (p.providerType != null && p.providerType!.isNotEmpty)) {
+      p.providerTypes = [p.providerType!];
+    }
+    progress.value = await progressDS.upsert(p);
   }
 
   Future<void> saveStep(int step, {String id = 'current'}) async {

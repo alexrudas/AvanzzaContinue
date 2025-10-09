@@ -272,7 +272,7 @@ class _SelectCountryCityPageState extends State<SelectCountryCityPage> {
       ),
       bottomNavigationBar: WizardBottomBar(
         onBack: () => Get.back(),
-        onContinue: () => Get.offNamed(Routes.profile),
+        onContinue: () => Get.toNamed(Routes.profile),
         continueEnabled: canContinue,
       ),
     );
