@@ -10,15 +10,16 @@ dependencies:
   flutter:
     sdk: flutter
   get: ^4.6.6
+  shared_preferences: ^2.2.3
 
   # Firebase
-  firebase_core: ^4.0.0
-  firebase_auth: ^6.0.1
-  cloud_firestore: ^6.0.0
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.7.0
+  cloud_firestore: ^5.4.4
 
   # Isar community
-  isar_community: ^3.2.0-dev.2
-  isar_community_flutter_libs: ^3.2.0-dev.2
+  isar_community: ^3.1.0+1
+  isar_community_flutter_libs: ^3.1.0+1
   path_provider: ^2.1.5
 
   # Codegen
@@ -36,9 +37,9 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^3.0.0
   build_runner: ^2.4.12
-  json_serializable: ^6.8.0
+  json_serializable: ^6.9.0
   freezed: ^3.1.0
-  isar_community_generator: ^3.2.0-dev.2
+  isar_community_generator: ^3.1.0+1
 
 # The following section is specific to Flutter packages.
 flutter:

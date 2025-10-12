@@ -6,6 +6,7 @@ import 'package:avanzza/presentation/pages/admin/maintenance/admin_maintenance_p
 import 'package:avanzza/presentation/pages/admin/purchase/admin_purchase_page.dart';
 import 'package:flutter/material.dart';
 
+import '../auth/pages/provider_profile_page.dart';
 import '../bindings/admin/admin_accounting_binding.dart';
 import '../bindings/admin/admin_chat_binding.dart';
 // Reemplazo de AdminShellBinding por bindings individuales
@@ -109,7 +110,26 @@ WorkspaceConfig workspaceFor({
 
   // Normalización de roles “proveedor de productos”
   if (isProvider(r) || isAdvisor(r) || isInsurer(r) || isLegal(r)) {
-    final pt = (providerType ?? 'articulos').toLowerCase();
+    final pt = (providerType ?? '').toLowerCase();
+    if (pt.isEmpty) {
+      // Neutral: no asumir 'articulos' por defecto. Guiar al perfil para completar.
+      return WorkspaceConfig(
+        roleKey: 'prov_neutral',
+        tabs: const [
+          WorkspaceTab(
+            title: 'Home',
+            icon: Icons.home_outlined,
+            page: ProviderProfilePage(),
+          ),
+        ],
+        onInit: () {
+          // Opcional: preparar bindings mínimos si fuese necesario
+          // ProviderArticlesBinding().dependencies();
+          // ProviderServicesBinding().dependencies();
+        },
+      );
+    }
+
     if (pt == 'articulos') {
       // Detectar tipo de organización para adaptar tabs
       final isEmpresa = (orgType ?? 'personal').toLowerCase() == 'empresa';
@@ -158,7 +178,7 @@ WorkspaceConfig workspaceFor({
         onInit: () => ProviderArticlesBinding().dependencies(),
       );
     }
-    // Si providerType no es 'articulos', tratamos como servicios
+    // providerType == 'servicios'
     return WorkspaceConfig(
       roleKey: 'prov_servicios',
       tabs: const [

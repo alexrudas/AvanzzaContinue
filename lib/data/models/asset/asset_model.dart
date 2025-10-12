@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart' as fs show Timestamp;
 import 'package:cloud_firestore/cloud_firestore.dart'
     show FirebaseFirestore, DocumentReference;
+import 'package:cloud_firestore/cloud_firestore.dart' as fs show Timestamp;
 import 'package:isar_community/isar.dart' as isar;
 import 'package:json_annotation/json_annotation.dart';
 
@@ -39,22 +39,27 @@ class AssetModel {
   final List<String> fotosUrls;
 
   // Refs ignoradas por JsonSerializable + paths para Isar/local
+  @isar.ignore
   @JsonKey(includeFromJson: false, includeToJson: false)
   final DocumentReference<Map<String, dynamic>>? orgRef;
 
   final String? orgRefPath;
+  @isar.ignore
   @JsonKey(includeFromJson: false, includeToJson: false)
   final DocumentReference<Map<String, dynamic>>? ownerRef;
 
   final String? ownerRefPath;
+  @isar.ignore
   @JsonKey(includeFromJson: false, includeToJson: false)
   final DocumentReference<Map<String, dynamic>>? countryRef;
 
   final String? countryRefPath;
+  @isar.ignore
   @JsonKey(includeFromJson: false, includeToJson: false)
   final DocumentReference<Map<String, dynamic>>? regionRef;
 
   final String? regionRefPath;
+  @isar.ignore
   @JsonKey(includeFromJson: false, includeToJson: false)
   final DocumentReference<Map<String, dynamic>>? cityRef;
 

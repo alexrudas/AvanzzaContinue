@@ -18,7 +18,9 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
   late final RegistrationController _reg;
   TelemetryService? _telemetry;
 
-  String? _providerType; // articulos|servicios
+  // Tipo único de proveedor (rollback a selección simple)
+  String? _providerType; // 'articulos' | 'servicios'
+
   String?
       _segment; // vehiculos|inmuebles|equipos_construccion|maquinaria|otros_equipos
   String? _vehicleType; // si segment==vehiculos
@@ -32,14 +34,19 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
         ? Get.find<TelemetryService>()
         : null;
     final p = _reg.progress.value;
-    _providerType = p?.providerType;
+    // Compat: si hay lista providerTypes, tomar primera como activa
+    _providerType = p?.providerType ??
+        ((p?.providerTypes != null && p!.providerTypes.isNotEmpty)
+            ? p.providerTypes.first
+            : null);
     _segment = p?.segment;
     _vehicleType = p?.vehicleType;
     _category = p?.providerCategory;
   }
 
   bool get _canContinue {
-    final base = _providerType != null && _segment != null && _category != null;
+    final hasProviderType = _providerType != null && _providerType!.isNotEmpty;
+    final base = hasProviderType && _segment != null && _category != null;
     return _segment == 'vehiculos' ? base && _vehicleType != null : base;
   }
 
@@ -53,52 +60,6 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
         ...extra,
       });
     } catch (_) {}
-  }
-
-  Future<void> _selectProviderType() async {
-    final items = [
-      SelectorItem(
-          value: 'articulos',
-          label: 'Productos',
-          subtitle: 'Ofreces artículos o repuestos.'),
-      SelectorItem(
-          value: 'servicios',
-          label: 'Servicios',
-          subtitle: 'Ofreces mantenimientos o asistencia técnica.'),
-    ];
-    _log('sheet_open', {'step': 'provider_type', 'items_count': items.length});
-    final openedAt = DateTime.now();
-    try {
-      await showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        useSafeArea: true,
-        shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-        builder: (_) => BottomSheetSelector<String>(
-          title: 'Tipo de proveedor',
-          items: items,
-          selectedValue: _providerType,
-          onSelect: (it) async {
-            HapticFeedback.lightImpact();
-            setState(() => _providerType = it.value);
-            await _reg.setProviderType(it.value);
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Seleccionado: ${it.label}')));
-            _log('sheet_select', {
-              'step': 'provider_type',
-              'selected_id': it.value,
-              'selected_label': it.label,
-              'duration_ms': DateTime.now().difference(openedAt).inMilliseconds,
-            });
-          },
-        ),
-      );
-      if (items.isEmpty)
-        _log('sheet_error', {'step': 'provider_type', 'cause': 'items_empty'});
-    } catch (e) {
-      _log('sheet_error', {'step': 'provider_type', 'cause': e.toString()});
-    }
   }
 
   Future<void> _selectSegment() async {
@@ -131,8 +92,10 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
               _category = null;
             });
             await _reg.setSegment(it.value);
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Seleccionado: ${it.label}')));
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Seleccionado: ${it.label}')));
+            }
             _log('sheet_select', {
               'step': 'segment',
               'selected_id': it.value,
@@ -142,8 +105,9 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
           },
         ),
       );
-      if (items.isEmpty)
+      if (items.isEmpty) {
         _log('sheet_error', {'step': 'segment', 'cause': 'items_empty'});
+      }
     } catch (e) {
       _log('sheet_error', {'step': 'segment', 'cause': e.toString()});
     }
@@ -177,8 +141,10 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
               _category = null;
             });
             await _reg.setVehicleType(it.value);
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Seleccionado: ${it.label}')));
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Seleccionado: ${it.label}')));
+            }
             _log('sheet_select', {
               'step': 'vehicle_type',
               'selected_id': it.value,
@@ -188,8 +154,9 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
           },
         ),
       );
-      if (_segment == 'vehiculos' && items.isEmpty)
+      if (_segment == 'vehiculos' && items.isEmpty) {
         _log('sheet_error', {'step': 'vehicle_type', 'cause': 'items_empty'});
+      }
     } catch (e) {
       _log('sheet_error', {'step': 'vehicle_type', 'cause': e.toString()});
     }
@@ -247,8 +214,10 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
             HapticFeedback.lightImpact();
             setState(() => _category = it.value);
             await _reg.setProviderCategory(it.value);
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Seleccionado: ${it.label}')));
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Seleccionado: ${it.label}')));
+            }
             _log('sheet_select', {
               'step': 'category',
               'selected_id': it.value,
@@ -259,14 +228,35 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
           showSearch: showSearch,
         ),
       );
-      if (_segment != null && items.isEmpty)
+      if (_segment != null && items.isEmpty) {
         _log('sheet_error', {'step': 'category', 'cause': 'items_empty'});
+      }
     } catch (e) {
       _log('sheet_error', {'step': 'category', 'cause': e.toString()});
     }
   }
 
   Future<void> _onContinue() async {
+    // Validación: tipo único requerido
+    if (_providerType == null || _providerType!.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecciona tu tipo de proveedor.')),
+      );
+      return;
+    }
+
+    // Persistir selección y telemetría
+    await _reg.setProviderType(_providerType!);
+    try {
+      _telemetry?.log('provider_type_selected', {'type': _providerType});
+    } catch (_) {}
+
+    // Limpiar dependencias
+    await _reg.clearProviderCategory();
+    if (mounted) setState(() => _category = null);
+
+    // Navegar
     final next = Get.parameters['next'] ??
         (Get.arguments is String ? Get.arguments as String : null) ??
         Routes.providerCoverage; // fallback por defecto
@@ -294,20 +284,24 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Selector simple de tipo (bottom sheet)
+          Text('Tipo de proveedor',
+              style: Theme.of(context).textTheme.titleMedium),
           ListTile(
-            title: const Text('Tipo de proveedor'),
+            title: const Text('Tipo'),
             subtitle: Text(
               _providerType == 'articulos'
-                  ? 'Productos'
-                  : (_providerType == 'servicios'
+                  ? 'Productos (artículos)'
+                  : _providerType == 'servicios'
                       ? 'Servicios'
-                      : '¿Qué ofreces?'),
+                      : 'Selecciona: Productos o Servicios',
               style: TextStyle(color: Theme.of(context).hintColor),
             ),
             trailing: const Icon(Icons.keyboard_arrow_down),
             onTap: _selectProviderType,
           ),
           const Divider(),
+
           ListTile(
             title: const Text('Segmento que atiendes'),
             subtitle: Text(
@@ -320,6 +314,7 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
             onTap: _selectSegment,
           ),
           const Divider(),
+
           AnimatedSize(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeInOut,
@@ -342,6 +337,7 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
                   )
                 : const SizedBox.shrink(),
           ),
+
           ListTile(
             title: const Text('Categoría'),
             subtitle: Text(
@@ -376,6 +372,52 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
         return 'Otros equipos';
       default:
         return v;
+    }
+  }
+
+  Future<void> _selectProviderType() async {
+    final items = [
+      SelectorItem(value: 'articulos', label: 'Productos (artículos)'),
+      SelectorItem(value: 'servicios', label: 'Servicios'),
+    ];
+    _log('sheet_open', {'step': 'provider_type', 'items_count': items.length});
+    final openedAt = DateTime.now();
+    try {
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+        builder: (_) => BottomSheetSelector<String>(
+          title: 'Tipo de proveedor',
+          items: items,
+          selectedValue: _providerType,
+          onSelect: (it) async {
+            HapticFeedback.lightImpact();
+            setState(() {
+              _providerType = it.value;
+              // limpieza dependiente
+              _vehicleType = null;
+              _category = null;
+            });
+            await _reg.setProviderType(it.value);
+            await _reg.clearProviderCategory();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Seleccionado: ${it.label}')));
+            }
+            _log('sheet_select', {
+              'step': 'provider_type',
+              'selected_id': it.value,
+              'selected_label': it.label,
+              'duration_ms': DateTime.now().difference(openedAt).inMilliseconds,
+            });
+          },
+        ),
+      );
+    } catch (e) {
+      _log('sheet_error', {'step': 'provider_type', 'cause': e.toString()});
     }
   }
 

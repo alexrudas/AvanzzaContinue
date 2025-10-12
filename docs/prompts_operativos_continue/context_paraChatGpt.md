@@ -1254,3 +1254,437 @@ lib/presentation/workspace/workspace_shell.dart (widget base con BottomNavigatio
 lib/presentation/controllers/workspace_controller.dart (GetX controller para navegación de tabs).
 
 Actualizar bootstrap de sesión para cargar el workspace correcto basado en activeContext.
+
+---------------------------------------------------------------------------------------------------
+Proyecto: Avanzza 2.0 — Migración Firestore a refs + espejo /sessions opcional (sin romper flujo local)
+Contexto: 
+Actualmente, el proyecto usa RegistrationProgress y RegistrationController para almacenar la selección local del usuario antes del registro (país, región, ciudad, tipo de usuario y rol). 
+No se requiere Anonymous Auth obligatorio; solo un espejo /sessions opcional para continuidad, métricas y recuperación cross-device.
+El objetivo principal es optimizar Firestore y el almacenamiento local para una base de datos más eficiente, escalable y de bajo costo.
+
+Objetivo general:
+Migrar gradualmente los modelos, repositorios y fuentes de datos para reemplazar los campos *_Id por DocumentReference; optimizar consultas, escrituras y sincronización offline; y añadir un espejo no bloqueante /sessions.
+
+Entregable:
+Un archivo PLAN.yaml con las fases, tareas atómicas, dependencias, archivos a modificar y checks de aceptación.
+
+Fases solicitadas:
+
+1) **Models & Converters**
+   - Crear `DocRefPathConverter` y `TimestampConverter`.
+   - Añadir campos `countryRef`, `regionRef`, `cityRef`, `orgRef`, `ownerRef`, `assetRef`, `reportedByRef` según entidad.
+   - Mantener `regionCode` y `cityCode` en City.
+   - Mapear DocumentReference ↔ path para Isar sin romper dominio existente.
+
+2) **Data Sources & Repos (consultas por refs)**
+   - Migrar filtros: `where('orgId',...)` → `where('orgRef',==,db.doc('/organizations/$orgId'))`.
+   - Igual para `cityRef`, `regionRef`, `countryRef`.
+   - Implementar paginación (`startAfterDocument`, `limit`).
+   - Actualizar escrituras con `updatedAt = FieldValue.serverTimestamp()`.
+
+3) **Espejo /sessions (opcional, no bloqueante)**
+   - Crear `SessionRepository` y `SessionRemoteDs`.
+   - Modificar `RegistrationController` y `RegistrationProgressModel` para actualizar /sessions/{uidAnon} cuando haya red.
+   - /sessions guarda: `{countryRef, regionRef, cityRef, personType, intendedRole, lastSeenAt}`.
+   - Primer write real crea usuario, organization, membership y borra la sesión.
+   - Ningún flujo depende de /sessions ni requiere reglas nuevas.
+
+4) **Seeder (geo v3)**
+   - Implementar `GeoSeeder` usando `regions_entities_co.v3.json` y `cities_entities_co.v3.json`.
+   - Convertir paths → DocumentReference.
+   - Batch ≤450, merge:true, timestamps automáticos.
+
+5) **QA offline + smoke**
+   - Crear asset sin conexión → sincronizar al reconectar.
+   - Listar assets/incidencias por `orgRef` y `cityRef` sin errores de índice.
+   - Confirmar que ningún módulo usa *_Id en Firestore.
+
+Restricciones:
+- Mantener compatibilidad total con el flujo actual.
+- No alterar las reglas ni la experiencia offline.
+- Espejo /sessions es opcional y no bloqueante.
+- build_runner, lint y tests deben pasar sin errores.
+
+Salida esperada:
+PLAN.yaml con las fases anteriores, cada tarea con:
+- id único
+- objetivo
+- archivos afectados
+- pasos concretos
+- criterios de aceptación
+- dependencias
+
+------------------------------------------------------------------------------------
+meta:
+  project: "Avanzza 2.0 — Migración Firestore a refs + espejo /sessions"
+  owner: "Core Platform/Architecture"
+  goals:
+    - Migrar progresivamente *_Id → DocumentReference en Firestore sin romper flujo offline-first ni dominio.
+    - Optimizar consultas por refs y escrituras con timestamps server-side.
+    - Añadir espejo opcional /sessions para continuidad cross-device (no bloqueante).
+    - Mantener compatibilidad con UI/DI/Usecases actuales y sin dependencias nuevas.
+
+constraints:
+  - No romper flujo actual ni UX offline.
+  - No cambiar reglas de seguridad.
+  - Espejo /sessions es opcional y tolerante a fallas.
+  - build_runner, lints y tests deben pasar.
+  - Sin dependencias nuevas.
+
+phases:
+  - id: P1
+    name: Models & Converters
+    objective: Introducir converters para DocumentReference y Timestamp; extender entidades para refs sin romper dominio ni cache local.
+    tasks:
+      - id: P1-T1
+        objective: Crear DocRefPathConverter y TimestampConverter
+        files:
+          - lib/core/converters/doc_ref_path_converter.dart (nuevo)
+          - lib/core/converters/timestamp_converter.dart (nuevo)
+        steps:
+          - Implementar DocRefPathConverter con toFirestore(DocumentReference→DocumentReference) y fromFirestore(DocumentReference→DocumentReference) y toIsar/fromIsar vía path String.
+          - Implementar TimestampConverter para DateTime ↔ Timestamp (Firestore) y DateTime ↔ String/epoch si requerido por Isar models.
+          - Exponer helpers para db.doc(path) y pathFromRef(DocumentReference).
+        acceptance:
+          - Unit tests básicos convierten ref<->path y DateTime<->Timestamp.
+          - No rompe compiles; ningún repos necesita cambios aún.
+        deps: []
+      - id: P1-T2
+        objective: Extender entidades de dominio con campos *Ref sin eliminar *_Id (compatibilidad)
+        files:
+          - lib/domain/entities/**/*
+          - lib/data/models/**/*
+          - lib/data/mappers/**/*
+        steps:
+          - Para entidades clave (Organization, Branch, Asset, Maintenance*, Purchase*, AccountingEntry, Chat*, User*, Membership, ActiveContext):
+            - Añadir campos opcionales: countryRef, regionRef, cityRef, orgRef, ownerRef, assetRef, reportedByRef según aplique (nullable).
+            - Mantener *_Id por compatibilidad en dominio (deprecado) y usarlos como fallback si no hay ref.
+            - En City mantener regionCode y cityCode.
+          - Anotar converters en modelos (freezed/json) con @JsonKey(fromJson/toJson usando DocRefPathConverter/TimestampConverter).
+        acceptance:
+          - build_runner generate sin errores.
+          - Serialización JSON mantiene ids previos y acepta refs cuando estén.
+        deps: [P1-T1]
+      - id: P1-T3
+        objective: Mapear DocumentReference<->path en Isar
+        files:
+          - lib/data/sources/local/**/*_local_ds.dart
+          - lib/data/models/**/*
+        steps:
+          - Para modelos persistidos en Isar, almacenar refs como String path (ej. "/orgs/{id}") usando DocRefPathConverter.
+          - Mantener lecturas que reconstruyan DocumentReference cuando sea necesario en capa remota.
+        acceptance:
+          - Lecturas/escrituras locales siguen funcionando con datos existentes.
+          - Tests locales de repos no cambian resultados.
+        deps: [P1-T1, P1-T2]
+
+  - id: P2
+    name: Data Sources & Repos (consultas por refs)
+    objective: Migrar gradualmente las consultas y escrituras en remotes a usar refs; añadir paginación y timestamps server-side.
+    tasks:
+      - id: P2-T1
+        objective: Migrar filtros where('orgId', ...) → where('orgRef', ==, db.doc('/orgs/{orgId}')) (similar cityRef, regionRef, countryRef)
+        files:
+          - lib/data/sources/remote/**/*_remote_ds.dart
+          - lib/data/repositories/**/*_repository_impl.dart
+        steps:
+          - Introducir util db.doc('/collection/id') en cada DS remoto a partir de FirebaseFirestore instance (DIContainer().firestore).
+          - Cambiar gradualmente queries (watch/fetch) a usar *Ref con fallback a *_Id si no está aún migrado.
+          - Asegurar índices Firestore en dev si hace falta (local rules manteniendo no cambios en prod).
+        acceptance:
+          - Queries producen los mismos resultados con datos actuales.
+          - No fallan si documentos antiguos solo tienen *_Id y no *Ref.
+        deps: [P1]
+      - id: P2-T2
+        objective: Paginación y updatedAt server-side
+        files:
+          - lib/data/sources/remote/**/*_remote_ds.dart
+        steps:
+          - Agregar métodos fetch paginados con startAfterDocument/limit y orden por updatedAt desc.
+          - En upsert remotos, escribir updatedAt = FieldValue.serverTimestamp() y createdAt si documento nuevo.
+        acceptance:
+          - fetchEntries paginados devuelven lotes consistentes.
+          - Esquemas mantienen updatedAt automatizado sin tocar dominio.
+        deps: [P2-T1]
+
+  - id: P3
+    name: Espejo /sessions (opcional, no bloqueante)
+    objective: Persistir selección local de onboarding en /sessions para continuidad y métricas, sin bloquear UX.
+    tasks:
+      - id: P3-T1
+        objective: Crear SessionRepository y SessionRemoteDs
+        files:
+          - lib/domain/repositories/session_repository.dart (nuevo)
+          - lib/data/sources/remote/session_remote_ds.dart (nuevo)
+          - lib/data/repositories/session_repository_impl.dart (nuevo)
+        steps:
+          - Modelo simple /sessions/{sessionId}: {countryRef, regionRef, cityRef, personType, intendedRole, lastSeenAt}.
+          - sessionId puede ser deviceId o uidAnon localmente generado.
+        acceptance:
+          - Llamadas upsertSession()/getSession() funcionan cuando hay red; no bloquean UI si falla.
+        deps: [P1]
+      - id: P3-T2
+        objective: Integrar en RegistrationController/Progress DS
+        files:
+          - lib/presentation/auth/controllers/registration_controller.dart
+          - lib/data/datasources/local/registration_progress_ds.dart
+        steps:
+          - Al cambiar country/region/city/role en progreso, intentar mirror en /sessions si hay conectividad (try/catch, no-bloqueante).
+          - Al completar primer write real, eliminar /sessions/{id}.
+        acceptance:
+          - Al navegar onboarding, /sessions se actualiza cuando hay red; si no, no falla nada.
+        deps: [P3-T1]
+
+  - id: P4
+    name: Seeder (geo v3)
+    objective: Sembrar regiones/ciudades v3 con refs.
+    tasks:
+      - id: P4-T1
+        objective: Implementar GeoSeeder v3
+        files:
+          - lib/tools/geo/geo_seeder_v3.dart (nuevo)
+          - assets/regions_entities_co.v3.json
+          - assets/cities_entities_co.v3.json
+        steps:
+          - Parsear JSON y construir DocumentReference por país/region/ciudad.
+          - Batch commits ≤ 450, SetOptions(merge:true), timestamps server-side.
+          - Mantener codes (regionCode, cityCode) en City.
+        acceptance:
+          - Colecciones /countries, /regions, /cities pobladas y consultables por ref/codes.
+        deps: [P1, P2]
+
+  - id: P5
+    name: QA offline + smoke
+    objective: Validar que el flujo offline-first y nuevas refs funcionan.
+    tasks:
+      - id: P5-T1
+        objective: Crear asset sin conexión y sincronizar
+        files:
+          - test/sync/offline_asset_create_test.dart (nuevo)
+        steps:
+          - Simular offline, crear Asset (usando orgRef/cityRef en local path), reconectar y verificar sincronización remota sin conflictos.
+        acceptance:
+          - Test pasa; no hay pérdida de datos.
+        deps: [P2]
+      - id: P5-T2
+        objective: Listar assets/incidencias por orgRef y cityRef
+        files:
+          - test/data/repositories/queries_by_ref_smoke_test.dart (nuevo)
+        steps:
+          - Validar queries por orgRef y cityRef en repos Asset/Maintenance.
+        acceptance:
+          - Tests pasan, tiempos aceptables.
+        deps: [P2]
+      - id: P5-T3
+        objective: Verificar que ningún DS remoto usa *_Id en Firestore
+        files:
+          - scripts/checks/grep_no_id_filters.sh (opcional)
+        steps:
+          - Grep en repo para where('...Id', ...); documentar excepciones temporales.
+        acceptance:
+          - Cero ocurrencias en DS remotos (permitido en local DS/mappers).
+        deps: [P2]
+
+cross-cutting:
+  - id: CC1
+    objective: Compatibilidad total con flujo actual
+    files:
+      - lib/presentation/**/* (sin cambios funcionales forzados)
+      - lib/domain/usecases/**/* (mantener firmas)
+    steps:
+      - Mantener *_Id en dominio y mappers mientras migran colecciones.
+      - Fallback: si no hay *Ref, usar *_Id para armar db.doc('/col/id').
+    acceptance:
+      - App compila y navega sin cambios UX.
+    deps: [P1..P2]
+  - id: CC2
+    objective: Tooling y codegen
+    files:
+      - build_runner scripts, freezed/json
+    steps:
+      - flutter pub run build_runner build --delete-conflicting-outputs
+      - flutter analyze sin errores.
+    acceptance:
+      - Build limpia; lints OK.
+    deps: [P1]
+
+rollout:
+  strategy:
+    - Feature-flag por módulos en DS remotos (activar consultas por ref módulo a módulo).
+    - Mantener dualidad *_Id/*Ref solo el tiempo mínimo necesario.
+    - Monitorear errores y tiempos de consulta.
+
+risks:
+  - Datos legacy sin *Ref. Mitigación: fallback a *_Id en mappers/DS hasta migración completa.
+  - Índices Firestore. Mitigación: pre-crear índices necesarios para consultas compuestas con refs.
+  - Tamaño de lote en seeding. Mitigación: batch ≤450 y reintentos.
+
+checklist_final:
+  - [ ] Converters creados y testeados.
+  - [ ] Entidades y modelos extendidos con *Ref sin romper dominio.
+  - [ ] DS remotos migrados a *Ref con fallback.
+  - [ ] Paginación y timestamps en escrituras.
+  - [ ] /sessions integrado opcionalmente en RegistrationController.
+  - [ ] Geo seeder v3 listo y probado en entorno de dev.
+  - [ ] Smoke offline y queries por ref verificados.
+  - [ ] build_runner, lints y tests en verde.
+
+----------------------------------------------------------------------------------------
+Ajustes menores recomendados antes de ejecutar con Agent
+
+Ubicación de convertidores
+
+En vez de lib/core/converters, usa lib/data/converters o lib/data/models/common/converters (para mantener consistencia con tu estructura actual).
+
+Nombre de sesión
+
+Cambia sessionId = deviceId → sessionId = uuid generado localmente; evita colisiones si el mismo dispositivo reinstala.
+
+GeoSeeder
+
+Añade campo sourceFileVersion al lote ("v3") para auditoría de seeds.
+
+QA automatizada
+
+Agrega test que confirme que las colecciones regions, cities cargan con DocumentReference válido (instanceof DocumentReference).
+---------------------------------------------------------------------------------
+
+Objetivo: Añadir soporte DocumentReference y Timestamp sin romper dominio ni offline. Crear convertidores y extender modelos con *Ref. Mantener *_Id como fallback temporal.
+
+Archivos NUEVOS:
+- lib/data/models/common/converters/doc_ref_path_converter.dart
+- lib/data/models/common/converters/timestamp_converter.dart
+- lib/data/sessions/session_id.dart  // util UUID local
+
+Implementar:
+1) DocRefPathConverter
+  - fromPath(FirebaseFirestore db, String? path) -> DocumentReference?
+  - toPath(DocumentReference?) -> String?
+2) TimestampConverter
+  - fromTimestamp(Timestamp?) -> DateTime?
+  - toTimestamp(DateTime?) -> Timestamp?
+3) session_id.dart
+  - String generateLocalSessionId()  // UUID v4-like sin paquete externo
+
+Modificar modelos (añadir campos *Ref opcionales y anotar json):
+- lib/data/models/geo/region_model.dart
+  + countryRef: DocumentReference?
+- lib/data/models/geo/city_model.dart
+  + countryRef, regionRef: DocumentReference?
+  + regionCode, cityCode: String (mantener)
+- lib/data/models/org/organization_model.dart
+  + countryRef, regionRef, cityRef: DocumentReference?
+  + ownerRef: DocumentReference?
+- lib/data/models/asset/asset_model.dart
+  + orgRef, ownerRef: DocumentReference?
+  + countryRef, regionRef, cityRef: DocumentReference?
+- lib/data/models/maintenance/incidencia_model.dart
+  + assetRef, orgRef, reportedByRef, cityRef: DocumentReference?
+- lib/data/models/user/membership_model.dart
+  + orgRef: DocumentReference?
+
+Notas:
+- JSON Firestore: usar DocumentReference nativo.
+- Persistencia local (Isar): serializar refs como path String con DocRefPathConverter.
+- Mantener *_Id existentes como deprecated y fallback en mappers (no quitarlos aún).
+- createdAt/updatedAt con Timestamp (usar TimestampConverter en modelos).
+
+Criterios de aceptación:
+- `flutter pub run build_runner build --delete-conflicting-outputs` sin errores.
+- `dart analyze` sin warnings nuevos.
+- No se rompe ninguna firma pública en entidades de dominio.
+- Todos los modelos compilan y aceptan tanto *_Id (legacy) como *Ref (nuevo).
+-------------------------------------------------------------
+
+Objetivo: Añadir soporte DocumentReference y Timestamp sin romper dominio ni offline. Crear convertidores y extender modelos con *Ref. Mantener *_Id como fallback temporal.
+
+Archivos NUEVOS:
+- lib/data/models/common/converters/doc_ref_path_converter.dart
+- lib/data/models/common/converters/timestamp_converter.dart
+- lib/data/sessions/session_id.dart  // util UUID local
+
+Implementar:
+1) DocRefPathConverter
+  - fromPath(FirebaseFirestore db, String? path) -> DocumentReference?
+  - toPath(DocumentReference?) -> String?
+2) TimestampConverter
+  - fromTimestamp(Timestamp?) -> DateTime?
+  - toTimestamp(DateTime?) -> Timestamp?
+3) session_id.dart
+  - String generateLocalSessionId()  // UUID v4-like sin paquete externo
+
+Modificar modelos (añadir campos *Ref opcionales y anotar json):
+- lib/data/models/geo/region_model.dart
+  + countryRef: DocumentReference?
+- lib/data/models/geo/city_model.dart
+  + countryRef, regionRef: DocumentReference?
+  + regionCode, cityCode: String (mantener)
+- lib/data/models/org/organization_model.dart
+  + countryRef, regionRef, cityRef: DocumentReference?
+  + ownerRef: DocumentReference?
+- lib/data/models/asset/asset_model.dart
+  + orgRef, ownerRef: DocumentReference?
+  + countryRef, regionRef, cityRef: DocumentReference?
+- lib/data/models/maintenance/incidencia_model.dart
+  + assetRef, orgRef, reportedByRef, cityRef: DocumentReference?
+- lib/data/models/user/membership_model.dart
+  + orgRef: DocumentReference?
+
+Notas:
+- JSON Firestore: usar DocumentReference nativo.
+- Persistencia local (Isar): serializar refs como path String con DocRefPathConverter.
+- Mantener *_Id existentes como deprecated y fallback en mappers (no quitarlos aún).
+- createdAt/updatedAt con Timestamp (usar TimestampConverter en modelos).
+
+Criterios de aceptación:
+- `flutter pub run build_runner build --delete-conflicting-outputs` sin errores.
+- `dart analyze` sin warnings nuevos.
+- No se rompe ninguna firma pública en entidades de dominio.
+- Todos los modelos compilan y aceptan tanto *_Id (legacy) como *Ref (nuevo).
+-----------------------------------------------------------------
+Prompt para Agent — F1-T3 (Models con refs + documentación)
+Objetivo:
+Añadir campos DocumentReference opcionales en modelos clave y anotar conversión JSON. Mantener *_Id como fallback temporal. Documentar el código.
+
+Archivos a modificar:
+- lib/data/models/geo/region_model.dart
+- lib/data/models/geo/city_model.dart
+- lib/data/models/org/organization_model.dart
+- lib/data/models/asset/asset_model.dart
+- lib/data/models/maintenance/incidencia_model.dart
+- lib/data/models/user/membership_model.dart
+
+Convertidores ya creados:
+- lib/data/models/common/converters/doc_ref_path_converter.dart
+- lib/data/models/common/converters/timestamp_converter.dart
+
+Instrucciones:
+1) Agregar campos *Ref (nullable) según entidad:
+   - Region: countryRef
+   - City: countryRef, regionRef, regionCode, cityCode (mantener codes)
+   - Organization: countryRef, regionRef, cityRef, ownerRef
+   - Asset: orgRef, ownerRef, countryRef, regionRef, cityRef
+   - Incidencia: assetRef, orgRef, reportedByRef, cityRef
+   - Membership: orgRef, roles[] ya existente
+
+2) Anotar JSON con JsonConverter:
+   - @DocRefJsonConverter(FirebaseFirestore.instance) en cada *Ref
+   - @TimestampJsonConverter() en createdAt y updatedAt
+
+3) Compatibilidad:
+   - Conservar *_Id existentes (deprecated) y mapeo fromJson que acepte ambos:
+     * si viene *Ref usarlo
+     * si no, y hay *_Id, construir DocumentReference con db.doc('/coleccion/{id}')
+   - No romper constructors ni APIs públicas.
+
+4) Documentación obligatoria:
+   - Encabezado de archivo y docstrings en cada clase/campo explicando propósito, uso y compatibilidad *_Id/*Ref.
+
+5) Post-tarea:
+   - Actualizar adapters/toJson para serializar *Ref nativos a Firestore.
+   - No escribir *_Id nuevos en toJson.
+
+Criterios de aceptación:
+- build_runner sin errores; dart analyze sin warnings nuevos.
+- Modelos aceptan datos legacy (solo *_Id) y nuevos (con *Ref).
+- toJson no incluye *_Id; fromJson sigue poblando *Ref desde *_Id si falta ref.

@@ -93,44 +93,64 @@ const RegistrationProgressModelSchema = CollectionSchema(
       name: r'phone',
       type: IsarType.string,
     ),
-    r'providerType': PropertySchema(
+    r'providerCategory': PropertySchema(
       id: 15,
+      name: r'providerCategory',
+      type: IsarType.string,
+    ),
+    r'providerType': PropertySchema(
+      id: 16,
       name: r'providerType',
       type: IsarType.string,
     ),
+    r'providerTypes': PropertySchema(
+      id: 17,
+      name: r'providerTypes',
+      type: IsarType.stringList,
+    ),
     r'regionId': PropertySchema(
-      id: 16,
+      id: 18,
       name: r'regionId',
       type: IsarType.string,
     ),
+    r'segment': PropertySchema(
+      id: 19,
+      name: r'segment',
+      type: IsarType.string,
+    ),
     r'selectedRole': PropertySchema(
-      id: 17,
+      id: 20,
       name: r'selectedRole',
       type: IsarType.string,
     ),
     r'step': PropertySchema(
-      id: 18,
+      id: 21,
       name: r'step',
       type: IsarType.long,
     ),
     r'termsAccepted': PropertySchema(
-      id: 19,
+      id: 22,
       name: r'termsAccepted',
       type: IsarType.bool,
     ),
     r'titularType': PropertySchema(
-      id: 20,
+      id: 23,
       name: r'titularType',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 21,
+      id: 24,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'username': PropertySchema(
-      id: 22,
+      id: 25,
       name: r'username',
+      type: IsarType.string,
+    ),
+    r'vehicleType': PropertySchema(
+      id: 26,
+      name: r'vehicleType',
       type: IsarType.string,
     )
   },
@@ -253,13 +273,32 @@ int _registrationProgressModelEstimateSize(
     }
   }
   {
-    final value = object.providerType;
+    final value = object.providerCategory;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
   }
   {
+    final value = object.providerType;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  bytesCount += 3 + object.providerTypes.length * 3;
+  {
+    for (var i = 0; i < object.providerTypes.length; i++) {
+      final value = object.providerTypes[i];
+      bytesCount += value.length * 3;
+    }
+  }
+  {
     final value = object.regionId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.segment;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -278,6 +317,12 @@ int _registrationProgressModelEstimateSize(
   }
   {
     final value = object.username;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.vehicleType;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -306,14 +351,18 @@ void _registrationProgressModelSerialize(
   writer.writeStringList(offsets[12], object.offeringLineIds);
   writer.writeBool(offsets[13], object.passwordSet);
   writer.writeString(offsets[14], object.phone);
-  writer.writeString(offsets[15], object.providerType);
-  writer.writeString(offsets[16], object.regionId);
-  writer.writeString(offsets[17], object.selectedRole);
-  writer.writeLong(offsets[18], object.step);
-  writer.writeBool(offsets[19], object.termsAccepted);
-  writer.writeString(offsets[20], object.titularType);
-  writer.writeDateTime(offsets[21], object.updatedAt);
-  writer.writeString(offsets[22], object.username);
+  writer.writeString(offsets[15], object.providerCategory);
+  writer.writeString(offsets[16], object.providerType);
+  writer.writeStringList(offsets[17], object.providerTypes);
+  writer.writeString(offsets[18], object.regionId);
+  writer.writeString(offsets[19], object.segment);
+  writer.writeString(offsets[20], object.selectedRole);
+  writer.writeLong(offsets[21], object.step);
+  writer.writeBool(offsets[22], object.termsAccepted);
+  writer.writeString(offsets[23], object.titularType);
+  writer.writeDateTime(offsets[24], object.updatedAt);
+  writer.writeString(offsets[25], object.username);
+  writer.writeString(offsets[26], object.vehicleType);
 }
 
 RegistrationProgressModel _registrationProgressModelDeserialize(
@@ -339,14 +388,18 @@ RegistrationProgressModel _registrationProgressModelDeserialize(
   object.offeringLineIds = reader.readStringList(offsets[12]) ?? [];
   object.passwordSet = reader.readBool(offsets[13]);
   object.phone = reader.readStringOrNull(offsets[14]);
-  object.providerType = reader.readStringOrNull(offsets[15]);
-  object.regionId = reader.readStringOrNull(offsets[16]);
-  object.selectedRole = reader.readStringOrNull(offsets[17]);
-  object.step = reader.readLong(offsets[18]);
-  object.termsAccepted = reader.readBool(offsets[19]);
-  object.titularType = reader.readStringOrNull(offsets[20]);
-  object.updatedAt = reader.readDateTime(offsets[21]);
-  object.username = reader.readStringOrNull(offsets[22]);
+  object.providerCategory = reader.readStringOrNull(offsets[15]);
+  object.providerType = reader.readStringOrNull(offsets[16]);
+  object.providerTypes = reader.readStringList(offsets[17]) ?? [];
+  object.regionId = reader.readStringOrNull(offsets[18]);
+  object.segment = reader.readStringOrNull(offsets[19]);
+  object.selectedRole = reader.readStringOrNull(offsets[20]);
+  object.step = reader.readLong(offsets[21]);
+  object.termsAccepted = reader.readBool(offsets[22]);
+  object.titularType = reader.readStringOrNull(offsets[23]);
+  object.updatedAt = reader.readDateTime(offsets[24]);
+  object.username = reader.readStringOrNull(offsets[25]);
+  object.vehicleType = reader.readStringOrNull(offsets[26]);
   return object;
 }
 
@@ -392,16 +445,24 @@ P _registrationProgressModelDeserializeProp<P>(
     case 16:
       return (reader.readStringOrNull(offset)) as P;
     case 17:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 18:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 19:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 20:
       return (reader.readStringOrNull(offset)) as P;
     case 21:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 22:
+      return (reader.readBool(offset)) as P;
+    case 23:
+      return (reader.readStringOrNull(offset)) as P;
+    case 24:
+      return (reader.readDateTime(offset)) as P;
+    case 25:
+      return (reader.readStringOrNull(offset)) as P;
+    case 26:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -3217,6 +3278,162 @@ extension RegistrationProgressModelQueryFilter on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerCategoryIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'providerCategory',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerCategoryIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'providerCategory',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerCategoryEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'providerCategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerCategoryGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'providerCategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerCategoryLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'providerCategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerCategoryBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'providerCategory',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerCategoryStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'providerCategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerCategoryEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'providerCategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      providerCategoryContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'providerCategory',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      providerCategoryMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'providerCategory',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerCategoryIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'providerCategory',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerCategoryIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'providerCategory',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
       QAfterFilterCondition> providerTypeIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -3373,6 +3590,233 @@ extension RegistrationProgressModelQueryFilter on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerTypesElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'providerTypes',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerTypesElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'providerTypes',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerTypesElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'providerTypes',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerTypesElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'providerTypes',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerTypesElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'providerTypes',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerTypesElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'providerTypes',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      providerTypesElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'providerTypes',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      providerTypesElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'providerTypes',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerTypesElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'providerTypes',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerTypesElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'providerTypes',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerTypesLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'providerTypes',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerTypesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'providerTypes',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerTypesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'providerTypes',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerTypesLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'providerTypes',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerTypesLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'providerTypes',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> providerTypesLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'providerTypes',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
       QAfterFilterCondition> regionIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -3523,6 +3967,162 @@ extension RegistrationProgressModelQueryFilter on QueryBuilder<
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'regionId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> segmentIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'segment',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> segmentIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'segment',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> segmentEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'segment',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> segmentGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'segment',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> segmentLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'segment',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> segmentBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'segment',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> segmentStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'segment',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> segmentEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'segment',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      segmentContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'segment',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      segmentMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'segment',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> segmentIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'segment',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> segmentIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'segment',
         value: '',
       ));
     });
@@ -4117,6 +4717,162 @@ extension RegistrationProgressModelQueryFilter on QueryBuilder<
       ));
     });
   }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> vehicleTypeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'vehicleType',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> vehicleTypeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'vehicleType',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> vehicleTypeEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> vehicleTypeGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'vehicleType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> vehicleTypeLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'vehicleType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> vehicleTypeBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'vehicleType',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> vehicleTypeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'vehicleType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> vehicleTypeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'vehicleType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      vehicleTypeContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'vehicleType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      vehicleTypeMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'vehicleType',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> vehicleTypeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleType',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> vehicleTypeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'vehicleType',
+        value: '',
+      ));
+    });
+  }
 }
 
 extension RegistrationProgressModelQueryObject on QueryBuilder<
@@ -4268,6 +5024,20 @@ extension RegistrationProgressModelQuerySortBy on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByProviderCategory() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'providerCategory', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByProviderCategoryDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'providerCategory', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
       QAfterSortBy> sortByProviderType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'providerType', Sort.asc);
@@ -4292,6 +5062,20 @@ extension RegistrationProgressModelQuerySortBy on QueryBuilder<
       QAfterSortBy> sortByRegionIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortBySegment() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'segment', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortBySegmentDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'segment', Sort.desc);
     });
   }
 
@@ -4376,6 +5160,20 @@ extension RegistrationProgressModelQuerySortBy on QueryBuilder<
       QAfterSortBy> sortByUsernameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'username', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByVehicleType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByVehicleTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleType', Sort.desc);
     });
   }
 }
@@ -4537,6 +5335,20 @@ extension RegistrationProgressModelQuerySortThenBy on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByProviderCategory() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'providerCategory', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByProviderCategoryDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'providerCategory', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
       QAfterSortBy> thenByProviderType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'providerType', Sort.asc);
@@ -4561,6 +5373,20 @@ extension RegistrationProgressModelQuerySortThenBy on QueryBuilder<
       QAfterSortBy> thenByRegionIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenBySegment() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'segment', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenBySegmentDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'segment', Sort.desc);
     });
   }
 
@@ -4645,6 +5471,20 @@ extension RegistrationProgressModelQuerySortThenBy on QueryBuilder<
       QAfterSortBy> thenByUsernameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'username', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByVehicleType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByVehicleTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleType', Sort.desc);
     });
   }
 }
@@ -4758,6 +5598,14 @@ extension RegistrationProgressModelQueryWhereDistinct on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
+      distinctByProviderCategory({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'providerCategory',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
       distinctByProviderType({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'providerType', caseSensitive: caseSensitive);
@@ -4765,9 +5613,23 @@ extension RegistrationProgressModelQueryWhereDistinct on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
+      distinctByProviderTypes() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'providerTypes');
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
       distinctByRegionId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'regionId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
+      distinctBySegment({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'segment', caseSensitive: caseSensitive);
     });
   }
 
@@ -4810,6 +5672,13 @@ extension RegistrationProgressModelQueryWhereDistinct on QueryBuilder<
       distinctByUsername({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'username', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
+      distinctByVehicleType({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'vehicleType', caseSensitive: caseSensitive);
     });
   }
 }
@@ -4929,9 +5798,23 @@ extension RegistrationProgressModelQueryProperty on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, String?, QQueryOperations>
+      providerCategoryProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'providerCategory');
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, String?, QQueryOperations>
       providerTypeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'providerType');
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, List<String>, QQueryOperations>
+      providerTypesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'providerTypes');
     });
   }
 
@@ -4939,6 +5822,13 @@ extension RegistrationProgressModelQueryProperty on QueryBuilder<
       regionIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'regionId');
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, String?, QQueryOperations>
+      segmentProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'segment');
     });
   }
 
@@ -4981,6 +5871,13 @@ extension RegistrationProgressModelQueryProperty on QueryBuilder<
       usernameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'username');
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, String?, QQueryOperations>
+      vehicleTypeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'vehicleType');
     });
   }
 }

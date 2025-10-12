@@ -28,10 +28,14 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     final useWideNav = Theme.of(context).useMaterial3 &&
         MediaQuery.of(context).size.width >= 600;
 
+    final isProviderRole = widget.config.roleKey.startsWith('prov_');
+
     return Obx(() {
       final idx = c.index.value;
       return Scaffold(
-        appBar: AppBar(title: Text(widget.config.roleKey)),
+        appBar: AppBar(
+          title: Text(widget.config.roleKey),
+        ),
         drawer: const WorkspaceDrawer(),
         body: IndexedStack(
             index: idx, children: [for (final t in widget.config.tabs) t.page]),
