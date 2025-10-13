@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'asset_model.dart';
+part of 'organization_model.dart';
 
 // **************************************************************************
 // IsarCollectionGenerator
@@ -9,109 +9,99 @@ part of 'asset_model.dart';
 // coverage:ignore-file
 // ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
 
-extension GetAssetModelCollection on Isar {
-  IsarCollection<AssetModel> get assetModels => this.collection();
+extension GetOrganizationModelCollection on Isar {
+  IsarCollection<OrganizationModel> get organizationModels => this.collection();
 }
 
-const AssetModelSchema = CollectionSchema(
-  name: r'AssetModel',
-  id: 7791203510111567768,
+const OrganizationModelSchema = CollectionSchema(
+  name: r'OrganizationModel',
+  id: -3818135214731679157,
   properties: {
-    r'assetType': PropertySchema(
-      id: 0,
-      name: r'assetType',
-      type: IsarType.string,
-    ),
     r'cityId': PropertySchema(
-      id: 1,
+      id: 0,
       name: r'cityId',
       type: IsarType.string,
     ),
     r'cityRefPath': PropertySchema(
-      id: 2,
+      id: 1,
       name: r'cityRefPath',
       type: IsarType.string,
     ),
     r'countryId': PropertySchema(
-      id: 3,
+      id: 2,
       name: r'countryId',
       type: IsarType.string,
     ),
     r'countryRefPath': PropertySchema(
-      id: 4,
+      id: 3,
       name: r'countryRefPath',
       type: IsarType.string,
     ),
     r'createdAt': PropertySchema(
-      id: 5,
+      id: 4,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
-    r'estado': PropertySchema(
-      id: 6,
-      name: r'estado',
-      type: IsarType.string,
-    ),
-    r'etiquetas': PropertySchema(
-      id: 7,
-      name: r'etiquetas',
-      type: IsarType.stringList,
-    ),
-    r'fotosUrls': PropertySchema(
-      id: 8,
-      name: r'fotosUrls',
-      type: IsarType.stringList,
-    ),
     r'id': PropertySchema(
-      id: 9,
+      id: 5,
       name: r'id',
       type: IsarType.string,
     ),
-    r'orgId': PropertySchema(
-      id: 10,
-      name: r'orgId',
+    r'isActive': PropertySchema(
+      id: 6,
+      name: r'isActive',
+      type: IsarType.bool,
+    ),
+    r'logoUrl': PropertySchema(
+      id: 7,
+      name: r'logoUrl',
       type: IsarType.string,
     ),
-    r'orgRefPath': PropertySchema(
-      id: 11,
-      name: r'orgRefPath',
+    r'metadataJson': PropertySchema(
+      id: 8,
+      name: r'metadataJson',
       type: IsarType.string,
     ),
-    r'ownerId': PropertySchema(
-      id: 12,
-      name: r'ownerId',
+    r'nombre': PropertySchema(
+      id: 9,
+      name: r'nombre',
       type: IsarType.string,
     ),
     r'ownerRefPath': PropertySchema(
-      id: 13,
+      id: 10,
       name: r'ownerRefPath',
       type: IsarType.string,
     ),
-    r'ownerType': PropertySchema(
-      id: 14,
-      name: r'ownerType',
+    r'ownerUid': PropertySchema(
+      id: 11,
+      name: r'ownerUid',
       type: IsarType.string,
     ),
     r'regionId': PropertySchema(
-      id: 15,
+      id: 12,
       name: r'regionId',
       type: IsarType.string,
     ),
     r'regionRefPath': PropertySchema(
-      id: 16,
+      id: 13,
       name: r'regionRefPath',
       type: IsarType.string,
     ),
+    r'tipo': PropertySchema(
+      id: 14,
+      name: r'tipo',
+      type: IsarType.string,
+    ),
     r'updatedAt': PropertySchema(
-      id: 17,
+      id: 15,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
   },
-  estimateSize: _assetModelEstimateSize,
-  serialize: _assetModelSerialize,
-  deserialize: _assetModelDeserialize,
-  deserializeProp: _assetModelDeserializeProp,
+  estimateSize: _organizationModelEstimateSize,
+  serialize: _organizationModelSerialize,
+  deserialize: _organizationModelDeserialize,
+  deserializeProp: _organizationModelDeserializeProp,
   idName: r'isarId',
   indexes: {
     r'id': IndexSchema(
@@ -127,14 +117,27 @@ const AssetModelSchema = CollectionSchema(
         )
       ],
     ),
-    r'orgId': IndexSchema(
-      id: 4612512750172861184,
-      name: r'orgId',
+    r'countryId': IndexSchema(
+      id: -5115696458787596369,
+      name: r'countryId',
       unique: false,
       replace: false,
       properties: [
         IndexPropertySchema(
-          name: r'orgId',
+          name: r'countryId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'regionId': IndexSchema(
+      id: -3633044038139156791,
+      name: r'regionId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'regionId',
           type: IndexType.hash,
           caseSensitive: true,
         )
@@ -153,35 +156,47 @@ const AssetModelSchema = CollectionSchema(
         )
       ],
     ),
-    r'estado': IndexSchema(
-      id: -4800696143246816208,
-      name: r'estado',
+    r'ownerUid': IndexSchema(
+      id: -8016718989707307851,
+      name: r'ownerUid',
       unique: false,
       replace: false,
       properties: [
         IndexPropertySchema(
-          name: r'estado',
+          name: r'ownerUid',
           type: IndexType.hash,
           caseSensitive: true,
+        )
+      ],
+    ),
+    r'isActive': IndexSchema(
+      id: 8092228061260947457,
+      name: r'isActive',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'isActive',
+          type: IndexType.value,
+          caseSensitive: false,
         )
       ],
     )
   },
   links: {},
   embeddedSchemas: {},
-  getId: _assetModelGetId,
-  getLinks: _assetModelGetLinks,
-  attach: _assetModelAttach,
+  getId: _organizationModelGetId,
+  getLinks: _organizationModelGetLinks,
+  attach: _organizationModelAttach,
   version: '3.2.0-dev.2',
 );
 
-int _assetModelEstimateSize(
-  AssetModel object,
+int _organizationModelEstimateSize(
+  OrganizationModel object,
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
-  bytesCount += 3 + object.assetType.length * 3;
   {
     final value = object.cityId;
     if (value != null) {
@@ -201,37 +216,32 @@ int _assetModelEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
-  bytesCount += 3 + object.estado.length * 3;
-  bytesCount += 3 + object.etiquetas.length * 3;
-  {
-    for (var i = 0; i < object.etiquetas.length; i++) {
-      final value = object.etiquetas[i];
-      bytesCount += value.length * 3;
-    }
-  }
-  bytesCount += 3 + object.fotosUrls.length * 3;
-  {
-    for (var i = 0; i < object.fotosUrls.length; i++) {
-      final value = object.fotosUrls[i];
-      bytesCount += value.length * 3;
-    }
-  }
   bytesCount += 3 + object.id.length * 3;
-  bytesCount += 3 + object.orgId.length * 3;
   {
-    final value = object.orgRefPath;
+    final value = object.logoUrl;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
   }
-  bytesCount += 3 + object.ownerId.length * 3;
+  {
+    final value = object.metadataJson;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  bytesCount += 3 + object.nombre.length * 3;
   {
     final value = object.ownerRefPath;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
   }
-  bytesCount += 3 + object.ownerType.length * 3;
+  {
+    final value = object.ownerUid;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   {
     final value = object.regionId;
     if (value != null) {
@@ -244,66 +254,63 @@ int _assetModelEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  bytesCount += 3 + object.tipo.length * 3;
   return bytesCount;
 }
 
-void _assetModelSerialize(
-  AssetModel object,
+void _organizationModelSerialize(
+  OrganizationModel object,
   IsarWriter writer,
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.assetType);
-  writer.writeString(offsets[1], object.cityId);
-  writer.writeString(offsets[2], object.cityRefPath);
-  writer.writeString(offsets[3], object.countryId);
-  writer.writeString(offsets[4], object.countryRefPath);
-  writer.writeDateTime(offsets[5], object.createdAt);
-  writer.writeString(offsets[6], object.estado);
-  writer.writeStringList(offsets[7], object.etiquetas);
-  writer.writeStringList(offsets[8], object.fotosUrls);
-  writer.writeString(offsets[9], object.id);
-  writer.writeString(offsets[10], object.orgId);
-  writer.writeString(offsets[11], object.orgRefPath);
-  writer.writeString(offsets[12], object.ownerId);
-  writer.writeString(offsets[13], object.ownerRefPath);
-  writer.writeString(offsets[14], object.ownerType);
-  writer.writeString(offsets[15], object.regionId);
-  writer.writeString(offsets[16], object.regionRefPath);
-  writer.writeDateTime(offsets[17], object.updatedAt);
+  writer.writeString(offsets[0], object.cityId);
+  writer.writeString(offsets[1], object.cityRefPath);
+  writer.writeString(offsets[2], object.countryId);
+  writer.writeString(offsets[3], object.countryRefPath);
+  writer.writeDateTime(offsets[4], object.createdAt);
+  writer.writeString(offsets[5], object.id);
+  writer.writeBool(offsets[6], object.isActive);
+  writer.writeString(offsets[7], object.logoUrl);
+  writer.writeString(offsets[8], object.metadataJson);
+  writer.writeString(offsets[9], object.nombre);
+  writer.writeString(offsets[10], object.ownerRefPath);
+  writer.writeString(offsets[11], object.ownerUid);
+  writer.writeString(offsets[12], object.regionId);
+  writer.writeString(offsets[13], object.regionRefPath);
+  writer.writeString(offsets[14], object.tipo);
+  writer.writeDateTime(offsets[15], object.updatedAt);
 }
 
-AssetModel _assetModelDeserialize(
+OrganizationModel _organizationModelDeserialize(
   Id id,
   IsarReader reader,
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  final object = AssetModel(
-    assetType: reader.readString(offsets[0]),
-    cityId: reader.readStringOrNull(offsets[1]),
-    cityRefPath: reader.readStringOrNull(offsets[2]),
-    countryId: reader.readString(offsets[3]),
-    countryRefPath: reader.readStringOrNull(offsets[4]),
-    createdAt: reader.readDateTimeOrNull(offsets[5]),
-    estado: reader.readString(offsets[6]),
-    etiquetas: reader.readStringList(offsets[7]) ?? const [],
-    fotosUrls: reader.readStringList(offsets[8]) ?? const [],
-    id: reader.readString(offsets[9]),
+  final object = OrganizationModel(
+    cityId: reader.readStringOrNull(offsets[0]),
+    cityRefPath: reader.readStringOrNull(offsets[1]),
+    countryId: reader.readString(offsets[2]),
+    countryRefPath: reader.readStringOrNull(offsets[3]),
+    createdAt: reader.readDateTimeOrNull(offsets[4]),
+    id: reader.readString(offsets[5]),
+    isActive: reader.readBoolOrNull(offsets[6]) ?? true,
     isarId: id,
-    orgId: reader.readString(offsets[10]),
-    orgRefPath: reader.readStringOrNull(offsets[11]),
-    ownerId: reader.readString(offsets[12]),
-    ownerRefPath: reader.readStringOrNull(offsets[13]),
-    ownerType: reader.readString(offsets[14]),
-    regionId: reader.readStringOrNull(offsets[15]),
-    regionRefPath: reader.readStringOrNull(offsets[16]),
-    updatedAt: reader.readDateTimeOrNull(offsets[17]),
+    logoUrl: reader.readStringOrNull(offsets[7]),
+    metadataJson: reader.readStringOrNull(offsets[8]),
+    nombre: reader.readString(offsets[9]),
+    ownerRefPath: reader.readStringOrNull(offsets[10]),
+    ownerUid: reader.readStringOrNull(offsets[11]),
+    regionId: reader.readStringOrNull(offsets[12]),
+    regionRefPath: reader.readStringOrNull(offsets[13]),
+    tipo: reader.readString(offsets[14]),
+    updatedAt: reader.readDateTimeOrNull(offsets[15]),
   );
   return object;
 }
 
-P _assetModelDeserializeProp<P>(
+P _organizationModelDeserializeProp<P>(
   IsarReader reader,
   int propertyId,
   int offset,
@@ -311,64 +318,62 @@ P _assetModelDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 1:
       return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 3:
-      return (reader.readString(offset)) as P;
-    case 4:
       return (reader.readStringOrNull(offset)) as P;
-    case 5:
+    case 4:
       return (reader.readDateTimeOrNull(offset)) as P;
-    case 6:
+    case 5:
       return (reader.readString(offset)) as P;
+    case 6:
+      return (reader.readBoolOrNull(offset) ?? true) as P;
     case 7:
-      return (reader.readStringList(offset) ?? const []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readStringList(offset) ?? const []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 9:
       return (reader.readString(offset)) as P;
     case 10:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 11:
       return (reader.readStringOrNull(offset)) as P;
     case 12:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 13:
       return (reader.readStringOrNull(offset)) as P;
     case 14:
       return (reader.readString(offset)) as P;
     case 15:
-      return (reader.readStringOrNull(offset)) as P;
-    case 16:
-      return (reader.readStringOrNull(offset)) as P;
-    case 17:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
 }
 
-Id _assetModelGetId(AssetModel object) {
+Id _organizationModelGetId(OrganizationModel object) {
   return object.isarId ?? Isar.autoIncrement;
 }
 
-List<IsarLinkBase<dynamic>> _assetModelGetLinks(AssetModel object) {
+List<IsarLinkBase<dynamic>> _organizationModelGetLinks(
+    OrganizationModel object) {
   return [];
 }
 
-void _assetModelAttach(IsarCollection<dynamic> col, Id id, AssetModel object) {
+void _organizationModelAttach(
+    IsarCollection<dynamic> col, Id id, OrganizationModel object) {
   object.isarId = id;
 }
 
-extension AssetModelByIndex on IsarCollection<AssetModel> {
-  Future<AssetModel?> getById(String id) {
+extension OrganizationModelByIndex on IsarCollection<OrganizationModel> {
+  Future<OrganizationModel?> getById(String id) {
     return getByIndex(r'id', [id]);
   }
 
-  AssetModel? getByIdSync(String id) {
+  OrganizationModel? getByIdSync(String id) {
     return getByIndexSync(r'id', [id]);
   }
 
@@ -380,12 +385,12 @@ extension AssetModelByIndex on IsarCollection<AssetModel> {
     return deleteByIndexSync(r'id', [id]);
   }
 
-  Future<List<AssetModel?>> getAllById(List<String> idValues) {
+  Future<List<OrganizationModel?>> getAllById(List<String> idValues) {
     final values = idValues.map((e) => [e]).toList();
     return getAllByIndex(r'id', values);
   }
 
-  List<AssetModel?> getAllByIdSync(List<String> idValues) {
+  List<OrganizationModel?> getAllByIdSync(List<String> idValues) {
     final values = idValues.map((e) => [e]).toList();
     return getAllByIndexSync(r'id', values);
   }
@@ -400,36 +405,46 @@ extension AssetModelByIndex on IsarCollection<AssetModel> {
     return deleteAllByIndexSync(r'id', values);
   }
 
-  Future<Id> putById(AssetModel object) {
+  Future<Id> putById(OrganizationModel object) {
     return putByIndex(r'id', object);
   }
 
-  Id putByIdSync(AssetModel object, {bool saveLinks = true}) {
+  Id putByIdSync(OrganizationModel object, {bool saveLinks = true}) {
     return putByIndexSync(r'id', object, saveLinks: saveLinks);
   }
 
-  Future<List<Id>> putAllById(List<AssetModel> objects) {
+  Future<List<Id>> putAllById(List<OrganizationModel> objects) {
     return putAllByIndex(r'id', objects);
   }
 
-  List<Id> putAllByIdSync(List<AssetModel> objects, {bool saveLinks = true}) {
+  List<Id> putAllByIdSync(List<OrganizationModel> objects,
+      {bool saveLinks = true}) {
     return putAllByIndexSync(r'id', objects, saveLinks: saveLinks);
   }
 }
 
-extension AssetModelQueryWhereSort
-    on QueryBuilder<AssetModel, AssetModel, QWhere> {
-  QueryBuilder<AssetModel, AssetModel, QAfterWhere> anyIsarId() {
+extension OrganizationModelQueryWhereSort
+    on QueryBuilder<OrganizationModel, OrganizationModel, QWhere> {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhere> anyIsarId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
     });
   }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhere>
+      anyIsActive() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'isActive'),
+      );
+    });
+  }
 }
 
-extension AssetModelQueryWhere
-    on QueryBuilder<AssetModel, AssetModel, QWhereClause> {
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> isarIdEqualTo(
-      Id isarId) {
+extension OrganizationModelQueryWhere
+    on QueryBuilder<OrganizationModel, OrganizationModel, QWhereClause> {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      isarIdEqualTo(Id isarId) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IdWhereClause.between(
         lower: isarId,
@@ -438,8 +453,8 @@ extension AssetModelQueryWhere
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> isarIdNotEqualTo(
-      Id isarId) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      isarIdNotEqualTo(Id isarId) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
@@ -461,9 +476,8 @@ extension AssetModelQueryWhere
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> isarIdGreaterThan(
-      Id isarId,
-      {bool include = false}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      isarIdGreaterThan(Id isarId, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.greaterThan(lower: isarId, includeLower: include),
@@ -471,9 +485,8 @@ extension AssetModelQueryWhere
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> isarIdLessThan(
-      Id isarId,
-      {bool include = false}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      isarIdLessThan(Id isarId, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.lessThan(upper: isarId, includeUpper: include),
@@ -481,7 +494,8 @@ extension AssetModelQueryWhere
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> isarIdBetween(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      isarIdBetween(
     Id lowerIsarId,
     Id upperIsarId, {
     bool includeLower = true,
@@ -497,7 +511,8 @@ extension AssetModelQueryWhere
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> idEqualTo(String id) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      idEqualTo(String id) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IndexWhereClause.equalTo(
         indexName: r'id',
@@ -506,8 +521,8 @@ extension AssetModelQueryWhere
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> idNotEqualTo(
-      String id) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      idNotEqualTo(String id) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
@@ -541,52 +556,120 @@ extension AssetModelQueryWhere
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> orgIdEqualTo(
-      String orgId) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      countryIdEqualTo(String countryId) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'orgId',
-        value: [orgId],
+        indexName: r'countryId',
+        value: [countryId],
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> orgIdNotEqualTo(
-      String orgId) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      countryIdNotEqualTo(String countryId) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'orgId',
+              indexName: r'countryId',
               lower: [],
-              upper: [orgId],
+              upper: [countryId],
               includeUpper: false,
             ))
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'orgId',
-              lower: [orgId],
+              indexName: r'countryId',
+              lower: [countryId],
               includeLower: false,
               upper: [],
             ));
       } else {
         return query
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'orgId',
-              lower: [orgId],
+              indexName: r'countryId',
+              lower: [countryId],
               includeLower: false,
               upper: [],
             ))
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'orgId',
+              indexName: r'countryId',
               lower: [],
-              upper: [orgId],
+              upper: [countryId],
               includeUpper: false,
             ));
       }
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> cityIdIsNull() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      regionIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'regionId',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      regionIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'regionId',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      regionIdEqualTo(String? regionId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'regionId',
+        value: [regionId],
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      regionIdNotEqualTo(String? regionId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'regionId',
+              lower: [],
+              upper: [regionId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'regionId',
+              lower: [regionId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'regionId',
+              lower: [regionId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'regionId',
+              lower: [],
+              upper: [regionId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      cityIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IndexWhereClause.equalTo(
         indexName: r'cityId',
@@ -595,7 +678,8 @@ extension AssetModelQueryWhere
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> cityIdIsNotNull() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      cityIdIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IndexWhereClause.between(
         indexName: r'cityId',
@@ -606,8 +690,8 @@ extension AssetModelQueryWhere
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> cityIdEqualTo(
-      String? cityId) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      cityIdEqualTo(String? cityId) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IndexWhereClause.equalTo(
         indexName: r'cityId',
@@ -616,8 +700,8 @@ extension AssetModelQueryWhere
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> cityIdNotEqualTo(
-      String? cityId) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      cityIdNotEqualTo(String? cityId) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
@@ -651,45 +735,112 @@ extension AssetModelQueryWhere
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> estadoEqualTo(
-      String estado) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      ownerUidIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'estado',
-        value: [estado],
+        indexName: r'ownerUid',
+        value: [null],
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> estadoNotEqualTo(
-      String estado) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      ownerUidIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'ownerUid',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      ownerUidEqualTo(String? ownerUid) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'ownerUid',
+        value: [ownerUid],
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      ownerUidNotEqualTo(String? ownerUid) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'estado',
+              indexName: r'ownerUid',
               lower: [],
-              upper: [estado],
+              upper: [ownerUid],
               includeUpper: false,
             ))
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'estado',
-              lower: [estado],
+              indexName: r'ownerUid',
+              lower: [ownerUid],
               includeLower: false,
               upper: [],
             ));
       } else {
         return query
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'estado',
-              lower: [estado],
+              indexName: r'ownerUid',
+              lower: [ownerUid],
               includeLower: false,
               upper: [],
             ))
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'estado',
+              indexName: r'ownerUid',
               lower: [],
-              upper: [estado],
+              upper: [ownerUid],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      isActiveEqualTo(bool isActive) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'isActive',
+        value: [isActive],
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterWhereClause>
+      isActiveNotEqualTo(bool isActive) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isActive',
+              lower: [],
+              upper: [isActive],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isActive',
+              lower: [isActive],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isActive',
+              lower: [isActive],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isActive',
+              lower: [],
+              upper: [isActive],
               includeUpper: false,
             ));
       }
@@ -697,143 +848,10 @@ extension AssetModelQueryWhere
   }
 }
 
-extension AssetModelQueryFilter
-    on QueryBuilder<AssetModel, AssetModel, QFilterCondition> {
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> assetTypeEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'assetType',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      assetTypeGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'assetType',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> assetTypeLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'assetType',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> assetTypeBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'assetType',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      assetTypeStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'assetType',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> assetTypeEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'assetType',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> assetTypeContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'assetType',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> assetTypeMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'assetType',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      assetTypeIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'assetType',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      assetTypeIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'assetType',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> cityIdIsNull() {
+extension OrganizationModelQueryFilter
+    on QueryBuilder<OrganizationModel, OrganizationModel, QFilterCondition> {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      cityIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
         property: r'cityId',
@@ -841,7 +859,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       cityIdIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
@@ -850,7 +868,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> cityIdEqualTo(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      cityIdEqualTo(
     String? value, {
     bool caseSensitive = true,
   }) {
@@ -863,7 +882,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> cityIdGreaterThan(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      cityIdGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -878,7 +898,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> cityIdLessThan(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      cityIdLessThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -893,7 +914,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> cityIdBetween(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      cityIdBetween(
     String? lower,
     String? upper, {
     bool includeLower = true,
@@ -912,7 +934,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> cityIdStartsWith(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      cityIdStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -925,7 +948,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> cityIdEndsWith(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      cityIdEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -938,9 +962,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> cityIdContains(
-      String value,
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      cityIdContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
         property: r'cityId',
@@ -950,9 +973,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> cityIdMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      cityIdMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
         property: r'cityId',
@@ -962,7 +984,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> cityIdIsEmpty() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      cityIdIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'cityId',
@@ -971,7 +994,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       cityIdIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
@@ -981,7 +1004,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       cityRefPathIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -990,7 +1013,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       cityRefPathIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
@@ -999,7 +1022,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       cityRefPathEqualTo(
     String? value, {
     bool caseSensitive = true,
@@ -1013,7 +1036,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       cityRefPathGreaterThan(
     String? value, {
     bool include = false,
@@ -1029,7 +1052,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       cityRefPathLessThan(
     String? value, {
     bool include = false,
@@ -1045,7 +1068,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       cityRefPathBetween(
     String? lower,
     String? upper, {
@@ -1065,7 +1088,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       cityRefPathStartsWith(
     String value, {
     bool caseSensitive = true,
@@ -1079,7 +1102,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       cityRefPathEndsWith(
     String value, {
     bool caseSensitive = true,
@@ -1093,7 +1116,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       cityRefPathContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
@@ -1104,7 +1127,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       cityRefPathMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
@@ -1115,7 +1138,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       cityRefPathIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1125,7 +1148,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       cityRefPathIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
@@ -1135,7 +1158,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> countryIdEqualTo(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      countryIdEqualTo(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -1148,7 +1172,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       countryIdGreaterThan(
     String value, {
     bool include = false,
@@ -1164,7 +1188,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> countryIdLessThan(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      countryIdLessThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -1179,7 +1204,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> countryIdBetween(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      countryIdBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -1198,7 +1224,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       countryIdStartsWith(
     String value, {
     bool caseSensitive = true,
@@ -1212,7 +1238,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> countryIdEndsWith(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      countryIdEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -1225,9 +1252,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> countryIdContains(
-      String value,
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      countryIdContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
         property: r'countryId',
@@ -1237,9 +1263,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> countryIdMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      countryIdMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
         property: r'countryId',
@@ -1249,7 +1274,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       countryIdIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1259,7 +1284,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       countryIdIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
@@ -1269,7 +1294,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       countryRefPathIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1278,7 +1303,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       countryRefPathIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
@@ -1287,7 +1312,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       countryRefPathEqualTo(
     String? value, {
     bool caseSensitive = true,
@@ -1301,7 +1326,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       countryRefPathGreaterThan(
     String? value, {
     bool include = false,
@@ -1317,7 +1342,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       countryRefPathLessThan(
     String? value, {
     bool include = false,
@@ -1333,7 +1358,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       countryRefPathBetween(
     String? lower,
     String? upper, {
@@ -1353,7 +1378,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       countryRefPathStartsWith(
     String value, {
     bool caseSensitive = true,
@@ -1367,7 +1392,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       countryRefPathEndsWith(
     String value, {
     bool caseSensitive = true,
@@ -1381,7 +1406,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       countryRefPathContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
@@ -1392,7 +1417,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       countryRefPathMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
@@ -1403,7 +1428,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       countryRefPathIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1413,7 +1438,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       countryRefPathIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
@@ -1423,7 +1448,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       createdAtIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1432,7 +1457,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       createdAtIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
@@ -1441,8 +1466,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> createdAtEqualTo(
-      DateTime? value) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      createdAtEqualTo(DateTime? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'createdAt',
@@ -1451,7 +1476,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       createdAtGreaterThan(
     DateTime? value, {
     bool include = false,
@@ -1465,7 +1490,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> createdAtLessThan(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      createdAtLessThan(
     DateTime? value, {
     bool include = false,
   }) {
@@ -1478,7 +1504,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> createdAtBetween(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      createdAtBetween(
     DateTime? lower,
     DateTime? upper, {
     bool includeLower = true,
@@ -1495,588 +1522,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> estadoEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'estado',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> estadoGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'estado',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> estadoLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'estado',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> estadoBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'estado',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> estadoStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'estado',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> estadoEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'estado',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> estadoContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'estado',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> estadoMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'estado',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> estadoIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'estado',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      estadoIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'estado',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      etiquetasElementEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'etiquetas',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      etiquetasElementGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'etiquetas',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      etiquetasElementLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'etiquetas',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      etiquetasElementBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'etiquetas',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      etiquetasElementStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'etiquetas',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      etiquetasElementEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'etiquetas',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      etiquetasElementContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'etiquetas',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      etiquetasElementMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'etiquetas',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      etiquetasElementIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'etiquetas',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      etiquetasElementIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'etiquetas',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      etiquetasLengthEqualTo(int length) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'etiquetas',
-        length,
-        true,
-        length,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      etiquetasIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'etiquetas',
-        0,
-        true,
-        0,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      etiquetasIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'etiquetas',
-        0,
-        false,
-        999999,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      etiquetasLengthLessThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'etiquetas',
-        0,
-        true,
-        length,
-        include,
-      );
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      etiquetasLengthGreaterThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'etiquetas',
-        length,
-        include,
-        999999,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      etiquetasLengthBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'etiquetas',
-        lower,
-        includeLower,
-        upper,
-        includeUpper,
-      );
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      fotosUrlsElementEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'fotosUrls',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      fotosUrlsElementGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'fotosUrls',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      fotosUrlsElementLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'fotosUrls',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      fotosUrlsElementBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'fotosUrls',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      fotosUrlsElementStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'fotosUrls',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      fotosUrlsElementEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'fotosUrls',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      fotosUrlsElementContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'fotosUrls',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      fotosUrlsElementMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'fotosUrls',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      fotosUrlsElementIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'fotosUrls',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      fotosUrlsElementIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'fotosUrls',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      fotosUrlsLengthEqualTo(int length) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'fotosUrls',
-        length,
-        true,
-        length,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      fotosUrlsIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'fotosUrls',
-        0,
-        true,
-        0,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      fotosUrlsIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'fotosUrls',
-        0,
-        false,
-        999999,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      fotosUrlsLengthLessThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'fotosUrls',
-        0,
-        true,
-        length,
-        include,
-      );
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      fotosUrlsLengthGreaterThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'fotosUrls',
-        length,
-        include,
-        999999,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      fotosUrlsLengthBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'fotosUrls',
-        lower,
-        includeLower,
-        upper,
-        includeUpper,
-      );
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> idEqualTo(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      idEqualTo(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -2089,7 +1536,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> idGreaterThan(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      idGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -2104,7 +1552,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> idLessThan(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      idLessThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -2119,7 +1568,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> idBetween(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      idBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -2138,7 +1588,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> idStartsWith(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      idStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -2151,7 +1602,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> idEndsWith(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      idEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -2164,9 +1616,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> idContains(
-      String value,
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      idContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
         property: r'id',
@@ -2176,9 +1627,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> idMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      idMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
         property: r'id',
@@ -2188,7 +1638,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> idIsEmpty() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      idIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'id',
@@ -2197,7 +1648,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> idIsNotEmpty() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      idIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'id',
@@ -2206,7 +1658,18 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> isarIdIsNull() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      isActiveEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isActive',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      isarIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
         property: r'isarId',
@@ -2214,7 +1677,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       isarIdIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
@@ -2223,8 +1686,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> isarIdEqualTo(
-      Id? value) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      isarIdEqualTo(Id? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isarId',
@@ -2233,7 +1696,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> isarIdGreaterThan(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      isarIdGreaterThan(
     Id? value, {
     bool include = false,
   }) {
@@ -2246,7 +1710,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> isarIdLessThan(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      isarIdLessThan(
     Id? value, {
     bool include = false,
   }) {
@@ -2259,7 +1724,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> isarIdBetween(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      isarIdBetween(
     Id? lower,
     Id? upper, {
     bool includeLower = true,
@@ -2276,170 +1742,40 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> orgIdEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'orgId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> orgIdGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'orgId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> orgIdLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'orgId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> orgIdBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'orgId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> orgIdStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'orgId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> orgIdEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'orgId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> orgIdContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'orgId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> orgIdMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'orgId',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> orgIdIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'orgId',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      orgIdIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'orgId',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      orgRefPathIsNull() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      logoUrlIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'orgRefPath',
+        property: r'logoUrl',
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      orgRefPathIsNotNull() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      logoUrlIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'orgRefPath',
+        property: r'logoUrl',
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> orgRefPathEqualTo(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      logoUrlEqualTo(
     String? value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'orgRefPath',
+        property: r'logoUrl',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      orgRefPathGreaterThan(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      logoUrlGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -2447,15 +1783,15 @@ extension AssetModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
-        property: r'orgRefPath',
+        property: r'logoUrl',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      orgRefPathLessThan(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      logoUrlLessThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -2463,14 +1799,15 @@ extension AssetModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
-        property: r'orgRefPath',
+        property: r'logoUrl',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> orgRefPathBetween(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      logoUrlBetween(
     String? lower,
     String? upper, {
     bool includeLower = true,
@@ -2479,7 +1816,7 @@ extension AssetModelQueryFilter
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
-        property: r'orgRefPath',
+        property: r'logoUrl',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -2489,92 +1826,246 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      orgRefPathStartsWith(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      logoUrlStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'orgRefPath',
+        property: r'logoUrl',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      orgRefPathEndsWith(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      logoUrlEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'orgRefPath',
+        property: r'logoUrl',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      orgRefPathContains(String value, {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      logoUrlContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
-        property: r'orgRefPath',
+        property: r'logoUrl',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> orgRefPathMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      logoUrlMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
-        property: r'orgRefPath',
+        property: r'logoUrl',
         wildcard: pattern,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      orgRefPathIsEmpty() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      logoUrlIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'orgRefPath',
+        property: r'logoUrl',
         value: '',
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      orgRefPathIsNotEmpty() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      logoUrlIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'orgRefPath',
+        property: r'logoUrl',
         value: '',
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> ownerIdEqualTo(
-    String value, {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      metadataJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'metadataJson',
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      metadataJsonIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'metadataJson',
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      metadataJsonEqualTo(
+    String? value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'ownerId',
+        property: r'metadataJson',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      ownerIdGreaterThan(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      metadataJsonGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'metadataJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      metadataJsonLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'metadataJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      metadataJsonBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'metadataJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      metadataJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'metadataJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      metadataJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'metadataJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      metadataJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'metadataJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      metadataJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'metadataJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      metadataJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'metadataJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      metadataJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'metadataJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      nombreEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'nombre',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      nombreGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -2582,14 +2073,15 @@ extension AssetModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
-        property: r'ownerId',
+        property: r'nombre',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> ownerIdLessThan(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      nombreLessThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -2597,14 +2089,15 @@ extension AssetModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
-        property: r'ownerId',
+        property: r'nombre',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> ownerIdBetween(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      nombreBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -2613,7 +2106,7 @@ extension AssetModelQueryFilter
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
-        property: r'ownerId',
+        property: r'nombre',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -2623,76 +2116,77 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> ownerIdStartsWith(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      nombreStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'ownerId',
+        property: r'nombre',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> ownerIdEndsWith(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      nombreEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'ownerId',
+        property: r'nombre',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> ownerIdContains(
-      String value,
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      nombreContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
-        property: r'ownerId',
+        property: r'nombre',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> ownerIdMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      nombreMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
-        property: r'ownerId',
+        property: r'nombre',
         wildcard: pattern,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> ownerIdIsEmpty() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      nombreIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'ownerId',
+        property: r'nombre',
         value: '',
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      ownerIdIsNotEmpty() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      nombreIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'ownerId',
+        property: r'nombre',
         value: '',
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       ownerRefPathIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -2701,7 +2195,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       ownerRefPathIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
@@ -2710,7 +2204,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       ownerRefPathEqualTo(
     String? value, {
     bool caseSensitive = true,
@@ -2724,7 +2218,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       ownerRefPathGreaterThan(
     String? value, {
     bool include = false,
@@ -2740,7 +2234,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       ownerRefPathLessThan(
     String? value, {
     bool include = false,
@@ -2756,7 +2250,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       ownerRefPathBetween(
     String? lower,
     String? upper, {
@@ -2776,7 +2270,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       ownerRefPathStartsWith(
     String value, {
     bool caseSensitive = true,
@@ -2790,7 +2284,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       ownerRefPathEndsWith(
     String value, {
     bool caseSensitive = true,
@@ -2804,7 +2298,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       ownerRefPathContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
@@ -2815,7 +2309,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       ownerRefPathMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
@@ -2826,7 +2320,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       ownerRefPathIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -2836,7 +2330,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       ownerRefPathIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
@@ -2846,60 +2340,81 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> ownerTypeEqualTo(
-    String value, {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      ownerUidIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'ownerUid',
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      ownerUidIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'ownerUid',
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      ownerUidEqualTo(
+    String? value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'ownerType',
+        property: r'ownerUid',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      ownerTypeGreaterThan(
-    String value, {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      ownerUidGreaterThan(
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
-        property: r'ownerType',
+        property: r'ownerUid',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> ownerTypeLessThan(
-    String value, {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      ownerUidLessThan(
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
-        property: r'ownerType',
+        property: r'ownerUid',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> ownerTypeBetween(
-    String lower,
-    String upper, {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      ownerUidBetween(
+    String? lower,
+    String? upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
-        property: r'ownerType',
+        property: r'ownerUid',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -2909,78 +2424,78 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      ownerTypeStartsWith(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      ownerUidStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'ownerType',
+        property: r'ownerUid',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> ownerTypeEndsWith(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      ownerUidEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'ownerType',
+        property: r'ownerUid',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> ownerTypeContains(
-      String value,
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      ownerUidContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
-        property: r'ownerType',
+        property: r'ownerUid',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> ownerTypeMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      ownerUidMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
-        property: r'ownerType',
+        property: r'ownerUid',
         wildcard: pattern,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      ownerTypeIsEmpty() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      ownerUidIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'ownerType',
+        property: r'ownerUid',
         value: '',
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
-      ownerTypeIsNotEmpty() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      ownerUidIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'ownerType',
+        property: r'ownerUid',
         value: '',
       ));
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> regionIdIsNull() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      regionIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
         property: r'regionId',
@@ -2988,7 +2503,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       regionIdIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
@@ -2997,7 +2512,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> regionIdEqualTo(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      regionIdEqualTo(
     String? value, {
     bool caseSensitive = true,
   }) {
@@ -3010,7 +2526,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       regionIdGreaterThan(
     String? value, {
     bool include = false,
@@ -3026,7 +2542,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> regionIdLessThan(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      regionIdLessThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -3041,7 +2558,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> regionIdBetween(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      regionIdBetween(
     String? lower,
     String? upper, {
     bool includeLower = true,
@@ -3060,7 +2578,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       regionIdStartsWith(
     String value, {
     bool caseSensitive = true,
@@ -3074,7 +2592,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> regionIdEndsWith(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      regionIdEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -3087,9 +2606,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> regionIdContains(
-      String value,
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      regionIdContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
         property: r'regionId',
@@ -3099,9 +2617,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> regionIdMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      regionIdMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
         property: r'regionId',
@@ -3111,7 +2628,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       regionIdIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -3121,7 +2638,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       regionIdIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
@@ -3131,7 +2648,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       regionRefPathIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -3140,7 +2657,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       regionRefPathIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
@@ -3149,7 +2666,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       regionRefPathEqualTo(
     String? value, {
     bool caseSensitive = true,
@@ -3163,7 +2680,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       regionRefPathGreaterThan(
     String? value, {
     bool include = false,
@@ -3179,7 +2696,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       regionRefPathLessThan(
     String? value, {
     bool include = false,
@@ -3195,7 +2712,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       regionRefPathBetween(
     String? lower,
     String? upper, {
@@ -3215,7 +2732,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       regionRefPathStartsWith(
     String value, {
     bool caseSensitive = true,
@@ -3229,7 +2746,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       regionRefPathEndsWith(
     String value, {
     bool caseSensitive = true,
@@ -3243,7 +2760,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       regionRefPathContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
@@ -3254,7 +2771,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       regionRefPathMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
@@ -3265,7 +2782,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       regionRefPathIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -3275,7 +2792,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       regionRefPathIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
@@ -3285,7 +2802,143 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      tipoEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'tipo',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      tipoGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'tipo',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      tipoLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'tipo',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      tipoBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'tipo',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      tipoStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'tipo',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      tipoEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'tipo',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      tipoContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'tipo',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      tipoMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'tipo',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      tipoIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'tipo',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      tipoIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'tipo',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       updatedAtIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -3294,7 +2947,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       updatedAtIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
@@ -3303,8 +2956,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> updatedAtEqualTo(
-      DateTime? value) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      updatedAtEqualTo(DateTime? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'updatedAt',
@@ -3313,7 +2966,7 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
       updatedAtGreaterThan(
     DateTime? value, {
     bool include = false,
@@ -3327,7 +2980,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> updatedAtLessThan(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      updatedAtLessThan(
     DateTime? value, {
     bool include = false,
   }) {
@@ -3340,7 +2994,8 @@ extension AssetModelQueryFilter
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> updatedAtBetween(
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      updatedAtBetween(
     DateTime? lower,
     DateTime? upper, {
     bool includeLower = true,
@@ -3358,654 +3013,704 @@ extension AssetModelQueryFilter
   }
 }
 
-extension AssetModelQueryObject
-    on QueryBuilder<AssetModel, AssetModel, QFilterCondition> {}
+extension OrganizationModelQueryObject
+    on QueryBuilder<OrganizationModel, OrganizationModel, QFilterCondition> {}
 
-extension AssetModelQueryLinks
-    on QueryBuilder<AssetModel, AssetModel, QFilterCondition> {}
+extension OrganizationModelQueryLinks
+    on QueryBuilder<OrganizationModel, OrganizationModel, QFilterCondition> {}
 
-extension AssetModelQuerySortBy
-    on QueryBuilder<AssetModel, AssetModel, QSortBy> {
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByAssetType() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'assetType', Sort.asc);
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByAssetTypeDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'assetType', Sort.desc);
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByCityId() {
+extension OrganizationModelQuerySortBy
+    on QueryBuilder<OrganizationModel, OrganizationModel, QSortBy> {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByCityId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cityId', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByCityIdDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByCityIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cityId', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByCityRefPath() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByCityRefPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cityRefPath', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByCityRefPathDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByCityRefPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cityRefPath', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByCountryId() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByCountryId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryId', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByCountryIdDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByCountryIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryId', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByCountryRefPath() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByCountryRefPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryRefPath', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
       sortByCountryRefPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryRefPath', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByCreatedAt() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByCreatedAtDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByEstado() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'estado', Sort.asc);
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByEstadoDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'estado', Sort.desc);
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortById() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy> sortById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByIdDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByOrgId() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByIsActive() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'orgId', Sort.asc);
+      return query.addSortBy(r'isActive', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByOrgIdDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByIsActiveDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'orgId', Sort.desc);
+      return query.addSortBy(r'isActive', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByOrgRefPath() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByLogoUrl() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'orgRefPath', Sort.asc);
+      return query.addSortBy(r'logoUrl', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByOrgRefPathDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByLogoUrlDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'orgRefPath', Sort.desc);
+      return query.addSortBy(r'logoUrl', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByOwnerId() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByMetadataJson() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'ownerId', Sort.asc);
+      return query.addSortBy(r'metadataJson', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByOwnerIdDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByMetadataJsonDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'ownerId', Sort.desc);
+      return query.addSortBy(r'metadataJson', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByOwnerRefPath() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByNombre() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nombre', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByNombreDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nombre', Sort.desc);
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByOwnerRefPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'ownerRefPath', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByOwnerRefPathDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByOwnerRefPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'ownerRefPath', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByOwnerType() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByOwnerUid() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'ownerType', Sort.asc);
+      return query.addSortBy(r'ownerUid', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByOwnerTypeDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByOwnerUidDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'ownerType', Sort.desc);
+      return query.addSortBy(r'ownerUid', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByRegionId() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByRegionId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionId', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByRegionIdDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByRegionIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionId', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByRegionRefPath() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByRegionRefPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionRefPath', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByRegionRefPathDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByRegionRefPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionRefPath', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByUpdatedAt() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByTipo() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tipo', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByTipoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tipo', Sort.desc);
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByUpdatedAtDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByUpdatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.desc);
     });
   }
 }
 
-extension AssetModelQuerySortThenBy
-    on QueryBuilder<AssetModel, AssetModel, QSortThenBy> {
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByAssetType() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'assetType', Sort.asc);
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByAssetTypeDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'assetType', Sort.desc);
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByCityId() {
+extension OrganizationModelQuerySortThenBy
+    on QueryBuilder<OrganizationModel, OrganizationModel, QSortThenBy> {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByCityId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cityId', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByCityIdDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByCityIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cityId', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByCityRefPath() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByCityRefPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cityRefPath', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByCityRefPathDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByCityRefPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cityRefPath', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByCountryId() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByCountryId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryId', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByCountryIdDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByCountryIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryId', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByCountryRefPath() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByCountryRefPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryRefPath', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy>
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
       thenByCountryRefPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryRefPath', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByCreatedAt() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByCreatedAtDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByEstado() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'estado', Sort.asc);
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByEstadoDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'estado', Sort.desc);
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenById() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByIdDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByIsarId() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByIsActive() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActive', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByIsActiveDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActive', Sort.desc);
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByIsarId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isarId', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByIsarIdDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByIsarIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isarId', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByOrgId() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByLogoUrl() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'orgId', Sort.asc);
+      return query.addSortBy(r'logoUrl', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByOrgIdDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByLogoUrlDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'orgId', Sort.desc);
+      return query.addSortBy(r'logoUrl', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByOrgRefPath() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByMetadataJson() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'orgRefPath', Sort.asc);
+      return query.addSortBy(r'metadataJson', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByOrgRefPathDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByMetadataJsonDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'orgRefPath', Sort.desc);
+      return query.addSortBy(r'metadataJson', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByOwnerId() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByNombre() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'ownerId', Sort.asc);
+      return query.addSortBy(r'nombre', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByOwnerIdDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByNombreDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'ownerId', Sort.desc);
+      return query.addSortBy(r'nombre', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByOwnerRefPath() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByOwnerRefPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'ownerRefPath', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByOwnerRefPathDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByOwnerRefPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'ownerRefPath', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByOwnerType() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByOwnerUid() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'ownerType', Sort.asc);
+      return query.addSortBy(r'ownerUid', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByOwnerTypeDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByOwnerUidDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'ownerType', Sort.desc);
+      return query.addSortBy(r'ownerUid', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByRegionId() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByRegionId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionId', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByRegionIdDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByRegionIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionId', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByRegionRefPath() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByRegionRefPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionRefPath', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByRegionRefPathDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByRegionRefPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionRefPath', Sort.desc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByUpdatedAt() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByTipo() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tipo', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByTipoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tipo', Sort.desc);
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByUpdatedAtDesc() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByUpdatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.desc);
     });
   }
 }
 
-extension AssetModelQueryWhereDistinct
-    on QueryBuilder<AssetModel, AssetModel, QDistinct> {
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByAssetType(
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'assetType', caseSensitive: caseSensitive);
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByCityId(
-      {bool caseSensitive = true}) {
+extension OrganizationModelQueryWhereDistinct
+    on QueryBuilder<OrganizationModel, OrganizationModel, QDistinct> {
+  QueryBuilder<OrganizationModel, OrganizationModel, QDistinct>
+      distinctByCityId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'cityId', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByCityRefPath(
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QDistinct>
+      distinctByCityRefPath({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'cityRefPath', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByCountryId(
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QDistinct>
+      distinctByCountryId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'countryId', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByCountryRefPath(
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QDistinct>
+      distinctByCountryRefPath({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'countryRefPath',
           caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByCreatedAt() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QDistinct>
+      distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByEstado(
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'estado', caseSensitive: caseSensitive);
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByEtiquetas() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'etiquetas');
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByFotosUrls() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'fotosUrls');
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctById(
+  QueryBuilder<OrganizationModel, OrganizationModel, QDistinct> distinctById(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'id', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByOrgId(
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QDistinct>
+      distinctByIsActive() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'orgId', caseSensitive: caseSensitive);
+      return query.addDistinctBy(r'isActive');
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByOrgRefPath(
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QDistinct>
+      distinctByLogoUrl({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'orgRefPath', caseSensitive: caseSensitive);
+      return query.addDistinctBy(r'logoUrl', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByOwnerId(
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QDistinct>
+      distinctByMetadataJson({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'ownerId', caseSensitive: caseSensitive);
+      return query.addDistinctBy(r'metadataJson', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByOwnerRefPath(
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QDistinct>
+      distinctByNombre({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'nombre', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QDistinct>
+      distinctByOwnerRefPath({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'ownerRefPath', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByOwnerType(
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QDistinct>
+      distinctByOwnerUid({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'ownerType', caseSensitive: caseSensitive);
+      return query.addDistinctBy(r'ownerUid', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByRegionId(
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QDistinct>
+      distinctByRegionId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'regionId', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByRegionRefPath(
-      {bool caseSensitive = true}) {
+  QueryBuilder<OrganizationModel, OrganizationModel, QDistinct>
+      distinctByRegionRefPath({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'regionRefPath',
           caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByUpdatedAt() {
+  QueryBuilder<OrganizationModel, OrganizationModel, QDistinct> distinctByTipo(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'tipo', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QDistinct>
+      distinctByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'updatedAt');
     });
   }
 }
 
-extension AssetModelQueryProperty
-    on QueryBuilder<AssetModel, AssetModel, QQueryProperty> {
-  QueryBuilder<AssetModel, int, QQueryOperations> isarIdProperty() {
+extension OrganizationModelQueryProperty
+    on QueryBuilder<OrganizationModel, OrganizationModel, QQueryProperty> {
+  QueryBuilder<OrganizationModel, int, QQueryOperations> isarIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isarId');
     });
   }
 
-  QueryBuilder<AssetModel, String, QQueryOperations> assetTypeProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'assetType');
-    });
-  }
-
-  QueryBuilder<AssetModel, String?, QQueryOperations> cityIdProperty() {
+  QueryBuilder<OrganizationModel, String?, QQueryOperations> cityIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'cityId');
     });
   }
 
-  QueryBuilder<AssetModel, String?, QQueryOperations> cityRefPathProperty() {
+  QueryBuilder<OrganizationModel, String?, QQueryOperations>
+      cityRefPathProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'cityRefPath');
     });
   }
 
-  QueryBuilder<AssetModel, String, QQueryOperations> countryIdProperty() {
+  QueryBuilder<OrganizationModel, String, QQueryOperations>
+      countryIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'countryId');
     });
   }
 
-  QueryBuilder<AssetModel, String?, QQueryOperations> countryRefPathProperty() {
+  QueryBuilder<OrganizationModel, String?, QQueryOperations>
+      countryRefPathProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'countryRefPath');
     });
   }
 
-  QueryBuilder<AssetModel, DateTime?, QQueryOperations> createdAtProperty() {
+  QueryBuilder<OrganizationModel, DateTime?, QQueryOperations>
+      createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
     });
   }
 
-  QueryBuilder<AssetModel, String, QQueryOperations> estadoProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'estado');
-    });
-  }
-
-  QueryBuilder<AssetModel, List<String>, QQueryOperations> etiquetasProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'etiquetas');
-    });
-  }
-
-  QueryBuilder<AssetModel, List<String>, QQueryOperations> fotosUrlsProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'fotosUrls');
-    });
-  }
-
-  QueryBuilder<AssetModel, String, QQueryOperations> idProperty() {
+  QueryBuilder<OrganizationModel, String, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
     });
   }
 
-  QueryBuilder<AssetModel, String, QQueryOperations> orgIdProperty() {
+  QueryBuilder<OrganizationModel, bool, QQueryOperations> isActiveProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'orgId');
+      return query.addPropertyName(r'isActive');
     });
   }
 
-  QueryBuilder<AssetModel, String?, QQueryOperations> orgRefPathProperty() {
+  QueryBuilder<OrganizationModel, String?, QQueryOperations> logoUrlProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'orgRefPath');
+      return query.addPropertyName(r'logoUrl');
     });
   }
 
-  QueryBuilder<AssetModel, String, QQueryOperations> ownerIdProperty() {
+  QueryBuilder<OrganizationModel, String?, QQueryOperations>
+      metadataJsonProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'ownerId');
+      return query.addPropertyName(r'metadataJson');
     });
   }
 
-  QueryBuilder<AssetModel, String?, QQueryOperations> ownerRefPathProperty() {
+  QueryBuilder<OrganizationModel, String, QQueryOperations> nombreProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'nombre');
+    });
+  }
+
+  QueryBuilder<OrganizationModel, String?, QQueryOperations>
+      ownerRefPathProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'ownerRefPath');
     });
   }
 
-  QueryBuilder<AssetModel, String, QQueryOperations> ownerTypeProperty() {
+  QueryBuilder<OrganizationModel, String?, QQueryOperations>
+      ownerUidProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'ownerType');
+      return query.addPropertyName(r'ownerUid');
     });
   }
 
-  QueryBuilder<AssetModel, String?, QQueryOperations> regionIdProperty() {
+  QueryBuilder<OrganizationModel, String?, QQueryOperations>
+      regionIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'regionId');
     });
   }
 
-  QueryBuilder<AssetModel, String?, QQueryOperations> regionRefPathProperty() {
+  QueryBuilder<OrganizationModel, String?, QQueryOperations>
+      regionRefPathProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'regionRefPath');
     });
   }
 
-  QueryBuilder<AssetModel, DateTime?, QQueryOperations> updatedAtProperty() {
+  QueryBuilder<OrganizationModel, String, QQueryOperations> tipoProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'tipo');
+    });
+  }
+
+  QueryBuilder<OrganizationModel, DateTime?, QQueryOperations>
+      updatedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'updatedAt');
     });
@@ -4016,30 +3721,23 @@ extension AssetModelQueryProperty
 // JsonSerializableGenerator
 // **************************************************************************
 
-AssetModel _$AssetModelFromJson(Map<String, dynamic> json) => AssetModel(
+OrganizationModel _$OrganizationModelFromJson(Map<String, dynamic> json) =>
+    OrganizationModel(
       isarId: (json['isarId'] as num?)?.toInt(),
       id: json['id'] as String,
-      orgId: json['orgId'] as String,
-      assetType: json['assetType'] as String,
+      nombre: json['nombre'] as String,
+      tipo: json['tipo'] as String,
       countryId: json['countryId'] as String,
       regionId: json['regionId'] as String?,
       cityId: json['cityId'] as String?,
-      ownerType: json['ownerType'] as String,
-      ownerId: json['ownerId'] as String,
-      estado: json['estado'] as String,
-      etiquetas: (json['etiquetas'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
-      fotosUrls: (json['fotosUrls'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
-      orgRefPath: json['orgRefPath'] as String?,
-      ownerRefPath: json['ownerRefPath'] as String?,
+      ownerUid: json['ownerUid'] as String?,
+      logoUrl: json['logoUrl'] as String?,
       countryRefPath: json['countryRefPath'] as String?,
       regionRefPath: json['regionRefPath'] as String?,
       cityRefPath: json['cityRefPath'] as String?,
+      ownerRefPath: json['ownerRefPath'] as String?,
+      metadataJson: json['metadataJson'] as String?,
+      isActive: json['isActive'] as bool? ?? true,
       createdAt: json['createdAt'] == null
           ? null
           : DateTime.parse(json['createdAt'] as String),
@@ -4048,25 +3746,23 @@ AssetModel _$AssetModelFromJson(Map<String, dynamic> json) => AssetModel(
           : DateTime.parse(json['updatedAt'] as String),
     );
 
-Map<String, dynamic> _$AssetModelToJson(AssetModel instance) =>
+Map<String, dynamic> _$OrganizationModelToJson(OrganizationModel instance) =>
     <String, dynamic>{
       'isarId': instance.isarId,
       'id': instance.id,
-      'orgId': instance.orgId,
-      'assetType': instance.assetType,
+      'nombre': instance.nombre,
+      'tipo': instance.tipo,
       'countryId': instance.countryId,
       'regionId': instance.regionId,
       'cityId': instance.cityId,
-      'ownerType': instance.ownerType,
-      'ownerId': instance.ownerId,
-      'estado': instance.estado,
-      'etiquetas': instance.etiquetas,
-      'fotosUrls': instance.fotosUrls,
-      'orgRefPath': instance.orgRefPath,
-      'ownerRefPath': instance.ownerRefPath,
+      'ownerUid': instance.ownerUid,
+      'logoUrl': instance.logoUrl,
       'countryRefPath': instance.countryRefPath,
       'regionRefPath': instance.regionRefPath,
       'cityRefPath': instance.cityRefPath,
+      'ownerRefPath': instance.ownerRefPath,
+      'metadataJson': instance.metadataJson,
+      'isActive': instance.isActive,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
     };

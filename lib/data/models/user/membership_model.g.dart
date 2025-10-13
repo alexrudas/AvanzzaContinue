@@ -42,23 +42,28 @@ const MembershipModelSchema = CollectionSchema(
       name: r'orgName',
       type: IsarType.string,
     ),
-    r'primaryLocationJson': PropertySchema(
+    r'orgRefPath': PropertySchema(
       id: 5,
+      name: r'orgRefPath',
+      type: IsarType.string,
+    ),
+    r'primaryLocationJson': PropertySchema(
+      id: 6,
       name: r'primaryLocationJson',
       type: IsarType.string,
     ),
     r'roles': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'roles',
       type: IsarType.stringList,
     ),
     r'updatedAt': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'userId': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'userId',
       type: IsarType.string,
     )
@@ -73,7 +78,7 @@ const MembershipModelSchema = CollectionSchema(
       id: -3268401673993471357,
       name: r'id',
       unique: true,
-      replace: true,
+      replace: false,
       properties: [
         IndexPropertySchema(
           name: r'id',
@@ -107,6 +112,19 @@ const MembershipModelSchema = CollectionSchema(
           caseSensitive: true,
         )
       ],
+    ),
+    r'estatus': IndexSchema(
+      id: 1947051108765772602,
+      name: r'estatus',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'estatus',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
     )
   },
   links: {},
@@ -127,6 +145,12 @@ int _membershipModelEstimateSize(
   bytesCount += 3 + object.id.length * 3;
   bytesCount += 3 + object.orgId.length * 3;
   bytesCount += 3 + object.orgName.length * 3;
+  {
+    final value = object.orgRefPath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   {
     final value = object.primaryLocationJson;
     if (value != null) {
@@ -155,10 +179,11 @@ void _membershipModelSerialize(
   writer.writeString(offsets[2], object.id);
   writer.writeString(offsets[3], object.orgId);
   writer.writeString(offsets[4], object.orgName);
-  writer.writeString(offsets[5], object.primaryLocationJson);
-  writer.writeStringList(offsets[6], object.roles);
-  writer.writeDateTime(offsets[7], object.updatedAt);
-  writer.writeString(offsets[8], object.userId);
+  writer.writeString(offsets[5], object.orgRefPath);
+  writer.writeString(offsets[6], object.primaryLocationJson);
+  writer.writeStringList(offsets[7], object.roles);
+  writer.writeDateTime(offsets[8], object.updatedAt);
+  writer.writeString(offsets[9], object.userId);
 }
 
 MembershipModel _membershipModelDeserialize(
@@ -174,10 +199,11 @@ MembershipModel _membershipModelDeserialize(
     isarId: id,
     orgId: reader.readString(offsets[3]),
     orgName: reader.readString(offsets[4]),
-    primaryLocationJson: reader.readStringOrNull(offsets[5]),
-    roles: reader.readStringList(offsets[6]) ?? const [],
-    updatedAt: reader.readDateTimeOrNull(offsets[7]),
-    userId: reader.readString(offsets[8]),
+    orgRefPath: reader.readStringOrNull(offsets[5]),
+    primaryLocationJson: reader.readStringOrNull(offsets[6]),
+    roles: reader.readStringList(offsets[7]) ?? const [],
+    updatedAt: reader.readDateTimeOrNull(offsets[8]),
+    userId: reader.readString(offsets[9]),
   );
   return object;
 }
@@ -202,10 +228,12 @@ P _membershipModelDeserializeProp<P>(
     case 5:
       return (reader.readStringOrNull(offset)) as P;
     case 6:
-      return (reader.readStringList(offset) ?? const []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 7:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? const []) as P;
     case 8:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 9:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -488,6 +516,51 @@ extension MembershipModelQueryWhere
               indexName: r'orgId',
               lower: [],
               upper: [orgId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterWhereClause>
+      estatusEqualTo(String estatus) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'estatus',
+        value: [estatus],
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterWhereClause>
+      estatusNotEqualTo(String estatus) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'estatus',
+              lower: [],
+              upper: [estatus],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'estatus',
+              lower: [estatus],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'estatus',
+              lower: [estatus],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'estatus',
+              lower: [],
+              upper: [estatus],
               includeUpper: false,
             ));
       }
@@ -1190,6 +1263,160 @@ extension MembershipModelQueryFilter
   }
 
   QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      orgRefPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'orgRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      orgRefPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'orgRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      orgRefPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      orgRefPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      orgRefPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      orgRefPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'orgRefPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      orgRefPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      orgRefPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      orgRefPathContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      orgRefPathMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'orgRefPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      orgRefPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'orgRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      orgRefPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'orgRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
       primaryLocationJsonIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1853,6 +2080,20 @@ extension MembershipModelQuerySortBy
   }
 
   QueryBuilder<MembershipModel, MembershipModel, QAfterSortBy>
+      sortByOrgRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'orgRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterSortBy>
+      sortByOrgRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'orgRefPath', Sort.desc);
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterSortBy>
       sortByPrimaryLocationJson() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'primaryLocationJson', Sort.asc);
@@ -1975,6 +2216,20 @@ extension MembershipModelQuerySortThenBy
   }
 
   QueryBuilder<MembershipModel, MembershipModel, QAfterSortBy>
+      thenByOrgRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'orgRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterSortBy>
+      thenByOrgRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'orgRefPath', Sort.desc);
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterSortBy>
       thenByPrimaryLocationJson() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'primaryLocationJson', Sort.asc);
@@ -2054,6 +2309,13 @@ extension MembershipModelQueryWhereDistinct
   }
 
   QueryBuilder<MembershipModel, MembershipModel, QDistinct>
+      distinctByOrgRefPath({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'orgRefPath', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QDistinct>
       distinctByPrimaryLocationJson({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'primaryLocationJson',
@@ -2122,6 +2384,13 @@ extension MembershipModelQueryProperty
   }
 
   QueryBuilder<MembershipModel, String?, QQueryOperations>
+      orgRefPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'orgRefPath');
+    });
+  }
+
+  QueryBuilder<MembershipModel, String?, QQueryOperations>
       primaryLocationJsonProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'primaryLocationJson');
@@ -2165,8 +2434,13 @@ MembershipModel _$MembershipModelFromJson(Map<String, dynamic> json) =>
               const [],
       estatus: json['estatus'] as String,
       primaryLocationJson: json['primaryLocationJson'] as String?,
-      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
-      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
+      orgRefPath: json['orgRefPath'] as String?,
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.parse(json['createdAt'] as String),
+      updatedAt: json['updatedAt'] == null
+          ? null
+          : DateTime.parse(json['updatedAt'] as String),
     );
 
 Map<String, dynamic> _$MembershipModelToJson(MembershipModel instance) =>
@@ -2179,8 +2453,7 @@ Map<String, dynamic> _$MembershipModelToJson(MembershipModel instance) =>
       'roles': instance.roles,
       'estatus': instance.estatus,
       'primaryLocationJson': instance.primaryLocationJson,
-      'createdAt':
-          const DateTimeTimestampConverter().toJson(instance.createdAt),
-      'updatedAt':
-          const DateTimeTimestampConverter().toJson(instance.updatedAt),
+      'orgRefPath': instance.orgRefPath,
+      'createdAt': instance.createdAt?.toIso8601String(),
+      'updatedAt': instance.updatedAt?.toIso8601String(),
     };

@@ -1,11 +1,11 @@
-import 'package:isar_community/isar.dart';
+import 'package:isar_community/isar.dart' as isar;
 
-part 'registration_progress_model.g.dart';
+part 'registration_progress_model.isar.g.dart';
 
-@Collection()
+@isar.Collection()
 class RegistrationProgressModel {
-  Id? isarId;
-  @Index(unique: true, replace: true)
+  isar.Id? isarId;
+  @isar.Index(unique: true, replace: true)
   late String id; // e.g., 'current' or phone
 
   int step = 0; // 0..N
