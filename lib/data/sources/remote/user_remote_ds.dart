@@ -34,7 +34,7 @@ class UserRemoteDataSource {
         .where('userId', isEqualTo: uid)
         .get();
     return snap.docs
-        .map((d) => MembershipModel.fromFirestore(d.id, d.data()))
+        .map((d) => MembershipModel.fromFirestore(d.id, d.data(), db: db))
         .toList();
   }
 }

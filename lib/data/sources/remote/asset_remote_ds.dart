@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../models/asset/asset_model.dart';
 import '../../models/asset/asset_document_model.dart';
-import '../../models/asset/special/asset_vehiculo_model.dart';
+import '../../models/asset/asset_model.dart';
 import '../../models/asset/special/asset_inmueble_model.dart';
 import '../../models/asset/special/asset_maquinaria_model.dart';
+import '../../models/asset/special/asset_vehiculo_model.dart';
 
 class AssetRemoteDataSource {
   final FirebaseFirestore db;
@@ -18,15 +18,16 @@ class AssetRemoteDataSource {
     if (cityId != null) q = q.where('cityId', isEqualTo: cityId);
     final snap = await q.get();
     return snap.docs
-        .map((d) =>
-            AssetModel.fromFirestore(d.id, d.data() as Map<String, dynamic>))
+        .map((d) => AssetModel.fromFirestore(
+            d.id, d.data() as Map<String, dynamic>,
+            db: db))
         .toList();
   }
 
   Future<AssetModel?> getAsset(String assetId) async {
     final d = await db.collection('assets').doc(assetId).get();
     if (!d.exists) return null;
-    return AssetModel.fromFirestore(d.id, d.data()!);
+    return AssetModel.fromFirestore(d.id, d.data()!, db: db);
   }
 
   Future<void> upsertAsset(AssetModel m) async {

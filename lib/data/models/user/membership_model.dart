@@ -1,16 +1,16 @@
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart' as fs show Timestamp;
 import 'package:cloud_firestore/cloud_firestore.dart'
     show FirebaseFirestore, DocumentReference;
+import 'package:cloud_firestore/cloud_firestore.dart' as fs show Timestamp;
 import 'package:isar_community/isar.dart' as isar;
+import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import '../../../domain/entities/user/membership_entity.dart' as domain;
 import '../common/converters/doc_ref_path_converter.dart';
 
 part 'membership_model.g.dart';
-part 'membership_model.isar.g.dart';
 
 @isar.collection
 @JsonSerializable(explicitToJson: true)

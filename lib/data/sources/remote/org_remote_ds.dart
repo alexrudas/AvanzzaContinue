@@ -12,15 +12,17 @@ class OrgRemoteDataSource {
     if (countryId != null) q = q.where('countryId', isEqualTo: countryId);
     if (cityId != null) q = q.where('cityId', isEqualTo: cityId);
     final snap = await q.get();
-    return snap.docs.map((d) => OrganizationModel.fromFirestore(
-            d.id, d.data() as Map<String, dynamic>))
+    return snap.docs
+        .map((d) => OrganizationModel.fromFirestore(
+            d.id, d.data() as Map<String, dynamic>,
+            db: db))
         .toList();
   }
 
   Future<OrganizationModel?> getOrg(String orgId) async {
     final d = await db.collection('organizations').doc(orgId).get();
     if (!d.exists) return null;
-    return OrganizationModel.fromFirestore(d.id, d.data()!);
+    return OrganizationModel.fromFirestore(d.id, d.data()!, db: db);
   }
 
   Future<void> upsertOrg(OrganizationModel model) async {

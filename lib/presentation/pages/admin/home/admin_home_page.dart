@@ -44,6 +44,8 @@ class _HomeBody extends StatelessWidget {
           children: [
             _Panel360(),
             SizedBox(height: 12),
+            _IndicadoresGestion(), // <<--- SECCIÓN ACTUALIZADA
+            SizedBox(height: 12),
             _EventosPorRevisarTile(),
             SizedBox(height: 12),
             _PublicacionesTile(),
@@ -111,7 +113,6 @@ class _Panel360State extends State<_Panel360> {
               _saveExpanded(_expanded);
             },
           ),
-
           const SizedBox(height: 10),
 
           // Contenido expandible
@@ -197,46 +198,302 @@ class _Panel360State extends State<_Panel360> {
                     ),
                   ],
                 ),
-
-                SizedBox(height: 14),
-
-                // ROW 3 — ESTRATEGIA
-                _RowHeader('Estrategia'),
-                SizedBox(height: 6),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ActionCard(
-                        label: 'Métricas',
-                        icon: Icons.insights_outlined,
-                        accent: Color(0xFF005F73), // azul petróleo
-                      ),
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: _ActionCard(
-                        label: 'Trazabilidad',
-                        icon: Icons.timeline_outlined,
-                        accent: Color(0xFF9B5DE5), // violeta tech
-                      ),
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: _ActionCard(
-                        label: 'Reportes',
-                        icon: Icons.insert_chart_outlined_rounded,
-                        accent: Color(0xFF1E3A8A), // navy
-                      ),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: 4),
               ],
             ),
             secondChild: const SizedBox.shrink(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/* ===================== INDICADORES DE GESTIÓN (UNIVERSALES) ===================== */
+
+class _IndicadoresGestion extends StatelessWidget {
+  const _IndicadoresGestion();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _C.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _C.border),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x0F000000), blurRadius: 10, offset: Offset(0, 3)),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      child: LayoutBuilder(
+        builder: (context, c) {
+          // mínimos razonables (en px lógicos) + gutter
+          const double minBig = 190; // tile grande
+          const double minMini = 110; // cada mini
+          const double gutter = 10; // separación central
+
+          final bool stackVertical = c.maxWidth < (minBig + minMini + gutter);
+
+          if (stackVertical) {
+            // Apilado vertical en pantallas estrechas
+            return const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _KpiBigTile(
+                  color: _C.kpiCoral,
+                  icon: Icons.account_balance_wallet_outlined,
+                  projectedLabel: 'Presupuesto mes',
+                  projectedValue: '\$ 200.000.000',
+                  availableValue: '\$ 103.580.000',
+                  availableLabel: 'Presupuesto Disponible',
+                ),
+                SizedBox(height: 10),
+                _KpiMiniTile(
+                  color: _C.kpiGreen,
+                  icon: Icons.stacked_line_chart,
+                  value: '25%',
+                  label: '% Margen Objetivo',
+                ),
+                SizedBox(height: 10),
+                _KpiMiniTile(
+                  color: _C.kpiNavy,
+                  icon: Icons.percent,
+                  value: '92%',
+                  label: '% Productividad',
+                ),
+              ],
+            );
+          }
+
+          // 1 grande (izq) + 2 minis apiladas (der)
+          return const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 3, // un poco menos ancho para ganar aire en los minis
+                child: _KpiBigTile(
+                  color: _C.kpiCoral,
+                  icon: Icons.account_balance_wallet_outlined,
+                  projectedLabel: 'Presupuesto mes',
+                  projectedValue: '\$ 200.000.000',
+                  availableValue: '\$ 103.580.000',
+                  availableLabel: 'Presupuesto Disponible',
+                ),
+              ),
+              SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  children: [
+                    _KpiMiniTile(
+                      color: _C.kpiGreen,
+                      icon: Icons.stacked_line_chart,
+                      value: '25%',
+                      label: '% Margen Objetivo',
+                    ),
+                    SizedBox(height: 10),
+                    _KpiMiniTile(
+                      color: _C.kpiNavy,
+                      icon: Icons.percent,
+                      value: '92%',
+                      label: '% Productividad',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/* ----------------- Tiles ----------------- */
+
+class _KpiBigTile extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+
+  // Opción A: valores proyectado + disponible en una sola tarjeta
+  final String projectedLabel; // 'Presupuesto mes'
+  final String projectedValue; // p.ej. '$ 200.000.000'
+  final String availableValue; // p.ej. '$ 103.580.000'
+  final String availableLabel; // 'Presupuesto Disponible'
+
+  const _KpiBigTile({
+    required this.color,
+    required this.icon,
+    required this.projectedLabel,
+    required this.projectedValue,
+    required this.availableValue,
+    required this.availableLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        height: 134, // empareja con dos minis + gutter
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _C.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Fila superior: icono + proyectado (discreto)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color.withOpacity(.12),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(icon, color: color, size: 18),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        projectedLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: _C.textSecondary,
+                          height: 1.1,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        projectedValue,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          color: _C.textPrimary,
+                          height: 1.15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            // Bloque principal: disponible (protagonista)
+            Text(
+              availableValue,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: color, // coral
+                height: 1.0,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              availableLabel,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: _C.textSecondary,
+                height: 1.2,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _KpiMiniTile extends StatelessWidget {
+  final String value, label;
+  final Color color;
+  final IconData icon;
+
+  const _KpiMiniTile({
+    required this.value,
+    required this.label,
+    required this.color,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        height: 61, // dos minis + 10 ≈ alto del big
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _C.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withOpacity(.12),
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, color: color, size: 16),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: color,
+                      height: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: _C.textSecondary,
+                      height: 1.1,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -330,7 +587,7 @@ class _ActionCard extends StatelessWidget {
                     height: 40,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: accent.withValues(alpha: 0.12),
+                      color: accent.withOpacity(0.12),
                     ),
                     alignment: Alignment.center,
                     child: Icon(icon, color: accent, size: 20),
@@ -345,11 +602,13 @@ class _ActionCard extends StatelessWidget {
                         decoration: BoxDecoration(
                             color: accent,
                             borderRadius: BorderRadius.circular(10)),
-                        child: Text(badge!,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700)),
+                        child: Text(
+                          badge!,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ),
                 ],
@@ -360,10 +619,11 @@ class _ActionCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                    color: _C.textPrimary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    height: 1.15),
+                  color: _C.textPrimary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  height: 1.15,
+                ),
               ),
               if (money != null) ...[
                 const SizedBox(height: 4),
@@ -372,9 +632,10 @@ class _ActionCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w800,
-                      color: _moneyColor()),
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: _moneyColor(),
+                  ),
                 ),
               ],
             ],
@@ -399,10 +660,7 @@ class _EventosPorRevisarTile extends StatelessWidget {
         border: Border.all(color: const Color(0xFFB3E5FC)), // borde sutil
         boxShadow: const [
           BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 8,
-            offset: Offset(0, 3),
-          ),
+              color: Color(0x14000000), blurRadius: 8, offset: Offset(0, 3)),
         ],
       ),
       child: InkWell(
@@ -440,7 +698,7 @@ class _EventosPorRevisarTile extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15.5,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E3A8A), // azul profundo (confianza)
+                        color: Color(0xFF1E3A8A), // azul profundo
                         height: 1.2,
                       ),
                     ),
@@ -475,7 +733,7 @@ class _IconCircle extends StatelessWidget {
       height: 44,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: _C.primary.withValues(alpha: 0.10),
+        color: _C.primary.withOpacity(0.10),
       ),
       alignment: Alignment.center,
       child: Icon(icon, color: _C.primary, size: 24),
@@ -503,22 +761,22 @@ class _QuickActions extends StatelessWidget {
           _QuickAction(
             icon: Icons.emoji_transportation,
             label: 'Activos',
-            fillColor: Color(0xFF43A047), // Verde profesional accesible
+            fillColor: Color(0xFF43A047),
           ),
           _QuickAction(
             icon: Icons.key_outlined,
             label: 'Propietarios',
-            fillColor: Color(0xFF4E6E9B), // Azul violáceo (accesible)
+            fillColor: Color(0xFF4E6E9B),
           ),
           _QuickAction(
             icon: Icons.groups_2_outlined,
             label: 'Colaborador',
-            fillColor: Color(0xFF1E88E5), // Azul brillante, alto contraste
+            fillColor: Color(0xFF1E88E5),
           ),
           _QuickAction(
             icon: Icons.contact_page_outlined,
             label: 'Arrendatarios',
-            fillColor: Color(0xFFFFB300), // Ámbar accesible (mejor contraste)
+            fillColor: Color(0xFFFFB300),
           ),
         ],
       ),
@@ -547,25 +805,18 @@ class _QuickAction extends StatelessWidget {
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: fillColor.withValues(alpha: 0.85),
-            border: Border.all(
-              color: Colors.black.withValues(alpha: 0.05),
-              width: 0.8,
-            ),
+            color: fillColor.withOpacity(0.85),
+            border:
+                Border.all(color: Colors.black.withOpacity(0.05), width: 0.8),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x11000000),
-                blurRadius: 6,
-                offset: Offset(0, 3),
-              ),
+                  color: Color(0x11000000),
+                  blurRadius: 6,
+                  offset: Offset(0, 3)),
             ],
           ),
           alignment: Alignment.center,
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: 28,
-          ),
+          child: Icon(icon, color: Colors.white, size: 28),
         ),
         const SizedBox(height: 8),
         SizedBox(
@@ -575,7 +826,7 @@ class _QuickAction extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 13,
-              color: Color(0xFF3C3C3C), // Gris institucional PRO
+              color: Color(0xFF3C3C3C),
               fontWeight: FontWeight.w500,
               height: 1.1,
             ),
@@ -633,7 +884,6 @@ class _PublicacionesTile extends StatelessWidget {
                   ],
                 ),
               ),
-              // Icon(Icons.chevron_right, color: _C.textSecondary, size: 22),
             ],
           ),
         ),
@@ -683,11 +933,9 @@ class _SectionTitle extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 🔹 Título + Toggle (alineados en una fila)
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Título
             Text(
               text,
               style: const TextStyle(
@@ -697,8 +945,6 @@ class _SectionTitle extends StatelessWidget {
                 color: _C.textPrimary,
               ),
             ),
-
-            // Toggle con icono a la derecha
             TextButton(
               style: TextButton.styleFrom(
                 foregroundColor: _C.textSecondary,
@@ -728,8 +974,6 @@ class _SectionTitle extends StatelessWidget {
             ),
           ],
         ),
-
-        // 🔹 Subtítulo debajo
         if (subtitle.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 2),
@@ -757,24 +1001,29 @@ class _C {
   static const border = Color(0xFFE6E8EB);
   static const textPrimary = Color(0xFF1A1A1A);
   static const textSecondary = Color(0xFF6B6F76);
-  static const warningBg = Color(0xFFFFF7E0);
-  static const warningFg = Color(0xFFF5A000);
+  // static const warningBg = Color(0xFFFFF7E0);
+  // static const warningFg = Color(0xFFF5A000);
+
+  // Paleta corporativa refinada para KPIs
+  static const kpiGreen = Color(0xFF0A9396); // verde petróleo
+  static const kpiCoral = Color(0xFFE76F51); // coral
+  static const kpiNavy = Color(0xFF1E3A8A); // navy
 }
 
-class _G {
-  static const blue = LinearGradient(
-    colors: [Color(0xFF0052CC), Color(0xFF1E88E5)],
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
-  );
-  static const green = LinearGradient(
-    colors: [Color(0xFF2E7D32), Color(0xFF43A047)],
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
-  );
-  static const amber = LinearGradient(
-    colors: [Color(0xFFF9A825), Color(0xFFFFB300)],
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
-  );
-}
+// class _G {
+//   static const blue = LinearGradient(
+//     colors: [Color(0xFF0052CC), Color(0xFF1E88E5)],
+//     begin: Alignment.centerLeft,
+//     end: Alignment.centerRight,
+//   );
+//   static const green = LinearGradient(
+//     colors: [Color(0xFF2E7D32), Color(0xFF43A047)],
+//     begin: Alignment.centerLeft,
+//     end: Alignment.centerRight,
+//   );
+//   static const amber = LinearGradient(
+//     colors: [Color(0xFFF9A825), Color(0xFFFFB300)],
+//     begin: Alignment.centerLeft,
+//     end: Alignment.centerRight,
+//   );
+// }

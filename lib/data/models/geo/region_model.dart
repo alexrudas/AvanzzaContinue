@@ -9,16 +9,16 @@
 /// - fromIsar(db): reconstruye refs desde paths guardados.
 library;
 
-import 'package:cloud_firestore/cloud_firestore.dart'
-    show FirebaseFirestore, DocumentReference;
+import 'package:cloud_firestore/cloud_firestore.dart' as fs
+    show FirebaseFirestore, DocumentReference, Timestamp;
 import 'package:isar_community/isar.dart' as isar;
+import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import '../../../domain/entities/geo/region_entity.dart' as domain;
 import '../common/converters/doc_ref_path_converter.dart';
 
 part 'region_model.g.dart';
-part 'region_model.isar.g.dart';
 
 @isar.collection
 @JsonSerializable(explicitToJson: true)
@@ -31,7 +31,7 @@ class RegionModel {
   // Refs ignoradas por JsonSerializable (se manejan en fábricas)
   @isar.ignore
   @JsonKey(includeFromJson: false, includeToJson: false)
-  final DocumentReference<Map<String, dynamic>>? countryRef;
+  final fs.DocumentReference<Map<String, dynamic>>? countryRef;
 
   final String? countryRefPath; // Path para Isar/local
 
@@ -71,12 +71,12 @@ class RegionModel {
   factory RegionModel.fromFirestore(
     String docId,
     Map<String, dynamic> json, {
-    required FirebaseFirestore db,
+    required fs.FirebaseFirestore db,
   }) {
     const conv = DocRefPathConverter();
     final anyRef = json['countryRef'];
-    DocumentReference<Map<String, dynamic>>? cRef;
-    if (anyRef is DocumentReference) {
+    fs.DocumentReference<Map<String, dynamic>>? cRef;
+    if (anyRef is fs.DocumentReference) {
       cRef = anyRef.withConverter<Map<String, dynamic>>(
         fromFirestore: (s, _) => s.data() ?? <String, dynamic>{},
         toFirestore: (m, _) => m,
@@ -90,7 +90,7 @@ class RegionModel {
 
     DateTime? parseTs(Object? v) {
       if (v == null) return null;
-      if (v is Timestamp) return v.toDate().toUtc();
+      if (v is fs.Timestamp) return v.toDate().toUtc();
       if (v is String) return DateTime.tryParse(v)?.toUtc();
       if (v is num) {
         final isMillis = v.abs() >= 1000000000000;
@@ -147,7 +147,7 @@ class RegionModel {
 
   // Reconstrucción desde Isar/local
   factory RegionModel.fromIsar(
-      Map<String, dynamic> isar, FirebaseFirestore db) {
+      Map<String, dynamic> isar, fs.FirebaseFirestore db) {
     const conv = DocRefPathConverter();
     final cPath = isar['countryRefPath'] as String?;
     return RegionModel(

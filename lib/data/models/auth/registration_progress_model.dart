@@ -1,15 +1,16 @@
 import 'package:isar_community/isar.dart' as isar;
+import 'package:isar_community/isar.dart';
 
-part 'registration_progress_model.isar.g.dart';
+part 'registration_progress_model.g.dart';
 
 @isar.Collection()
 class RegistrationProgressModel {
   isar.Id? isarId;
+
   @isar.Index(unique: true, replace: true)
-  late String id; // e.g., 'current' or phone
+  late String id;
 
-  int step = 0; // 0..N
-
+  int step = 0;
   String? phone;
   String? username;
   bool passwordSet = false;
@@ -23,26 +24,14 @@ class RegistrationProgressModel {
   String? regionId;
   String? cityId;
 
-  // Perfil del proveedor (unificado)
-  String?
-      segment; // 'vehiculos'|'inmuebles'|'equipos_construccion'|'maquinaria'|'otros_equipos'
-  String? vehicleType; // si segment == 'vehiculos'
-  String? providerCategory; // categoría dependiente del segmento
-
-  // Onboarding consolidado
-  String? titularType; // 'persona' | 'empresa'
-  String? providerType; // 'servicios' | 'articulos' (tipo activo)
-  List<String> providerTypes =
-      []; // NUEVO: tipos seleccionados ['articulos','servicios']
-  // Consolidado proveedor (legacy)
-  List<String> assetTypeIds =
-      []; // ['vehiculos','inmuebles','maquinaria','equipos','otros']
-  String?
-      businessCategoryId; // ej: 'lubricentro'|'ferreteria'|'mecanico_independiente'
-  List<String> assetSegmentIds = []; // ['moto','auto','camion'] si aplica
-  List<String> offeringLineIds = []; // opcional
-  List<String> coverageCities = []; // ['CO/ANT/MEDELLIN', ...]
-  List<String> categories = []; // legacy (mantener por compatibilidad)
+  String? titularType;
+  String? providerType;
+  List<String> assetTypeIds = [];
+  String? businessCategoryId;
+  List<String> assetSegmentIds = [];
+  List<String> offeringLineIds = [];
+  List<String> coverageCities = [];
+  List<String> categories = [];
 
   String? selectedRole;
   bool termsAccepted = false;
