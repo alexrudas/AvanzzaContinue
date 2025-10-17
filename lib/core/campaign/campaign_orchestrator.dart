@@ -33,6 +33,9 @@ class CampaignOrchestrator {
 
   bool _initialized = false;
 
+  // Gate de demo: controla si ya se mostró en este launch (solo memoria)
+  bool _devShownThisLaunch = false;
+
   CampaignState get state => _state;
 
   void init() {
@@ -61,10 +64,19 @@ class CampaignOrchestrator {
     final eligible = await _checkEligibility(campaign, screenId);
     if (!eligible) return;
 
-    final canShow = await _frequencyStore.canShow(campaign.id);
-    if (!canShow) return;
+    // Guard demo: fuerza 1 por launch e ignora frecuencia persistente
+    if (kDevForceShowOncePerLaunch) {
+      if (_devShownThisLaunch) return;
+      // Continuar sin chequear canShow (modo demo)
+    } else {
+      final canShow = await _frequencyStore.canShow(campaign.id);
+      if (!canShow) return;
+      await _frequencyStore.recordShow(campaign.id);
+    }
 
-    await _frequencyStore.recordShow(campaign.id);
+    // Marcar como mostrada en este launch (demo o producción)
+    _devShownThisLaunch = true;
+
     _currentCampaign = campaign;
     _currentScreenId = screenId;
     _showStartTime = DateTime.now();
@@ -204,5 +216,13 @@ class CampaignOrchestrator {
     );
 
     _analytics.logCampaignEvent(event);
+  }
+
+  /// Resetea el gate de demo (solo para desarrollo/testing)
+  ///
+  /// Permite volver a mostrar la campaña en el mismo launch.
+  /// Útil para pruebas sin reiniciar la app.
+  void resetDevGate() {
+    _devShownThisLaunch = false;
   }
 }

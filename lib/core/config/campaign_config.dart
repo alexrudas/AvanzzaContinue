@@ -14,6 +14,14 @@
 /// false = Campañas desactivadas (producción segura)
 const bool kCampaignsEnabled = true;
 
+/// Modo demo: fuerza 1 muestra por arranque, ignorando frecuencia persistente
+///
+/// true = Muestra campaña una vez por app launch (útil para desarrollo/QA)
+/// false = Respeta reglas de frecuencia normales (producción)
+///
+/// IMPORTANTE: Solo afecta memoria (no Isar). Desactivar para producción.
+const bool kDevForceShowOncePerLaunch = true;
+
 /// Configuración de timings
 class CampaignTimings {
   /// Delay inicial antes de mostrar campaña (ms)
