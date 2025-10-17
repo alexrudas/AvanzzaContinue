@@ -19,3 +19,9 @@ abstract class ActiveContext with _$ActiveContext {
   factory ActiveContext.fromJson(Map<String, dynamic> json) =>
       _$ActiveContextFromJson(json);
 }
+
+/// Extension para getters de conveniencia del campaign system
+extension ActiveContextX on ActiveContext {
+  String get userRole => rol;
+  String? get currentCityId => null; // No existe cityId real en ActiveContext
+}
