@@ -13,14 +13,12 @@ import 'package:avanzza/domain/entities/role_permission_entity.dart';
 import 'package:avanzza/domain/entities/user_profile_entity.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../datasources/firestore/user_firestore_ds.dart';
-import '../models/user_profile_model.dart';
 import 'package:get/get.dart';
 
 import '../../../domain/entities/user/active_context.dart';
 import '../../../domain/entities/user/membership_entity.dart';
 import '../../../domain/entities/user/user_entity.dart';
 import '../../../domain/repositories/user_repository.dart';
-import '../datasources/firestore/user_firestore_ds.dart';
 
 class UserRepositoryImpl implements UserRepository {
   final UserLocalDataSource local;
@@ -143,12 +141,41 @@ class UserRepositoryImpl implements UserRepository {
     final userFirestore = Get.find<UserFirestoreDS>();
     final isarSession = Get.find<IsarSessionDS>();
 
-    final existing = await userFirestore.getProfile(uid);
-    if (existing != null) {
-      await isarSession.saveProfileCache(existing);
-      return existing.toEntity();
+    // 1. ✅ Revisar cache local PRIMERO (offline-first)
+    final cached = await isarSession.getProfileCache(uid);
+    if (cached != null) {
+      // Background sync para actualizar si hay cambios remotos
+      unawaited(() async {
+        try {
+          final remote = await userFirestore.getProfile(uid);
+          if (remote != null) {
+            // Verificar si remote es más reciente
+            final remoteTime = remote.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            final cachedTime = cached.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            if (remoteTime.isAfter(cachedTime)) {
+              await isarSession.saveProfileCache(remote);
+            }
+          }
+        } catch (_) {
+          // Silently fail - offline mode
+        }
+      }());
+      return cached.toEntity();
     }
 
+    // 2. Si no existe en cache, buscar en remote (bootstrap o primera vez)
+    try {
+      final existing = await userFirestore.getProfile(uid);
+      if (existing != null) {
+        await isarSession.saveProfileCache(existing);
+        return existing.toEntity();
+      }
+    } catch (_) {
+      // Si falla remote y no hay cache, crear perfil básico local
+      // para permitir que la app funcione offline desde el inicio
+    }
+
+    // 3. Bootstrap: crear nuevo perfil
     final model = UserProfileModel(
       uid: uid,
       phone: phone,
@@ -165,23 +192,52 @@ class UserRepositoryImpl implements UserRepository {
       termsVersion: null,
       termsAcceptedAt: null,
       status: 'active',
-      createdAt: null,
-      updatedAt: null,
+      createdAt: DateTime.now().toUtc(),
+      updatedAt: DateTime.now().toUtc(),
     );
-    await userFirestore.createProfile(uid, model);
-    await userFirestore.updateProfile(uid, {
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+
+    // 4. ✅ Guardar local primero
     await isarSession.saveProfileCache(model);
+
+    // 5. ✅ Intentar crear en remote
+    try {
+      await userFirestore.createProfile(uid, model);
+      await userFirestore.updateProfile(uid, {
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {
+      // 6. ✅ Encolar si falla
+      DIContainer().syncService.enqueue(() async {
+        await userFirestore.createProfile(uid, model);
+        await userFirestore.updateProfile(uid, {
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      });
+    }
+
     return model.toEntity();
   }
 
   @override
   Future<void> updateUserProfile(UserProfileEntity profile) async {
     final userFirestore = Get.find<UserFirestoreDS>();
+    final isarSession = Get.find<IsarSessionDS>();
     final m = UserProfileModel.fromJson(profile.toJson());
-    await userFirestore.updateProfile(profile.uid, m.toJson());
+
+    // 1. ✅ Actualizar local primero (optimistic update)
+    await isarSession.saveProfileCache(m);
+
+    // 2. ✅ Intentar actualizar remote
+    try {
+      await userFirestore.updateProfile(profile.uid, m.toJson());
+    } catch (_) {
+      // 3. ✅ Encolar en OfflineSyncService si falla
+      DIContainer().syncService.enqueue(
+        () => userFirestore.updateProfile(profile.uid, m.toJson()),
+      );
+    }
   }
 
   @override
@@ -205,15 +261,27 @@ class UserRepositoryImpl implements UserRepository {
     final userFirestore = Get.find<UserFirestoreDS>();
     final isarSession = Get.find<IsarSessionDS>();
 
-    await userFirestore.updateProfile(uid, {
-      'lastContext': activeContext,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-
+    // 1. ✅ Actualizar local PRIMERO (optimistic update)
     final cached = await isarSession.getProfileCache(uid);
     if (cached != null) {
       final updated = cached.copyWith(updatedAt: DateTime.now().toUtc());
       await isarSession.saveProfileCache(updated);
+    }
+
+    // 2. ✅ Intentar actualizar remote
+    try {
+      await userFirestore.updateProfile(uid, {
+        'lastContext': activeContext,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {
+      // 3. ✅ Encolar en OfflineSyncService si falla
+      DIContainer().syncService.enqueue(() =>
+        userFirestore.updateProfile(uid, {
+          'lastContext': activeContext,
+          'updatedAt': FieldValue.serverTimestamp(),
+        })
+      );
     }
   }
 }

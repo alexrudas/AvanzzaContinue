@@ -26,9 +26,9 @@ class InsuranceRepositoryImpl implements InsuranceRepository {
         final localList = await local.policiesByAsset(assetId,
             countryId: countryId, cityId: cityId);
         controller.add(localList.map((e) => e.toEntity()).toList());
-        final remoteList = await remote.policiesByAsset(assetId,
+        final remotesResult = await remote.policiesByAsset(assetId,
             countryId: countryId, cityId: cityId);
-        await _syncPolicies(localList, remoteList);
+        await _syncPolicies(localList, remotesResult.items);
         final updated = await local.policiesByAsset(assetId,
             countryId: countryId, cityId: cityId);
         controller.add(updated.map((e) => e.toEntity()).toList());
@@ -49,9 +49,9 @@ class InsuranceRepositoryImpl implements InsuranceRepository {
           countryId: countryId, cityId: cityId);
       unawaited(() async {
         try {
-          final remoteList = await remote.policiesByAsset(assetId,
+          final remotesResult = await remote.policiesByAsset(assetId,
               countryId: countryId, cityId: cityId);
-          await _syncPolicies(localList, remoteList);
+          await _syncPolicies(localList, remotesResult.items);
         } catch (e) {
           // TODO: log error
         }
@@ -148,8 +148,8 @@ class InsuranceRepositoryImpl implements InsuranceRepository {
       try {
         final localList = await local.purchasesByOrg(orgId);
         controller.add(localList.map((e) => e.toEntity()).toList());
-        final remoteList = await remote.purchasesByOrg(orgId);
-        await _syncPurchases(localList, remoteList);
+        final remotesResult = await remote.purchasesByOrg(orgId);
+        await _syncPurchases(localList, remotesResult.items);
         final updated = await local.purchasesByOrg(orgId);
         controller.add(updated.map((e) => e.toEntity()).toList());
       } catch (e) {
@@ -168,8 +168,8 @@ class InsuranceRepositoryImpl implements InsuranceRepository {
       final localList = await local.purchasesByOrg(orgId);
       unawaited(() async {
         try {
-          final remoteList = await remote.purchasesByOrg(orgId);
-          await _syncPurchases(localList, remoteList);
+          final remotesResult = await remote.purchasesByOrg(orgId);
+          await _syncPurchases(localList, remotesResult.items);
         } catch (e) {
           // TODO: log error
         }

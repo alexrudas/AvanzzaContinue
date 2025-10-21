@@ -24,8 +24,8 @@ class ChatRepositoryImpl implements ChatRepository {
       try {
         final locals = await local.messagesByChat(chatId);
         controller.add(locals.map((e) => e.toEntity()).toList());
-        final remotes = await remote.messagesByChat(chatId);
-        await _syncMessages(locals, remotes);
+        final remotesResult = await remote.messagesByChat(chatId);
+        await _syncMessages(locals, remotesResult.items);
         final updated = await local.messagesByChat(chatId);
         controller.add(updated.map((e) => e.toEntity()).toList());
       } catch (e) {
@@ -44,8 +44,8 @@ class ChatRepositoryImpl implements ChatRepository {
       // background sync
       unawaited(() async {
         try {
-          final remotes = await remote.messagesByChat(chatId);
-          await _syncMessages(locals, remotes);
+          final remotesResult = await remote.messagesByChat(chatId);
+          await _syncMessages(locals, remotesResult.items);
         } catch (e) {
           // TODO: log error
         }
@@ -96,8 +96,8 @@ class ChatRepositoryImpl implements ChatRepository {
       try {
         final locals = await local.broadcastsByOrg(orgId);
         controller.add(locals.map((e) => e.toEntity()).toList());
-        final remotes = await remote.broadcastsByOrg(orgId);
-        await _syncBroadcasts(locals, remotes);
+        final remotesResult = await remote.broadcastsByOrg(orgId);
+        await _syncBroadcasts(locals, remotesResult.items);
         final updated = await local.broadcastsByOrg(orgId);
         controller.add(updated.map((e) => e.toEntity()).toList());
       } catch (e) {
@@ -116,8 +116,8 @@ class ChatRepositoryImpl implements ChatRepository {
       final locals = await local.broadcastsByOrg(orgId);
       unawaited(() async {
         try {
-          final remotes = await remote.broadcastsByOrg(orgId);
-          await _syncBroadcasts(locals, remotes);
+          final remotesResult = await remote.broadcastsByOrg(orgId);
+          await _syncBroadcasts(locals, remotesResult.items);
         } catch (e) {
           // TODO: log error
         }

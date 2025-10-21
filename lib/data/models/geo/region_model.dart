@@ -25,7 +25,7 @@ part 'region_model.g.dart';
 class RegionModel {
   isar.Id? isarId;
 
-  @isar.Index(unique: true)
+  @isar.Index(unique: true, replace: true)
   final String id;
 
   // Refs ignoradas por JsonSerializable (se manejan en fábricas)

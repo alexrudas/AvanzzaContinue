@@ -26,9 +26,9 @@ class AccountingRepositoryImpl implements AccountingRepository {
         final localList = await local.entriesByOrg(orgId,
             countryId: countryId, cityId: cityId);
         controller.add(localList.map((e) => e.toEntity()).toList());
-        final remoteList = await remote.entriesByOrg(orgId,
+        final remotesResult = await remote.entriesByOrg(orgId,
             countryId: countryId, cityId: cityId);
-        await _syncEntries(localList, remoteList);
+        await _syncEntries(localList, remotesResult.items);
         final updated = await local.entriesByOrg(orgId,
             countryId: countryId, cityId: cityId);
         controller.add(updated.map((e) => e.toEntity()).toList());
@@ -50,9 +50,9 @@ class AccountingRepositoryImpl implements AccountingRepository {
       // background sync
       unawaited(() async {
         try {
-          final remoteList = await remote.entriesByOrg(orgId,
+          final remotesResult = await remote.entriesByOrg(orgId,
               countryId: countryId, cityId: cityId);
-          await _syncEntries(localList, remoteList);
+          await _syncEntries(localList, remotesResult.items);
         } catch (e) {
           // TODO: log error
         }
@@ -151,8 +151,8 @@ class AccountingRepositoryImpl implements AccountingRepository {
       try {
         final localList = await local.adjustments(entryId);
         controller.add(localList.map((e) => e.toEntity()).toList());
-        final remoteList = await remote.adjustments(entryId);
-        await _syncAdjustments(localList, remoteList);
+        final remotesResult = await remote.adjustments(entryId);
+        await _syncAdjustments(localList, remotesResult.items);
         final updated = await local.adjustments(entryId);
         controller.add(updated.map((e) => e.toEntity()).toList());
       } catch (e) {
@@ -170,8 +170,8 @@ class AccountingRepositoryImpl implements AccountingRepository {
       final localList = await local.adjustments(entryId);
       unawaited(() async {
         try {
-          final remoteList = await remote.adjustments(entryId);
-          await _syncAdjustments(localList, remoteList);
+          final remotesResult = await remote.adjustments(entryId);
+          await _syncAdjustments(localList, remotesResult.items);
         } catch (e) {
           // TODO: log error
         }

@@ -8,6 +8,10 @@ import '../../widgets/wizard/bottom_sheet_selector.dart';
 import '../../widgets/wizard/wizard_bottom_bar.dart';
 import '../controllers/registration_controller.dart';
 
+/// Página de selección de Perfil (tipo de usuario + rol)
+/// - Agrega pregunta contextual bajo “Tu rol”:
+///   * Si elige ADMIN → ¿Qué activos administrarás?  own|third|both
+///   * Si elige PROPIETARIO → ¿Quién administra tus activos? self|third|both
 class SelectProfilePage extends StatefulWidget {
   const SelectProfilePage({super.key});
 
@@ -16,9 +20,21 @@ class SelectProfilePage extends StatefulWidget {
 }
 
 class _SelectProfilePageState extends State<SelectProfilePage> {
+  // ----------------------------
+  // Estado base del formulario
+  // ----------------------------
   String? _holderType; // 'persona' | 'empresa'
-  String? _role; // valor normalizado
-  String? _roleLabel; // etiqueta legible
+  String? _role; // valor interno del rol seleccionado (keys de _rolesByHolder)
+  String? _roleLabel; // etiqueta para UI
+
+  // -------------------------------------------------
+  // Estado de preguntas contextuales (solo una aplica)
+  // ADMIN:  'own' | 'third' | 'both'
+  // OWNER:  'self' | 'third' | 'both'
+  // -------------------------------------------------
+  String? _adminFollowUp;
+  String? _ownerFollowUp;
+
   late RegistrationController _reg;
   TelemetryService? _telemetry;
   late DateTime _openedAt;
@@ -32,6 +48,7 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
         ? Get.find<TelemetryService>()
         : null;
 
+    // Restaura progreso previo si existe
     final p = _reg.progress.value;
     _holderType = p?.titularType?.isNotEmpty == true ? p!.titularType : null;
     _role = p?.selectedRole?.isNotEmpty == true ? p!.selectedRole : null;
@@ -55,22 +72,42 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
     }
   }
 
-  bool get _canContinue =>
-      _holderType != null &&
-      _holderType!.isNotEmpty &&
+  // ---------------------------------------------
+  // Helpers de tipo de rol elegido
+  // ---------------------------------------------
+  bool get _isAdminRoleSelected =>
       _role != null &&
-      _role!.isNotEmpty;
+      (_role!.startsWith('admin_activos') || _role == 'admin_activos_org');
 
+  bool get _isOwnerRoleSelected =>
+      _role == 'propietario' || _role == 'propietario_emp';
+
+  // -------------------------------------------------------
+  // Habilita continuar: requiere tipo, rol y su follow-up
+  // -------------------------------------------------------
+  bool get _canContinue {
+    if (_holderType == null || _holderType!.isEmpty) return false;
+    if (_role == null || _role!.isEmpty) return false;
+    if (_isAdminRoleSelected && _adminFollowUp == null) return false;
+    if (_isOwnerRoleSelected && _ownerFollowUp == null) return false;
+    return true;
+  }
+
+  // ---------------------------------------------
+  // Selector de tipo de usuario (Persona/Empresa)
+  // ---------------------------------------------
   Future<void> _selectHolderType() async {
     final items = [
       SelectorItem(
-          value: 'persona',
-          label: 'Persona',
-          subtitle: 'Actúas como persona natural'),
+        value: 'persona',
+        label: 'Persona',
+        subtitle: 'Actúas como persona natural',
+      ),
       SelectorItem(
-          value: 'empresa',
-          label: 'Empresa',
-          subtitle: 'Actúas representando a una empresa'),
+        value: 'empresa',
+        label: 'Empresa',
+        subtitle: 'Actúas representando a una empresa',
+      ),
     ];
     _log('sheet_open', extra: {
       'step': 'holder_type',
@@ -96,8 +133,11 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
           setState(() {
             _holderType = it.value;
             if (changed) {
+              // Si cambia el tipo, limpia rol y follow-up
               _role = null;
               _roleLabel = null;
+              _adminFollowUp = null;
+              _ownerFollowUp = null;
             }
           });
           await _reg.setTitularType(it.value);
@@ -115,72 +155,9 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
     );
   }
 
-  void _onSelectRole(_RoleItem role) async {
-    HapticFeedback.lightImpact();
-    setState(() {
-      _role = role.value;
-      _roleLabel = role.label;
-    });
-    await _reg.setRole(role.value);
-
-    _log('role_select', extra: {
-      'holderType': _holderType,
-      'role': _role,
-      'country': _reg.progress.value?.countryId,
-      'region': _reg.progress.value?.regionId,
-      'city': _reg.progress.value?.cityId,
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-            'Perfil: ${_holderType == 'empresa' ? 'Empresa' : 'Persona'} · Rol: ${role.label}'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-    Navigator.of(context).pop();
-  }
-
-  void _onBack() async {
-    try {
-      Get.back();
-      // Get.offNamed(Routes.countryCity);
-    } catch (e) {
-      debugPrint('[WARN] Navigation back to ${Routes.countryCity} failed: $e');
-    }
-  }
-
-  Future<void> _onContinue() async {
-    if (!_canContinue) return;
-    final elapsed = DateTime.now().difference(_openedAt).inMilliseconds;
-
-    await _reg.setTitularType(_holderType!);
-    await _reg.setRole(_role!);
-
-    _log('profile_continue', extra: {
-      'holderType': _holderType,
-      'role': _role,
-      'country': _reg.progress.value?.countryId,
-      'region': _reg.progress.value?.regionId,
-      'city': _reg.progress.value?.cityId,
-      'duration_ms': elapsed,
-    });
-
-    final passedNext = (Get.parameters['next'] ??
-        (Get.arguments is String ? Get.arguments as String : null));
-    final nextRoute = passedNext ??
-        (_role == 'proveedor' ? Routes.providerProfile : Routes.home);
-    try {
-      if (_role == 'proveedor') {
-        Get.toNamed(nextRoute);
-      } else {
-        Get.offAllNamed(nextRoute);
-      }
-    } catch (e) {
-      debugPrint('[WARN] Navigation to $nextRoute failed: $e');
-    }
-  }
-
+  // -------------------------------------------------------
+  // Selección de rol en bottom sheet
+  // -------------------------------------------------------
   void _openRolesBottomSheet(String type) {
     final items = _rolesByHolder(type);
     _log('sheet_open', extra: {'holderType': type, 'role': _role});
@@ -213,8 +190,10 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     title: Text(item.label),
-                    subtitle: Text(item.description,
-                        style: TextStyle(color: Theme.of(context).hintColor)),
+                    subtitle: Text(
+                      item.description,
+                      style: TextStyle(color: Theme.of(context).hintColor),
+                    ),
                     trailing: isSelected
                         ? Icon(Icons.check,
                             color: Theme.of(context).colorScheme.primary)
@@ -232,6 +211,88 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
     );
   }
 
+  // -------------------------------------------------------
+  // Callback cuando se elige un rol; limpia follow-ups
+  // -------------------------------------------------------
+  void _onSelectRole(_RoleItem role) async {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _role = role.value;
+      _roleLabel = role.label;
+      _adminFollowUp = null;
+      _ownerFollowUp = null;
+    });
+    await _reg.setRole(role.value);
+
+    _log('role_select', extra: {
+      'holderType': _holderType,
+      'role': _role,
+      'country': _reg.progress.value?.countryId,
+      'region': _reg.progress.value?.regionId,
+      'city': _reg.progress.value?.cityId,
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+            'Perfil: ${_holderType == 'empresa' ? 'Empresa' : 'Persona'} · Rol: ${role.label}'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    Navigator.of(context).pop();
+  }
+
+  // ---------------------
+  // Navegación
+  // ---------------------
+  void _onBack() {
+    try {
+      Get.back();
+    } catch (e) {
+      debugPrint('[WARN] Navigation back failed: $e');
+    }
+  }
+
+  // ---------------------------------------------------------
+  // Continuar: persiste selección + telemetría
+  // ---------------------------------------------------------
+  Future<void> _onContinue() async {
+    if (!_canContinue) return;
+    final elapsed = DateTime.now().difference(_openedAt).inMilliseconds;
+
+    await _reg.setTitularType(_holderType!);
+    await _reg.setRole(_role!);
+
+    _log('profile_continue', extra: {
+      'holderType': _holderType,
+      'role': _role,
+      'admin_followup': _adminFollowUp,
+      'owner_followup': _ownerFollowUp,
+      'country': _reg.progress.value?.countryId,
+      'region': _reg.progress.value?.regionId,
+      'city': _reg.progress.value?.cityId,
+      'duration_ms': elapsed,
+    });
+
+    final passedNext = (Get.parameters['next'] ??
+        (Get.arguments is String ? Get.arguments as String : null));
+    final nextRoute = passedNext ??
+        (_role == 'proveedor' ? Routes.providerProfile : Routes.home);
+
+    try {
+      if (_role == 'proveedor') {
+        Get.toNamed(nextRoute);
+      } else {
+        Get.offAllNamed(nextRoute);
+      }
+    } catch (e) {
+      debugPrint('[WARN] Navigation to $nextRoute failed: $e');
+    }
+  }
+
+  // --------------------------------------------------------
+  // Definición de roles disponibles por tipo de titular
+  // --------------------------------------------------------
   List<_RoleItem> _rolesByHolder(String type) {
     if (type == 'empresa') {
       return const [
@@ -254,18 +315,22 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
       _RoleItem('admin_activos_ind', 'Administrador de activos',
           'Gestiona y administra activos propios o de terceros'),
       _RoleItem('arrendatario', 'Arrendatario de activos',
-          'Recibien un activo en calidad de arriendo. Ej. Conductor (Vehículo), Inquilino (Inmueble)'),
+          'Reciben un activo en calidad de arriendo. Ej. Conductor (Vehículo), Inquilino (Inmueble)'),
       _RoleItem('proveedor', 'Proveedor',
-          'Ofrece Productos o Servicios para mantenimiento y reparación de activos (Ej. Vehículos, Inmuebles)'),
+          'Ofrece Productos o Servicios para mantenimiento y reparación de activos'),
       _RoleItem('asesor_seguros', 'Asesor de seguros',
-          'Profesionales que asesoran/venden distintos tipos de seguros'),
-      _RoleItem('abogado', 'Abogado',
-          'Especialistas legales (Accidentes de tránsito, reclamaciones, ventas o arriendos de activos, etc)'),
+          'Profesionales que asesoran/venden seguros'),
+      _RoleItem('abogado', 'Abogado', 'Especialistas legales y reclamaciones'),
     ];
   }
 
+  // --------------------------------------------------------
+  // UI
+  // --------------------------------------------------------
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Perfil'),
@@ -274,7 +339,7 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
           child: Padding(
             padding: const EdgeInsets.only(bottom: 8.0),
             child: Text('Completa la información de tu perfil',
-                style: Theme.of(context).textTheme.bodyMedium),
+                style: theme.textTheme.bodyMedium),
           ),
         ),
         leading: IconButton(
@@ -286,35 +351,97 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // ---------------- Tipo de usuario ----------------
           ListTile(
             title: const Text('Tipo de usuario'),
             subtitle: Text(
               _holderType == null
                   ? 'Selecciona tu tipo'
                   : (_holderType == 'persona' ? 'Persona' : 'Empresa'),
-              style: TextStyle(color: Theme.of(context).hintColor),
+              style: TextStyle(color: theme.hintColor),
             ),
             trailing: const Icon(Icons.keyboard_arrow_down),
             onTap: _selectHolderType,
           ),
           const Divider(),
+
+          // ---------------- Rol ----------------
           ListTile(
             title: const Text('Tu rol'),
             subtitle: Text(
               _roleLabel ?? 'Selecciona un rol',
-              style: TextStyle(color: Theme.of(context).hintColor),
+              style: TextStyle(color: theme.hintColor),
             ),
             trailing: const Icon(Icons.keyboard_arrow_down),
             onTap: () {
               if (_holderType == null) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Primero elige el tipo de usuario')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Primero elige el tipo de usuario')),
+                );
                 return;
               }
               _openRolesBottomSheet(_holderType!);
             },
           ),
           const Divider(),
+
+          // --------------- Pregunta contextual bajo "Tu rol" ---------------
+          if (_isAdminRoleSelected) ...[
+            const SizedBox(height: 8),
+            Text('¿Qué activos administrarás?',
+                style: theme.textTheme.titleMedium),
+            const SizedBox(height: 6),
+            _RadioTile(
+              groupValue: _adminFollowUp,
+              value: 'own',
+              title: 'Solo los míos',
+              subtitle: 'Administrarás únicamente activos de tu propiedad',
+              onChanged: (v) => setState(() => _adminFollowUp = v),
+            ),
+            _RadioTile(
+              groupValue: _adminFollowUp,
+              value: 'third',
+              title: 'Los de terceros',
+              subtitle: 'Gestionarás activos de otros propietarios',
+              onChanged: (v) => setState(() => _adminFollowUp = v),
+            ),
+            _RadioTile(
+              groupValue: _adminFollowUp,
+              value: 'both',
+              title: 'Los míos y los de terceros',
+              subtitle: 'Administración mixta',
+              onChanged: (v) => setState(() => _adminFollowUp = v),
+            ),
+            const SizedBox(height: 8),
+          ] else if (_isOwnerRoleSelected) ...[
+            const SizedBox(height: 8),
+            Text('¿Quién administra tus activos?',
+                style: theme.textTheme.titleMedium),
+            const SizedBox(height: 6),
+            _RadioTile(
+              groupValue: _ownerFollowUp,
+              value: 'self',
+              title: 'Yo mismo',
+              subtitle: 'Tú gestionas la operación de tus activos',
+              onChanged: (v) => setState(() => _ownerFollowUp = v),
+            ),
+            _RadioTile(
+              groupValue: _ownerFollowUp,
+              value: 'third',
+              title: 'Un tercero',
+              subtitle: 'Otra persona o empresa los administra',
+              onChanged: (v) => setState(() => _ownerFollowUp = v),
+            ),
+            _RadioTile(
+              groupValue: _ownerFollowUp,
+              value: 'both',
+              title: 'Algunos yo y otros un tercero',
+              subtitle: 'Esquema mixto de administración',
+              onChanged: (v) => setState(() => _ownerFollowUp = v),
+            ),
+            const SizedBox(height: 8),
+          ],
         ],
       ),
       bottomNavigationBar: WizardBottomBar(
@@ -325,6 +452,9 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
     );
   }
 
+  // --------------------------------------------------------
+  // Telemetría defensiva
+  // --------------------------------------------------------
   void _log(String event, {Map<String, Object?>? extra}) {
     try {
       _telemetry?.log(event, {
@@ -339,9 +469,49 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
   }
 }
 
+// -------------------------------
+// Item de rol para el bottom sheet
+// -------------------------------
 class _RoleItem {
   final String value;
   final String label;
   final String description;
   const _RoleItem(this.value, this.label, this.description);
+}
+
+// ------------------------------------------
+// RadioListTile compacto reutilizable en UI
+// ------------------------------------------
+class _RadioTile extends StatelessWidget {
+  final String? groupValue;
+  final String value;
+  final String title;
+  final String? subtitle;
+  final ValueChanged<String> onChanged;
+
+  const _RadioTile({
+    super.key,
+    required this.groupValue,
+    required this.value,
+    required this.title,
+    this.subtitle,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return RadioListTile<String>(
+      value: value,
+      groupValue: groupValue,
+      onChanged: (value) => value != null ? onChanged(value) : null,
+      title: Text(title),
+      subtitle: subtitle == null
+          ? null
+          : Text(subtitle!,
+              style: TextStyle(color: Theme.of(context).hintColor)),
+      dense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+      visualDensity: const VisualDensity(vertical: -2),
+    );
+  }
 }

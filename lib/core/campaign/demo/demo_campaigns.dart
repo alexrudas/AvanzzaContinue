@@ -1,35 +1,37 @@
+import 'package:avanzza/routes/app_pages.dart';
+
 import '../models/campaign.dart';
 import '../models/campaign_eligibility.dart';
 
 class DemoCampaigns {
   static final List<Campaign> all = [
-    Campaign(
+    const Campaign(
       id: 'demo_insurance_soat',
       title: '¡Tu SOAT está próximo a vencer!',
       subtitle: 'Cotiza con las mejores aseguradoras y renueva en minutos.',
       imageAsset: 'assets/campaign/campaign_insurance.png',
       ctaText: 'Ver seguros disponibles',
-      routeName: '/admin/insurance',
+      routeName: Routes.demoSoat,
       eligibilityFn: EligibilityFunctions.always,
       metadata: {'priority': 'high', 'target_audience': 'admin'},
     ),
-    Campaign(
+    const Campaign(
       id: 'demo_catalog_parts',
       title: 'Nuevo catálogo de repuestos',
       subtitle: '¡Encuentra lo que necesitas con precios actualizados!',
       imageAsset: 'assets/campaign/campaign_catalog.png',
       ctaText: 'Explorar catálogo',
-      routeName: '/admin/catalog',
+      routeName: Routes.demoSoat,
       eligibilityFn: EligibilityFunctions.always,
       metadata: {'priority': 'medium', 'target_audience': 'all'},
     ),
-    Campaign(
+    const Campaign(
       id: 'demo_maintenance_reminder',
       title: '3 mantenimientos pendientes',
       subtitle: 'Mantén tus activos al día y evita costosas reparaciones.',
       imageAsset: 'assets/campaign/campaign_maintenance.png',
       ctaText: 'Revisar mantenimientos',
-      routeName: '/admin/maintenance',
+      routeName: Routes.demoSoat,
       eligibilityFn: EligibilityFunctions.always,
       metadata: {'priority': 'high', 'target_audience': 'admin,owner'},
     ),

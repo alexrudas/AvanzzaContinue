@@ -1,3 +1,4 @@
+import 'package:avanzza/core/campaign/demo/demo_soat_campaign.dart';
 import 'package:avanzza/presentation/pages/asset_list_page.dart';
 import 'package:avanzza/presentation/pages/workspaces/provider_articles_workspace_page.dart'
     show ProviderArticlesWorkspacePage;
@@ -57,6 +58,10 @@ class Routes {
 
   static const String assets = '/assets';
 
+  // Demo y desarrollo
+  static const bottomNavDemo = '/demo/bottom-nav';
+  static const demoSoat = '/campaign/soat';
+
   static final pages = <GetPage<dynamic>>[
     GetPage(name: welcome, page: () => AuthWelcomePage()),
     GetPage(name: phone, page: () => const PhoneInputPage()),
@@ -104,5 +109,11 @@ class Routes {
     GetPage(name: purchase, page: () => const PurchaseRequestPage()),
 
     GetPage(name: assets, page: () => const AssetListPage()),
+
+    // Demo
+    // GetPage(name: bottomNavDemo, page: () => const BottomNavDemoPage()),
+
+    // Demo Campaña Publicidad Seguros
+    GetPage(name: demoSoat, page: () => const DemoSoatCampaignPage()),
   ];
 }

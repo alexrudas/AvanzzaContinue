@@ -22,7 +22,7 @@ part 'city_model.g.dart';
 class CityModel {
   isar.Id? isarId;
 
-  @isar.Index(unique: true)
+  @isar.Index(unique: true, replace: true)
   final String id;
 
   @isar.ignore

@@ -23,9 +23,9 @@ class PurchaseRepositoryImpl implements PurchaseRepository {
       final locals =
           await local.requestsByOrg(orgId, cityId: cityId, assetId: assetId);
       controller.add(locals.map((e) => e.toEntity()).toList());
-      final remotes =
+      final remotesResult =
           await remote.requestsByOrg(orgId, cityId: cityId, assetId: assetId);
-      await _syncRequests(locals, remotes);
+      await _syncRequests(locals, remotesResult.items);
       final updated =
           await local.requestsByOrg(orgId, cityId: cityId, assetId: assetId);
       controller.add(updated.map((e) => e.toEntity()).toList());
@@ -40,9 +40,9 @@ class PurchaseRepositoryImpl implements PurchaseRepository {
     final locals =
         await local.requestsByOrg(orgId, cityId: cityId, assetId: assetId);
     unawaited(() async {
-      final remotes =
+      final remotesResult =
           await remote.requestsByOrg(orgId, cityId: cityId, assetId: assetId);
-      await _syncRequests(locals, remotes);
+      await _syncRequests(locals, remotesResult.items);
     }());
     return locals.map((e) => e.toEntity()).toList();
   }
@@ -110,8 +110,8 @@ class PurchaseRepositoryImpl implements PurchaseRepository {
     Future(() async {
       final locals = await local.responsesByRequest(requestId);
       controller.add(locals.map((e) => e.toEntity()).toList());
-      final remotes = await remote.responsesByRequest(requestId);
-      await _syncResponses(locals, remotes);
+      final remotesResult = await remote.responsesByRequest(requestId);
+      await _syncResponses(locals, remotesResult.items);
       final updated = await local.responsesByRequest(requestId);
       controller.add(updated.map((e) => e.toEntity()).toList());
       await controller.close();
@@ -124,8 +124,8 @@ class PurchaseRepositoryImpl implements PurchaseRepository {
       String requestId) async {
     final locals = await local.responsesByRequest(requestId);
     unawaited(() async {
-      final remotes = await remote.responsesByRequest(requestId);
-      await _syncResponses(locals, remotes);
+      final remotesResult = await remote.responsesByRequest(requestId);
+      await _syncResponses(locals, remotesResult.items);
     }());
     return locals.map((e) => e.toEntity()).toList();
   }

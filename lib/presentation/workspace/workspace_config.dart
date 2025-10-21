@@ -81,7 +81,7 @@ WorkspaceConfig workspaceFor({
         WorkspaceTab(
             title: 'Home', icon: Icons.home_outlined, page: AdminHomePage()),
         WorkspaceTab(
-            title: 'Mantenimientos',
+            title: 'Mttos.',
             icon: Icons.build_outlined,
             page: AdminMaintenancePage()),
         WorkspaceTab(
