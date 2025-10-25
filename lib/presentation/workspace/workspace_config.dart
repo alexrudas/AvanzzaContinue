@@ -3,10 +3,9 @@ import 'package:avanzza/presentation/pages/admin/accounting/admin_accounting_pag
 import 'package:avanzza/presentation/pages/admin/chat/admin_chat_page.dart';
 import 'package:avanzza/presentation/pages/admin/home/admin_home_page.dart';
 import 'package:avanzza/presentation/pages/admin/maintenance/admin_maintenance_page.dart';
-import 'package:avanzza/presentation/pages/admin/purchase/admin_purchase_page.dart';
+import 'package:avanzza/presentation/pages/admin/orders_and_quotation/admin_orders_page.dart';
 import 'package:flutter/material.dart';
 
-import '../auth/pages/provider_profile_page.dart';
 import '../bindings/admin/admin_accounting_binding.dart';
 import '../bindings/admin/admin_chat_binding.dart';
 // Reemplazo de AdminShellBinding por bindings individuales
@@ -89,9 +88,9 @@ WorkspaceConfig workspaceFor({
             icon: Icons.receipt_long_outlined,
             page: AdminAccountingPage()),
         WorkspaceTab(
-            title: 'Compras',
+            title: 'Pedidos',
             icon: Icons.shopping_cart_outlined,
-            page: AdminPurchasePage()),
+            page: AdminOrdersPage()),
         WorkspaceTab(
             title: 'Chat',
             icon: Icons.chat_bubble_outline,
@@ -111,24 +110,24 @@ WorkspaceConfig workspaceFor({
   // Normalización de roles “proveedor de productos”
   if (isProvider(r) || isAdvisor(r) || isInsurer(r) || isLegal(r)) {
     final pt = (providerType ?? '').toLowerCase();
-    if (pt.isEmpty) {
-      // Neutral: no asumir 'articulos' por defecto. Guiar al perfil para completar.
-      return WorkspaceConfig(
-        roleKey: 'prov_neutral',
-        tabs: const [
-          WorkspaceTab(
-            title: 'Home',
-            icon: Icons.home_outlined,
-            page: ProviderProfilePage(),
-          ),
-        ],
-        onInit: () {
-          // Opcional: preparar bindings mínimos si fuese necesario
-          // ProviderArticlesBinding().dependencies();
-          // ProviderServicesBinding().dependencies();
-        },
-      );
-    }
+    // if (pt.isEmpty) {
+    //   // Neutral: no asumir 'articulos' por defecto. Guiar al perfil para completar.
+    //   return WorkspaceConfig(
+    //     roleKey: 'prov_neutral',
+    //     tabs: const [
+    //       WorkspaceTab(
+    //         title: 'Home',
+    //         icon: Icons.home_outlined,
+    //         page: ProviderProfilePage(),
+    //       ),
+    //     ],
+    //     onInit: () {
+    //       // Opcional: preparar bindings mínimos si fuese necesario
+    //       // ProviderArticlesBinding().dependencies();
+    //       // ProviderServicesBinding().dependencies();
+    //     },
+    //   );
+    // }
 
     if (pt == 'articulos') {
       // Detectar tipo de organización para adaptar tabs

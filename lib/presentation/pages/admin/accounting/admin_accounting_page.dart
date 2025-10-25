@@ -2,7 +2,10 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:avanzza/presentation/pages/admin/accounting/expense_form_page.dart';
+import 'package:avanzza/presentation/pages/admin/accounting/income_form_page.dart';
 import 'package:avanzza/presentation/widgets/floating_quick_actions_row/floating_quick_actions_row.dart';
+import 'package:avanzza/presentation/widgets/modal/action_sheet_pro.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -18,297 +21,362 @@ class AdminAccountingPage extends GetView<AdminAccountingController> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      if (controller.loading.value) return const LoadingState();
-      if (controller.error.value != null) {
-        return ErrorState(message: controller.error.value!);
-      }
+    return Stack(
+      children: [
+        Obx(() {
+          if (controller.loading.value) return const LoadingState();
+          if (controller.error.value != null) {
+            return ErrorState(message: controller.error.value!);
+          }
 
-      // ----------------------- Datos demo (conecta tu controller) ----------------
-      final caja = controller.totalIngresos;
-      final bancos = controller.totalEgresos;
+          // ----------------------- Datos demo (conecta tu controller) ----------------
+          final caja = controller.totalIngresos;
+          final bancos = controller.totalEgresos;
 
-      const cxc = 23850.0; // Cuentas por cobrar mes actual
-      const cxp = 17950.0; // Cuentas por pagar mes actual
-      const prevCxc = 21000.0; // periodo anterior
-      const prevCxp = 20000.0;
+          const cxc = 23850.0; // Cuentas por cobrar mes actual
+          const cxp = 17950.0; // Cuentas por pagar mes actual
+          const prevCxc = 21000.0; // periodo anterior
+          const prevCxp = 20000.0;
 
-      double pctDelta(double current, double previous) {
-        if (previous <= 0) return 0.0;
-        return ((current - previous) / previous) * 100.0;
-      }
+          double pctDelta(double current, double previous) {
+            if (previous <= 0) return 0.0;
+            return ((current - previous) / previous) * 100.0;
+          }
 
-      final cxcDelta = pctDelta(cxc, prevCxc); // + sube, - baja
-      final cxpDelta = pctDelta(cxp, prevCxp);
+          final cxcDelta = pctDelta(cxc, prevCxc); // + sube, - baja
+          final cxpDelta = pctDelta(cxp, prevCxp);
 
-      // Charts comparativos (mini)
-      const ingresosMes = 80000.0;
-      const egresosMes = 60000.0;
-      const utilidadBrutaAbs = 23879000.0;
+          // Charts comparativos (mini)
+          const ingresosMes = 80000.0;
+          const egresosMes = 60000.0;
+          const utilidadBrutaAbs = 23879000.0;
 
-      // =========================
-      // SSOT de GASTOS del mes
-      // =========================
-      const double gastoPresupuestoMes = 18000000.0; // presupuesto del mes
-      const double gastoEjecutadoMes = 21000000.0; // gasto real/causado del mes
-      const double disponibleAbs =
-          gastoPresupuestoMes - gastoEjecutadoMes; // dinámico
+          // =========================
+          // SSOT de GASTOS del mes
+          // =========================
+          const double gastoPresupuestoMes = 18000000.0; // presupuesto del mes
+          const double gastoEjecutadoMes =
+              21000000.0; // gasto real/causado del mes
+          const double disponibleAbs =
+              gastoPresupuestoMes - gastoEjecutadoMes; // dinámico
 
-      // =========================
-      // SSOT de INGRESOS del mes
-      // =========================
-      const double metaIngresosMes = 31500000.0;
-      const double ingresosAcumMes = 28700000.0;
+          // =========================
+          // SSOT de INGRESOS del mes
+          // =========================
+          const double metaIngresosMes = 31500000.0;
+          const double ingresosAcumMes = 28700000.0;
 
-      // Resumen financiero del mes (derivados desde SSOT)
-      const double gastosAcumMes = gastoEjecutadoMes; // misma variable
-      const double utilidadAbs = ingresosAcumMes - gastosAcumMes;
+          // Resumen financiero del mes (derivados desde SSOT)
+          const double gastosAcumMes = gastoEjecutadoMes; // misma variable
+          const double utilidadAbs = ingresosAcumMes - gastosAcumMes;
 
-      // ---------- VALORES MES ANTERIOR PARA DELTAS ----------
-      const double prevIngresosAcumMes = 26500000.0;
-      const double prevGastosAcumMes = 19500000.0;
-      const double prevUtilidadAbs = prevIngresosAcumMes - prevGastosAcumMes;
+          // ---------- VALORES MES ANTERIOR PARA DELTAS ----------
+          const double prevIngresosAcumMes = 26500000.0;
+          const double prevGastosAcumMes = 19500000.0;
+          const double prevUtilidadAbs =
+              prevIngresosAcumMes - prevGastosAcumMes;
 
-      // ---------- % principales ----------
-      const double ingresoPct = metaIngresosMes == 0
-          ? 0.0
-          : (ingresosAcumMes / metaIngresosMes * 100.0);
+          // ---------- % principales ----------
+          const double ingresoPct = metaIngresosMes == 0
+              ? 0.0
+              : (ingresosAcumMes / metaIngresosMes * 100.0);
 
-      const double gastoPctVsIngreso = ingresosAcumMes == 0
-          ? 0.0
-          : (gastosAcumMes / ingresosAcumMes * 100.0);
+          const double gastoPctVsIngreso = ingresosAcumMes == 0
+              ? 0.0
+              : (gastosAcumMes / ingresosAcumMes * 100.0);
 
-      const double utilidadPctVsIngreso =
-          ingresosAcumMes == 0 ? 0.0 : (utilidadAbs / ingresosAcumMes * 100.0);
+          const double utilidadPctVsIngreso = ingresosAcumMes == 0
+              ? 0.0
+              : (utilidadAbs / ingresosAcumMes * 100.0);
 
-      // ---------- DELTAS VS PERIODO ANTERIOR ----------
-      final double ingresosDelta =
-          pctDelta(ingresosAcumMes, prevIngresosAcumMes);
-      final double gastosDelta = pctDelta(gastosAcumMes, prevGastosAcumMes);
-      final double utilidadDelta = pctDelta(utilidadAbs, prevUtilidadAbs);
+          // ---------- DELTAS VS PERIODO ANTERIOR ----------
+          final double ingresosDelta =
+              pctDelta(ingresosAcumMes, prevIngresosAcumMes);
+          final double gastosDelta = pctDelta(gastosAcumMes, prevGastosAcumMes);
+          final double utilidadDelta = pctDelta(utilidadAbs, prevUtilidadAbs);
 
-      // Morosidad
-      const morosidadPct = 6.3;
-      const morosidadValor = 9850000.0;
+          // Morosidad
+          const morosidadPct = 6.3;
+          const morosidadValor = 9850000.0;
 
-      // lib/presentation/admin/accounting/admin_accounting_page.dart
-// ...
-      return Scaffold(
-        body: SafeArea(
-          child: Stack(
-            children: [
-              // ---------------------- Contenido principal ----------------------
-              Padding(
-                padding: const EdgeInsets.only(top: 88),
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                      10, 8, 10, paddingBottomForQuickActions(context)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // KPIs 2×2
-                      GridView.count(
-                        crossAxisCount: 2,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 2.2,
-                        children: [
-                          _KpiTile(
-                            icon: Icons.account_balance_wallet_outlined,
-                            label: 'Caja',
-                            value: caja,
-                          ),
-                          _KpiTile(
-                            icon: Icons.account_balance,
-                            label: 'Bancos',
-                            value: bancos,
-                          ),
-                          _KpiTile(
-                            icon: Icons.trending_up,
-                            label: 'CxCobrar',
-                            value: cxc,
-                            color: Colors.green,
-                            trendPct: cxcDelta.abs(),
-                            trendUp: cxcDelta >= 0,
-                          ),
-                          _KpiTile(
-                            icon: Icons.trending_down,
-                            label: 'CxPagar',
-                            value: cxp,
-                            color: Colors.red,
-                            trendPct: cxpDelta.abs(),
-                            trendUp: cxpDelta >= 0,
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // Charts
-                      const Row(
-                        children: [
-                          Expanded(
-                            child: _ChartCard(
-                              child: SizedBox(
-                                height: 126,
-                                child: _BarsChart(
-                                  ingresos: ingresosMes,
-                                  egresos: egresosMes,
-                                  footerTitle: 'Ut. bruta',
-                                  footerValueAbs: utilidadBrutaAbs,
-                                ),
-                              ),
+          // lib/presentation/admin/accounting/admin_accounting_page.dart
+          // ...
+          return FloatingQuickActions(
+              items: [
+                QuickAction(
+                  icon: Icons.receipt_long_rounded,
+                  label: 'Balances',
+                  color: const Color(0xFF43A047),
+                  onTap: () {},
+                ),
+                QuickAction(
+                  icon: Icons.receipt_long_rounded,
+                  label: 'Recargos',
+                  color: const Color(0xFF4E6E9B),
+                  onTap: () {},
+                ),
+                QuickAction(
+                  icon: Icons.percent_rounded,
+                  label: 'Descuentos',
+                  color: const Color(0xFF1E88E5),
+                  onTap: () {},
+                ),
+                QuickAction(
+                  icon: Icons.add_rounded,
+                  label: '+ Acciones',
+                  color: const Color(0xFFFFB300),
+                  onTap: () {
+                    // Dentro de cualquier onTap
+                    ActionSheetPro.show(
+                      context,
+                      title: 'Acciones',
+                      data: [
+                        ActionSection(
+                          items: [
+                            ActionItem(
+                              label: 'Adjuntar archivo',
+                              subtitle: 'PDF, DOCX, Imágenes',
+                              icon: Icons.attach_file_outlined,
+                              badge: 'Nuevo',
+                              onTap: () {},
                             ),
-                          ),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: _ChartCard(
-                              child: SizedBox(
-                                height: 126,
-                                child: _CircularBudgetChart(
-                                  budget: gastoPresupuestoMes,
-                                  actual: gastoEjecutadoMes,
-                                  footerTitle: 'Disp.',
-                                  footerValueAbs: disponibleAbs,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                            ActionItem(
+                              label: 'Nuevo Ingreso',
+                              subtitle: 'Registra tu pago recibido',
+                              icon: Icons.mic_none_rounded,
+                              onAsyncTap: () async {
+                                // Navegación GetX al formulario de Nuevo Gasto
+                                await Get.to(() => const IncomeFormPage());
 
-                      const SizedBox(height: 16),
-
-                      // Resumen financiero (3 tarjetas)
-                      Text('Resumen financiero',
-                          style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _MetricStatTile(
-                              title: 'Ingresos',
-                              percentLabel:
-                                  '${ingresoPct.clamp(0.0, 999.0).toStringAsFixed(0)} %',
-                              amountLabel: '€ ${_formatMoney(ingresosAcumMes)}',
-                              color: _scaleColor(ingresoPct,
-                                  good: Colors.green.shade700),
-                              trendPct: ingresosDelta.abs(),
-                              trendUp: ingresosDelta >= 0,
-                            ),
-                          ),
-                          const SizedBox(width: 2),
-                          Expanded(
-                            child: _MetricStatTile(
-                              title: 'Gastos',
-                              percentLabel:
-                                  '${gastoPctVsIngreso.clamp(0.0, 999.0).toStringAsFixed(0)} %',
-                              amountLabel: '€ ${_formatMoney(gastosAcumMes)}',
-                              color: _scaleColorSpend(gastoPctVsIngreso),
-                              trendPct: gastosDelta.abs(),
-                              trendUp: gastosDelta >= 0,
-                            ),
-                          ),
-                          const SizedBox(width: 2),
-                          Expanded(
-                            child: _MetricStatTile(
-                              title: 'Utilidad',
-                              percentLabel:
-                                  '${utilidadPctVsIngreso.clamp(0.0, 999.0).toStringAsFixed(0)} %',
-                              amountLabel: '€ ${_formatMoney(utilidadAbs)}',
-                              color: utilidadAbs >= 0
-                                  ? _scaleColor(utilidadPctVsIngreso,
-                                      good: Colors.teal.shade700)
-                                  : Colors.red,
-                              trendPct: utilidadDelta.abs(),
-                              trendUp: utilidadDelta >= 0,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      // Métricas clave — Fila 2
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _MetricStatTile(
-                              title: 'Morosidad',
-                              percentLabel:
-                                  '${morosidadPct.toStringAsFixed(1)} %',
-                              amountLabel: '€ ${_formatMoney(morosidadValor)}',
-                              color: morosidadPct > 7
-                                  ? Colors.red
-                                  : Colors.green.shade700,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _ActionTile(
-                              title: 'Balances',
-                              subtitle: 'Activos y Propietarios',
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text('Ir a Balances')),
-                                );
+                                // Si quieres refrescar datos al volver:
+                                // controller.loadExpenses(); // ejemplo opcional
                               },
                             ),
+                            ActionItem(
+                              label: 'Nuevo Gasto',
+                              subtitle: 'Registra tu gasto realilzado',
+                              icon: Icons.mic_none_rounded,
+                              onAsyncTap: () async {
+                                // Navegación GetX al formulario de Nuevo Gasto
+                                await Get.to(() => const ExpenseFormPage());
+
+                                // Si quieres refrescar datos al volver:
+                                // controller.loadExpenses(); // ejemplo opcional
+                              },
+                            ),
+                            ActionItem(
+                              label: 'Nuevo Cuenta x Pagar',
+                              subtitle: 'Registra tu gastos pediente por pagar',
+                              icon: Icons.mic_none_rounded,
+                              onAsyncTap: () async {
+                                // lógica async
+                                await Future.delayed(
+                                    const Duration(milliseconds: 600));
+                              },
+                            ),
+                            ActionItem(
+                              label: 'Nuevo Cuenta x Cobrar',
+                              subtitle: 'Registra deuda por cobrar',
+                              icon: Icons.mic_none_rounded,
+                              onAsyncTap: () async {
+                                // lógica async
+                                await Future.delayed(
+                                    const Duration(milliseconds: 600));
+                              },
+                            ),
+                          ],
+                        ),
+                        // AvzActionSection(
+                        //   header: 'Herramientas',
+                        //   items: [
+                        //     AvzActionItem(
+                        //       label: 'Escanear documento',
+                        //       icon: Icons.document_scanner_outlined,
+                        //       onTap: () {},
+                        //     ),
+                        //     AvzActionItem(
+                        //       label: 'Eliminar',
+                        //       icon: Icons.delete_forever_outlined,
+                        //       destructive: true,
+                        //       onTap: () {},
+                        //     ),
+                        //     AvzActionItem(
+                        //       label: 'Opción deshabilitada',
+                        //       icon: Icons.lock_outline,
+                        //       enabled: false,
+                        //       onTap: () {},
+                        //     ),
+                        //   ],
+                        // ),
+                      ],
+                      theme: const ActionSheetTheme(
+                        opacity: 0.96,
+                        cornerRadius: 20,
+                        backdropBlur: true,
+                      ),
+                    );
+                  },
+                ),
+              ],
+              child: Scaffold(
+                body: SafeArea(
+                  child: Stack(
+                    children: [
+                      // ---------------------- Contenido principal ----------------------
+                      Padding(
+                        padding: const EdgeInsets.only(top: 88),
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.fromLTRB(
+                              10, 8, 10, paddingBottomForQuickActions(context)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // KPIs 2×2
+                              GridView.count(
+                                crossAxisCount: 2,
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio: 2.2,
+                                children: [
+                                  _KpiTile(
+                                    icon: Icons.account_balance_wallet_outlined,
+                                    label: 'Caja',
+                                    value: caja,
+                                  ),
+                                  _KpiTile(
+                                    icon: Icons.account_balance,
+                                    label: 'Bancos',
+                                    value: bancos,
+                                  ),
+                                  _KpiTile(
+                                    icon: Icons.trending_up,
+                                    label: 'CxCobrar',
+                                    value: cxc,
+                                    color: Colors.green,
+                                    trendPct: cxcDelta.abs(),
+                                    trendUp: cxcDelta >= 0,
+                                  ),
+                                  _KpiTile(
+                                    icon: Icons.trending_down,
+                                    label: 'CxPagar',
+                                    value: cxp,
+                                    color: Colors.red,
+                                    trendPct: cxpDelta.abs(),
+                                    trendUp: cxpDelta >= 0,
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // Charts
+                              const Row(
+                                children: [
+                                  Expanded(
+                                    child: _ChartCard(
+                                      child: SizedBox(
+                                        height: 126,
+                                        child: _CircularMorosidadChart(
+                                          morosidadPct: morosidadPct,
+                                          vencidoAbs: morosidadValor,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: _ChartCard(
+                                      child: SizedBox(
+                                        height: 126,
+                                        child: _CircularBudgetChart(
+                                          budget: gastoPresupuestoMes,
+                                          actual: gastoEjecutadoMes,
+                                          footerTitle: 'Disp.',
+                                          footerValueAbs: disponibleAbs,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 16),
+
+                              // Resumen financiero (3 tarjetas)
+                              Text('Resumen financiero',
+                                  style:
+                                      Theme.of(context).textTheme.titleMedium),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _MetricStatTile(
+                                      title: 'Ingresos',
+                                      percentLabel:
+                                          '${ingresoPct.clamp(0.0, 999.0).toStringAsFixed(0)} %',
+                                      amountLabel:
+                                          '€ ${_formatMoney(ingresosAcumMes)}',
+                                      color: _scaleColor(ingresoPct,
+                                          good: Colors.green.shade700),
+                                      trendPct: ingresosDelta.abs(),
+                                      trendUp: ingresosDelta >= 0,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Expanded(
+                                    child: _MetricStatTile(
+                                      title: 'Gastos',
+                                      percentLabel:
+                                          '${gastoPctVsIngreso.clamp(0.0, 999.0).toStringAsFixed(0)} %',
+                                      amountLabel:
+                                          '€ ${_formatMoney(gastosAcumMes)}',
+                                      color:
+                                          _scaleColorSpend(gastoPctVsIngreso),
+                                      trendPct: gastosDelta.abs(),
+                                      trendUp: gastosDelta >= 0,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Expanded(
+                                    child: _MetricStatTile(
+                                      title: 'Utilidad',
+                                      percentLabel:
+                                          '${utilidadPctVsIngreso.clamp(0.0, 999.0).toStringAsFixed(0)} %',
+                                      amountLabel:
+                                          '€ ${_formatMoney(utilidadAbs)}',
+                                      color: utilidadAbs >= 0
+                                          ? _scaleColor(utilidadPctVsIngreso,
+                                              good: Colors.teal.shade700)
+                                          : Colors.red,
+                                      trendPct: utilidadDelta.abs(),
+                                      trendUp: utilidadDelta >= 0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
 
-                      const SizedBox(height: 96), // reserva para FAB abierto
+                      // Banner IA sticky (arriba)
+                      Container(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        child: const _DynamicAIBanner(),
+                      ),
                     ],
                   ),
                 ),
-              ),
+              ));
 
-              // Banner IA sticky (arriba)
-              Container(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: const _DynamicAIBanner(),
-              ),
-
-              // ------------ QUICK ACTIONS flotante (abajo fijo) ------------
-              FloatingQuickActions(
-                items: [
-                  QuickAction(
-                    icon: Icons.balance_rounded,
-                    label: 'Balances',
-                    color: const Color(0xFF43A047),
-                    onTap: () {},
-                  ),
-                  QuickAction(
-                    icon: Icons.receipt_long_rounded,
-                    label: 'Recargos',
-                    color: const Color(0xFF4E6E9B),
-                    onTap: () {},
-                  ),
-                  QuickAction(
-                    icon: Icons.percent_rounded,
-                    label: 'Descuentos',
-                    color: const Color(0xFF1E88E5),
-                    onTap: () {},
-                  ),
-                  QuickAction(
-                    icon: Icons.add_rounded,
-                    label: '+ Acciones',
-                    color: const Color(0xFFFFB300),
-                    onTap: () {},
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      );
-    });
+          // ------------ QUICK ACTIONS flotante (abajo fijo) ------------
+        })
+      ],
+    );
   }
 }
 
@@ -548,6 +616,85 @@ class _DynamicAIBannerState extends State<_DynamicAIBanner> {
   }
 }
 
+/// Gauge semicircular para Morosidad: título, % grande y valor debajo
+class _CircularMorosidadChart extends StatelessWidget {
+  final double morosidadPct; // 0..100  = (Σ mora / Σ causado)*100
+  final double vencidoAbs; // Σ valores en mora
+
+  const _CircularMorosidadChart({
+    required this.morosidadPct,
+    required this.vencidoAbs,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    final pct01 = (morosidadPct / 100).clamp(0.0, 2.0);
+
+    // Indicadores por umbral
+    final Color gaugeColor = morosidadPct > 10
+        ? Colors.red
+        : (morosidadPct > 5 ? Colors.amber.shade700 : Colors.green.shade700);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Morosidad',
+            style:
+                t.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+        Text('8 de 25 Arrendatarios',
+            style:
+                t.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 4),
+        SizedBox(
+          height: 70,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: pct01),
+                duration: const Duration(milliseconds: 900),
+                curve: Curves.easeInOutCubic,
+                builder: (context, value, _) {
+                  return CustomPaint(
+                    painter: _GaugePainterPro(
+                      percent: value,
+                      progressColor: gaugeColor,
+                      backgroundColor:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                      strokeWidth: 16,
+                    ),
+                    size: Size.infinite,
+                  );
+                },
+              ),
+              Positioned(
+                bottom: 6,
+                child: Text(
+                  '${morosidadPct.toStringAsFixed(1)}%',
+                  style: t.textTheme.titleLarge?.copyWith(
+                    color: gaugeColor,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 0),
+        Center(
+          child: Text(
+            '€ ${_formatMoney(vencidoAbs)}',
+            style:
+                t.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _CircularBudgetChart extends StatelessWidget {
   final double budget;
   final double actual;
@@ -582,7 +729,7 @@ class _CircularBudgetChart extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Presupuesto Gasto',
+        Text('Presupuesto Gastos',
             style:
                 t.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
         Text('€ ${_formatMoney(budget)}',
@@ -1146,53 +1293,53 @@ class _MetricStatTile extends StatelessWidget {
   }
 }
 
-class _ActionTile extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
+// class _ActionTile extends StatelessWidget {
+//   final String title;
+//   final String subtitle;
+//   final VoidCallback onTap;
 
-  const _ActionTile({
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
+//   const _ActionTile({
+//     required this.title,
+//     required this.subtitle,
+//     required this.onTap,
+//   });
 
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context);
-    return Card(
-      elevation: 0.8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-          child: Row(
-            children: [
-              Icon(Icons.pie_chart_outline_rounded,
-                  color: t.colorScheme.primary),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Balances',
-                        style: t.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 2),
-                    Text(subtitle, style: t.textTheme.labelMedium),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right_rounded),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     final t = Theme.of(context);
+//     return Card(
+//       elevation: 0.8,
+//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+//       child: InkWell(
+//         borderRadius: BorderRadius.circular(12),
+//         onTap: onTap,
+//         child: Padding(
+//           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+//           child: Row(
+//             children: [
+//               Icon(Icons.pie_chart_outline_rounded,
+//                   color: t.colorScheme.primary),
+//               const SizedBox(width: 10),
+//               Expanded(
+//                 child: Column(
+//                   crossAxisAlignment: CrossAxisAlignment.start,
+//                   children: [
+//                     Text('Balances',
+//                         style: t.textTheme.titleMedium
+//                             ?.copyWith(fontWeight: FontWeight.w700)),
+//                     const SizedBox(height: 2),
+//                     Text(subtitle, style: t.textTheme.labelMedium),
+//                   ],
+//                 ),
+//               ),
+//               const Icon(Icons.chevron_right_rounded),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
 
 class _ChartCard extends StatelessWidget {
   final Widget child;

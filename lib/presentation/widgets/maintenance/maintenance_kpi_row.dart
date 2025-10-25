@@ -50,7 +50,7 @@ class MaintenanceKpiRow extends GetView<MaintenanceStatsController> {
 
             Row(
               children: [
-                // Incidencias
+                // programados
                 Expanded(
                   child: _buildKpiCard(
                     context: context,

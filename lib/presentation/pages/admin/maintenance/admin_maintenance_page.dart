@@ -73,15 +73,6 @@ class AdminMaintenancePage extends GetView<AdminMaintenanceController> {
 
             final hasPreventivos = preventivosCount > 0;
 
-// // Fuera de servicio
-//             final outOfServiceCount = source
-//                 .where((e) =>
-//                     e.type == 'fuera_servicio' ||
-//                     e.type == 'fueraServicio' ||
-//                     e.status == 'out_of_service')
-//                 .length;
-//             final hasOutOfService = outOfServiceCount > 0;
-
             // -------- CAMBIO: uso SingleChildScrollView + padding y física solicitadas --------
             return SingleChildScrollView(
               physics: const BouncingScrollPhysics(
@@ -227,103 +218,103 @@ class AdminMaintenancePage extends GetView<AdminMaintenanceController> {
   }
 }
 
-/// ---------------------------------------------------------------------------
-/// _MiniKpiCard
-/// ---------------------------------------------------------------------------
-/// Card compacta tipo KPI + CTA para accesos rápidos.
-/// ---------------------------------------------------------------------------
-class _MiniKpiCard extends StatelessWidget {
-  final Color color;
-  final IconData icon;
-  final String title;
-  final String value;
-  final String subtitle;
-  final VoidCallback onTap;
+// /// ---------------------------------------------------------------------------
+// /// _MiniKpiCard
+// /// ---------------------------------------------------------------------------
+// /// Card compacta tipo KPI + CTA para accesos rápidos.
+// /// ---------------------------------------------------------------------------
+// class _MiniKpiCard extends StatelessWidget {
+//   final Color color;
+//   final IconData icon;
+//   final String title;
+//   final String value;
+//   final String subtitle;
+//   final VoidCallback onTap;
 
-  const _MiniKpiCard({
-    required this.color,
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.subtitle,
-    required this.onTap,
-  });
+//   const _MiniKpiCard({
+//     required this.color,
+//     required this.icon,
+//     required this.title,
+//     required this.value,
+//     required this.subtitle,
+//     required this.onTap,
+//   });
 
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE0E3E7), width: 1),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x14000000),
-              blurRadius: 8,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Icono + Título
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, size: 20, color: const Color(0xFF111827)),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    title,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                      color: Color(0xFF1E293B),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Valor grande
-            Column(
-              children: [
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                // Subtítulo
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style:
-                      const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return InkWell(
+//       borderRadius: BorderRadius.circular(14),
+//       onTap: onTap,
+//       child: Container(
+//         padding: const EdgeInsets.all(14),
+//         decoration: BoxDecoration(
+//           color: Colors.white,
+//           borderRadius: BorderRadius.circular(14),
+//           border: Border.all(color: const Color(0xFFE0E3E7), width: 1),
+//           boxShadow: const [
+//             BoxShadow(
+//               color: Color(0x14000000),
+//               blurRadius: 8,
+//               offset: Offset(0, 3),
+//             ),
+//           ],
+//         ),
+//         child: Column(
+//           children: [
+//             // Icono + Título
+//             Row(
+//               children: [
+//                 Container(
+//                   padding: const EdgeInsets.all(8),
+//                   decoration: BoxDecoration(
+//                     color: color,
+//                     shape: BoxShape.circle,
+//                   ),
+//                   child: Icon(icon, size: 20, color: const Color(0xFF111827)),
+//                 ),
+//                 const SizedBox(width: 8),
+//                 Expanded(
+//                   child: Text(
+//                     title,
+//                     overflow: TextOverflow.ellipsis,
+//                     style: const TextStyle(
+//                       fontWeight: FontWeight.w700,
+//                       fontSize: 15,
+//                       color: Color(0xFF1E293B),
+//                     ),
+//                   ),
+//                 ),
+//               ],
+//             ),
+//             const SizedBox(height: 8),
+//             // Valor grande
+//             Column(
+//               children: [
+//                 Text(
+//                   value,
+//                   style: const TextStyle(
+//                     fontSize: 24,
+//                     fontWeight: FontWeight.bold,
+//                     color: Color(0xFF1E293B),
+//                   ),
+//                 ),
+//                 const SizedBox(height: 4),
+//                 // Subtítulo
+//                 Text(
+//                   subtitle,
+//                   maxLines: 2,
+//                   overflow: TextOverflow.ellipsis,
+//                   style:
+//                       const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+//                 ),
+//               ],
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
 
 /// ===========================================================================
 /// Bloque gráfico de analítica (Salud operativa + Costo mensual)

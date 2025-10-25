@@ -252,6 +252,129 @@ class RegistrationController extends GetxController {
     progress.value = await progressDS.upsert(p);
   }
 
+  Future<void> setAdminFollowUp(String followUp,
+      {String id = 'current'}) async {
+    final p = progress.value ??
+        (RegistrationProgressModel()
+          ..id = id
+          ..updatedAt = DateTime.now().toUtc());
+    p.adminFollowUp = followUp;
+    progress.value = await progressDS.upsert(p);
+  }
+
+  Future<void> setOwnerFollowUp(String followUp,
+      {String id = 'current'}) async {
+    final p = progress.value ??
+        (RegistrationProgressModel()
+          ..id = id
+          ..updatedAt = DateTime.now().toUtc());
+    p.ownerFollowUp = followUp;
+    progress.value = await progressDS.upsert(p);
+  }
+
+  /// Mapea el código interno de rol a etiqueta legible y workspace por defecto.
+  /// Ajusta aquí si en el futuro un rol debe abrir un workspace distinto al nombre.
+  String _labelForRole(String code) {
+    switch (code) {
+      case 'admin_activos_ind':
+      case 'admin_activos_org':
+        return 'Administrador';
+      case 'propietario':
+      case 'propietario_emp':
+        return 'Propietario';
+      case 'proveedor':
+        return 'Proveedor';
+      case 'arrendatario':
+      case 'arrendatario_emp':
+        return 'Arrendatario';
+      case 'asesor_seguros':
+        return 'Asesor de seguros';
+      case 'aseguradora':
+        return 'Aseguradora';
+      case 'abogado':
+      case 'abogados_firma':
+        return 'Abogado';
+      default:
+        // Fallback: usa el code tal cual si no hay mapeo
+        return code;
+    }
+  }
+
+  /// Calcula y retorna los roles y workspaces basándose en la lógica de negocio
+  /// Sin efectos secundarios - solo calcula y retorna
+  AccessPreview resolveAccessPreview({
+    required String? selectedRole,
+    String? adminFollowUp,
+    String? ownerFollowUp,
+  }) {
+    final roles = <String>{};
+    final workspaces = <String>{};
+
+    final isAdminRole = selectedRole != null &&
+        (selectedRole.startsWith('admin_activos') ||
+            selectedRole == 'admin_activos_org');
+
+    final isOwnerRole =
+        selectedRole == 'propietario' || selectedRole == 'propietario_emp';
+
+    if (isAdminRole) {
+      // Admin → siempre workspace Administrador
+      roles.add('Administrador');
+      workspaces.add('Administrador');
+
+      // Admin both → también Propietario
+      if (adminFollowUp == 'both') {
+        roles.add('Propietario');
+        workspaces.add('Propietario');
+      }
+    } else if (isOwnerRole) {
+      // Propietario según follow-up
+      if (ownerFollowUp == 'self') {
+        roles.add('Administrador');
+        workspaces.add('Administrador');
+      } else if (ownerFollowUp == 'third') {
+        roles.add('Propietario');
+        workspaces.add('Propietario');
+      } else if (ownerFollowUp == 'both') {
+        roles.addAll(['Propietario', 'Administrador']);
+        workspaces.addAll(['Administrador', 'Propietario']);
+      }
+    } else if (selectedRole != null && selectedRole.isNotEmpty) {
+      // Otros roles → habilita el rol seleccionado y su workspace homónimo
+      final label = _labelForRole(selectedRole);
+      roles.add(label);
+      workspaces.add(label);
+    }
+
+    return AccessPreview(
+      roles: roles.toList(),
+      workspaces: workspaces.toList(),
+    );
+  }
+
+  /// Calcula y guarda los roles y workspaces finales basándose en la lógica de negocio
+  Future<void> resolveAndSaveWorkspaces({
+    required String selectedRole,
+    String? adminFollowUp,
+    String? ownerFollowUp,
+    String id = 'current',
+  }) async {
+    final p = progress.value ?? await progressDS.get(id);
+    if (p == null) return;
+
+    // Usar el resolver para calcular
+    final preview = resolveAccessPreview(
+      selectedRole: selectedRole,
+      adminFollowUp: adminFollowUp,
+      ownerFollowUp: ownerFollowUp,
+    );
+
+    // Guardar los roles y workspaces resueltos
+    p.resolvedRoles = preview.roles;
+    p.resolvedWorkspaces = preview.workspaces;
+    progress.value = await progressDS.upsert(p);
+  }
+
   Future<void> acceptTerms({String id = 'current'}) async {
     final p = progress.value ??
         (RegistrationProgressModel()
@@ -346,4 +469,15 @@ class RegistrationController extends GetxController {
           : null;
 
   String? get providerCategoryCompat => progress.value?.businessCategoryId;
+}
+
+/// Clase para retornar el resultado de la resolución de roles/workspaces
+class AccessPreview {
+  final List<String> roles;
+  final List<String> workspaces;
+
+  AccessPreview({
+    required this.roles,
+    required this.workspaces,
+  });
 }

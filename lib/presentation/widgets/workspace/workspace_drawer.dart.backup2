@@ -1,27 +1,20 @@
 // lib/presentation/widgets/nav/workspace_drawer.dart
+// WORKSPACE DRAWER — fuente de verdad:
+// • Usuario logueado → workspaces del usuario (solo activos)
+// • Sin usuario → resolvedWorkspaces del RegistrationController (si existe)
+// • Sin registro → todos los workspaces disponibles (exploración libre)
 import 'package:avanzza/domain/entities/user/active_context.dart';
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
+import 'package:collection/collection.dart'; // firstWhereOrNull
 
 import '../../../routes/app_pages.dart';
 import '../../auth/controllers/registration_controller.dart';
 import '../../controllers/session_context_controller.dart';
-import '../drawer/workspace_item.dart';
 
 class WorkspaceDrawer extends StatelessWidget {
   const WorkspaceDrawer({super.key});
-
-  // Helper puro testeable
-  static List<String> _buildActive(List<String> source) => source
-      .map((w) => w.trim())
-      .where((w) => w.isNotEmpty)
-      .map(_normalize)
-      .toSet()
-      .where(_supported.contains)
-      .toList()
-    ..sort(_preferredOrder);
 
   @override
   Widget build(BuildContext context) {
@@ -32,163 +25,167 @@ class WorkspaceDrawer extends StatelessWidget {
         ? Get.find<RegistrationController>()
         : null;
 
+    // 1) Usuario logueado → workspaces del usuario
+    final user = session?.user;
+    final fromUser = user != null;
+
+    final userWorkspaces =
+        fromUser ? _extractUserWorkspaces(session!) : const <String>[];
+
+    // 2) Registro → resolvedWorkspaces
+    final resolved =
+        reg?.progress.value?.resolvedWorkspaces ?? const <String>[];
+
+    // 3) Fuente final con lógica de exploración
+    final List<String> source;
+    if (fromUser && userWorkspaces.isNotEmpty) {
+      // Usuario autenticado → solo sus workspaces
+      source = userWorkspaces;
+    } else if (resolved.isNotEmpty) {
+      // Usuario en registro con workspaces resueltos → solo esos
+      source = resolved;
+    } else {
+      // Exploración libre → todos los workspaces
+      source = _allWorkspaces;
+    }
+
+    // Normalizar, deduplicar, soportados y orden
+    final active = source
+        .map((w) => w.trim())
+        .where((w) => w.isNotEmpty)
+        .map(_normalize)
+        .toSet()
+        .where((w) => _supported.contains(w))
+        .toList()
+      ..sort(_preferredOrder);
+
     return Drawer(
       child: SafeArea(
-        child: Obx(() {
-          // Fuente reactiva: userRx + membershipsRx + bump
-          final user = session?.userRx.value;
-          final _ = session?.membershipsVersion.value; // engancha a versión
-          final fromUser = user != null;
-
-          // 1) Usuario logueado → workspaces desde membershipsRx
-          final userWorkspaces = fromUser
-              ? _extractUserWorkspaces(session!)
-              : const <String>[];
-
-          // 2) Registro → resolvedWorkspaces
-          final resolved =
-              reg?.progress.value?.resolvedWorkspaces ?? const <String>[];
-
-          // 3) Fuente final
-          final List<String> source;
-          if (fromUser && userWorkspaces.isNotEmpty) {
-            source = userWorkspaces;
-          } else if (resolved.isNotEmpty) {
-            source = resolved;
-          } else {
-            source = _allWorkspaces;
-          }
-
-          final active = _buildActive(source);
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _Header(
-                fromUser: fromUser,
-                userName: user?.name,
-                activeContext: user?.activeContext?.rol,
-              ),
-              if (active.isEmpty)
-                const _EmptyHint()
-              else
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
-                    itemCount: active.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, i) {
-                      final ws = active[i];
-                      final data = _tileFor(ws);
-                      final isActive =
-                          _normalize(user?.activeContext?.rol ?? '') == ws;
-                      return WorkspaceItem(
-                        roleLabel: data.title,
-                        icon: data.icon,
-                        subtitle: data.subtitle,
-                        isActive: isActive,
-                        onTap: () => _goToWorkspace(ws, session, reg),
-                        onDeleted: () {
-                          // Trigger rebuild after deletion
-                          if (session != null) {
-                            session.membershipsVersion.value++;
-                          }
-                        },
-                      );
-                    },
-                  ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _Header(
+              fromUser: fromUser,
+              userName: user?.name,
+              activeContext: user?.activeContext?.rol,
+            ),
+            if (active.isEmpty)
+              const _EmptyHint()
+            else
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
+                  itemCount: active.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, i) {
+                    final ws = active[i];
+                    final data = _tileFor(ws);
+                    final isActive = fromUser &&
+                        user.activeContext?.rol != null &&
+                        _normalize(user.activeContext!.rol) == ws;
+                    return ListTile(
+                      leading: Icon(data.icon),
+                      title: Text(data.title),
+                      subtitle:
+                          data.subtitle == null ? null : Text(data.subtitle!),
+                      trailing: isActive
+                          ? Icon(Icons.check_circle,
+                              color: Theme.of(context).colorScheme.primary)
+                          : const Icon(Icons.chevron_right),
+                      selected: isActive,
+                      onTap: () => _goToWorkspace(ws, session, reg),
+                    );
+                  },
                 ),
-              const Divider(height: 1),
-              if (fromUser)
-                ..._buildFooterForUser(session)
-              else
-                ..._buildFooterForGuest(reg),
-              const Divider(height: 1),
+              ),
+            // Opciones adicionales
+            const Divider(height: 1),
+            if (!fromUser) ...[
               ListTile(
-                leading: const Icon(Icons.info_outline),
-                title: const Text('Acerca de'),
+                leading: const Icon(Icons.person_add_alt_1),
+                title: const Text('Añadir workspace'),
                 dense: true,
                 onTap: () {
                   Get.back();
-                  Get.snackbar(
-                    'Avanzza 2.0',
-                    'Workspaces por rol — Exploración/Registro diferido',
-                    snackPosition: SnackPosition.BOTTOM,
-                  );
+                  Get.toNamed(Routes.profile, parameters: {'append': '1'});
                 },
               ),
-              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.person_add_alt_1),
+                title: const Text('Registrarme'),
+                dense: true,
+                onTap: () {
+                  Get.back();
+                  Get.toNamed(Routes.registerUsername);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.exit_to_app),
+                title: const Text('Salir'),
+                dense: true,
+                onTap: () => _exitToWelcome(reg),
+              ),
             ],
-          );
-        }),
+            if (fromUser) ...[
+              ListTile(
+                leading: const Icon(Icons.add_circle_outline),
+                title: const Text('Agregar workspace'),
+                dense: true,
+                onTap: () {
+                  Get.back();
+                  Get.toNamed(Routes.profile, parameters: {'append': '1'});
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.logout),
+                title: const Text('Cerrar sesión'),
+                dense: true,
+                onTap: () => _logout(session),
+              ),
+            ],
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.info_outline),
+              title: const Text('Acerca de'),
+              dense: true,
+              onTap: () {
+                Get.back();
+                Get.snackbar(
+                  'Avanzza 2.0',
+                  'Workspaces por rol — Exploración/Registro diferido',
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
 
-  // Footer usuario autenticado
-  List<Widget> _buildFooterForUser(SessionContextController? session) => [
-        ListTile(
-          leading: const Icon(Icons.add_circle_outline),
-          title: const Text('Agregar workspace'),
-          dense: true,
-          onTap: () {
-            Get.back();
-            Get.toNamed(Routes.profile, parameters: {'append': '1'});
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.logout),
-          title: const Text('Cerrar sesión'),
-          dense: true,
-          onTap: () => _logout(session),
-        ),
-      ];
+  // ---- User helpers ---------------------------------------------------------
 
-  // Footer invitado
-  List<Widget> _buildFooterForGuest(RegistrationController? reg) => [
-        ListTile(
-          leading: const Icon(Icons.person_add_alt_1),
-          title: const Text('Añadir workspace'),
-          dense: true,
-          onTap: () {
-            Get.back();
-            Get.toNamed(Routes.profile, parameters: {'append': '1'});
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.person_add_alt_1),
-          title: const Text('Registrarme'),
-          dense: true,
-          onTap: () {
-            Get.back();
-            Get.toNamed(Routes.registerUsername);
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.exit_to_app),
-          title: const Text('Salir'),
-          dense: true,
-          onTap: () => _exitToWelcome(reg),
-        ),
-      ];
-
-  // ---- User helpers ----
   List<String> _extractUserWorkspaces(SessionContextController session) {
-    final roles = session.membershipsRx
+    // Agrupa roles de memberships activos a etiquetas de workspace
+    final roles = session.memberships
         .where((m) => m.estatus == 'activo')
         .expand((m) => m.roles)
         .map(_normalize)
         .toSet();
 
-    final activeCtx = session.userRx.value?.activeContext;
-    final ordered = [
-      if ((activeCtx?.rol ?? '').isNotEmpty) _normalize(activeCtx!.rol),
-      ...roles.where((r) => r != _normalize(activeCtx?.rol ?? '')),
-    ];
-    return ordered;
+    // Si el usuario tiene contexto activo con rol, garantízalo al frente
+    final activeCtx = session.user?.activeContext;
+    final activeFirst = <String>[];
+    if (activeCtx?.rol != null && activeCtx!.rol.isNotEmpty) {
+      activeFirst.add(_normalize(activeCtx.rol));
+    }
+    final rest = roles.where((r) => !activeFirst.contains(r)).toList();
+    return [...activeFirst, ...rest];
   }
 
-  // ---- Normalización y orden ----
+  // ---- Normalización y orden ------------------------------------------------
+
   static const _allWorkspaces = <String>[
     'Administrador',
     'Propietario',
@@ -199,8 +196,15 @@ class WorkspaceDrawer extends StatelessWidget {
     'Asesor de seguros',
   ];
 
-  // Evita drift
-  static final _supported = _allWorkspaces.toSet();
+  static const _supported = <String>{
+    'Administrador',
+    'Propietario',
+    'Proveedor',
+    'Arrendatario',
+    'Aseguradora',
+    'Abogado',
+    'Asesor de seguros',
+  };
 
   static String _normalize(String w) {
     final low = w.toLowerCase();
@@ -230,6 +234,8 @@ class WorkspaceDrawer extends StatelessWidget {
     };
     return (order[a] ?? 999).compareTo(order[b] ?? 999);
   }
+
+  // ---- Tiles y navegación ---------------------------------------------------
 
   _TileData _tileFor(String ws) {
     switch (ws) {
@@ -280,36 +286,44 @@ class WorkspaceDrawer extends StatelessWidget {
     }
   }
 
+  // Espera que se cierre el drawer
   Future<void> _waitDrawerClose(BuildContext ctx,
       {Duration timeout = const Duration(milliseconds: 500)}) async {
     final start = DateTime.now();
+    // Mientras el drawer siga abierto, espera al final de cada frame
     while (Scaffold.maybeOf(ctx)?.isDrawerOpen == true) {
       await SchedulerBinding.instance.endOfFrame;
       if (DateTime.now().difference(start) > timeout) break;
     }
+    // Un frame extra para estabilizar layout
     await SchedulerBinding.instance.endOfFrame;
   }
 
+// Cambia la firma para poder 'await'
   Future<void> _goToWorkspace(
     String ws,
     SessionContextController? session,
     RegistrationController? reg,
   ) async {
-    if (session?.userRx.value != null) {
-      final membership = session!.membershipsRx.firstWhereOrNull(
+    // 1) Usuario autenticado → fijar contexto activo al rol elegido
+    if (session?.user != null) {
+      final membership = session!.memberships.firstWhereOrNull(
         (m) => m.roles.any((r) => _normalize(r) == ws),
       );
 
       if (membership != null) {
         final role = membership.roles.firstWhere((r) => _normalize(r) == ws);
+
+        // providerType si aplica
         String? providerType;
         if (ws == 'Proveedor' && membership.providerProfiles.isNotEmpty) {
           providerType = membership.providerProfiles.first.providerType;
         }
 
-        final current = session.userRx.value?.activeContext;
+        final current = session.user?.activeContext;
+        // Si no existe current, crea uno básico
         final nextCtx = (current == null)
-            ? ActiveContext(
+            ? currentTypeSafe(
                 orgId: membership.orgId,
                 orgName: membership.orgName,
                 rol: role,
@@ -322,19 +336,23 @@ class WorkspaceDrawer extends StatelessWidget {
                 providerType: providerType,
               );
 
+        // Si tu setter es async, deja el await; si no, quítalo
         await session.setActiveContext(nextCtx);
       }
 
       final ctx = Get.context;
       if (ctx != null && Scaffold.maybeOf(ctx)?.isDrawerOpen == true) {
-        Navigator.of(ctx).pop();
-        await _waitDrawerClose(ctx);
+        Navigator.of(ctx).pop(); // cierra el Drawer
+        await _waitDrawerClose(ctx); // espera a que termine la animación real
       } else {
+        // fallback si no hay contexto válido
         try {
           Get.back();
         } catch (_) {}
+        // no hagas delay aquí
       }
 
+      // 2) Navegar en el siguiente frame para evitar choques con la animación del Drawer
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final target =
             (ws == 'Proveedor') ? Routes.providerProfile : Routes.home;
@@ -346,6 +364,7 @@ class WorkspaceDrawer extends StatelessWidget {
       return;
     }
 
+    // Usuario en exploración → persistir selección temporal
     if (reg != null) {
       await _persistExploreSelection(ws, reg);
     }
@@ -356,8 +375,27 @@ class WorkspaceDrawer extends StatelessWidget {
     });
   }
 
+// Helper para crear un ActiveContext cuando no existe
+// Ajusta el tipo según tu modelo real
+  ActiveContext currentTypeSafe({
+    required String orgId,
+    required String orgName,
+    required String rol,
+    String? providerType,
+  }) {
+    // TODO: reemplaza por tu constructor real de ActiveContext
+    // e.g., return ActiveContext(orgId: orgId, orgName: orgName, rol: rol, providerType: providerType);
+    return ActiveContext(
+      orgId: orgId,
+      orgName: orgName,
+      rol: rol,
+      providerType: providerType,
+    );
+  }
+
   Future<void> _persistExploreSelection(
       String ws, RegistrationController reg) async {
+    // Mapear workspace a rol interno
     String role;
     String titularType = 'persona';
     String? providerType;
@@ -374,7 +412,7 @@ class WorkspaceDrawer extends StatelessWidget {
         break;
       case 'Proveedor':
         role = 'proveedor';
-        providerType = 'servicios';
+        providerType = 'servicios'; // Default, se puede cambiar después
         break;
       case 'Aseguradora':
         role = 'aseguradora';
@@ -407,9 +445,13 @@ class WorkspaceDrawer extends StatelessWidget {
   }
 
   Future<void> _logout(SessionContextController? session) async {
+    // Aquí deberías implementar tu lógica de logout
+    // Por ahora solo navegamos al inicio
     Get.offAllNamed(Routes.countryCity);
   }
 }
+
+// ---- UI bits ----------------------------------------------------------------
 
 class _Header extends StatelessWidget {
   final bool fromUser;
@@ -500,7 +542,7 @@ class _EmptyHint extends StatelessWidget {
               Icon(
                 Icons.workspace_premium_outlined,
                 size: 64,
-                color: theme.hintColor.withValues(alpha: 0.5),
+                color: theme.hintColor.withOpacity(0.5),
               ),
               const SizedBox(height: 16),
               Text(
@@ -513,8 +555,8 @@ class _EmptyHint extends StatelessWidget {
               Text(
                 'Completa tu registro para habilitar workspaces',
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall!
-                    .copyWith(color: theme.hintColor),
+                style:
+                    theme.textTheme.bodySmall!.copyWith(color: theme.hintColor),
               ),
             ],
           ),

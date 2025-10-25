@@ -34,6 +34,15 @@ class RegistrationProgressModel {
   List<String> categories = [];
 
   String? selectedRole;
+
+  // Respuestas contextuales para roles Admin/Owner
+  String? adminFollowUp; // 'own' | 'third' | 'both'
+  String? ownerFollowUp; // 'self' | 'third' | 'both'
+
+  // Roles finales computados basados en las respuestas
+  List<String> resolvedRoles = []; // Ej: ['Administrador', 'Propietario']
+  List<String> resolvedWorkspaces = []; // Ej: ['Administrador', 'Propietario']
+
   bool termsAccepted = false;
 
   late DateTime updatedAt;
