@@ -48,6 +48,7 @@ export 'components/chart/chart_presets.dart';
 
 // Components - Animation
 export 'components/animation/page_transitions.dart';
+export 'components/animation/animated_helpers.dart';
 
 // Components - Custom (Loading)
 export 'components/custom/loading_theme.dart';

@@ -515,6 +515,100 @@ IconButton
 - Shape: rounded (4dp)
 ```
 
+### Animated Helpers
+
+Helpers de animación reutilizables con soporte automático para accesibilidad.
+
+**✨ Características:**
+- ✅ Respetan `MediaQuery.disableAnimations` automáticamente
+- ✅ Usan tokens de `DS.motion` para consistencia
+- ✅ Stateless y sin rebuilds innecesarios
+- ✅ API ergonómica y composable
+
+#### fadeIn
+
+Animación de fade-in (opacidad 0.0 → 1.0):
+
+```dart
+fadeIn(
+  duration: DS.motion.normal,  // 250ms
+  curve: DS.motion.easeInOut,
+  delay: DS.motion.fast,  // 150ms
+  child: Text('Hello World'),
+)
+```
+
+#### slideUp
+
+Animación de deslizamiento desde abajo:
+
+```dart
+slideUp(
+  offset: 50.0,
+  duration: DS.motion.slow,  // 350ms
+  curve: DS.motion.easeInOutCubicEmphasized,
+  delay: DS.motion.veryFast,  // 100ms
+  child: Card(
+    child: ListTile(title: Text('Item')),
+  ),
+)
+```
+
+#### scaleIn
+
+Animación de escala (0.85 → 1.0):
+
+```dart
+scaleIn(
+  initialScale: 0.85,
+  duration: DS.motion.normal,  // 250ms
+  curve: DS.motion.easeInOutCubicEmphasized,
+  child: FloatingActionButton(
+    onPressed: () {},
+    child: Icon(Icons.add),
+  ),
+)
+```
+
+#### staggeredList
+
+Lista con animación escalonada (cada elemento con delay incremental):
+
+```dart
+staggeredList(
+  staggerDelay: DS.motion.fast,  // 150ms entre elementos
+  animationDuration: DS.motion.normal,  // 250ms cada uno
+  curve: DS.motion.easeInOut,
+  children: [
+    ListTile(title: Text('Item 1')),
+    ListTile(title: Text('Item 2')),
+    ListTile(title: Text('Item 3')),
+  ],
+)
+```
+
+#### staggeredListBuilder
+
+Lista escalonada optimizada para grandes volúmenes (lazy building):
+
+```dart
+staggeredListBuilder(
+  itemCount: 100,
+  staggerDelay: DS.motion.veryFast,  // 100ms entre elementos
+  animationDuration: DS.motion.normal,  // 250ms cada uno
+  itemBuilder: (context, index) {
+    return ListTile(
+      leading: CircleAvatar(child: Text('${index + 1}')),
+      title: Text('Item ${index + 1}'),
+    );
+  },
+)
+```
+
+**♿ Nota de Accesibilidad:**
+Todos los helpers verifican `MediaQuery.of(context).disableAnimations`.
+Si el usuario ha deshabilitado animaciones (ajustes del sistema), los widgets se renderizan inmediatamente sin animación.
+
 ---
 
 ## Temas (Presets)
