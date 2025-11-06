@@ -30,9 +30,9 @@ class AssetRepositoryImpl implements AssetRepository {
       final locals = await local.listAssetsByOrg(orgId,
           assetType: assetType, cityId: cityId);
       controller.add(locals.map((e) => e.toEntity()).toList());
-      final remotes = await remote.listAssetsByOrg(orgId,
+      final remotesResult = await remote.listAssetsByOrg(orgId,
           assetType: assetType, cityId: cityId);
-      await _syncAssets(locals, remotes);
+      await _syncAssets(locals, remotesResult.items);
       final updated = await local.listAssetsByOrg(orgId,
           assetType: assetType, cityId: cityId);
       controller.add(updated.map((e) => e.toEntity()).toList());
@@ -47,9 +47,9 @@ class AssetRepositoryImpl implements AssetRepository {
     final locals = await local.listAssetsByOrg(orgId,
         assetType: assetType, cityId: cityId);
     unawaited(() async {
-      final remotes = await remote.listAssetsByOrg(orgId,
+      final remotesResult = await remote.listAssetsByOrg(orgId,
           assetType: assetType, cityId: cityId);
-      await _syncAssets(locals, remotes);
+      await _syncAssets(locals, remotesResult.items);
     }());
     return locals.map((e) => e.toEntity()).toList();
   }
@@ -183,9 +183,9 @@ class AssetRepositoryImpl implements AssetRepository {
       final locals = await local.listDocuments(assetId,
           countryId: countryId, cityId: cityId);
       controller.add(locals.map((e) => e.toEntity()).toList());
-      final remotes = await remote.listDocuments(assetId,
+      final remotesResult = await remote.listDocuments(assetId,
           countryId: countryId, cityId: cityId);
-      await _syncDocs(locals, remotes);
+      await _syncDocs(locals, remotesResult.items);
       final updated = await local.listDocuments(assetId,
           countryId: countryId, cityId: cityId);
       controller.add(updated.map((e) => e.toEntity()).toList());
@@ -200,9 +200,9 @@ class AssetRepositoryImpl implements AssetRepository {
     final locals = await local.listDocuments(assetId,
         countryId: countryId, cityId: cityId);
     unawaited(() async {
-      final remotes = await remote.listDocuments(assetId,
+      final remotesResult = await remote.listDocuments(assetId,
           countryId: countryId, cityId: cityId);
-      await _syncDocs(locals, remotes);
+      await _syncDocs(locals, remotesResult.items);
     }());
     return locals.map((e) => e.toEntity()).toList();
   }

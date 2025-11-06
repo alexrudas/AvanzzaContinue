@@ -18,118 +18,138 @@ const RegistrationProgressModelSchema = CollectionSchema(
   name: r'RegistrationProgressModel',
   id: 7707409393652762021,
   properties: {
-    r'assetSegmentIds': PropertySchema(
+    r'adminFollowUp': PropertySchema(
       id: 0,
+      name: r'adminFollowUp',
+      type: IsarType.string,
+    ),
+    r'assetSegmentIds': PropertySchema(
+      id: 1,
       name: r'assetSegmentIds',
       type: IsarType.stringList,
     ),
     r'assetTypeIds': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'assetTypeIds',
       type: IsarType.stringList,
     ),
     r'barcodeRaw': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'barcodeRaw',
       type: IsarType.string,
     ),
     r'businessCategoryId': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'businessCategoryId',
       type: IsarType.string,
     ),
     r'categories': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'categories',
       type: IsarType.stringList,
     ),
     r'cityId': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'cityId',
       type: IsarType.string,
     ),
     r'countryId': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'countryId',
       type: IsarType.string,
     ),
     r'coverageCities': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'coverageCities',
       type: IsarType.stringList,
     ),
     r'docNumber': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'docNumber',
       type: IsarType.string,
     ),
     r'docType': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'docType',
       type: IsarType.string,
     ),
     r'email': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'email',
       type: IsarType.string,
     ),
     r'id': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'id',
       type: IsarType.string,
     ),
     r'offeringLineIds': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'offeringLineIds',
       type: IsarType.stringList,
     ),
+    r'ownerFollowUp': PropertySchema(
+      id: 14,
+      name: r'ownerFollowUp',
+      type: IsarType.string,
+    ),
     r'passwordSet': PropertySchema(
-      id: 13,
+      id: 15,
       name: r'passwordSet',
       type: IsarType.bool,
     ),
     r'phone': PropertySchema(
-      id: 14,
+      id: 16,
       name: r'phone',
       type: IsarType.string,
     ),
     r'providerType': PropertySchema(
-      id: 15,
+      id: 17,
       name: r'providerType',
       type: IsarType.string,
     ),
     r'regionId': PropertySchema(
-      id: 16,
+      id: 18,
       name: r'regionId',
       type: IsarType.string,
     ),
+    r'resolvedRoles': PropertySchema(
+      id: 19,
+      name: r'resolvedRoles',
+      type: IsarType.stringList,
+    ),
+    r'resolvedWorkspaces': PropertySchema(
+      id: 20,
+      name: r'resolvedWorkspaces',
+      type: IsarType.stringList,
+    ),
     r'selectedRole': PropertySchema(
-      id: 17,
+      id: 21,
       name: r'selectedRole',
       type: IsarType.string,
     ),
     r'step': PropertySchema(
-      id: 18,
+      id: 22,
       name: r'step',
       type: IsarType.long,
     ),
     r'termsAccepted': PropertySchema(
-      id: 19,
+      id: 23,
       name: r'termsAccepted',
       type: IsarType.bool,
     ),
     r'titularType': PropertySchema(
-      id: 20,
+      id: 24,
       name: r'titularType',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 21,
+      id: 25,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'username': PropertySchema(
-      id: 22,
+      id: 26,
       name: r'username',
       type: IsarType.string,
     )
@@ -168,6 +188,12 @@ int _registrationProgressModelEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.adminFollowUp;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.assetSegmentIds.length * 3;
   {
     for (var i = 0; i < object.assetSegmentIds.length; i++) {
@@ -247,6 +273,12 @@ int _registrationProgressModelEstimateSize(
     }
   }
   {
+    final value = object.ownerFollowUp;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.phone;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -262,6 +294,20 @@ int _registrationProgressModelEstimateSize(
     final value = object.regionId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
+    }
+  }
+  bytesCount += 3 + object.resolvedRoles.length * 3;
+  {
+    for (var i = 0; i < object.resolvedRoles.length; i++) {
+      final value = object.resolvedRoles[i];
+      bytesCount += value.length * 3;
+    }
+  }
+  bytesCount += 3 + object.resolvedWorkspaces.length * 3;
+  {
+    for (var i = 0; i < object.resolvedWorkspaces.length; i++) {
+      final value = object.resolvedWorkspaces[i];
+      bytesCount += value.length * 3;
     }
   }
   {
@@ -291,29 +337,33 @@ void _registrationProgressModelSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeStringList(offsets[0], object.assetSegmentIds);
-  writer.writeStringList(offsets[1], object.assetTypeIds);
-  writer.writeString(offsets[2], object.barcodeRaw);
-  writer.writeString(offsets[3], object.businessCategoryId);
-  writer.writeStringList(offsets[4], object.categories);
-  writer.writeString(offsets[5], object.cityId);
-  writer.writeString(offsets[6], object.countryId);
-  writer.writeStringList(offsets[7], object.coverageCities);
-  writer.writeString(offsets[8], object.docNumber);
-  writer.writeString(offsets[9], object.docType);
-  writer.writeString(offsets[10], object.email);
-  writer.writeString(offsets[11], object.id);
-  writer.writeStringList(offsets[12], object.offeringLineIds);
-  writer.writeBool(offsets[13], object.passwordSet);
-  writer.writeString(offsets[14], object.phone);
-  writer.writeString(offsets[15], object.providerType);
-  writer.writeString(offsets[16], object.regionId);
-  writer.writeString(offsets[17], object.selectedRole);
-  writer.writeLong(offsets[18], object.step);
-  writer.writeBool(offsets[19], object.termsAccepted);
-  writer.writeString(offsets[20], object.titularType);
-  writer.writeDateTime(offsets[21], object.updatedAt);
-  writer.writeString(offsets[22], object.username);
+  writer.writeString(offsets[0], object.adminFollowUp);
+  writer.writeStringList(offsets[1], object.assetSegmentIds);
+  writer.writeStringList(offsets[2], object.assetTypeIds);
+  writer.writeString(offsets[3], object.barcodeRaw);
+  writer.writeString(offsets[4], object.businessCategoryId);
+  writer.writeStringList(offsets[5], object.categories);
+  writer.writeString(offsets[6], object.cityId);
+  writer.writeString(offsets[7], object.countryId);
+  writer.writeStringList(offsets[8], object.coverageCities);
+  writer.writeString(offsets[9], object.docNumber);
+  writer.writeString(offsets[10], object.docType);
+  writer.writeString(offsets[11], object.email);
+  writer.writeString(offsets[12], object.id);
+  writer.writeStringList(offsets[13], object.offeringLineIds);
+  writer.writeString(offsets[14], object.ownerFollowUp);
+  writer.writeBool(offsets[15], object.passwordSet);
+  writer.writeString(offsets[16], object.phone);
+  writer.writeString(offsets[17], object.providerType);
+  writer.writeString(offsets[18], object.regionId);
+  writer.writeStringList(offsets[19], object.resolvedRoles);
+  writer.writeStringList(offsets[20], object.resolvedWorkspaces);
+  writer.writeString(offsets[21], object.selectedRole);
+  writer.writeLong(offsets[22], object.step);
+  writer.writeBool(offsets[23], object.termsAccepted);
+  writer.writeString(offsets[24], object.titularType);
+  writer.writeDateTime(offsets[25], object.updatedAt);
+  writer.writeString(offsets[26], object.username);
 }
 
 RegistrationProgressModel _registrationProgressModelDeserialize(
@@ -323,30 +373,34 @@ RegistrationProgressModel _registrationProgressModelDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = RegistrationProgressModel();
-  object.assetSegmentIds = reader.readStringList(offsets[0]) ?? [];
-  object.assetTypeIds = reader.readStringList(offsets[1]) ?? [];
-  object.barcodeRaw = reader.readStringOrNull(offsets[2]);
-  object.businessCategoryId = reader.readStringOrNull(offsets[3]);
-  object.categories = reader.readStringList(offsets[4]) ?? [];
-  object.cityId = reader.readStringOrNull(offsets[5]);
-  object.countryId = reader.readStringOrNull(offsets[6]);
-  object.coverageCities = reader.readStringList(offsets[7]) ?? [];
-  object.docNumber = reader.readStringOrNull(offsets[8]);
-  object.docType = reader.readStringOrNull(offsets[9]);
-  object.email = reader.readStringOrNull(offsets[10]);
-  object.id = reader.readString(offsets[11]);
+  object.adminFollowUp = reader.readStringOrNull(offsets[0]);
+  object.assetSegmentIds = reader.readStringList(offsets[1]) ?? [];
+  object.assetTypeIds = reader.readStringList(offsets[2]) ?? [];
+  object.barcodeRaw = reader.readStringOrNull(offsets[3]);
+  object.businessCategoryId = reader.readStringOrNull(offsets[4]);
+  object.categories = reader.readStringList(offsets[5]) ?? [];
+  object.cityId = reader.readStringOrNull(offsets[6]);
+  object.countryId = reader.readStringOrNull(offsets[7]);
+  object.coverageCities = reader.readStringList(offsets[8]) ?? [];
+  object.docNumber = reader.readStringOrNull(offsets[9]);
+  object.docType = reader.readStringOrNull(offsets[10]);
+  object.email = reader.readStringOrNull(offsets[11]);
+  object.id = reader.readString(offsets[12]);
   object.isarId = id;
-  object.offeringLineIds = reader.readStringList(offsets[12]) ?? [];
-  object.passwordSet = reader.readBool(offsets[13]);
-  object.phone = reader.readStringOrNull(offsets[14]);
-  object.providerType = reader.readStringOrNull(offsets[15]);
-  object.regionId = reader.readStringOrNull(offsets[16]);
-  object.selectedRole = reader.readStringOrNull(offsets[17]);
-  object.step = reader.readLong(offsets[18]);
-  object.termsAccepted = reader.readBool(offsets[19]);
-  object.titularType = reader.readStringOrNull(offsets[20]);
-  object.updatedAt = reader.readDateTime(offsets[21]);
-  object.username = reader.readStringOrNull(offsets[22]);
+  object.offeringLineIds = reader.readStringList(offsets[13]) ?? [];
+  object.ownerFollowUp = reader.readStringOrNull(offsets[14]);
+  object.passwordSet = reader.readBool(offsets[15]);
+  object.phone = reader.readStringOrNull(offsets[16]);
+  object.providerType = reader.readStringOrNull(offsets[17]);
+  object.regionId = reader.readStringOrNull(offsets[18]);
+  object.resolvedRoles = reader.readStringList(offsets[19]) ?? [];
+  object.resolvedWorkspaces = reader.readStringList(offsets[20]) ?? [];
+  object.selectedRole = reader.readStringOrNull(offsets[21]);
+  object.step = reader.readLong(offsets[22]);
+  object.termsAccepted = reader.readBool(offsets[23]);
+  object.titularType = reader.readStringOrNull(offsets[24]);
+  object.updatedAt = reader.readDateTime(offsets[25]);
+  object.username = reader.readStringOrNull(offsets[26]);
   return object;
 }
 
@@ -358,50 +412,58 @@ P _registrationProgressModelDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 1:
       return (reader.readStringList(offset) ?? []) as P;
     case 2:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 3:
       return (reader.readStringOrNull(offset)) as P;
     case 4:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 5:
       return (reader.readStringOrNull(offset)) as P;
+    case 5:
+      return (reader.readStringList(offset) ?? []) as P;
     case 6:
       return (reader.readStringOrNull(offset)) as P;
     case 7:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 8:
       return (reader.readStringOrNull(offset)) as P;
+    case 8:
+      return (reader.readStringList(offset) ?? []) as P;
     case 9:
       return (reader.readStringOrNull(offset)) as P;
     case 10:
       return (reader.readStringOrNull(offset)) as P;
     case 11:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 12:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readString(offset)) as P;
     case 13:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 14:
       return (reader.readStringOrNull(offset)) as P;
     case 15:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 16:
       return (reader.readStringOrNull(offset)) as P;
     case 17:
       return (reader.readStringOrNull(offset)) as P;
     case 18:
-      return (reader.readLong(offset)) as P;
-    case 19:
-      return (reader.readBool(offset)) as P;
-    case 20:
       return (reader.readStringOrNull(offset)) as P;
+    case 19:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 20:
+      return (reader.readStringList(offset) ?? []) as P;
     case 21:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 22:
+      return (reader.readLong(offset)) as P;
+    case 23:
+      return (reader.readBool(offset)) as P;
+    case 24:
+      return (reader.readStringOrNull(offset)) as P;
+    case 25:
+      return (reader.readDateTime(offset)) as P;
+    case 26:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -606,6 +668,162 @@ extension RegistrationProgressModelQueryWhere on QueryBuilder<
 
 extension RegistrationProgressModelQueryFilter on QueryBuilder<
     RegistrationProgressModel, RegistrationProgressModel, QFilterCondition> {
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> adminFollowUpIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'adminFollowUp',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> adminFollowUpIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'adminFollowUp',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> adminFollowUpEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'adminFollowUp',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> adminFollowUpGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'adminFollowUp',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> adminFollowUpLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'adminFollowUp',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> adminFollowUpBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'adminFollowUp',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> adminFollowUpStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'adminFollowUp',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> adminFollowUpEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'adminFollowUp',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      adminFollowUpContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'adminFollowUp',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      adminFollowUpMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'adminFollowUp',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> adminFollowUpIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'adminFollowUp',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> adminFollowUpIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'adminFollowUp',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
       QAfterFilterCondition> assetSegmentIdsElementEqualTo(
     String value, {
@@ -3051,6 +3269,162 @@ extension RegistrationProgressModelQueryFilter on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> ownerFollowUpIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'ownerFollowUp',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> ownerFollowUpIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'ownerFollowUp',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> ownerFollowUpEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'ownerFollowUp',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> ownerFollowUpGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'ownerFollowUp',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> ownerFollowUpLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'ownerFollowUp',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> ownerFollowUpBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'ownerFollowUp',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> ownerFollowUpStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'ownerFollowUp',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> ownerFollowUpEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'ownerFollowUp',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      ownerFollowUpContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'ownerFollowUp',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      ownerFollowUpMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'ownerFollowUp',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> ownerFollowUpIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'ownerFollowUp',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> ownerFollowUpIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'ownerFollowUp',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
       QAfterFilterCondition> passwordSetEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -3525,6 +3899,462 @@ extension RegistrationProgressModelQueryFilter on QueryBuilder<
         property: r'regionId',
         value: '',
       ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedRolesElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'resolvedRoles',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedRolesElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'resolvedRoles',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedRolesElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'resolvedRoles',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedRolesElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'resolvedRoles',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedRolesElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'resolvedRoles',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedRolesElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'resolvedRoles',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      resolvedRolesElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'resolvedRoles',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      resolvedRolesElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'resolvedRoles',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedRolesElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'resolvedRoles',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedRolesElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'resolvedRoles',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedRolesLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'resolvedRoles',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedRolesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'resolvedRoles',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedRolesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'resolvedRoles',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedRolesLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'resolvedRoles',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedRolesLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'resolvedRoles',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedRolesLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'resolvedRoles',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspacesElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'resolvedWorkspaces',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspacesElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'resolvedWorkspaces',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspacesElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'resolvedWorkspaces',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspacesElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'resolvedWorkspaces',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspacesElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'resolvedWorkspaces',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspacesElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'resolvedWorkspaces',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      resolvedWorkspacesElementContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'resolvedWorkspaces',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      resolvedWorkspacesElementMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'resolvedWorkspaces',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspacesElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'resolvedWorkspaces',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspacesElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'resolvedWorkspaces',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspacesLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'resolvedWorkspaces',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspacesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'resolvedWorkspaces',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspacesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'resolvedWorkspaces',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspacesLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'resolvedWorkspaces',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspacesLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'resolvedWorkspaces',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspacesLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'resolvedWorkspaces',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
     });
   }
 
@@ -4128,6 +4958,20 @@ extension RegistrationProgressModelQueryLinks on QueryBuilder<
 extension RegistrationProgressModelQuerySortBy on QueryBuilder<
     RegistrationProgressModel, RegistrationProgressModel, QSortBy> {
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByAdminFollowUp() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'adminFollowUp', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByAdminFollowUpDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'adminFollowUp', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
       QAfterSortBy> sortByBarcodeRaw() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'barcodeRaw', Sort.asc);
@@ -4236,6 +5080,20 @@ extension RegistrationProgressModelQuerySortBy on QueryBuilder<
       QAfterSortBy> sortByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByOwnerFollowUp() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerFollowUp', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByOwnerFollowUpDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerFollowUp', Sort.desc);
     });
   }
 
@@ -4383,6 +5241,20 @@ extension RegistrationProgressModelQuerySortBy on QueryBuilder<
 extension RegistrationProgressModelQuerySortThenBy on QueryBuilder<
     RegistrationProgressModel, RegistrationProgressModel, QSortThenBy> {
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByAdminFollowUp() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'adminFollowUp', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByAdminFollowUpDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'adminFollowUp', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
       QAfterSortBy> thenByBarcodeRaw() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'barcodeRaw', Sort.asc);
@@ -4505,6 +5377,20 @@ extension RegistrationProgressModelQuerySortThenBy on QueryBuilder<
       QAfterSortBy> thenByIsarIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isarId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByOwnerFollowUp() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerFollowUp', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByOwnerFollowUpDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerFollowUp', Sort.desc);
     });
   }
 
@@ -4652,6 +5538,14 @@ extension RegistrationProgressModelQuerySortThenBy on QueryBuilder<
 extension RegistrationProgressModelQueryWhereDistinct on QueryBuilder<
     RegistrationProgressModel, RegistrationProgressModel, QDistinct> {
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
+      distinctByAdminFollowUp({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'adminFollowUp',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
       distinctByAssetSegmentIds() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'assetSegmentIds');
@@ -4744,6 +5638,14 @@ extension RegistrationProgressModelQueryWhereDistinct on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
+      distinctByOwnerFollowUp({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'ownerFollowUp',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
       distinctByPasswordSet() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'passwordSet');
@@ -4768,6 +5670,20 @@ extension RegistrationProgressModelQueryWhereDistinct on QueryBuilder<
       distinctByRegionId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'regionId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
+      distinctByResolvedRoles() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'resolvedRoles');
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
+      distinctByResolvedWorkspaces() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'resolvedWorkspaces');
     });
   }
 
@@ -4820,6 +5736,13 @@ extension RegistrationProgressModelQueryProperty on QueryBuilder<
       isarIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isarId');
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, String?, QQueryOperations>
+      adminFollowUpProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'adminFollowUp');
     });
   }
 
@@ -4914,6 +5837,13 @@ extension RegistrationProgressModelQueryProperty on QueryBuilder<
     });
   }
 
+  QueryBuilder<RegistrationProgressModel, String?, QQueryOperations>
+      ownerFollowUpProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'ownerFollowUp');
+    });
+  }
+
   QueryBuilder<RegistrationProgressModel, bool, QQueryOperations>
       passwordSetProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -4939,6 +5869,20 @@ extension RegistrationProgressModelQueryProperty on QueryBuilder<
       regionIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'regionId');
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, List<String>, QQueryOperations>
+      resolvedRolesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'resolvedRoles');
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, List<String>, QQueryOperations>
+      resolvedWorkspacesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'resolvedWorkspaces');
     });
   }
 

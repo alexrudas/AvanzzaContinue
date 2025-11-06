@@ -1,4 +1,8 @@
+import 'package:avanzza/core/campaign/demo/demo_soat_campaign.dart';
 import 'package:avanzza/presentation/pages/asset_list_page.dart';
+import 'package:avanzza/presentation/pages/workspaces/provider_articles_workspace_page.dart'
+    show ProviderArticlesWorkspacePage;
+import 'package:avanzza/presentation/pages/workspaces/provider_services_workspace_page.dart';
 import 'package:get/get.dart';
 
 import '../presentation/auth/pages/auth_welcome_page.dart';
@@ -8,14 +12,10 @@ import '../presentation/auth/pages/login_username_password_page.dart';
 import '../presentation/auth/pages/mfa_otp_page.dart';
 import '../presentation/auth/pages/otp_verify_page.dart';
 import '../presentation/auth/pages/phone_input_page.dart';
-import '../presentation/auth/pages/provider_asset_types_page.dart';
-import '../presentation/auth/pages/provider_categories_page.dart';
 import '../presentation/auth/pages/provider_coverage_page.dart';
-import '../presentation/auth/pages/provider_segments_page.dart';
-import '../presentation/auth/pages/provider_subtype_page.dart';
+import '../presentation/auth/pages/provider_profile_page.dart';
 import '../presentation/auth/pages/select_country_city_page.dart';
-import '../presentation/auth/pages/select_holder_type_page.dart';
-import '../presentation/auth/pages/select_role_page.dart';
+import '../presentation/auth/pages/select_profile_page.dart';
 import '../presentation/auth/pages/summary_page.dart';
 import '../presentation/auth/pages/terms_page.dart';
 import '../presentation/auth/pages/username_password_page.dart';
@@ -30,7 +30,8 @@ class Routes {
   static const phone = '/auth/phone';
   static const otp = '/auth/otp';
   static const countryCity = '/auth/country-city';
-  static const role = '/auth/role';
+  static const role = '/auth/role'; // legacy alias
+  static const profile = '/auth/profile';
   static const home = '/home';
   static const orgSelect = '/org_select';
 
@@ -43,11 +44,13 @@ class Routes {
   static const loginMfa = '/auth/login/mfa';
   static const registerSummary = '/auth/register/summary';
   static const holderType = '/auth/holder-type';
-  static const providerSubtype = '/auth/provider/subtype';
-  static const providerCategories = '/auth/provider/categories';
-  static const providerAssetTypes = '/auth/provider/asset-types';
-  static const providerSegments = '/auth/provider/segments';
+  static const providerProfile = '/auth/provider/profile';
+
   static const providerCoverage = '/auth/provider/coverage';
+  static const providerHomeArticles = '/provider/home/articles';
+  static const providerHomeServices = '/provider/home/services';
+  static const providerWorkspaceArticles = '/provider/workspace/articles';
+  static const providerWorkspaceServices = '/provider/workspace/services';
 
   // Módulos ya existentes
   static const incidencia = '/incidencia';
@@ -55,12 +58,18 @@ class Routes {
 
   static const String assets = '/assets';
 
+  // Demo y desarrollo
+  static const bottomNavDemo = '/demo/bottom-nav';
+  static const demoSoat = '/campaign/soat';
+
   static final pages = <GetPage<dynamic>>[
     GetPage(name: welcome, page: () => AuthWelcomePage()),
     GetPage(name: phone, page: () => const PhoneInputPage()),
     GetPage(name: otp, page: () => const OtpVerifyPage()),
     GetPage(name: countryCity, page: () => const SelectCountryCityPage()),
-    GetPage(name: role, page: () => const SelectRolePage()),
+    GetPage(name: profile, page: () => const SelectProfilePage()),
+    // legacy aliases
+    GetPage(name: role, page: () => const SelectProfilePage()),
     GetPage(name: orgSelect, page: () => const OrgSelectionPage()),
 
     // HomeRouter decide workspace según activeContext
@@ -74,14 +83,24 @@ class Routes {
     GetPage(name: loginUserPass, page: () => const LoginUsernamePasswordPage()),
     GetPage(name: loginMfa, page: () => const MfaOtpPage()),
     GetPage(name: registerSummary, page: () => const SummaryPage()),
-    GetPage(name: holderType, page: () => const SelectHolderTypePage()),
-    GetPage(name: providerSubtype, page: () => const ProviderSubtypePage()),
-    GetPage(
-        name: providerCategories, page: () => const ProviderCategoriesPage()),
-    GetPage(
-        name: providerAssetTypes, page: () => const ProviderAssetTypesPage()),
-    GetPage(name: providerSegments, page: () => const ProviderSegmentsPage()),
+    // legacy alias
+    GetPage(name: holderType, page: () => const SelectProfilePage()),
+    // Perfil proveedor unificado y alias legacy
+    GetPage(name: providerProfile, page: () => const ProviderProfilePage()),
+
     GetPage(name: providerCoverage, page: () => const ProviderCoveragePage()),
+    GetPage(
+        name: providerHomeArticles,
+        page: () => const ProviderArticlesWorkspacePage()),
+    GetPage(
+        name: providerHomeServices,
+        page: () => const ProviderServicesWorkspacePage()),
+    GetPage(
+        name: providerWorkspaceArticles,
+        page: () => const ProviderArticlesWorkspacePage()),
+    GetPage(
+        name: providerWorkspaceServices,
+        page: () => const ProviderServicesWorkspacePage()),
 
     // Módulos legacy
     GetPage(
@@ -90,5 +109,11 @@ class Routes {
     GetPage(name: purchase, page: () => const PurchaseRequestPage()),
 
     GetPage(name: assets, page: () => const AssetListPage()),
+
+    // Demo
+    // GetPage(name: bottomNavDemo, page: () => const BottomNavDemoPage()),
+
+    // Demo Campaña Publicidad Seguros
+    GetPage(name: demoSoat, page: () => const DemoSoatCampaignPage()),
   ];
 }

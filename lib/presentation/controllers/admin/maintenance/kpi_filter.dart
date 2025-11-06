@@ -1,0 +1,1 @@
+enum KpiFilter { programados, enProceso, finalizados, incidenciasAbiertas }

@@ -22,53 +22,73 @@ const IncidenciaModelSchema = CollectionSchema(
       name: r'assetId',
       type: IsarType.string,
     ),
-    r'cityId': PropertySchema(
+    r'assetRefPath': PropertySchema(
       id: 1,
+      name: r'assetRefPath',
+      type: IsarType.string,
+    ),
+    r'cityId': PropertySchema(
+      id: 2,
       name: r'cityId',
       type: IsarType.string,
     ),
+    r'cityRefPath': PropertySchema(
+      id: 3,
+      name: r'cityRefPath',
+      type: IsarType.string,
+    ),
     r'createdAt': PropertySchema(
-      id: 2,
+      id: 4,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'descripcion': PropertySchema(
-      id: 3,
+      id: 5,
       name: r'descripcion',
       type: IsarType.string,
     ),
     r'estado': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'estado',
       type: IsarType.string,
     ),
     r'fotosUrls': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'fotosUrls',
       type: IsarType.stringList,
     ),
     r'id': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'id',
       type: IsarType.string,
     ),
     r'orgId': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'orgId',
       type: IsarType.string,
     ),
+    r'orgRefPath': PropertySchema(
+      id: 10,
+      name: r'orgRefPath',
+      type: IsarType.string,
+    ),
     r'prioridad': PropertySchema(
-      id: 8,
+      id: 11,
       name: r'prioridad',
       type: IsarType.string,
     ),
     r'reportedBy': PropertySchema(
-      id: 9,
+      id: 12,
       name: r'reportedBy',
       type: IsarType.string,
     ),
+    r'reportedByRefPath': PropertySchema(
+      id: 13,
+      name: r'reportedByRefPath',
+      type: IsarType.string,
+    ),
     r'updatedAt': PropertySchema(
-      id: 10,
+      id: 14,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -83,7 +103,7 @@ const IncidenciaModelSchema = CollectionSchema(
       id: -3268401673993471357,
       name: r'id',
       unique: true,
-      replace: true,
+      replace: false,
       properties: [
         IndexPropertySchema(
           name: r'id',
@@ -118,6 +138,19 @@ const IncidenciaModelSchema = CollectionSchema(
         )
       ],
     ),
+    r'prioridad': IndexSchema(
+      id: 8505763141741948367,
+      name: r'prioridad',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'prioridad',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
     r'estado': IndexSchema(
       id: -4800696143246816208,
       name: r'estado',
@@ -126,6 +159,19 @@ const IncidenciaModelSchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'estado',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'reportedBy': IndexSchema(
+      id: -7801957271705420367,
+      name: r'reportedBy',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'reportedBy',
           type: IndexType.hash,
           caseSensitive: true,
         )
@@ -161,7 +207,19 @@ int _incidenciaModelEstimateSize(
   var bytesCount = offsets.last;
   bytesCount += 3 + object.assetId.length * 3;
   {
+    final value = object.assetRefPath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.cityId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.cityRefPath;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -178,12 +236,24 @@ int _incidenciaModelEstimateSize(
   bytesCount += 3 + object.id.length * 3;
   bytesCount += 3 + object.orgId.length * 3;
   {
+    final value = object.orgRefPath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.prioridad;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
   }
   bytesCount += 3 + object.reportedBy.length * 3;
+  {
+    final value = object.reportedByRefPath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -194,16 +264,20 @@ void _incidenciaModelSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.assetId);
-  writer.writeString(offsets[1], object.cityId);
-  writer.writeDateTime(offsets[2], object.createdAt);
-  writer.writeString(offsets[3], object.descripcion);
-  writer.writeString(offsets[4], object.estado);
-  writer.writeStringList(offsets[5], object.fotosUrls);
-  writer.writeString(offsets[6], object.id);
-  writer.writeString(offsets[7], object.orgId);
-  writer.writeString(offsets[8], object.prioridad);
-  writer.writeString(offsets[9], object.reportedBy);
-  writer.writeDateTime(offsets[10], object.updatedAt);
+  writer.writeString(offsets[1], object.assetRefPath);
+  writer.writeString(offsets[2], object.cityId);
+  writer.writeString(offsets[3], object.cityRefPath);
+  writer.writeDateTime(offsets[4], object.createdAt);
+  writer.writeString(offsets[5], object.descripcion);
+  writer.writeString(offsets[6], object.estado);
+  writer.writeStringList(offsets[7], object.fotosUrls);
+  writer.writeString(offsets[8], object.id);
+  writer.writeString(offsets[9], object.orgId);
+  writer.writeString(offsets[10], object.orgRefPath);
+  writer.writeString(offsets[11], object.prioridad);
+  writer.writeString(offsets[12], object.reportedBy);
+  writer.writeString(offsets[13], object.reportedByRefPath);
+  writer.writeDateTime(offsets[14], object.updatedAt);
 }
 
 IncidenciaModel _incidenciaModelDeserialize(
@@ -214,17 +288,21 @@ IncidenciaModel _incidenciaModelDeserialize(
 ) {
   final object = IncidenciaModel(
     assetId: reader.readString(offsets[0]),
-    cityId: reader.readStringOrNull(offsets[1]),
-    createdAt: reader.readDateTimeOrNull(offsets[2]),
-    descripcion: reader.readString(offsets[3]),
-    estado: reader.readString(offsets[4]),
-    fotosUrls: reader.readStringList(offsets[5]) ?? const [],
-    id: reader.readString(offsets[6]),
+    assetRefPath: reader.readStringOrNull(offsets[1]),
+    cityId: reader.readStringOrNull(offsets[2]),
+    cityRefPath: reader.readStringOrNull(offsets[3]),
+    createdAt: reader.readDateTimeOrNull(offsets[4]),
+    descripcion: reader.readString(offsets[5]),
+    estado: reader.readString(offsets[6]),
+    fotosUrls: reader.readStringList(offsets[7]) ?? const [],
+    id: reader.readString(offsets[8]),
     isarId: id,
-    orgId: reader.readString(offsets[7]),
-    prioridad: reader.readStringOrNull(offsets[8]),
-    reportedBy: reader.readString(offsets[9]),
-    updatedAt: reader.readDateTimeOrNull(offsets[10]),
+    orgId: reader.readString(offsets[9]),
+    orgRefPath: reader.readStringOrNull(offsets[10]),
+    prioridad: reader.readStringOrNull(offsets[11]),
+    reportedBy: reader.readString(offsets[12]),
+    reportedByRefPath: reader.readStringOrNull(offsets[13]),
+    updatedAt: reader.readDateTimeOrNull(offsets[14]),
   );
   return object;
 }
@@ -241,22 +319,30 @@ P _incidenciaModelDeserializeProp<P>(
     case 1:
       return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 4:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 5:
-      return (reader.readStringList(offset) ?? const []) as P;
+      return (reader.readString(offset)) as P;
     case 6:
       return (reader.readString(offset)) as P;
     case 7:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringList(offset) ?? const []) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 9:
       return (reader.readString(offset)) as P;
     case 10:
+      return (reader.readStringOrNull(offset)) as P;
+    case 11:
+      return (reader.readStringOrNull(offset)) as P;
+    case 12:
+      return (reader.readString(offset)) as P;
+    case 13:
+      return (reader.readStringOrNull(offset)) as P;
+    case 14:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -546,6 +632,73 @@ extension IncidenciaModelQueryWhere
   }
 
   QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterWhereClause>
+      prioridadIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'prioridad',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterWhereClause>
+      prioridadIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'prioridad',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterWhereClause>
+      prioridadEqualTo(String? prioridad) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'prioridad',
+        value: [prioridad],
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterWhereClause>
+      prioridadNotEqualTo(String? prioridad) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'prioridad',
+              lower: [],
+              upper: [prioridad],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'prioridad',
+              lower: [prioridad],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'prioridad',
+              lower: [prioridad],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'prioridad',
+              lower: [],
+              upper: [prioridad],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterWhereClause>
       estadoEqualTo(String estado) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IndexWhereClause.equalTo(
@@ -584,6 +737,51 @@ extension IncidenciaModelQueryWhere
               indexName: r'estado',
               lower: [],
               upper: [estado],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterWhereClause>
+      reportedByEqualTo(String reportedBy) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'reportedBy',
+        value: [reportedBy],
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterWhereClause>
+      reportedByNotEqualTo(String reportedBy) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'reportedBy',
+              lower: [],
+              upper: [reportedBy],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'reportedBy',
+              lower: [reportedBy],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'reportedBy',
+              lower: [reportedBy],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'reportedBy',
+              lower: [],
+              upper: [reportedBy],
               includeUpper: false,
             ));
       }
@@ -797,6 +995,160 @@ extension IncidenciaModelQueryFilter
   }
 
   QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      assetRefPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'assetRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      assetRefPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'assetRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      assetRefPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'assetRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      assetRefPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'assetRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      assetRefPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'assetRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      assetRefPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'assetRefPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      assetRefPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'assetRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      assetRefPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'assetRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      assetRefPathContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'assetRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      assetRefPathMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'assetRefPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      assetRefPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'assetRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      assetRefPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'assetRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
       cityIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -945,6 +1297,160 @@ extension IncidenciaModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'cityId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      cityRefPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'cityRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      cityRefPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'cityRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      cityRefPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'cityRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      cityRefPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'cityRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      cityRefPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'cityRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      cityRefPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'cityRefPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      cityRefPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'cityRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      cityRefPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'cityRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      cityRefPathContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'cityRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      cityRefPathMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'cityRefPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      cityRefPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'cityRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      cityRefPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'cityRefPath',
         value: '',
       ));
     });
@@ -1868,6 +2374,160 @@ extension IncidenciaModelQueryFilter
   }
 
   QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      orgRefPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'orgRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      orgRefPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'orgRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      orgRefPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      orgRefPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      orgRefPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      orgRefPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'orgRefPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      orgRefPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      orgRefPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      orgRefPathContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      orgRefPathMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'orgRefPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      orgRefPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'orgRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      orgRefPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'orgRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
       prioridadIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -2158,6 +2818,160 @@ extension IncidenciaModelQueryFilter
   }
 
   QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      reportedByRefPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'reportedByRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      reportedByRefPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'reportedByRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      reportedByRefPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'reportedByRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      reportedByRefPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'reportedByRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      reportedByRefPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'reportedByRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      reportedByRefPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'reportedByRefPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      reportedByRefPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'reportedByRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      reportedByRefPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'reportedByRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      reportedByRefPathContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'reportedByRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      reportedByRefPathMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'reportedByRefPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      reportedByRefPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'reportedByRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
+      reportedByRefPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'reportedByRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterFilterCondition>
       updatedAtIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -2253,6 +3067,20 @@ extension IncidenciaModelQuerySortBy
     });
   }
 
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
+      sortByAssetRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'assetRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
+      sortByAssetRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'assetRefPath', Sort.desc);
+    });
+  }
+
   QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy> sortByCityId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cityId', Sort.asc);
@@ -2263,6 +3091,20 @@ extension IncidenciaModelQuerySortBy
       sortByCityIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cityId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
+      sortByCityRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cityRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
+      sortByCityRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cityRefPath', Sort.desc);
     });
   }
 
@@ -2333,6 +3175,20 @@ extension IncidenciaModelQuerySortBy
   }
 
   QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
+      sortByOrgRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'orgRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
+      sortByOrgRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'orgRefPath', Sort.desc);
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
       sortByPrioridad() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'prioridad', Sort.asc);
@@ -2357,6 +3213,20 @@ extension IncidenciaModelQuerySortBy
       sortByReportedByDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'reportedBy', Sort.desc);
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
+      sortByReportedByRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportedByRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
+      sortByReportedByRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportedByRefPath', Sort.desc);
     });
   }
 
@@ -2390,6 +3260,20 @@ extension IncidenciaModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
+      thenByAssetRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'assetRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
+      thenByAssetRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'assetRefPath', Sort.desc);
+    });
+  }
+
   QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy> thenByCityId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cityId', Sort.asc);
@@ -2400,6 +3284,20 @@ extension IncidenciaModelQuerySortThenBy
       thenByCityIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cityId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
+      thenByCityRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cityRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
+      thenByCityRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cityRefPath', Sort.desc);
     });
   }
 
@@ -2483,6 +3381,20 @@ extension IncidenciaModelQuerySortThenBy
   }
 
   QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
+      thenByOrgRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'orgRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
+      thenByOrgRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'orgRefPath', Sort.desc);
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
       thenByPrioridad() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'prioridad', Sort.asc);
@@ -2511,6 +3423,20 @@ extension IncidenciaModelQuerySortThenBy
   }
 
   QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
+      thenByReportedByRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportedByRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
+      thenByReportedByRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportedByRefPath', Sort.desc);
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QAfterSortBy>
       thenByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
@@ -2534,10 +3460,24 @@ extension IncidenciaModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QDistinct>
+      distinctByAssetRefPath({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'assetRefPath', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<IncidenciaModel, IncidenciaModel, QDistinct> distinctByCityId(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'cityId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QDistinct>
+      distinctByCityRefPath({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'cityRefPath', caseSensitive: caseSensitive);
     });
   }
 
@@ -2583,6 +3523,13 @@ extension IncidenciaModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QDistinct>
+      distinctByOrgRefPath({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'orgRefPath', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<IncidenciaModel, IncidenciaModel, QDistinct> distinctByPrioridad(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2594,6 +3541,14 @@ extension IncidenciaModelQueryWhereDistinct
       distinctByReportedBy({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'reportedBy', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, IncidenciaModel, QDistinct>
+      distinctByReportedByRefPath({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'reportedByRefPath',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -2619,9 +3574,23 @@ extension IncidenciaModelQueryProperty
     });
   }
 
+  QueryBuilder<IncidenciaModel, String?, QQueryOperations>
+      assetRefPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'assetRefPath');
+    });
+  }
+
   QueryBuilder<IncidenciaModel, String?, QQueryOperations> cityIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'cityId');
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, String?, QQueryOperations>
+      cityRefPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'cityRefPath');
     });
   }
 
@@ -2664,6 +3633,13 @@ extension IncidenciaModelQueryProperty
     });
   }
 
+  QueryBuilder<IncidenciaModel, String?, QQueryOperations>
+      orgRefPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'orgRefPath');
+    });
+  }
+
   QueryBuilder<IncidenciaModel, String?, QQueryOperations> prioridadProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'prioridad');
@@ -2673,6 +3649,13 @@ extension IncidenciaModelQueryProperty
   QueryBuilder<IncidenciaModel, String, QQueryOperations> reportedByProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'reportedBy');
+    });
+  }
+
+  QueryBuilder<IncidenciaModel, String?, QQueryOperations>
+      reportedByRefPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'reportedByRefPath');
     });
   }
 
@@ -2703,8 +3686,16 @@ IncidenciaModel _$IncidenciaModelFromJson(Map<String, dynamic> json) =>
       estado: json['estado'] as String,
       reportedBy: json['reportedBy'] as String,
       cityId: json['cityId'] as String?,
-      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
-      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
+      orgRefPath: json['orgRefPath'] as String?,
+      assetRefPath: json['assetRefPath'] as String?,
+      reportedByRefPath: json['reportedByRefPath'] as String?,
+      cityRefPath: json['cityRefPath'] as String?,
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.parse(json['createdAt'] as String),
+      updatedAt: json['updatedAt'] == null
+          ? null
+          : DateTime.parse(json['updatedAt'] as String),
     );
 
 Map<String, dynamic> _$IncidenciaModelToJson(IncidenciaModel instance) =>
@@ -2719,8 +3710,10 @@ Map<String, dynamic> _$IncidenciaModelToJson(IncidenciaModel instance) =>
       'estado': instance.estado,
       'reportedBy': instance.reportedBy,
       'cityId': instance.cityId,
-      'createdAt':
-          const DateTimeTimestampConverter().toJson(instance.createdAt),
-      'updatedAt':
-          const DateTimeTimestampConverter().toJson(instance.updatedAt),
+      'orgRefPath': instance.orgRefPath,
+      'assetRefPath': instance.assetRefPath,
+      'reportedByRefPath': instance.reportedByRefPath,
+      'cityRefPath': instance.cityRefPath,
+      'createdAt': instance.createdAt?.toIso8601String(),
+      'updatedAt': instance.updatedAt?.toIso8601String(),
     };

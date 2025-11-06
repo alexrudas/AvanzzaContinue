@@ -28,9 +28,9 @@ class MaintenanceRepositoryImpl implements MaintenanceRepository {
       final locals =
           await local.incidencias(orgId, assetId: assetId, cityId: cityId);
       controller.add(locals.map((e) => e.toEntity()).toList());
-      final remotes =
+      final remotesResult =
           await remote.incidencias(orgId, assetId: assetId, cityId: cityId);
-      await _syncIncidencias(locals, remotes);
+      await _syncIncidencias(locals, remotesResult.items);
       final updated =
           await local.incidencias(orgId, assetId: assetId, cityId: cityId);
       controller.add(updated.map((e) => e.toEntity()).toList());
@@ -45,9 +45,9 @@ class MaintenanceRepositoryImpl implements MaintenanceRepository {
     final locals =
         await local.incidencias(orgId, assetId: assetId, cityId: cityId);
     unawaited(() async {
-      final remotes =
+      final remotesResult =
           await remote.incidencias(orgId, assetId: assetId, cityId: cityId);
-      await _syncIncidencias(locals, remotes);
+      await _syncIncidencias(locals, remotesResult.items);
     }());
     return locals.map((e) => e.toEntity()).toList();
   }
@@ -87,9 +87,9 @@ class MaintenanceRepositoryImpl implements MaintenanceRepository {
       final locals =
           await local.programaciones(orgId, assetId: assetId, cityId: cityId);
       controller.add(locals.map((e) => e.toEntity()).toList());
-      final remotes =
+      final remotesResult =
           await remote.programaciones(orgId, assetId: assetId, cityId: cityId);
-      await _syncProgramaciones(locals, remotes);
+      await _syncProgramaciones(locals, remotesResult.items);
       final updated =
           await local.programaciones(orgId, assetId: assetId, cityId: cityId);
       controller.add(updated.map((e) => e.toEntity()).toList());
@@ -104,9 +104,9 @@ class MaintenanceRepositoryImpl implements MaintenanceRepository {
     final locals =
         await local.programaciones(orgId, assetId: assetId, cityId: cityId);
     unawaited(() async {
-      final remotes =
+      final remotesResult =
           await remote.programaciones(orgId, assetId: assetId, cityId: cityId);
-      await _syncProgramaciones(locals, remotes);
+      await _syncProgramaciones(locals, remotesResult.items);
     }());
     return locals.map((e) => e.toEntity()).toList();
   }
@@ -146,9 +146,9 @@ class MaintenanceRepositoryImpl implements MaintenanceRepository {
       final locals =
           await local.procesos(orgId, assetId: assetId, cityId: cityId);
       controller.add(locals.map((e) => e.toEntity()).toList());
-      final remotes =
+      final remotesResult =
           await remote.procesos(orgId, assetId: assetId, cityId: cityId);
-      await _syncProcesos(locals, remotes);
+      await _syncProcesos(locals, remotesResult.items);
       final updated =
           await local.procesos(orgId, assetId: assetId, cityId: cityId);
       controller.add(updated.map((e) => e.toEntity()).toList());
@@ -163,9 +163,9 @@ class MaintenanceRepositoryImpl implements MaintenanceRepository {
     final locals =
         await local.procesos(orgId, assetId: assetId, cityId: cityId);
     unawaited(() async {
-      final remotes =
+      final remotesResult =
           await remote.procesos(orgId, assetId: assetId, cityId: cityId);
-      await _syncProcesos(locals, remotes);
+      await _syncProcesos(locals, remotesResult.items);
     }());
     return locals.map((e) => e.toEntity()).toList();
   }
@@ -205,9 +205,9 @@ class MaintenanceRepositoryImpl implements MaintenanceRepository {
       final locals =
           await local.finalizados(orgId, assetId: assetId, cityId: cityId);
       controller.add(locals.map((e) => e.toEntity()).toList());
-      final remotes =
+      final remotesResult =
           await remote.finalizados(orgId, assetId: assetId, cityId: cityId);
-      await _syncFinalizados(locals, remotes);
+      await _syncFinalizados(locals, remotesResult.items);
       final updated =
           await local.finalizados(orgId, assetId: assetId, cityId: cityId);
       controller.add(updated.map((e) => e.toEntity()).toList());
@@ -222,9 +222,9 @@ class MaintenanceRepositoryImpl implements MaintenanceRepository {
     final locals =
         await local.finalizados(orgId, assetId: assetId, cityId: cityId);
     unawaited(() async {
-      final remotes =
+      final remotesResult =
           await remote.finalizados(orgId, assetId: assetId, cityId: cityId);
-      await _syncFinalizados(locals, remotes);
+      await _syncFinalizados(locals, remotesResult.items);
     }());
     return locals.map((e) => e.toEntity()).toList();
   }

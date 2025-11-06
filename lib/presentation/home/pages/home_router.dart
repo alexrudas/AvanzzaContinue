@@ -1,3 +1,4 @@
+// lib/tools/seed_geo.dart
 import 'package:avanzza/presentation/auth/controllers/registration_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';

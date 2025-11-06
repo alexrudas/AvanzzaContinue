@@ -27,58 +27,83 @@ const AssetModelSchema = CollectionSchema(
       name: r'cityId',
       type: IsarType.string,
     ),
-    r'countryId': PropertySchema(
+    r'cityRefPath': PropertySchema(
       id: 2,
+      name: r'cityRefPath',
+      type: IsarType.string,
+    ),
+    r'countryId': PropertySchema(
+      id: 3,
       name: r'countryId',
       type: IsarType.string,
     ),
+    r'countryRefPath': PropertySchema(
+      id: 4,
+      name: r'countryRefPath',
+      type: IsarType.string,
+    ),
     r'createdAt': PropertySchema(
-      id: 3,
+      id: 5,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'estado': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'estado',
       type: IsarType.string,
     ),
     r'etiquetas': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'etiquetas',
       type: IsarType.stringList,
     ),
     r'fotosUrls': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'fotosUrls',
       type: IsarType.stringList,
     ),
     r'id': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'id',
       type: IsarType.string,
     ),
     r'orgId': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'orgId',
       type: IsarType.string,
     ),
+    r'orgRefPath': PropertySchema(
+      id: 11,
+      name: r'orgRefPath',
+      type: IsarType.string,
+    ),
     r'ownerId': PropertySchema(
-      id: 9,
+      id: 12,
       name: r'ownerId',
       type: IsarType.string,
     ),
+    r'ownerRefPath': PropertySchema(
+      id: 13,
+      name: r'ownerRefPath',
+      type: IsarType.string,
+    ),
     r'ownerType': PropertySchema(
-      id: 10,
+      id: 14,
       name: r'ownerType',
       type: IsarType.string,
     ),
     r'regionId': PropertySchema(
-      id: 11,
+      id: 15,
       name: r'regionId',
       type: IsarType.string,
     ),
+    r'regionRefPath': PropertySchema(
+      id: 16,
+      name: r'regionRefPath',
+      type: IsarType.string,
+    ),
     r'updatedAt': PropertySchema(
-      id: 12,
+      id: 17,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -93,7 +118,7 @@ const AssetModelSchema = CollectionSchema(
       id: -3268401673993471357,
       name: r'id',
       unique: true,
-      replace: true,
+      replace: false,
       properties: [
         IndexPropertySchema(
           name: r'id',
@@ -115,32 +140,6 @@ const AssetModelSchema = CollectionSchema(
         )
       ],
     ),
-    r'assetType': IndexSchema(
-      id: 2557228192997929194,
-      name: r'assetType',
-      unique: false,
-      replace: false,
-      properties: [
-        IndexPropertySchema(
-          name: r'assetType',
-          type: IndexType.hash,
-          caseSensitive: true,
-        )
-      ],
-    ),
-    r'countryId': IndexSchema(
-      id: -5115696458787596369,
-      name: r'countryId',
-      unique: false,
-      replace: false,
-      properties: [
-        IndexPropertySchema(
-          name: r'countryId',
-          type: IndexType.hash,
-          caseSensitive: true,
-        )
-      ],
-    ),
     r'cityId': IndexSchema(
       id: 7617551301138149930,
       name: r'cityId',
@@ -149,19 +148,6 @@ const AssetModelSchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'cityId',
-          type: IndexType.hash,
-          caseSensitive: true,
-        )
-      ],
-    ),
-    r'ownerId': IndexSchema(
-      id: -7594796109721319539,
-      name: r'ownerId',
-      unique: false,
-      replace: false,
-      properties: [
-        IndexPropertySchema(
-          name: r'ownerId',
           type: IndexType.hash,
           caseSensitive: true,
         )
@@ -202,7 +188,19 @@ int _assetModelEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.cityRefPath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.countryId.length * 3;
+  {
+    final value = object.countryRefPath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.estado.length * 3;
   bytesCount += 3 + object.etiquetas.length * 3;
   {
@@ -220,10 +218,28 @@ int _assetModelEstimateSize(
   }
   bytesCount += 3 + object.id.length * 3;
   bytesCount += 3 + object.orgId.length * 3;
+  {
+    final value = object.orgRefPath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.ownerId.length * 3;
+  {
+    final value = object.ownerRefPath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.ownerType.length * 3;
   {
     final value = object.regionId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.regionRefPath;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -239,17 +255,22 @@ void _assetModelSerialize(
 ) {
   writer.writeString(offsets[0], object.assetType);
   writer.writeString(offsets[1], object.cityId);
-  writer.writeString(offsets[2], object.countryId);
-  writer.writeDateTime(offsets[3], object.createdAt);
-  writer.writeString(offsets[4], object.estado);
-  writer.writeStringList(offsets[5], object.etiquetas);
-  writer.writeStringList(offsets[6], object.fotosUrls);
-  writer.writeString(offsets[7], object.id);
-  writer.writeString(offsets[8], object.orgId);
-  writer.writeString(offsets[9], object.ownerId);
-  writer.writeString(offsets[10], object.ownerType);
-  writer.writeString(offsets[11], object.regionId);
-  writer.writeDateTime(offsets[12], object.updatedAt);
+  writer.writeString(offsets[2], object.cityRefPath);
+  writer.writeString(offsets[3], object.countryId);
+  writer.writeString(offsets[4], object.countryRefPath);
+  writer.writeDateTime(offsets[5], object.createdAt);
+  writer.writeString(offsets[6], object.estado);
+  writer.writeStringList(offsets[7], object.etiquetas);
+  writer.writeStringList(offsets[8], object.fotosUrls);
+  writer.writeString(offsets[9], object.id);
+  writer.writeString(offsets[10], object.orgId);
+  writer.writeString(offsets[11], object.orgRefPath);
+  writer.writeString(offsets[12], object.ownerId);
+  writer.writeString(offsets[13], object.ownerRefPath);
+  writer.writeString(offsets[14], object.ownerType);
+  writer.writeString(offsets[15], object.regionId);
+  writer.writeString(offsets[16], object.regionRefPath);
+  writer.writeDateTime(offsets[17], object.updatedAt);
 }
 
 AssetModel _assetModelDeserialize(
@@ -261,18 +282,23 @@ AssetModel _assetModelDeserialize(
   final object = AssetModel(
     assetType: reader.readString(offsets[0]),
     cityId: reader.readStringOrNull(offsets[1]),
-    countryId: reader.readString(offsets[2]),
-    createdAt: reader.readDateTimeOrNull(offsets[3]),
-    estado: reader.readString(offsets[4]),
-    etiquetas: reader.readStringList(offsets[5]) ?? const [],
-    fotosUrls: reader.readStringList(offsets[6]) ?? const [],
-    id: reader.readString(offsets[7]),
+    cityRefPath: reader.readStringOrNull(offsets[2]),
+    countryId: reader.readString(offsets[3]),
+    countryRefPath: reader.readStringOrNull(offsets[4]),
+    createdAt: reader.readDateTimeOrNull(offsets[5]),
+    estado: reader.readString(offsets[6]),
+    etiquetas: reader.readStringList(offsets[7]) ?? const [],
+    fotosUrls: reader.readStringList(offsets[8]) ?? const [],
+    id: reader.readString(offsets[9]),
     isarId: id,
-    orgId: reader.readString(offsets[8]),
-    ownerId: reader.readString(offsets[9]),
-    ownerType: reader.readString(offsets[10]),
-    regionId: reader.readStringOrNull(offsets[11]),
-    updatedAt: reader.readDateTimeOrNull(offsets[12]),
+    orgId: reader.readString(offsets[10]),
+    orgRefPath: reader.readStringOrNull(offsets[11]),
+    ownerId: reader.readString(offsets[12]),
+    ownerRefPath: reader.readStringOrNull(offsets[13]),
+    ownerType: reader.readString(offsets[14]),
+    regionId: reader.readStringOrNull(offsets[15]),
+    regionRefPath: reader.readStringOrNull(offsets[16]),
+    updatedAt: reader.readDateTimeOrNull(offsets[17]),
   );
   return object;
 }
@@ -289,19 +315,19 @@ P _assetModelDeserializeProp<P>(
     case 1:
       return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 4:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 5:
-      return (reader.readStringList(offset) ?? const []) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 6:
-      return (reader.readStringList(offset) ?? const []) as P;
+      return (reader.readString(offset)) as P;
     case 7:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringList(offset) ?? const []) as P;
     case 8:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringList(offset) ?? const []) as P;
     case 9:
       return (reader.readString(offset)) as P;
     case 10:
@@ -309,6 +335,16 @@ P _assetModelDeserializeProp<P>(
     case 11:
       return (reader.readStringOrNull(offset)) as P;
     case 12:
+      return (reader.readString(offset)) as P;
+    case 13:
+      return (reader.readStringOrNull(offset)) as P;
+    case 14:
+      return (reader.readString(offset)) as P;
+    case 15:
+      return (reader.readStringOrNull(offset)) as P;
+    case 16:
+      return (reader.readStringOrNull(offset)) as P;
+    case 17:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -550,96 +586,6 @@ extension AssetModelQueryWhere
     });
   }
 
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> assetTypeEqualTo(
-      String assetType) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'assetType',
-        value: [assetType],
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> assetTypeNotEqualTo(
-      String assetType) {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'assetType',
-              lower: [],
-              upper: [assetType],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'assetType',
-              lower: [assetType],
-              includeLower: false,
-              upper: [],
-            ));
-      } else {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'assetType',
-              lower: [assetType],
-              includeLower: false,
-              upper: [],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'assetType',
-              lower: [],
-              upper: [assetType],
-              includeUpper: false,
-            ));
-      }
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> countryIdEqualTo(
-      String countryId) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'countryId',
-        value: [countryId],
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> countryIdNotEqualTo(
-      String countryId) {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'countryId',
-              lower: [],
-              upper: [countryId],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'countryId',
-              lower: [countryId],
-              includeLower: false,
-              upper: [],
-            ));
-      } else {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'countryId',
-              lower: [countryId],
-              includeLower: false,
-              upper: [],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'countryId',
-              lower: [],
-              upper: [countryId],
-              includeUpper: false,
-            ));
-      }
-    });
-  }
-
   QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> cityIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IndexWhereClause.equalTo(
@@ -699,51 +645,6 @@ extension AssetModelQueryWhere
               indexName: r'cityId',
               lower: [],
               upper: [cityId],
-              includeUpper: false,
-            ));
-      }
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> ownerIdEqualTo(
-      String ownerId) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'ownerId',
-        value: [ownerId],
-      ));
-    });
-  }
-
-  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> ownerIdNotEqualTo(
-      String ownerId) {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'ownerId',
-              lower: [],
-              upper: [ownerId],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'ownerId',
-              lower: [ownerId],
-              includeLower: false,
-              upper: [],
-            ));
-      } else {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'ownerId',
-              lower: [ownerId],
-              includeLower: false,
-              upper: [],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'ownerId',
-              lower: [],
-              upper: [ownerId],
               includeUpper: false,
             ));
       }
@@ -1080,6 +981,160 @@ extension AssetModelQueryFilter
     });
   }
 
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      cityRefPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'cityRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      cityRefPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'cityRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      cityRefPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'cityRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      cityRefPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'cityRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      cityRefPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'cityRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      cityRefPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'cityRefPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      cityRefPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'cityRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      cityRefPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'cityRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      cityRefPathContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'cityRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      cityRefPathMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'cityRefPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      cityRefPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'cityRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      cityRefPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'cityRefPath',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> countryIdEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -1209,6 +1264,160 @@ extension AssetModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'countryId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      countryRefPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'countryRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      countryRefPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'countryRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      countryRefPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      countryRefPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      countryRefPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      countryRefPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'countryRefPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      countryRefPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      countryRefPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      countryRefPathContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      countryRefPathMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'countryRefPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      countryRefPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'countryRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      countryRefPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'countryRefPath',
         value: '',
       ));
     });
@@ -2198,6 +2407,159 @@ extension AssetModelQueryFilter
     });
   }
 
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      orgRefPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'orgRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      orgRefPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'orgRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> orgRefPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      orgRefPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      orgRefPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> orgRefPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'orgRefPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      orgRefPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      orgRefPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      orgRefPathContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'orgRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> orgRefPathMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'orgRefPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      orgRefPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'orgRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      orgRefPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'orgRefPath',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> ownerIdEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -2325,6 +2687,160 @@ extension AssetModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'ownerId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      ownerRefPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'ownerRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      ownerRefPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'ownerRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      ownerRefPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'ownerRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      ownerRefPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'ownerRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      ownerRefPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'ownerRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      ownerRefPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'ownerRefPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      ownerRefPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'ownerRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      ownerRefPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'ownerRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      ownerRefPathContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'ownerRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      ownerRefPathMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'ownerRefPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      ownerRefPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'ownerRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      ownerRefPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'ownerRefPath',
         value: '',
       ));
     });
@@ -2616,6 +3132,160 @@ extension AssetModelQueryFilter
   }
 
   QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      regionRefPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'regionRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      regionRefPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'regionRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      regionRefPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'regionRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      regionRefPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'regionRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      regionRefPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'regionRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      regionRefPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'regionRefPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      regionRefPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'regionRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      regionRefPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'regionRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      regionRefPathContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'regionRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      regionRefPathMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'regionRefPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      regionRefPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'regionRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      regionRefPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'regionRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
       updatedAtIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -2720,6 +3390,18 @@ extension AssetModelQuerySortBy
     });
   }
 
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByCityRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cityRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByCityRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cityRefPath', Sort.desc);
+    });
+  }
+
   QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByCountryId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryId', Sort.asc);
@@ -2729,6 +3411,19 @@ extension AssetModelQuerySortBy
   QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByCountryIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByCountryRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'countryRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy>
+      sortByCountryRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'countryRefPath', Sort.desc);
     });
   }
 
@@ -2780,6 +3475,18 @@ extension AssetModelQuerySortBy
     });
   }
 
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByOrgRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'orgRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByOrgRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'orgRefPath', Sort.desc);
+    });
+  }
+
   QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByOwnerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'ownerId', Sort.asc);
@@ -2789,6 +3496,18 @@ extension AssetModelQuerySortBy
   QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByOwnerIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'ownerId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByOwnerRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByOwnerRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerRefPath', Sort.desc);
     });
   }
 
@@ -2813,6 +3532,18 @@ extension AssetModelQuerySortBy
   QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByRegionIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByRegionRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'regionRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByRegionRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'regionRefPath', Sort.desc);
     });
   }
 
@@ -2855,6 +3586,18 @@ extension AssetModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByCityRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cityRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByCityRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cityRefPath', Sort.desc);
+    });
+  }
+
   QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByCountryId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryId', Sort.asc);
@@ -2864,6 +3607,19 @@ extension AssetModelQuerySortThenBy
   QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByCountryIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByCountryRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'countryRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy>
+      thenByCountryRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'countryRefPath', Sort.desc);
     });
   }
 
@@ -2927,6 +3683,18 @@ extension AssetModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByOrgRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'orgRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByOrgRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'orgRefPath', Sort.desc);
+    });
+  }
+
   QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByOwnerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'ownerId', Sort.asc);
@@ -2936,6 +3704,18 @@ extension AssetModelQuerySortThenBy
   QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByOwnerIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'ownerId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByOwnerRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByOwnerRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerRefPath', Sort.desc);
     });
   }
 
@@ -2960,6 +3740,18 @@ extension AssetModelQuerySortThenBy
   QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByRegionIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByRegionRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'regionRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByRegionRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'regionRefPath', Sort.desc);
     });
   }
 
@@ -2992,10 +3784,25 @@ extension AssetModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByCityRefPath(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'cityRefPath', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByCountryId(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'countryId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByCountryRefPath(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'countryRefPath',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -3038,10 +3845,24 @@ extension AssetModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByOrgRefPath(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'orgRefPath', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByOwnerId(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'ownerId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByOwnerRefPath(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'ownerRefPath', caseSensitive: caseSensitive);
     });
   }
 
@@ -3056,6 +3877,14 @@ extension AssetModelQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'regionId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByRegionRefPath(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'regionRefPath',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -3086,9 +3915,21 @@ extension AssetModelQueryProperty
     });
   }
 
+  QueryBuilder<AssetModel, String?, QQueryOperations> cityRefPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'cityRefPath');
+    });
+  }
+
   QueryBuilder<AssetModel, String, QQueryOperations> countryIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'countryId');
+    });
+  }
+
+  QueryBuilder<AssetModel, String?, QQueryOperations> countryRefPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'countryRefPath');
     });
   }
 
@@ -3128,9 +3969,21 @@ extension AssetModelQueryProperty
     });
   }
 
+  QueryBuilder<AssetModel, String?, QQueryOperations> orgRefPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'orgRefPath');
+    });
+  }
+
   QueryBuilder<AssetModel, String, QQueryOperations> ownerIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'ownerId');
+    });
+  }
+
+  QueryBuilder<AssetModel, String?, QQueryOperations> ownerRefPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'ownerRefPath');
     });
   }
 
@@ -3143,6 +3996,12 @@ extension AssetModelQueryProperty
   QueryBuilder<AssetModel, String?, QQueryOperations> regionIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'regionId');
+    });
+  }
+
+  QueryBuilder<AssetModel, String?, QQueryOperations> regionRefPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'regionRefPath');
     });
   }
 
@@ -3171,13 +4030,22 @@ AssetModel _$AssetModelFromJson(Map<String, dynamic> json) => AssetModel(
       etiquetas: (json['etiquetas'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
-          const [],
+          [],
       fotosUrls: (json['fotosUrls'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
-          const [],
-      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
-      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
+          [],
+      orgRefPath: json['orgRefPath'] as String?,
+      ownerRefPath: json['ownerRefPath'] as String?,
+      countryRefPath: json['countryRefPath'] as String?,
+      regionRefPath: json['regionRefPath'] as String?,
+      cityRefPath: json['cityRefPath'] as String?,
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.parse(json['createdAt'] as String),
+      updatedAt: json['updatedAt'] == null
+          ? null
+          : DateTime.parse(json['updatedAt'] as String),
     );
 
 Map<String, dynamic> _$AssetModelToJson(AssetModel instance) =>
@@ -3194,8 +4062,11 @@ Map<String, dynamic> _$AssetModelToJson(AssetModel instance) =>
       'estado': instance.estado,
       'etiquetas': instance.etiquetas,
       'fotosUrls': instance.fotosUrls,
-      'createdAt':
-          const DateTimeTimestampConverter().toJson(instance.createdAt),
-      'updatedAt':
-          const DateTimeTimestampConverter().toJson(instance.updatedAt),
+      'orgRefPath': instance.orgRefPath,
+      'ownerRefPath': instance.ownerRefPath,
+      'countryRefPath': instance.countryRefPath,
+      'regionRefPath': instance.regionRefPath,
+      'cityRefPath': instance.cityRefPath,
+      'createdAt': instance.createdAt?.toIso8601String(),
+      'updatedAt': instance.updatedAt?.toIso8601String(),
     };

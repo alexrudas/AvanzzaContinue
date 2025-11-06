@@ -1,15 +1,16 @@
+import 'package:isar_community/isar.dart' as isar;
 import 'package:isar_community/isar.dart';
 
 part 'registration_progress_model.g.dart';
 
-@Collection()
+@isar.Collection()
 class RegistrationProgressModel {
-  Id? isarId;
-  @Index(unique: true, replace: true)
-  late String id; // e.g., 'current' or phone
+  isar.Id? isarId;
 
-  int step = 0; // 0..N
+  @isar.Index(unique: true, replace: true)
+  late String id;
 
+  int step = 0;
   String? phone;
   String? username;
   bool passwordSet = false;
@@ -23,20 +24,25 @@ class RegistrationProgressModel {
   String? regionId;
   String? cityId;
 
-  // Onboarding consolidado
-  String? titularType; // 'persona' | 'empresa'
-  String? providerType; // 'servicios' | 'articulos'
-  // Consolidado proveedor
-  List<String> assetTypeIds =
-      []; // ['vehiculos','inmuebles','maquinaria','equipos','otros']
-  String?
-      businessCategoryId; // ej: 'lubricentro'|'ferreteria'|'mecanico_independiente'
-  List<String> assetSegmentIds = []; // ['moto','auto','camion'] si aplica
-  List<String> offeringLineIds = []; // opcional
-  List<String> coverageCities = []; // ['CO/ANT/MEDELLIN', ...]
-  List<String> categories = []; // legacy (mantener por compatibilidad)
+  String? titularType;
+  String? providerType;
+  List<String> assetTypeIds = [];
+  String? businessCategoryId;
+  List<String> assetSegmentIds = [];
+  List<String> offeringLineIds = [];
+  List<String> coverageCities = [];
+  List<String> categories = [];
 
   String? selectedRole;
+
+  // Respuestas contextuales para roles Admin/Owner
+  String? adminFollowUp; // 'own' | 'third' | 'both'
+  String? ownerFollowUp; // 'self' | 'third' | 'both'
+
+  // Roles finales computados basados en las respuestas
+  List<String> resolvedRoles = []; // Ej: ['Administrador', 'Propietario']
+  List<String> resolvedWorkspaces = []; // Ej: ['Administrador', 'Propietario']
+
   bool termsAccepted = false;
 
   late DateTime updatedAt;

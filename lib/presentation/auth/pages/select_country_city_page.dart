@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../../services/telemetry/telemetry_service.dart';
 import '../../../core/di/container.dart';
 import '../../../domain/repositories/geo_repository.dart';
 import '../../../routes/app_pages.dart';
+import '../../widgets/wizard/bottom_sheet_selector.dart';
+import '../../widgets/wizard/wizard_bottom_bar.dart';
 import '../controllers/registration_controller.dart';
 
 class SelectCountryCityPage extends StatefulWidget {
@@ -17,221 +20,261 @@ class _SelectCountryCityPageState extends State<SelectCountryCityPage> {
   String? _countryId;
   String? _regionId;
   String? _cityId;
+  String? _countryLabel;
+  String? _regionLabel;
+  String? _cityLabel;
 
   late final RegistrationController _reg;
   late final GeoRepository _geo;
-
-  // Datos para selects
-  final _countries = <DropdownMenuItem<String>>[].obs;
-  final _regions = <DropdownMenuItem<String>>[].obs;
-  final _cities = <DropdownMenuItem<String>>[].obs;
-
-  // Loading states
-  final _loadingCountries = true.obs;
-  final _loadingRegions = false.obs;
-  final _loadingCities = false.obs;
-
-  // Tokens anti-carreras
-  int _regionsReqToken = 0;
-  int _citiesReqToken = 0;
+  TelemetryService? _telemetry;
+  DateTime? _sheetOpenedAt;
 
   @override
   void initState() {
     super.initState();
+    assert(Get.isRegistered<RegistrationController>(),
+        'RegistrationController not registered');
     _reg = Get.find<RegistrationController>();
     _geo = DIContainer().geoRepository;
-    _loadCountries();
+    _telemetry = Get.isRegistered<TelemetryService>()
+        ? Get.find<TelemetryService>()
+        : null;
+    // Rehidratación básica
+    final p = _reg.progress.value;
+    _countryId = p?.countryId;
+    _regionId = p?.regionId;
+    _cityId = p?.cityId;
   }
 
-  Future<void> _loadCountries() async {
-    _loadingCountries.value = true;
-    _countries.clear();
+  void _log(String event, Map<String, Object?> extra) {
     try {
-      final list = await _geo.fetchCountries(isActive: true);
-      _countries.assignAll(
-        list.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
-      );
-    } finally {
-      _loadingCountries.value = false;
-    }
-  }
-
-  Future<void> _loadRegions(String countryId) async {
-    _loadingRegions.value = true;
-    _regions.clear();
-    final myToken = ++_regionsReqToken;
-    try {
-      final list =
-          await _geo.fetchRegions(countryId: countryId, isActive: true);
-      if (myToken != _regionsReqToken) return;
-      _regions.assignAll(
-        list.map((r) => DropdownMenuItem(value: r.id, child: Text(r.name))),
-      );
-    } finally {
-      if (myToken == _regionsReqToken) {
-        _loadingRegions.value = false;
-      }
-    }
-  }
-
-  Future<void> _loadCities(String countryId, String regionId) async {
-    _loadingCities.value = true;
-    _cities.clear();
-    final myToken = ++_citiesReqToken;
-    try {
-      final list = await _geo.fetchCities(
-        countryId: countryId,
-        regionId: regionId,
-        isActive: true,
-      );
-      if (myToken != _citiesReqToken) return;
-      _cities.assignAll(
-        list.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
-      );
-    } finally {
-      if (myToken == _citiesReqToken) {
-        _loadingCities.value = false;
-      }
-    }
+      _telemetry?.log(event, {
+        'country': _countryId,
+        'region': _regionId,
+        'city': _cityId,
+        ...extra,
+      });
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
+    final canContinue =
+        (_countryId != null && _regionId != null && _cityId != null);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Selecciona país y ciudad')),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Obx(
-          () => Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // País
-              DropdownButtonFormField<String>(
-                key: const ValueKey('country'),
-                value: _countryId,
-                items: _countries,
-                decoration: const InputDecoration(labelText: 'País'),
-                onChanged: _loadingCountries.value
-                    ? null
-                    : (v) async {
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // País selector
+            ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              title: const Text('País'),
+              subtitle: Text(_countryLabel ?? 'Selecciona un país',
+                  style: TextStyle(color: Theme.of(context).hintColor)),
+              trailing: const Icon(Icons.keyboard_arrow_down),
+              onTap: () async {
+                try {
+                  _sheetOpenedAt = DateTime.now();
+                  final list = await _geo.fetchCountries(isActive: true);
+                  _log('sheet_open',
+                      {'step': 'country', 'items_count': list.length});
+                  await showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    useSafeArea: true,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    builder: (_) => BottomSheetSelector<String>(
+                      title: 'Elige tu país',
+                      selectedValue: _countryId,
+                      items: list
+                          .map((c) => SelectorItem(value: c.id, label: c.name))
+                          .toList(),
+                      onSelect: (item) async {
                         setState(() {
-                          _countryId = v;
+                          _countryId = item.value;
+                          _countryLabel = item.label;
                           _regionId = null;
+                          _regionLabel = null;
                           _cityId = null;
-                          _regions.clear();
-                          _cities.clear();
+                          _cityLabel = null;
                         });
-                        if (v != null) {
-                          await _loadRegions(v); // Solo regiones aquí
-                          // NO cargar ciudades aquí
-                        }
-                      },
-              ),
-              if (_loadingCountries.value) ...[
-                const SizedBox(height: 6),
-                const _LoadingHint(text: 'Cargando países...'),
-              ],
-              const SizedBox(height: 12),
-
-              // Región
-              DropdownButtonFormField<String>(
-                key: ValueKey('region-${_countryId ?? 'x'}'),
-                value: _regionId,
-                items: _regions,
-                decoration: const InputDecoration(labelText: 'Región'),
-                onChanged: (_countryId == null || _loadingRegions.value)
-                    ? null
-                    : (v) async {
-                        setState(() {
-                          _regionId = v;
-                          _cityId = null;
-                          _cities.clear();
-                        });
-                        if (v != null) {
-                          await _loadCities(_countryId!, v); // Ciudades aquí
-                        }
-                      },
-              ),
-              if (_loadingRegions.value) ...[
-                const SizedBox(height: 6),
-                const _LoadingHint(text: 'Cargando regiones...'),
-              ],
-              const SizedBox(height: 12),
-
-              // Ciudad
-              DropdownButtonFormField<String>(
-                key: ValueKey(
-                    'city-${_countryId ?? 'x'}-${_regionId ?? 'none'}'),
-                value: _cityId,
-                items: _cities,
-                decoration: const InputDecoration(labelText: 'Ciudad'),
-                onChanged: (_countryId == null ||
-                        _regionId == null ||
-                        _loadingCities.value)
-                    ? null
-                    : (v) => setState(() => _cityId = v),
-              ),
-              if (_loadingCities.value) ...[
-                const SizedBox(height: 6),
-                const _LoadingHint(text: 'Cargando ciudades...'),
-              ],
-              const SizedBox(height: 16),
-
-              // Continuar
-              ElevatedButton(
-                onPressed: (_countryId != null &&
-                        _regionId != null &&
-                        _cityId != null &&
-                        !_loadingCountries.value &&
-                        !_loadingRegions.value &&
-                        !_loadingCities.value)
-                    ? () async {
                         await _reg.setLocation(
-                          countryId: _countryId!,
-                          regionId: _regionId!,
-                          cityId: _cityId!,
+                            countryId: _countryId!,
+                            regionId: null,
+                            cityId: null);
+                        final elapsed = DateTime.now()
+                            .difference(_sheetOpenedAt!)
+                            .inMilliseconds;
+                        _log('sheet_select', {
+                          'step': 'country',
+                          'selected_id': item.value,
+                          'selected_label': item.label,
+                          'duration_ms': elapsed
+                        });
+                      },
+                    ),
+                  );
+                } catch (e) {
+                  _log('sheet_error',
+                      {'step': 'country', 'cause': e.toString()});
+                }
+              },
+            ),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+
+            // Región selector
+            ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              title: const Text('Región/Estado'),
+              subtitle: Text(
+                _regionLabel ??
+                    (_countryId == null
+                        ? 'Primero selecciona un país'
+                        : 'Selecciona una región'),
+                style: TextStyle(color: Theme.of(context).hintColor),
+              ),
+              trailing: const Icon(Icons.keyboard_arrow_down),
+              onTap: (_countryId == null)
+                  ? null
+                  : () async {
+                      try {
+                        _sheetOpenedAt = DateTime.now();
+                        final list = await _geo.fetchRegions(
+                            countryId: _countryId!, isActive: true);
+                        _log('sheet_open',
+                            {'step': 'region', 'items_count': list.length});
+                        await showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          useSafeArea: true,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(16)),
+                          ),
+                          builder: (_) => BottomSheetSelector<String>(
+                            title: 'Elige tu región/estado',
+                            selectedValue: _regionId,
+                            items: list
+                                .map((r) =>
+                                    SelectorItem(value: r.id, label: r.name))
+                                .toList(),
+                            onSelect: (item) async {
+                              setState(() {
+                                _regionId = item.value;
+                                _regionLabel = item.label;
+                                _cityId = null;
+                                _cityLabel = null;
+                              });
+                              await _reg.setLocation(
+                                  countryId: _countryId!,
+                                  regionId: _regionId!,
+                                  cityId: null);
+                              final elapsed = DateTime.now()
+                                  .difference(_sheetOpenedAt!)
+                                  .inMilliseconds;
+                              _log('sheet_select', {
+                                'step': 'region',
+                                'selected_id': item.value,
+                                'selected_label': item.label,
+                                'duration_ms': elapsed
+                              });
+                            },
+                          ),
                         );
-                        final titular = _reg.titularType.value.isNotEmpty
-                            ? _reg.titularType.value
-                            : (_reg.progress.value?.titularType ?? '');
-                        if (titular.isEmpty) {
-                          Get.offNamed(Routes.holderType);
-                        } else {
-                          Get.offNamed(Routes.role);
-                        }
+                      } catch (e) {
+                        _log('sheet_error',
+                            {'step': 'region', 'cause': e.toString()});
                       }
-                    : null,
-                child: const Text('Continuar'),
+                    },
+            ),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+
+            // Ciudad selector
+            ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              title: const Text('Ciudad'),
+              subtitle: Text(
+                _cityLabel ??
+                    (_regionId == null
+                        ? 'Primero selecciona una región'
+                        : 'Selecciona una ciudad'),
+                style: TextStyle(color: Theme.of(context).hintColor),
               ),
-              const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: () => Get.back(),
-                child: const Text('Volver'),
-              ),
-            ],
-          ),
+              trailing: const Icon(Icons.keyboard_arrow_down),
+              onTap: (_countryId == null || _regionId == null)
+                  ? null
+                  : () async {
+                      try {
+                        _sheetOpenedAt = DateTime.now();
+                        final list = await _geo.fetchCities(
+                            countryId: _countryId!,
+                            regionId: _regionId!,
+                            isActive: true);
+                        _log('sheet_open',
+                            {'step': 'city', 'items_count': list.length});
+                        await showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          useSafeArea: true,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(16)),
+                          ),
+                          builder: (_) => BottomSheetSelector<String>(
+                            title: 'Elige tu ciudad',
+                            selectedValue: _cityId,
+                            items: list
+                                .map((c) =>
+                                    SelectorItem(value: c.id, label: c.name))
+                                .toList(),
+                            onSelect: (item) async {
+                              setState(() {
+                                _cityId = item.value;
+                                _cityLabel = item.label;
+                              });
+                              await _reg.setLocation(
+                                  countryId: _countryId!,
+                                  regionId: _regionId!,
+                                  cityId: _cityId!);
+                              final elapsed = DateTime.now()
+                                  .difference(_sheetOpenedAt!)
+                                  .inMilliseconds;
+                              _log('sheet_select', {
+                                'step': 'city',
+                                'selected_id': item.value,
+                                'selected_label': item.label,
+                                'duration_ms': elapsed
+                              });
+                            },
+                          ),
+                        );
+                      } catch (e) {
+                        _log('sheet_error',
+                            {'step': 'city', 'cause': e.toString()});
+                      }
+                    },
+            ),
+            const Divider(height: 1),
+          ],
         ),
       ),
-    );
-  }
-}
-
-class _LoadingHint extends StatelessWidget {
-  final String text;
-  const _LoadingHint({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const SizedBox(
-          width: 16,
-          height: 16,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-        const SizedBox(width: 8),
-        Text(text, style: Theme.of(context).textTheme.bodyMedium),
-      ],
+      bottomNavigationBar: WizardBottomBar(
+        onBack: () => Get.back(),
+        onContinue: () => Get.toNamed(Routes.profile),
+        continueEnabled: canContinue,
+      ),
     );
   }
 }

@@ -1,0 +1,578 @@
+// lib/presentation/widgets/nav/workspace_drawer.dart
+// WORKSPACE DRAWER — fuente de verdad:
+// • Usuario logueado → workspaces del usuario (solo activos)
+// • Sin usuario → resolvedWorkspaces del RegistrationController (si existe)
+// • Sin registro → todos los workspaces disponibles (exploración libre)
+import 'package:avanzza/domain/entities/user/active_context.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:get/get.dart';
+import 'package:collection/collection.dart'; // firstWhereOrNull
+
+import '../../../routes/app_pages.dart';
+import '../../auth/controllers/registration_controller.dart';
+import '../../controllers/session_context_controller.dart';
+
+class WorkspaceDrawer extends StatelessWidget {
+  const WorkspaceDrawer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final session = Get.isRegistered<SessionContextController>()
+        ? Get.find<SessionContextController>()
+        : null;
+    final reg = Get.isRegistered<RegistrationController>()
+        ? Get.find<RegistrationController>()
+        : null;
+
+    // 1) Usuario logueado → workspaces del usuario
+    final user = session?.user;
+    final fromUser = user != null;
+
+    final userWorkspaces =
+        fromUser ? _extractUserWorkspaces(session!) : const <String>[];
+
+    // 2) Registro → resolvedWorkspaces
+    final resolved =
+        reg?.progress.value?.resolvedWorkspaces ?? const <String>[];
+
+    // 3) Fuente final con lógica de exploración
+    final List<String> source;
+    if (fromUser && userWorkspaces.isNotEmpty) {
+      // Usuario autenticado → solo sus workspaces
+      source = userWorkspaces;
+    } else if (resolved.isNotEmpty) {
+      // Usuario en registro con workspaces resueltos → solo esos
+      source = resolved;
+    } else {
+      // Exploración libre → todos los workspaces
+      source = _allWorkspaces;
+    }
+
+    // Normalizar, deduplicar, soportados y orden
+    final active = source
+        .map((w) => w.trim())
+        .where((w) => w.isNotEmpty)
+        .map(_normalize)
+        .toSet()
+        .where((w) => _supported.contains(w))
+        .toList()
+      ..sort(_preferredOrder);
+
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _Header(
+              fromUser: fromUser,
+              userName: user?.name,
+              activeContext: user?.activeContext?.rol,
+            ),
+            if (active.isEmpty)
+              const _EmptyHint()
+            else
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
+                  itemCount: active.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, i) {
+                    final ws = active[i];
+                    final data = _tileFor(ws);
+                    final isActive = fromUser &&
+                        user.activeContext?.rol != null &&
+                        _normalize(user.activeContext!.rol) == ws;
+                    return ListTile(
+                      leading: Icon(data.icon),
+                      title: Text(data.title),
+                      subtitle:
+                          data.subtitle == null ? null : Text(data.subtitle!),
+                      trailing: isActive
+                          ? Icon(Icons.check_circle,
+                              color: Theme.of(context).colorScheme.primary)
+                          : const Icon(Icons.chevron_right),
+                      selected: isActive,
+                      onTap: () => _goToWorkspace(ws, session, reg),
+                    );
+                  },
+                ),
+              ),
+            // Opciones adicionales
+            const Divider(height: 1),
+            if (!fromUser) ...[
+              ListTile(
+                leading: const Icon(Icons.person_add_alt_1),
+                title: const Text('Añadir workspace'),
+                dense: true,
+                onTap: () {
+                  Get.back();
+                  Get.toNamed(Routes.profile, parameters: {'append': '1'});
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.person_add_alt_1),
+                title: const Text('Registrarme'),
+                dense: true,
+                onTap: () {
+                  Get.back();
+                  Get.toNamed(Routes.registerUsername);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.exit_to_app),
+                title: const Text('Salir'),
+                dense: true,
+                onTap: () => _exitToWelcome(reg),
+              ),
+            ],
+            if (fromUser) ...[
+              ListTile(
+                leading: const Icon(Icons.add_circle_outline),
+                title: const Text('Agregar workspace'),
+                dense: true,
+                onTap: () {
+                  Get.back();
+                  Get.toNamed(Routes.profile, parameters: {'append': '1'});
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.logout),
+                title: const Text('Cerrar sesión'),
+                dense: true,
+                onTap: () => _logout(session),
+              ),
+            ],
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.info_outline),
+              title: const Text('Acerca de'),
+              dense: true,
+              onTap: () {
+                Get.back();
+                Get.snackbar(
+                  'Avanzza 2.0',
+                  'Workspaces por rol — Exploración/Registro diferido',
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ---- User helpers ---------------------------------------------------------
+
+  List<String> _extractUserWorkspaces(SessionContextController session) {
+    // Agrupa roles de memberships activos a etiquetas de workspace
+    final roles = session.memberships
+        .where((m) => m.estatus == 'activo')
+        .expand((m) => m.roles)
+        .map(_normalize)
+        .toSet();
+
+    // Si el usuario tiene contexto activo con rol, garantízalo al frente
+    final activeCtx = session.user?.activeContext;
+    final activeFirst = <String>[];
+    if (activeCtx?.rol != null && activeCtx!.rol.isNotEmpty) {
+      activeFirst.add(_normalize(activeCtx.rol));
+    }
+    final rest = roles.where((r) => !activeFirst.contains(r)).toList();
+    return [...activeFirst, ...rest];
+  }
+
+  // ---- Normalización y orden ------------------------------------------------
+
+  static const _allWorkspaces = <String>[
+    'Administrador',
+    'Propietario',
+    'Proveedor',
+    'Arrendatario',
+    'Aseguradora',
+    'Abogado',
+    'Asesor de seguros',
+  ];
+
+  static const _supported = <String>{
+    'Administrador',
+    'Propietario',
+    'Proveedor',
+    'Arrendatario',
+    'Aseguradora',
+    'Abogado',
+    'Asesor de seguros',
+  };
+
+  static String _normalize(String w) {
+    final low = w.toLowerCase();
+    if (low.contains('admin')) return 'Administrador';
+    if (low.contains('propietario') || low.contains('owner'))
+      return 'Propietario';
+    if (low.contains('proveedor') || low.contains('provider'))
+      return 'Proveedor';
+    if (low.contains('arrendatario') || low.contains('tenant'))
+      return 'Arrendatario';
+    if (low.contains('aseguradora') || low.contains('insurance'))
+      return 'Aseguradora';
+    if (low.contains('abogado') || low.contains('lawyer')) return 'Abogado';
+    if (low.contains('asesor')) return 'Asesor de seguros';
+    return w.isEmpty ? w : w[0].toUpperCase() + w.substring(1);
+  }
+
+  static int _preferredOrder(String a, String b) {
+    const order = {
+      'Administrador': 0,
+      'Propietario': 1,
+      'Proveedor': 2,
+      'Arrendatario': 3,
+      'Aseguradora': 4,
+      'Asesor de seguros': 5,
+      'Abogado': 6,
+    };
+    return (order[a] ?? 999).compareTo(order[b] ?? 999);
+  }
+
+  // ---- Tiles y navegación ---------------------------------------------------
+
+  _TileData _tileFor(String ws) {
+    switch (ws) {
+      case 'Administrador':
+        return const _TileData(
+          title: 'Administrador',
+          subtitle: 'Gestiona activos, incidencias y compras',
+          icon: Icons.dashboard_customize_outlined,
+        );
+      case 'Propietario':
+        return const _TileData(
+          title: 'Propietario',
+          subtitle: 'Control de activos y documentos',
+          icon: Icons.domain_outlined,
+        );
+      case 'Proveedor':
+        return const _TileData(
+          title: 'Proveedor',
+          subtitle: 'Servicios y artículos',
+          icon: Icons.handyman_outlined,
+        );
+      case 'Arrendatario':
+        return const _TileData(
+          title: 'Arrendatario',
+          subtitle: 'Uso y reportes del activo',
+          icon: Icons.directions_car_filled_outlined,
+        );
+      case 'Aseguradora':
+        return const _TileData(
+          title: 'Aseguradora / Broker',
+          subtitle: 'Pólizas y renovaciones',
+          icon: Icons.policy_outlined,
+        );
+      case 'Abogado':
+        return const _TileData(
+          title: 'Abogado',
+          subtitle: 'Casos y reclamaciones',
+          icon: Icons.balance_outlined,
+        );
+      case 'Asesor de seguros':
+        return const _TileData(
+          title: 'Asesor de seguros',
+          subtitle: 'Ventas y asesoría',
+          icon: Icons.support_agent_outlined,
+        );
+      default:
+        return _TileData(title: ws, icon: Icons.apps_outlined);
+    }
+  }
+
+  // Espera que se cierre el drawer
+  Future<void> _waitDrawerClose(BuildContext ctx,
+      {Duration timeout = const Duration(milliseconds: 500)}) async {
+    final start = DateTime.now();
+    // Mientras el drawer siga abierto, espera al final de cada frame
+    while (Scaffold.maybeOf(ctx)?.isDrawerOpen == true) {
+      await SchedulerBinding.instance.endOfFrame;
+      if (DateTime.now().difference(start) > timeout) break;
+    }
+    // Un frame extra para estabilizar layout
+    await SchedulerBinding.instance.endOfFrame;
+  }
+
+// Cambia la firma para poder 'await'
+  Future<void> _goToWorkspace(
+    String ws,
+    SessionContextController? session,
+    RegistrationController? reg,
+  ) async {
+    // 1) Usuario autenticado → fijar contexto activo al rol elegido
+    if (session?.user != null) {
+      final membership = session!.memberships.firstWhereOrNull(
+        (m) => m.roles.any((r) => _normalize(r) == ws),
+      );
+
+      if (membership != null) {
+        final role = membership.roles.firstWhere((r) => _normalize(r) == ws);
+
+        // providerType si aplica
+        String? providerType;
+        if (ws == 'Proveedor' && membership.providerProfiles.isNotEmpty) {
+          providerType = membership.providerProfiles.first.providerType;
+        }
+
+        final current = session.user?.activeContext;
+        // Si no existe current, crea uno básico
+        final nextCtx = (current == null)
+            ? currentTypeSafe(
+                orgId: membership.orgId,
+                orgName: membership.orgName,
+                rol: role,
+                providerType: providerType,
+              )
+            : current.copyWith(
+                orgId: membership.orgId,
+                orgName: membership.orgName,
+                rol: role,
+                providerType: providerType,
+              );
+
+        // Si tu setter es async, deja el await; si no, quítalo
+        await session.setActiveContext(nextCtx);
+      }
+
+      final ctx = Get.context;
+      if (ctx != null && Scaffold.maybeOf(ctx)?.isDrawerOpen == true) {
+        Navigator.of(ctx).pop(); // cierra el Drawer
+        await _waitDrawerClose(ctx); // espera a que termine la animación real
+      } else {
+        // fallback si no hay contexto válido
+        try {
+          Get.back();
+        } catch (_) {}
+        // no hagas delay aquí
+      }
+
+      // 2) Navegar en el siguiente frame para evitar choques con la animación del Drawer
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final target =
+            (ws == 'Proveedor') ? Routes.providerProfile : Routes.home;
+        if (Get.currentRoute != target) {
+          Get.offAllNamed(target);
+        }
+      });
+
+      return;
+    }
+
+    // Usuario en exploración → persistir selección temporal
+    if (reg != null) {
+      await _persistExploreSelection(ws, reg);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = (ws == 'Proveedor') ? Routes.providerProfile : Routes.home;
+      Get.offAllNamed(target);
+    });
+  }
+
+// Helper para crear un ActiveContext cuando no existe
+// Ajusta el tipo según tu modelo real
+  ActiveContext currentTypeSafe({
+    required String orgId,
+    required String orgName,
+    required String rol,
+    String? providerType,
+  }) {
+    // TODO: reemplaza por tu constructor real de ActiveContext
+    // e.g., return ActiveContext(orgId: orgId, orgName: orgName, rol: rol, providerType: providerType);
+    return ActiveContext(
+      orgId: orgId,
+      orgName: orgName,
+      rol: rol,
+      providerType: providerType,
+    );
+  }
+
+  Future<void> _persistExploreSelection(
+      String ws, RegistrationController reg) async {
+    // Mapear workspace a rol interno
+    String role;
+    String titularType = 'persona';
+    String? providerType;
+
+    switch (ws) {
+      case 'Administrador':
+        role = 'admin_activos_ind';
+        break;
+      case 'Propietario':
+        role = 'propietario';
+        break;
+      case 'Arrendatario':
+        role = 'arrendatario';
+        break;
+      case 'Proveedor':
+        role = 'proveedor';
+        providerType = 'servicios'; // Default, se puede cambiar después
+        break;
+      case 'Aseguradora':
+        role = 'aseguradora';
+        titularType = 'empresa';
+        providerType = 'articulos';
+        break;
+      case 'Abogado':
+        role = 'abogado';
+        providerType = 'servicios';
+        break;
+      case 'Asesor de seguros':
+        role = 'asesor_seguros';
+        break;
+      default:
+        role = ws.toLowerCase();
+    }
+
+    await reg.setTitularType(titularType);
+    await reg.setRole(role);
+    if (providerType != null) {
+      await reg.setProviderType(providerType);
+    }
+  }
+
+  Future<void> _exitToWelcome(RegistrationController? reg) async {
+    if (reg != null) {
+      await reg.clear('current');
+    }
+    Get.offAllNamed(Routes.countryCity);
+  }
+
+  Future<void> _logout(SessionContextController? session) async {
+    // Aquí deberías implementar tu lógica de logout
+    // Por ahora solo navegamos al inicio
+    Get.offAllNamed(Routes.countryCity);
+  }
+}
+
+// ---- UI bits ----------------------------------------------------------------
+
+class _Header extends StatelessWidget {
+  final bool fromUser;
+  final String? userName;
+  final String? activeContext;
+
+  const _Header({
+    required this.fromUser,
+    this.userName,
+    this.activeContext,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    String subtitle;
+    if (fromUser) {
+      if (userName != null && activeContext != null) {
+        subtitle = '$userName • $activeContext';
+      } else if (userName != null) {
+        subtitle = '$userName • Mis workspaces';
+      } else {
+        subtitle = 'Mis workspaces';
+      }
+    } else {
+      subtitle = 'Workspaces disponibles';
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (fromUser) ...[
+                CircleAvatar(
+                  radius: 20,
+                  child: Text(
+                    userName?.substring(0, 1).toUpperCase() ?? 'U',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Workspaces', style: theme.textTheme.titleLarge),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall!
+                          .copyWith(color: theme.hintColor),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyHint extends StatelessWidget {
+  const _EmptyHint();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Expanded(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.workspace_premium_outlined,
+                size: 64,
+                color: theme.hintColor.withOpacity(0.5),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Sin workspaces activos',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium!
+                    .copyWith(color: theme.hintColor),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Completa tu registro para habilitar workspaces',
+                textAlign: TextAlign.center,
+                style:
+                    theme.textTheme.bodySmall!.copyWith(color: theme.hintColor),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TileData {
+  final String title;
+  final String? subtitle;
+  final IconData icon;
+  const _TileData({
+    required this.title,
+    this.subtitle,
+    required this.icon,
+  });
+}

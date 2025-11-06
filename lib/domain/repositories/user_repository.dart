@@ -24,4 +24,8 @@ abstract class UserRepository {
   Future<List<RolePermissionEntity>> loadRolePermissions(List<String> roles);
   Future<void> setActiveContext(String uid, Map<String, dynamic> activeContext);
 
+  // Workspace management
+  Future<void> updateMembershipRoles(String uid, String orgId, List<String> roles);
+  Future<void> updateProviderProfile(String uid, String orgId, String providerType);
+  Future<void> removeRoleFromMembership({required String uid, required String orgId, required String role});
 }

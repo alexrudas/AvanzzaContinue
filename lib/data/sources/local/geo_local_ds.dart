@@ -18,7 +18,10 @@ class GeoLocalDataSource {
   }
 
   Future<void> upsertCountry(CountryModel m) async {
-    await isar.writeTxn(() async => isar.countryModels.put(m));
+    await isar.writeTxn(() async {
+      // CountryModel has replace:true on unique index, so just put it
+      await isar.countryModels.put(m);
+    });
   }
 
   // Regions
@@ -32,7 +35,10 @@ class GeoLocalDataSource {
   }
 
   Future<void> upsertRegion(RegionModel m) async {
-    await isar.writeTxn(() async => isar.regionModels.put(m));
+    await isar.writeTxn(() async {
+      // RegionModel has replace:true on unique index, so just put it
+      await isar.regionModels.put(m);
+    });
   }
 
   // Cities
@@ -47,7 +53,10 @@ class GeoLocalDataSource {
   }
 
   Future<void> upsertCity(CityModel m) async {
-    await isar.writeTxn(() async => isar.cityModels.put(m));
+    await isar.writeTxn(() async {
+      // CityModel has replace:true on unique index, so just put it
+      await isar.cityModels.put(m);
+    });
   }
 
   // Local Regulations

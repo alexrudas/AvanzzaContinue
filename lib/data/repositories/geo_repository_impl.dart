@@ -13,11 +13,14 @@ import '../../../domain/entities/geo/country_entity.dart';
 import '../../../domain/entities/geo/local_regulation_entity.dart';
 import '../../../domain/entities/geo/region_entity.dart';
 import '../../../domain/repositories/geo_repository.dart';
+import '../../../services/telemetry/telemetry_service.dart';
 
 class GeoRepositoryImpl implements GeoRepository {
   final GeoLocalDataSource local;
   final GeoRemoteDataSource remote;
   GeoRepositoryImpl({required this.local, required this.remote});
+
+  final _telemetry = TelemetryService();
 
   // Countries
   @override
@@ -26,8 +29,10 @@ class GeoRepositoryImpl implements GeoRepository {
     Future(() async {
       final locals = await local.countries(isActive: isActive);
       controller.add(locals.map((e) => e.toEntity()).toList());
-      // background sync
-      final remotes = await remote.countries(isActive: isActive);
+      // background sync (orden por nombre)
+      _telemetry.log('[Geo] watchCountries', {'isActive': isActive ?? 'any'});
+      final remotes = await remote.countriesWithOptions(
+          isActive: isActive, limit: null, orderByName: true);
       await _syncCountries(locals, remotes);
       final updated = await local.countries(isActive: isActive);
       controller.add(updated.map((e) => e.toEntity()).toList());
@@ -39,9 +44,11 @@ class GeoRepositoryImpl implements GeoRepository {
   @override
   Future<List<CountryEntity>> fetchCountries({bool? isActive}) async {
     final locals = await local.countries(isActive: isActive);
-    // background sync
+    // background sync (orden por nombre)
     unawaited(() async {
-      final remotes = await remote.countries(isActive: isActive);
+      _telemetry.log('[Geo] fetchCountries', {'isActive': isActive ?? 'any'});
+      final remotes = await remote.countriesWithOptions(
+          isActive: isActive, limit: null, orderByName: true);
       await _syncCountries(locals, remotes);
     }());
     return locals.map((e) => e.toEntity()).toList();
@@ -112,8 +119,13 @@ class GeoRepositoryImpl implements GeoRepository {
       final locals =
           await local.regions(countryId: countryId, isActive: isActive);
       controller.add(locals.map((e) => e.toEntity()).toList());
-      final remotes =
-          await remote.regions(countryId: countryId, isActive: isActive);
+      _telemetry.log('[Geo] regionsByCountry',
+          {'countryId': countryId, 'isActive': isActive ?? 'any'});
+      final remotes = await remote.regionsByCountry(
+          countryId: countryId,
+          isActive: isActive,
+          limit: null,
+          orderByName: true);
       await _syncRegions(locals, remotes);
       final updated =
           await local.regions(countryId: countryId, isActive: isActive);
@@ -129,8 +141,13 @@ class GeoRepositoryImpl implements GeoRepository {
     final locals =
         await local.regions(countryId: countryId, isActive: isActive);
     unawaited(() async {
-      final remotes =
-          await remote.regions(countryId: countryId, isActive: isActive);
+      _telemetry.log('[Geo] regionsByCountry',
+          {'countryId': countryId, 'isActive': isActive ?? 'any'});
+      final remotes = await remote.regionsByCountry(
+          countryId: countryId,
+          isActive: isActive,
+          limit: null,
+          orderByName: true);
       await _syncRegions(locals, remotes);
     }());
     return locals.map((e) => e.toEntity()).toList();
@@ -199,8 +216,22 @@ class GeoRepositoryImpl implements GeoRepository {
       final locals = await local.cities(
           countryId: countryId, regionId: regionId, isActive: isActive);
       controller.add(locals.map((e) => e.toEntity()).toList());
-      final remotes = await remote.cities(
-          countryId: countryId, regionId: regionId, isActive: isActive);
+      _telemetry.log('[Geo] cities', {
+        'countryId': countryId,
+        'regionId': regionId ?? 'any',
+        'isActive': isActive ?? 'any'
+      });
+      final remotes = regionId != null
+          ? await remote.citiesByRegion(
+              regionId: regionId,
+              isActive: isActive,
+              limit: null,
+              orderByName: true)
+          : await remote.citiesByCountry(
+              countryId: countryId,
+              isActive: isActive,
+              limit: null,
+              orderByName: true);
       await _syncCities(locals, remotes);
       final updated = await local.cities(
           countryId: countryId, regionId: regionId, isActive: isActive);
@@ -216,8 +247,22 @@ class GeoRepositoryImpl implements GeoRepository {
     final locals = await local.cities(
         countryId: countryId, regionId: regionId, isActive: isActive);
     unawaited(() async {
-      final remotes = await remote.cities(
-          countryId: countryId, regionId: regionId, isActive: isActive);
+      _telemetry.log('[Geo] cities', {
+        'countryId': countryId,
+        'regionId': regionId ?? 'any',
+        'isActive': isActive ?? 'any'
+      });
+      final remotes = regionId != null
+          ? await remote.citiesByRegion(
+              regionId: regionId,
+              isActive: isActive,
+              limit: null,
+              orderByName: true)
+          : await remote.citiesByCountry(
+              countryId: countryId,
+              isActive: isActive,
+              limit: null,
+              orderByName: true);
       await _syncCities(locals, remotes);
     }());
     return locals.map((e) => e.toEntity()).toList();

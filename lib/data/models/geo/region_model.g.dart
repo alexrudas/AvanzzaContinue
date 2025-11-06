@@ -27,28 +27,33 @@ const RegionModelSchema = CollectionSchema(
       name: r'countryId',
       type: IsarType.string,
     ),
-    r'createdAt': PropertySchema(
+    r'countryRefPath': PropertySchema(
       id: 2,
+      name: r'countryRefPath',
+      type: IsarType.string,
+    ),
+    r'createdAt': PropertySchema(
+      id: 3,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'id': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'id',
       type: IsarType.string,
     ),
     r'isActive': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'isActive',
       type: IsarType.bool,
     ),
     r'name': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'name',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -120,6 +125,12 @@ int _regionModelEstimateSize(
     }
   }
   bytesCount += 3 + object.countryId.length * 3;
+  {
+    final value = object.countryRefPath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.id.length * 3;
   bytesCount += 3 + object.name.length * 3;
   return bytesCount;
@@ -133,11 +144,12 @@ void _regionModelSerialize(
 ) {
   writer.writeString(offsets[0], object.code);
   writer.writeString(offsets[1], object.countryId);
-  writer.writeDateTime(offsets[2], object.createdAt);
-  writer.writeString(offsets[3], object.id);
-  writer.writeBool(offsets[4], object.isActive);
-  writer.writeString(offsets[5], object.name);
-  writer.writeDateTime(offsets[6], object.updatedAt);
+  writer.writeString(offsets[2], object.countryRefPath);
+  writer.writeDateTime(offsets[3], object.createdAt);
+  writer.writeString(offsets[4], object.id);
+  writer.writeBool(offsets[5], object.isActive);
+  writer.writeString(offsets[6], object.name);
+  writer.writeDateTime(offsets[7], object.updatedAt);
 }
 
 RegionModel _regionModelDeserialize(
@@ -149,12 +161,13 @@ RegionModel _regionModelDeserialize(
   final object = RegionModel(
     code: reader.readStringOrNull(offsets[0]),
     countryId: reader.readString(offsets[1]),
-    createdAt: reader.readDateTimeOrNull(offsets[2]),
-    id: reader.readString(offsets[3]),
-    isActive: reader.readBoolOrNull(offsets[4]) ?? true,
+    countryRefPath: reader.readStringOrNull(offsets[2]),
+    createdAt: reader.readDateTimeOrNull(offsets[3]),
+    id: reader.readString(offsets[4]),
+    isActive: reader.readBoolOrNull(offsets[5]) ?? true,
     isarId: id,
-    name: reader.readString(offsets[5]),
-    updatedAt: reader.readDateTimeOrNull(offsets[6]),
+    name: reader.readString(offsets[6]),
+    updatedAt: reader.readDateTimeOrNull(offsets[7]),
   );
   return object;
 }
@@ -171,14 +184,16 @@ P _regionModelDeserializeProp<P>(
     case 1:
       return (reader.readString(offset)) as P;
     case 2:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 4:
-      return (reader.readBoolOrNull(offset) ?? true) as P;
-    case 5:
       return (reader.readString(offset)) as P;
+    case 5:
+      return (reader.readBoolOrNull(offset) ?? true) as P;
     case 6:
+      return (reader.readString(offset)) as P;
+    case 7:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -763,6 +778,160 @@ extension RegionModelQueryFilter
   }
 
   QueryBuilder<RegionModel, RegionModel, QAfterFilterCondition>
+      countryRefPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'countryRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<RegionModel, RegionModel, QAfterFilterCondition>
+      countryRefPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'countryRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<RegionModel, RegionModel, QAfterFilterCondition>
+      countryRefPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegionModel, RegionModel, QAfterFilterCondition>
+      countryRefPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegionModel, RegionModel, QAfterFilterCondition>
+      countryRefPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegionModel, RegionModel, QAfterFilterCondition>
+      countryRefPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'countryRefPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegionModel, RegionModel, QAfterFilterCondition>
+      countryRefPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegionModel, RegionModel, QAfterFilterCondition>
+      countryRefPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegionModel, RegionModel, QAfterFilterCondition>
+      countryRefPathContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegionModel, RegionModel, QAfterFilterCondition>
+      countryRefPathMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'countryRefPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegionModel, RegionModel, QAfterFilterCondition>
+      countryRefPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'countryRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegionModel, RegionModel, QAfterFilterCondition>
+      countryRefPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'countryRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegionModel, RegionModel, QAfterFilterCondition>
       createdAtIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1285,6 +1454,19 @@ extension RegionModelQuerySortBy
     });
   }
 
+  QueryBuilder<RegionModel, RegionModel, QAfterSortBy> sortByCountryRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'countryRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegionModel, RegionModel, QAfterSortBy>
+      sortByCountryRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'countryRefPath', Sort.desc);
+    });
+  }
+
   QueryBuilder<RegionModel, RegionModel, QAfterSortBy> sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -1369,6 +1551,19 @@ extension RegionModelQuerySortThenBy
   QueryBuilder<RegionModel, RegionModel, QAfterSortBy> thenByCountryIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegionModel, RegionModel, QAfterSortBy> thenByCountryRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'countryRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegionModel, RegionModel, QAfterSortBy>
+      thenByCountryRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'countryRefPath', Sort.desc);
     });
   }
 
@@ -1461,6 +1656,14 @@ extension RegionModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<RegionModel, RegionModel, QDistinct> distinctByCountryRefPath(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'countryRefPath',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<RegionModel, RegionModel, QDistinct> distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
@@ -1514,6 +1717,13 @@ extension RegionModelQueryProperty
     });
   }
 
+  QueryBuilder<RegionModel, String?, QQueryOperations>
+      countryRefPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'countryRefPath');
+    });
+  }
+
   QueryBuilder<RegionModel, DateTime?, QQueryOperations> createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
@@ -1552,24 +1762,28 @@ extension RegionModelQueryProperty
 RegionModel _$RegionModelFromJson(Map<String, dynamic> json) => RegionModel(
       isarId: (json['isarId'] as num?)?.toInt(),
       id: json['id'] as String,
+      countryRefPath: json['countryRefPath'] as String?,
       countryId: json['countryId'] as String,
       name: json['name'] as String,
       code: json['code'] as String?,
       isActive: json['isActive'] as bool? ?? true,
-      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
-      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.parse(json['createdAt'] as String),
+      updatedAt: json['updatedAt'] == null
+          ? null
+          : DateTime.parse(json['updatedAt'] as String),
     );
 
 Map<String, dynamic> _$RegionModelToJson(RegionModel instance) =>
     <String, dynamic>{
       'isarId': instance.isarId,
       'id': instance.id,
+      'countryRefPath': instance.countryRefPath,
       'countryId': instance.countryId,
       'name': instance.name,
       'code': instance.code,
       'isActive': instance.isActive,
-      'createdAt':
-          const DateTimeTimestampConverter().toJson(instance.createdAt),
-      'updatedAt':
-          const DateTimeTimestampConverter().toJson(instance.updatedAt),
+      'createdAt': instance.createdAt?.toIso8601String(),
+      'updatedAt': instance.updatedAt?.toIso8601String(),
     };

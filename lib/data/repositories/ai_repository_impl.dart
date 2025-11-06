@@ -59,9 +59,9 @@ class AIRepositoryImpl implements AIRepository {
         final locals =
             await local.advisorSessions(orgId, userId: userId, modulo: modulo);
         controller.add(locals.map((e) => e.toEntity()).toList());
-        final remotes =
+        final remotesResult =
             await remote.advisorSessions(orgId, userId: userId, modulo: modulo);
-        await _syncAdvisor(locals, remotes);
+        await _syncAdvisor(locals, remotesResult.items);
         final updated =
             await local.advisorSessions(orgId, userId: userId, modulo: modulo);
         controller.add(updated.map((e) => e.toEntity()).toList());
@@ -81,9 +81,9 @@ class AIRepositoryImpl implements AIRepository {
         await local.advisorSessions(orgId, userId: userId, modulo: modulo);
     unawaited(() async {
       try {
-        final remotes =
+        final remotesResult =
             await remote.advisorSessions(orgId, userId: userId, modulo: modulo);
-        await _syncAdvisor(locals, remotes);
+        await _syncAdvisor(locals, remotesResult.items);
       } catch (e) {
         // TODO
       }
@@ -226,9 +226,9 @@ class AIRepositoryImpl implements AIRepository {
         final locals =
             await local.predictions(orgId, tipo: tipo, targetId: targetId);
         controller.add(locals.map((e) => e.toEntity()).toList());
-        final remotes =
+        final remotesResult =
             await remote.predictions(orgId, tipo: tipo, targetId: targetId);
-        await _syncPredictions(locals, remotes);
+        await _syncPredictions(locals, remotesResult.items);
         final updated =
             await local.predictions(orgId, tipo: tipo, targetId: targetId);
         controller.add(updated.map((e) => e.toEntity()).toList());
@@ -248,9 +248,9 @@ class AIRepositoryImpl implements AIRepository {
         await local.predictions(orgId, tipo: tipo, targetId: targetId);
     unawaited(() async {
       try {
-        final remotes =
+        final remotesResult =
             await remote.predictions(orgId, tipo: tipo, targetId: targetId);
-        await _syncPredictions(locals, remotes);
+        await _syncPredictions(locals, remotesResult.items);
       } catch (e) {
         // TODO
       }
@@ -281,9 +281,9 @@ class AIRepositoryImpl implements AIRepository {
         final locals =
             await local.auditLogs(orgId, userId: userId, modulo: modulo);
         controller.add(locals.map((e) => e.toEntity()).toList());
-        final remotes =
+        final remotesResult =
             await remote.auditLogs(orgId, userId: userId, modulo: modulo);
-        await _syncAuditLogs(locals, remotes);
+        await _syncAuditLogs(locals, remotesResult.items);
         final updated =
             await local.auditLogs(orgId, userId: userId, modulo: modulo);
         controller.add(updated.map((e) => e.toEntity()).toList());
@@ -302,9 +302,9 @@ class AIRepositoryImpl implements AIRepository {
     final locals = await local.auditLogs(orgId, userId: userId, modulo: modulo);
     unawaited(() async {
       try {
-        final remotes =
+        final remotesResult =
             await remote.auditLogs(orgId, userId: userId, modulo: modulo);
-        await _syncAuditLogs(locals, remotes);
+        await _syncAuditLogs(locals, remotesResult.items);
       } catch (e) {
         // TODO
       }

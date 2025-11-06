@@ -1,0 +1,318 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../controllers/admin/maintenance/admin_maintenance_controller.dart';
+import 'maintenance_card.dart';
+
+/// Panel operativo principal con tabs, búsqueda y filtros
+///
+/// Contiene:
+/// - Barra de búsqueda
+/// - Botón de filtros
+/// - Tabs: Incidencias, Programados, En proceso, Finalizados
+/// - Lista de mantenimientos según tab activo
+class MaintenanceOperationalPanel extends GetView<AdminMaintenanceController> {
+  const MaintenanceOperationalPanel({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Barra de búsqueda y filtros
+        _buildSearchBar(context),
+
+        // Tabs
+        Container(
+          color: Colors.white,
+          child: TabBar(
+            controller: controller.tabController,
+            isScrollable: true,
+            labelColor: const Color(0xFF1E40AF),
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: const Color(0xFF1E40AF),
+            indicatorWeight: 3,
+            labelStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+            tabs: const [
+              Tab(text: 'Incidencias'),
+              Tab(text: 'Programados'),
+              Tab(text: 'En proceso'),
+              Tab(text: 'Finalizados'),
+            ],
+          ),
+        ),
+
+        // Content (TabBarView)
+        Expanded(
+          child: TabBarView(
+            controller: controller.tabController,
+            children: [
+              _buildMaintenanceList(context, 'incidencias'),
+              _buildMaintenanceList(context, 'programados'),
+              _buildMaintenanceList(context, 'en_proceso'),
+              _buildMaintenanceList(context, 'finalizados'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchBar(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: Colors.white,
+      child: Row(
+        children: [
+          // SearchBar
+          Expanded(
+            child: Container(
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F6F8),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Buscar vehículo o incidencia...',
+                  hintStyle: TextStyle(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    fontSize: 14,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    size: 20,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onChanged: (query) {
+                  // TODO: Implementar búsqueda
+                },
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 12),
+
+          // Botón de filtros
+          Container(
+            height: 44,
+            width: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F6F8),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.filter_alt_outlined, size: 20),
+              onPressed: () {
+                _showFiltersBottomSheet(context);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMaintenanceList(BuildContext context, String type) {
+    // Mock data para demo
+    final mockItems = _getMockItems(type);
+
+    if (mockItems.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.inbox_outlined,
+              size: 64,
+              color: Colors.grey.shade300,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No hay registros',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: mockItems.length,
+      itemBuilder: (context, index) {
+        final item = mockItems[index];
+        return MaintenanceCard(
+          item: item,
+          onTap: () {
+            Get.snackbar(
+              'Detalle',
+              'Abriendo ${item.assetName}...',
+              snackPosition: SnackPosition.BOTTOM,
+            );
+          },
+          onEdit: type != 'finalizados'
+              ? () {
+                  Get.snackbar(
+                    'Editar',
+                    'Editando ${item.assetName}...',
+                    snackPosition: SnackPosition.BOTTOM,
+                  );
+                }
+              : null,
+          onFinalize: type == 'en_proceso'
+              ? () {
+                  Get.snackbar(
+                    'Finalizar',
+                    'Finalizando ${item.assetName}...',
+                    snackPosition: SnackPosition.BOTTOM,
+                  );
+                }
+              : null,
+        );
+      },
+    );
+  }
+
+  void _showFiltersBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Filtros',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ListTile(
+                leading: const Icon(Icons.directions_car),
+                title: const Text('Por tipo de activo'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {},
+              ),
+              ListTile(
+                leading: const Icon(Icons.calendar_today),
+                title: const Text('Por fecha'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {},
+              ),
+              ListTile(
+                leading: const Icon(Icons.attach_money),
+                title: const Text('Por rango de costo'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {},
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancelar'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Aplicar'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  List<MaintenanceItem> _getMockItems(String type) {
+    switch (type) {
+      case 'incidencias':
+        return [
+          MaintenanceItem(
+            id: '1',
+            assetName: 'Camión Volvo FH16',
+            assetPlate: 'ABC-123',
+            description: 'Falla en sistema de frenos - Requiere revisión urgente',
+            date: DateTime.now().subtract(const Duration(hours: 2)),
+            status: 'Urgente',
+            statusColor: const Color(0xFFEF4444),
+            cost: 2500000,
+          ),
+          MaintenanceItem(
+            id: '2',
+            assetName: 'Excavadora CAT 320',
+            assetPlate: 'EXC-456',
+            description: 'Cambio de filtros y aceite hidráulico',
+            date: DateTime.now().subtract(const Duration(days: 1)),
+            status: 'Pendiente',
+            statusColor: const Color(0xFFF97316),
+            cost: 850000,
+          ),
+        ];
+      case 'en_proceso':
+        return [
+          MaintenanceItem(
+            id: '3',
+            assetName: 'Toyota Hilux 2020',
+            assetPlate: 'XYZ-789',
+            description: 'Mantenimiento preventivo 20.000 km',
+            date: DateTime.now(),
+            status: 'En progreso',
+            statusColor: const Color(0xFF2563EB),
+            cost: 650000,
+            providerName: 'Toyota',
+          ),
+        ];
+      case 'finalizados':
+        return [
+          MaintenanceItem(
+            id: '4',
+            assetName: 'Chevrolet NPR',
+            assetPlate: 'NPR-321',
+            description: 'Cambio de llantas 185/65 R15',
+            date: DateTime.now().subtract(const Duration(days: 3)),
+            status: 'Finalizado',
+            statusColor: const Color(0xFF10B981),
+            cost: 1200000,
+            providerName: 'Goodyear',
+          ),
+          MaintenanceItem(
+            id: '5',
+            assetName: 'Montacargas Yale',
+            assetPlate: 'MTC-111',
+            description: 'Revisión anual obligatoria',
+            date: DateTime.now().subtract(const Duration(days: 7)),
+            status: 'Finalizado',
+            statusColor: const Color(0xFF10B981),
+            cost: 450000,
+          ),
+        ];
+      default:
+        return [];
+    }
+  }
+}

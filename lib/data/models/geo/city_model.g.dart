@@ -17,53 +17,73 @@ const CityModelSchema = CollectionSchema(
   name: r'CityModel',
   id: 6875720243144095242,
   properties: {
-    r'countryId': PropertySchema(
+    r'cityCode': PropertySchema(
       id: 0,
+      name: r'cityCode',
+      type: IsarType.string,
+    ),
+    r'countryId': PropertySchema(
+      id: 1,
       name: r'countryId',
       type: IsarType.string,
     ),
+    r'countryRefPath': PropertySchema(
+      id: 2,
+      name: r'countryRefPath',
+      type: IsarType.string,
+    ),
     r'createdAt': PropertySchema(
-      id: 1,
+      id: 3,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'id': PropertySchema(
-      id: 2,
+      id: 4,
       name: r'id',
       type: IsarType.string,
     ),
     r'isActive': PropertySchema(
-      id: 3,
+      id: 5,
       name: r'isActive',
       type: IsarType.bool,
     ),
     r'lat': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'lat',
       type: IsarType.double,
     ),
     r'lng': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'lng',
       type: IsarType.double,
     ),
     r'name': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'name',
       type: IsarType.string,
     ),
+    r'regionCode': PropertySchema(
+      id: 9,
+      name: r'regionCode',
+      type: IsarType.string,
+    ),
     r'regionId': PropertySchema(
-      id: 7,
+      id: 10,
       name: r'regionId',
       type: IsarType.string,
     ),
+    r'regionRefPath': PropertySchema(
+      id: 11,
+      name: r'regionRefPath',
+      type: IsarType.string,
+    ),
     r'timezoneOverride': PropertySchema(
-      id: 8,
+      id: 12,
       name: r'timezoneOverride',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 9,
+      id: 13,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -113,6 +133,32 @@ const CityModelSchema = CollectionSchema(
         )
       ],
     ),
+    r'regionCode': IndexSchema(
+      id: -5212310500083002559,
+      name: r'regionCode',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'regionCode',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'cityCode': IndexSchema(
+      id: 8629940939212169001,
+      name: r'cityCode',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'cityCode',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
     r'isActive': IndexSchema(
       id: 8092228061260947457,
       name: r'isActive',
@@ -141,10 +187,34 @@ int _cityModelEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.cityCode;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.countryId.length * 3;
+  {
+    final value = object.countryRefPath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.id.length * 3;
   bytesCount += 3 + object.name.length * 3;
+  {
+    final value = object.regionCode;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.regionId.length * 3;
+  {
+    final value = object.regionRefPath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   {
     final value = object.timezoneOverride;
     if (value != null) {
@@ -160,16 +230,20 @@ void _cityModelSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.countryId);
-  writer.writeDateTime(offsets[1], object.createdAt);
-  writer.writeString(offsets[2], object.id);
-  writer.writeBool(offsets[3], object.isActive);
-  writer.writeDouble(offsets[4], object.lat);
-  writer.writeDouble(offsets[5], object.lng);
-  writer.writeString(offsets[6], object.name);
-  writer.writeString(offsets[7], object.regionId);
-  writer.writeString(offsets[8], object.timezoneOverride);
-  writer.writeDateTime(offsets[9], object.updatedAt);
+  writer.writeString(offsets[0], object.cityCode);
+  writer.writeString(offsets[1], object.countryId);
+  writer.writeString(offsets[2], object.countryRefPath);
+  writer.writeDateTime(offsets[3], object.createdAt);
+  writer.writeString(offsets[4], object.id);
+  writer.writeBool(offsets[5], object.isActive);
+  writer.writeDouble(offsets[6], object.lat);
+  writer.writeDouble(offsets[7], object.lng);
+  writer.writeString(offsets[8], object.name);
+  writer.writeString(offsets[9], object.regionCode);
+  writer.writeString(offsets[10], object.regionId);
+  writer.writeString(offsets[11], object.regionRefPath);
+  writer.writeString(offsets[12], object.timezoneOverride);
+  writer.writeDateTime(offsets[13], object.updatedAt);
 }
 
 CityModel _cityModelDeserialize(
@@ -179,17 +253,21 @@ CityModel _cityModelDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = CityModel(
-    countryId: reader.readString(offsets[0]),
-    createdAt: reader.readDateTimeOrNull(offsets[1]),
-    id: reader.readString(offsets[2]),
-    isActive: reader.readBoolOrNull(offsets[3]) ?? true,
+    cityCode: reader.readStringOrNull(offsets[0]),
+    countryId: reader.readString(offsets[1]),
+    countryRefPath: reader.readStringOrNull(offsets[2]),
+    createdAt: reader.readDateTimeOrNull(offsets[3]),
+    id: reader.readString(offsets[4]),
+    isActive: reader.readBoolOrNull(offsets[5]) ?? true,
     isarId: id,
-    lat: reader.readDoubleOrNull(offsets[4]),
-    lng: reader.readDoubleOrNull(offsets[5]),
-    name: reader.readString(offsets[6]),
-    regionId: reader.readString(offsets[7]),
-    timezoneOverride: reader.readStringOrNull(offsets[8]),
-    updatedAt: reader.readDateTimeOrNull(offsets[9]),
+    lat: reader.readDoubleOrNull(offsets[6]),
+    lng: reader.readDoubleOrNull(offsets[7]),
+    name: reader.readString(offsets[8]),
+    regionCode: reader.readStringOrNull(offsets[9]),
+    regionId: reader.readString(offsets[10]),
+    regionRefPath: reader.readStringOrNull(offsets[11]),
+    timezoneOverride: reader.readStringOrNull(offsets[12]),
+    updatedAt: reader.readDateTimeOrNull(offsets[13]),
   );
   return object;
 }
@@ -202,24 +280,32 @@ P _cityModelDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readString(offset)) as P;
-    case 1:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 2:
-      return (reader.readString(offset)) as P;
-    case 3:
-      return (reader.readBoolOrNull(offset) ?? true) as P;
-    case 4:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 5:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 6:
-      return (reader.readString(offset)) as P;
-    case 7:
-      return (reader.readString(offset)) as P;
-    case 8:
       return (reader.readStringOrNull(offset)) as P;
+    case 1:
+      return (reader.readString(offset)) as P;
+    case 2:
+      return (reader.readStringOrNull(offset)) as P;
+    case 3:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 4:
+      return (reader.readString(offset)) as P;
+    case 5:
+      return (reader.readBoolOrNull(offset) ?? true) as P;
+    case 6:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 7:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 8:
+      return (reader.readString(offset)) as P;
     case 9:
+      return (reader.readStringOrNull(offset)) as P;
+    case 10:
+      return (reader.readString(offset)) as P;
+    case 11:
+      return (reader.readStringOrNull(offset)) as P;
+    case 12:
+      return (reader.readStringOrNull(offset)) as P;
+    case 13:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -514,6 +600,136 @@ extension CityModelQueryWhere
     });
   }
 
+  QueryBuilder<CityModel, CityModel, QAfterWhereClause> regionCodeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'regionCode',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterWhereClause> regionCodeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'regionCode',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterWhereClause> regionCodeEqualTo(
+      String? regionCode) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'regionCode',
+        value: [regionCode],
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterWhereClause> regionCodeNotEqualTo(
+      String? regionCode) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'regionCode',
+              lower: [],
+              upper: [regionCode],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'regionCode',
+              lower: [regionCode],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'regionCode',
+              lower: [regionCode],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'regionCode',
+              lower: [],
+              upper: [regionCode],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterWhereClause> cityCodeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'cityCode',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterWhereClause> cityCodeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'cityCode',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterWhereClause> cityCodeEqualTo(
+      String? cityCode) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'cityCode',
+        value: [cityCode],
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterWhereClause> cityCodeNotEqualTo(
+      String? cityCode) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'cityCode',
+              lower: [],
+              upper: [cityCode],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'cityCode',
+              lower: [cityCode],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'cityCode',
+              lower: [cityCode],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'cityCode',
+              lower: [],
+              upper: [cityCode],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
   QueryBuilder<CityModel, CityModel, QAfterWhereClause> isActiveEqualTo(
       bool isActive) {
     return QueryBuilder.apply(this, (query) {
@@ -562,6 +778,154 @@ extension CityModelQueryWhere
 
 extension CityModelQueryFilter
     on QueryBuilder<CityModel, CityModel, QFilterCondition> {
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition> cityCodeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'cityCode',
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      cityCodeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'cityCode',
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition> cityCodeEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'cityCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition> cityCodeGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'cityCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition> cityCodeLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'cityCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition> cityCodeBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'cityCode',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition> cityCodeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'cityCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition> cityCodeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'cityCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition> cityCodeContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'cityCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition> cityCodeMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'cityCode',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition> cityCodeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'cityCode',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      cityCodeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'cityCode',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<CityModel, CityModel, QAfterFilterCondition> countryIdEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -689,6 +1053,160 @@ extension CityModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'countryId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      countryRefPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'countryRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      countryRefPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'countryRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      countryRefPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      countryRefPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      countryRefPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      countryRefPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'countryRefPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      countryRefPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      countryRefPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      countryRefPathContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'countryRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      countryRefPathMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'countryRefPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      countryRefPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'countryRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      countryRefPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'countryRefPath',
         value: '',
       ));
     });
@@ -1260,6 +1778,157 @@ extension CityModelQueryFilter
     });
   }
 
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition> regionCodeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'regionCode',
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      regionCodeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'regionCode',
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition> regionCodeEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'regionCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      regionCodeGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'regionCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition> regionCodeLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'regionCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition> regionCodeBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'regionCode',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      regionCodeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'regionCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition> regionCodeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'regionCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition> regionCodeContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'regionCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition> regionCodeMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'regionCode',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      regionCodeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'regionCode',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      regionCodeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'regionCode',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<CityModel, CityModel, QAfterFilterCondition> regionIdEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -1386,6 +2055,160 @@ extension CityModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'regionId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      regionRefPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'regionRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      regionRefPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'regionRefPath',
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      regionRefPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'regionRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      regionRefPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'regionRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      regionRefPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'regionRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      regionRefPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'regionRefPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      regionRefPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'regionRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      regionRefPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'regionRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      regionRefPathContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'regionRefPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      regionRefPathMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'regionRefPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      regionRefPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'regionRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterFilterCondition>
+      regionRefPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'regionRefPath',
         value: '',
       ));
     });
@@ -1624,6 +2447,18 @@ extension CityModelQueryLinks
     on QueryBuilder<CityModel, CityModel, QFilterCondition> {}
 
 extension CityModelQuerySortBy on QueryBuilder<CityModel, CityModel, QSortBy> {
+  QueryBuilder<CityModel, CityModel, QAfterSortBy> sortByCityCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cityCode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterSortBy> sortByCityCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cityCode', Sort.desc);
+    });
+  }
+
   QueryBuilder<CityModel, CityModel, QAfterSortBy> sortByCountryId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryId', Sort.asc);
@@ -1633,6 +2468,18 @@ extension CityModelQuerySortBy on QueryBuilder<CityModel, CityModel, QSortBy> {
   QueryBuilder<CityModel, CityModel, QAfterSortBy> sortByCountryIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterSortBy> sortByCountryRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'countryRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterSortBy> sortByCountryRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'countryRefPath', Sort.desc);
     });
   }
 
@@ -1708,6 +2555,18 @@ extension CityModelQuerySortBy on QueryBuilder<CityModel, CityModel, QSortBy> {
     });
   }
 
+  QueryBuilder<CityModel, CityModel, QAfterSortBy> sortByRegionCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'regionCode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterSortBy> sortByRegionCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'regionCode', Sort.desc);
+    });
+  }
+
   QueryBuilder<CityModel, CityModel, QAfterSortBy> sortByRegionId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionId', Sort.asc);
@@ -1717,6 +2576,18 @@ extension CityModelQuerySortBy on QueryBuilder<CityModel, CityModel, QSortBy> {
   QueryBuilder<CityModel, CityModel, QAfterSortBy> sortByRegionIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterSortBy> sortByRegionRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'regionRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterSortBy> sortByRegionRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'regionRefPath', Sort.desc);
     });
   }
 
@@ -1748,6 +2619,18 @@ extension CityModelQuerySortBy on QueryBuilder<CityModel, CityModel, QSortBy> {
 
 extension CityModelQuerySortThenBy
     on QueryBuilder<CityModel, CityModel, QSortThenBy> {
+  QueryBuilder<CityModel, CityModel, QAfterSortBy> thenByCityCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cityCode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterSortBy> thenByCityCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cityCode', Sort.desc);
+    });
+  }
+
   QueryBuilder<CityModel, CityModel, QAfterSortBy> thenByCountryId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryId', Sort.asc);
@@ -1757,6 +2640,18 @@ extension CityModelQuerySortThenBy
   QueryBuilder<CityModel, CityModel, QAfterSortBy> thenByCountryIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterSortBy> thenByCountryRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'countryRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterSortBy> thenByCountryRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'countryRefPath', Sort.desc);
     });
   }
 
@@ -1844,6 +2739,18 @@ extension CityModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<CityModel, CityModel, QAfterSortBy> thenByRegionCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'regionCode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterSortBy> thenByRegionCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'regionCode', Sort.desc);
+    });
+  }
+
   QueryBuilder<CityModel, CityModel, QAfterSortBy> thenByRegionId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionId', Sort.asc);
@@ -1853,6 +2760,18 @@ extension CityModelQuerySortThenBy
   QueryBuilder<CityModel, CityModel, QAfterSortBy> thenByRegionIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterSortBy> thenByRegionRefPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'regionRefPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QAfterSortBy> thenByRegionRefPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'regionRefPath', Sort.desc);
     });
   }
 
@@ -1884,10 +2803,25 @@ extension CityModelQuerySortThenBy
 
 extension CityModelQueryWhereDistinct
     on QueryBuilder<CityModel, CityModel, QDistinct> {
+  QueryBuilder<CityModel, CityModel, QDistinct> distinctByCityCode(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'cityCode', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<CityModel, CityModel, QDistinct> distinctByCountryId(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'countryId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QDistinct> distinctByCountryRefPath(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'countryRefPath',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -1929,10 +2863,25 @@ extension CityModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<CityModel, CityModel, QDistinct> distinctByRegionCode(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'regionCode', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<CityModel, CityModel, QDistinct> distinctByRegionId(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'regionId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<CityModel, CityModel, QDistinct> distinctByRegionRefPath(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'regionRefPath',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -1959,9 +2908,21 @@ extension CityModelQueryProperty
     });
   }
 
+  QueryBuilder<CityModel, String?, QQueryOperations> cityCodeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'cityCode');
+    });
+  }
+
   QueryBuilder<CityModel, String, QQueryOperations> countryIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'countryId');
+    });
+  }
+
+  QueryBuilder<CityModel, String?, QQueryOperations> countryRefPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'countryRefPath');
     });
   }
 
@@ -2001,9 +2962,21 @@ extension CityModelQueryProperty
     });
   }
 
+  QueryBuilder<CityModel, String?, QQueryOperations> regionCodeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'regionCode');
+    });
+  }
+
   QueryBuilder<CityModel, String, QQueryOperations> regionIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'regionId');
+    });
+  }
+
+  QueryBuilder<CityModel, String?, QQueryOperations> regionRefPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'regionRefPath');
     });
   }
 
@@ -2028,29 +3001,39 @@ extension CityModelQueryProperty
 CityModel _$CityModelFromJson(Map<String, dynamic> json) => CityModel(
       isarId: (json['isarId'] as num?)?.toInt(),
       id: json['id'] as String,
+      countryRefPath: json['countryRefPath'] as String?,
       countryId: json['countryId'] as String,
+      regionRefPath: json['regionRefPath'] as String?,
       regionId: json['regionId'] as String,
+      regionCode: json['regionCode'] as String?,
+      cityCode: json['cityCode'] as String?,
       name: json['name'] as String,
-      lat: (json['lat'] as num?)?.toDouble(),
-      lng: (json['lng'] as num?)?.toDouble(),
+      lat: CityModel._toDouble(json['lat']),
+      lng: CityModel._toDouble(json['lng']),
       timezoneOverride: json['timezoneOverride'] as String?,
       isActive: json['isActive'] as bool? ?? true,
-      createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
-      updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.parse(json['createdAt'] as String),
+      updatedAt: json['updatedAt'] == null
+          ? null
+          : DateTime.parse(json['updatedAt'] as String),
     );
 
 Map<String, dynamic> _$CityModelToJson(CityModel instance) => <String, dynamic>{
       'isarId': instance.isarId,
       'id': instance.id,
+      'countryRefPath': instance.countryRefPath,
       'countryId': instance.countryId,
+      'regionRefPath': instance.regionRefPath,
       'regionId': instance.regionId,
+      'regionCode': instance.regionCode,
+      'cityCode': instance.cityCode,
       'name': instance.name,
       'lat': instance.lat,
       'lng': instance.lng,
       'timezoneOverride': instance.timezoneOverride,
       'isActive': instance.isActive,
-      'createdAt':
-          const DateTimeTimestampConverter().toJson(instance.createdAt),
-      'updatedAt':
-          const DateTimeTimestampConverter().toJson(instance.updatedAt),
+      'createdAt': instance.createdAt?.toIso8601String(),
+      'updatedAt': instance.updatedAt?.toIso8601String(),
     };

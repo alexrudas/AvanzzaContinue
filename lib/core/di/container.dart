@@ -35,6 +35,8 @@ import '../../domain/repositories/accounting_repository.dart';
 import '../../domain/repositories/ai_repository.dart';
 import '../../domain/repositories/asset_repository.dart';
 import '../../domain/repositories/chat_repository.dart';
+import '../../domain/repositories/catalog_repository.dart';
+import '../../data/repositories/catalog_repository_impl.dart';
 import '../../domain/repositories/geo_repository.dart';
 import '../../domain/repositories/insurance_repository.dart';
 import '../../domain/repositories/maintenance_repository.dart';
@@ -85,6 +87,8 @@ class DIContainer {
   late final InsuranceRepository insuranceRepository;
   late final ChatRepository chatRepository;
   late final AIRepository aiRepository;
+  // Catálogo (local en memoria por ahora)
+  late final CatalogRepository catalogRepository;
 
   Isar get isar => _isar;
   FirebaseFirestore get firestore => _firestore;
@@ -138,4 +142,8 @@ Future<void> initDI(
   c.chatRepository =
       ChatRepositoryImpl(local: c.chatLocal, remote: c.chatRemote);
   c.aiRepository = AIRepositoryImpl(local: c.aiLocal, remote: c.aiRemote);
+  c.catalogRepository = CatalogRepositoryImpl();
+  // Log versión del catálogo
+  // ignore: avoid_print
+  print('[Catalog] version: ${c.catalogRepository.version}');
 }
