@@ -18,5 +18,6 @@ abstract class AIAuditLogEntity with _$AIAuditLogEntity {
     DateTime? updatedAt,
   }) = _AIAuditLogEntity;
 
-  factory AIAuditLogEntity.fromJson(Map<String, dynamic> json) => _$AIAuditLogEntityFromJson(json);
+  factory AIAuditLogEntity.fromJson(Map<String, dynamic> json) =>
+      _$AIAuditLogEntityFromJson(json);
 }

@@ -20,10 +20,12 @@ import '../presentation/auth/pages/summary_page.dart';
 import '../presentation/auth/pages/terms_page.dart';
 import '../presentation/auth/pages/username_password_page.dart';
 import '../presentation/bindings/home_binding.dart';
+import '../presentation/bindings/tenant_home_binding.dart';
 import '../presentation/home/pages/home_router.dart';
 import '../presentation/pages/incidencia_page.dart';
 import '../presentation/pages/org_selection_page.dart';
 import '../presentation/pages/purchase_request_page.dart';
+import '../presentation/pages/tenant/home/tenant_home_page.dart';
 
 class Routes {
   static const welcome = '/auth/welcome';
@@ -57,6 +59,7 @@ class Routes {
   static const purchase = '/purchase';
 
   static const String assets = '/assets';
+  static const String tenantHome = '/tenant/home';
 
   // Demo y desarrollo
   static const bottomNavDemo = '/demo/bottom-nav';
@@ -109,6 +112,13 @@ class Routes {
     GetPage(name: purchase, page: () => const PurchaseRequestPage()),
 
     GetPage(name: assets, page: () => const AssetListPage()),
+
+    // Tenant Home
+    GetPage(
+      name: tenantHome,
+      page: () => const TenantHomePage(),
+      binding: TenantHomeBinding(),
+    ),
 
     // Demo
     // GetPage(name: bottomNavDemo, page: () => const BottomNavDemoPage()),

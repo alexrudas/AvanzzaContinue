@@ -43,7 +43,10 @@ import '../../domain/repositories/maintenance_repository.dart';
 import '../../domain/repositories/org_repository.dart';
 import '../../domain/repositories/purchase_repository.dart';
 import '../../domain/repositories/user_repository.dart';
+import '../../domain/repositories/workspace_repository.dart';
+import '../../data/repositories/workspace_repository_impl.dart';
 import '../platform/offline_sync_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DIContainer {
   static final DIContainer _instance = DIContainer._internal();
@@ -89,6 +92,7 @@ class DIContainer {
   late final AIRepository aiRepository;
   // Catálogo (local en memoria por ahora)
   late final CatalogRepository catalogRepository;
+  late final WorkspaceRepository workspaceRepository;
 
   Isar get isar => _isar;
   FirebaseFirestore get firestore => _firestore;
@@ -143,6 +147,10 @@ Future<void> initDI(
       ChatRepositoryImpl(local: c.chatLocal, remote: c.chatRemote);
   c.aiRepository = AIRepositoryImpl(local: c.aiLocal, remote: c.aiRemote);
   c.catalogRepository = CatalogRepositoryImpl();
+  c.workspaceRepository = WorkspaceRepositoryImpl(
+    isar: isar,
+    prefsProvider: SharedPreferences.getInstance,
+  );
   // Log versión del catálogo
   // ignore: avoid_print
   print('[Catalog] version: ${c.catalogRepository.version}');

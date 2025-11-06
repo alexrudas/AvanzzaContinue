@@ -3,8 +3,10 @@ import '../entities/insurance/insurance_purchase_entity.dart';
 
 abstract class InsuranceRepository {
   // Policies
-  Stream<List<InsurancePolicyEntity>> watchPoliciesByAsset(String assetId, {String? countryId, String? cityId});
-  Future<List<InsurancePolicyEntity>> fetchPoliciesByAsset(String assetId, {String? countryId, String? cityId});
+  Stream<List<InsurancePolicyEntity>> watchPoliciesByAsset(String assetId,
+      {String? countryId, String? cityId});
+  Future<List<InsurancePolicyEntity>> fetchPoliciesByAsset(String assetId,
+      {String? countryId, String? cityId});
   Stream<InsurancePolicyEntity?> watchPolicy(String id);
   Future<InsurancePolicyEntity?> getPolicy(String id);
   Future<void> upsertPolicy(InsurancePolicyEntity policy);

@@ -11,6 +11,7 @@ import '../components/animation/page_transitions.dart';
 import '../components/custom/loading_theme.dart';
 import '../components/material/buttons.dart';
 import '../components/material/inputs.dart';
+import '../components/material/badge.dart';
 import '../components/material/cards.dart';
 import '../components/material/navigation.dart';
 import '../components/material/surfaces.dart';
@@ -21,10 +22,11 @@ final ThemeData highContrastTheme = ThemeData(
   textTheme: AppTypography.highContrastTextTheme,
   // FIX: Registro de extensiones obligatorias para high contrast.
   // NumberTypographyExtension.base agregado para evitar fallos en KPIs y componentes numéricos.
-  extensions: const [
+  extensions: [
     CustomThemeExtension.highContrast,
     AppChartTheme.highContrast,
     NumberTypographyExtension.base, // FIX: Added for high contrast support
+    AppBadgeTheme.fromScheme(AppColorSchemes.highContrastLight),
   ],
 
   // Transitions & Loading

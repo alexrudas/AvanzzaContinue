@@ -1,12 +1,18 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
+import '../../../core/utils/workspace_normalizer.dart';
 import '../../../data/datasources/local/registration_progress_ds.dart';
 import '../../../data/models/auth/registration_progress_model.dart';
 import '../../../domain/entities/user_profile_entity.dart';
 import '../../../domain/usecases/check_username_available_uc.dart';
 import '../../../domain/usecases/finalize_registration_uc.dart';
 import '../../../domain/usecases/sign_up_username_password_uc.dart';
+import '../../../routes/app_pages.dart';
+import '../../../services/telemetry/telemetry_service.dart';
+import '../../controllers/workspace_controller.dart';
 
 class RegistrationController extends GetxController {
   final CheckUsernameAvailableUC checkUsername;
@@ -24,6 +30,9 @@ class RegistrationController extends GetxController {
   final Rx<RegistrationProgressModel?> progress =
       Rx<RegistrationProgressModel?>(null);
   final RxString message = ''.obs;
+
+  // Anti-race lock para eliminación de workspace
+  bool _isRemovingWorkspace = false;
 
   // Estado efímero para UI
   final RxString titularType = ''.obs; // 'persona' | 'empresa'
@@ -391,6 +400,129 @@ class RegistrationController extends GetxController {
     providerType.value = '';
     titularType.value = '';
     providerCategories.clear();
+  }
+
+  /// Elimina un workspace del progreso de registro (para usuarios no autenticados en modo guest)
+  /// - Normaliza con WorkspaceNormalizer
+  /// - Actualiza selectedRole si era el activo (policy alfabético)
+  /// - Sincroniza con WorkspaceController con source:'guest'
+  /// - Anti-race lock con finally
+  Future<void> removeWorkspaceFromProgress(String workspace, {String id = 'current'}) async {
+    // Anti-race: si ya hay una eliminación en curso, salir
+    if (_isRemovingWorkspace) {
+      debugPrint('[RegistrationController] Remove already in progress, skipping');
+      return;
+    }
+
+    final p = progress.value ?? await progressDS.get(id);
+    if (p == null) return;
+
+    final normalized = WorkspaceNormalizer.normalize(workspace);
+    final wasActive = p.selectedRole != null &&
+        WorkspaceNormalizer.areEqual(p.selectedRole!, workspace);
+
+    _isRemovingWorkspace = true;
+
+    try {
+      final startTime = DateTime.now();
+
+      // Filtrar workspace y rol de las listas usando WorkspaceNormalizer
+      p.resolvedWorkspaces = p.resolvedWorkspaces
+          .where((w) => !WorkspaceNormalizer.areEqual(w, workspace))
+          .toList();
+      p.resolvedRoles = p.resolvedRoles
+          .where((r) => !WorkspaceNormalizer.areEqual(r, workspace))
+          .toList();
+
+      final latency = DateTime.now().difference(startTime).inMilliseconds;
+
+      // Si borramos el workspace activo, seleccionar siguiente con política determinística
+      String? newActiveRole;
+      String? selectionRule;
+
+      if (wasActive) {
+        // Política: alfabético → vacío
+        if (p.resolvedWorkspaces.isNotEmpty) {
+          newActiveRole = WorkspaceNormalizer.findNextAlphabetic(
+            p.resolvedWorkspaces,
+          );
+          selectionRule = 'alpha';
+        } else {
+          selectionRule = 'empty';
+        }
+
+        p.selectedRole = newActiveRole;
+
+        _logTelemetry('workspace_switched_auto', {
+          'from': normalized,
+          'to': newActiveRole ?? '',
+          'cause': 'deleted_active',
+          'rule': selectionRule,
+          'ctx': 'guest',
+        });
+
+        // Forzar navegación al nuevo workspace (cierra vista del eliminado)
+        // HomeRouter redirigirá automáticamente al workspace correcto
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          if (Get.currentRoute != Routes.home) {
+            Get.offAllNamed(Routes.home);
+          }
+        });
+      }
+
+      progress.value = await progressDS.upsert(p);
+
+      // Sincronizar con WorkspaceController
+      await syncToWorkspaceController();
+
+      _logTelemetry('workspace_delete_success', {
+        'workspace': normalized,
+        'wasActive': wasActive,
+        'newActiveRole': newActiveRole,
+        'rule': selectionRule,
+        'latency_ms': latency,
+        'ctx': 'guest',
+      });
+    } catch (e) {
+      _logTelemetry('workspace_delete_error', {
+        'workspace': normalized,
+        'error': e.toString(),
+        'ctx': 'guest',
+      });
+      rethrow;
+    } finally {
+      _isRemovingWorkspace = false;
+    }
+  }
+
+  /// Sincroniza el progreso de registro con WorkspaceController (modo guest)
+  Future<void> syncToWorkspaceController() async {
+    if (!Get.isRegistered<WorkspaceController>()) return;
+
+    try {
+      final workspaceController = Get.find<WorkspaceController>();
+      final p = progress.value;
+
+      if (p != null) {
+        await workspaceController.syncFromRegistrationProgress(
+          p.resolvedWorkspaces,
+          p.selectedRole,
+        );
+      }
+    } catch (e) {
+      debugPrint('[RegistrationController] Error syncing workspaces: $e');
+    }
+  }
+
+  /// Helper para telemetría
+  void _logTelemetry(String event, Map<String, dynamic> extras) {
+    try {
+      if (Get.isRegistered<TelemetryService>()) {
+        Get.find<TelemetryService>().log(event, extras);
+      }
+    } catch (e) {
+      debugPrint('[RegistrationController] Telemetry error: $e');
+    }
   }
 
   Future<void> finalizeRegistration({String id = 'current'}) async {

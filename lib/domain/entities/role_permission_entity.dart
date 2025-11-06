@@ -11,5 +11,6 @@ abstract class RolePermissionEntity with _$RolePermissionEntity {
     @Default(<String>[]) List<String> scopes,
   }) = _RolePermissionEntity;
 
-  factory RolePermissionEntity.fromJson(Map<String, dynamic> json) => _$RolePermissionEntityFromJson(json);
+  factory RolePermissionEntity.fromJson(Map<String, dynamic> json) =>
+      _$RolePermissionEntityFromJson(json);
 }

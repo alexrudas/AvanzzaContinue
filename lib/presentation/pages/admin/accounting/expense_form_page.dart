@@ -266,7 +266,7 @@ class ExpenseFormPage extends StatelessWidget {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 120),
                     children: [
-                      _ModernSection(
+                      ModernSection(
                         title: '📋 Consecutivo',
                         headerExtra: Obx(() => Container(
                               padding: const EdgeInsets.symmetric(
@@ -314,7 +314,7 @@ class ExpenseFormPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _ModernSection(
+                      ModernSection(
                         title: '💰 Gasto Total',
                         trailing: Obx(() {
                           final touch = c.items.length;
@@ -362,7 +362,7 @@ class ExpenseFormPage extends StatelessWidget {
                               );
                             }),
                             const SizedBox(height: 12),
-                            _ModernAddButton(
+                            ModernAddButton(
                               label: 'Agregar Ítem',
                               icon: Icons.add_circle_outline,
                               onPressed: c.addItem,
@@ -371,7 +371,7 @@ class ExpenseFormPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _ModernSection(
+                      ModernSection(
                         title: '👤 Destinatario',
                         child: Column(
                           children: [
@@ -400,7 +400,7 @@ class ExpenseFormPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _ModernSection(
+                      ModernSection(
                         title: '💳 Métodos de Pago',
                         trailing: Obx(() {
                           final touch = c.pagos.length;
@@ -435,7 +435,7 @@ class ExpenseFormPage extends StatelessWidget {
                               );
                             }),
                             const SizedBox(height: 12),
-                            _ModernAddButton(
+                            ModernAddButton(
                               label: 'Agregar Método de Pago',
                               icon: Icons.payment,
                               onPressed: c.addPago,
@@ -444,7 +444,7 @@ class ExpenseFormPage extends StatelessWidget {
                             Obx(() {
                               final diff = c.diferencia;
                               if (diff.abs() < 0.01) {
-                                return const _BalanceCard(
+                                return const BalanceCard(
                                   label: '✓ Balanceado',
                                   amount: 0,
                                   isBalanced: true,
@@ -452,13 +452,13 @@ class ExpenseFormPage extends StatelessWidget {
                               }
                               return Column(
                                 children: [
-                                  _BalanceCard(
+                                  BalanceCard(
                                     label: diff > 0 ? 'Pendiente' : 'Excedente',
                                     amount: diff.abs(),
                                     isBalanced: false,
                                   ),
                                   const SizedBox(height: 12),
-                                  _ModernCheckbox(
+                                  ModernCheckbox(
                                     label: 'Marcar diferencia como CxP',
                                     value: c.marcarComoCxP,
                                   ),
@@ -479,7 +479,7 @@ class ExpenseFormPage extends StatelessWidget {
             bottom: 24,
             left: 24,
             right: 24,
-            child: _ModernSubmitButton(onPressed: c.save),
+            child: ModernSubmitButton(onPressed: c.save),
           ),
         ],
       ),
@@ -489,8 +489,8 @@ class ExpenseFormPage extends StatelessWidget {
 
 // ========================= MODERN WIDGETS ====================================
 
-class _ModernSection extends StatelessWidget {
-  const _ModernSection({
+class ModernSection extends StatelessWidget {
+  const ModernSection({
     required this.title,
     required this.child,
     this.trailing,
@@ -1281,8 +1281,8 @@ class _ModernPagoCard extends StatelessWidget {
   }
 }
 
-class _ModernAddButton extends StatelessWidget {
-  const _ModernAddButton({
+class ModernAddButton extends StatelessWidget {
+  const ModernAddButton({
     required this.label,
     required this.icon,
     required this.onPressed,
@@ -1369,8 +1369,8 @@ class _ModernSwitch extends StatelessWidget {
   }
 }
 
-class _ModernCheckbox extends StatelessWidget {
-  const _ModernCheckbox({required this.label, required this.value});
+class ModernCheckbox extends StatelessWidget {
+  const ModernCheckbox({required this.label, required this.value});
 
   final String label;
   final RxBool value;
@@ -1438,8 +1438,8 @@ class _ModernCheckbox extends StatelessWidget {
   }
 }
 
-class _BalanceCard extends StatelessWidget {
-  const _BalanceCard({
+class BalanceCard extends StatelessWidget {
+  const BalanceCard({
     required this.label,
     required this.amount,
     required this.isBalanced,
@@ -1508,8 +1508,8 @@ class _BalanceCard extends StatelessWidget {
   }
 }
 
-class _ModernSubmitButton extends StatelessWidget {
-  const _ModernSubmitButton({required this.onPressed});
+class ModernSubmitButton extends StatelessWidget {
+  const ModernSubmitButton({required this.onPressed});
   final VoidCallback onPressed;
 
   @override

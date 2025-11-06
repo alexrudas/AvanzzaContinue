@@ -1,14 +1,18 @@
 // lib/presentation/widgets/nav/workspace_drawer.dart
 import 'package:avanzza/domain/entities/user/active_context.dart';
-import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
+import '../../../core/utils/workspace_normalizer.dart';
 import '../../../routes/app_pages.dart';
 import '../../auth/controllers/registration_controller.dart';
 import '../../controllers/session_context_controller.dart';
+import '../../themes/devtools/theming_sanity_page.dart';
 import '../drawer/workspace_item.dart';
+import '../modal/confirmation_dialog.dart';
+import '../modal/workspace_selector_sheet.dart';
 
 class WorkspaceDrawer extends StatelessWidget {
   const WorkspaceDrawer({super.key});
@@ -17,9 +21,9 @@ class WorkspaceDrawer extends StatelessWidget {
   static List<String> _buildActive(List<String> source) => source
       .map((w) => w.trim())
       .where((w) => w.isNotEmpty)
-      .map(_normalize)
+      .map(WorkspaceNormalizer.normalize)
       .toSet()
-      .where(_supported.contains)
+      // .where(_supported.contains)
       .toList()
     ..sort(_preferredOrder);
 
@@ -41,9 +45,8 @@ class WorkspaceDrawer extends StatelessWidget {
           final fromUser = user != null;
 
           // 1) Usuario logueado → workspaces desde membershipsRx
-          final userWorkspaces = fromUser
-              ? _extractUserWorkspaces(session!)
-              : const <String>[];
+          final userWorkspaces =
+              fromUser ? _extractUserWorkspaces(session!) : const <String>[];
 
           // 2) Registro → resolvedWorkspaces
           final resolved =
@@ -51,15 +54,19 @@ class WorkspaceDrawer extends StatelessWidget {
 
           // 3) Fuente final
           final List<String> source;
+
           if (fromUser && userWorkspaces.isNotEmpty) {
             source = userWorkspaces;
           } else if (resolved.isNotEmpty) {
             source = resolved;
+            print(
+                "fromUser $fromUser && ${userWorkspaces.isNotEmpty}, resolved $resolved");
           } else {
             source = _allWorkspaces;
           }
 
           final active = _buildActive(source);
+          print("fromUser active $active");
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -80,8 +87,9 @@ class WorkspaceDrawer extends StatelessWidget {
                     itemBuilder: (context, i) {
                       final ws = active[i];
                       final data = _tileFor(ws);
-                      final isActive =
-                          _normalize(user?.activeContext?.rol ?? '') == ws;
+                      final isActive = WorkspaceNormalizer.normalize(
+                              user?.activeContext?.rol ?? '') ==
+                          ws;
                       return WorkspaceItem(
                         roleLabel: data.title,
                         icon: data.icon,
@@ -103,6 +111,24 @@ class WorkspaceDrawer extends StatelessWidget {
                 ..._buildFooterForUser(session)
               else
                 ..._buildFooterForGuest(reg),
+
+              // === DEBUG ONLY: Theming Sanity Page ===
+              // Acceso oculto a la página de validación visual del sistema de themes
+              // Solo visible en modo debug (kDebugMode)
+              if (kDebugMode) ...[
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.color_lens_outlined),
+                  title: const Text('Theming Sanity Page'),
+                  subtitle: const Text('Validación visual de temas (solo dev)'),
+                  dense: true,
+                  onTap: () {
+                    Get.back(); // Cerrar drawer
+                    Get.to(() => const ThemingSanityPage());
+                  },
+                ),
+              ],
+
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.info_outline),
@@ -137,6 +163,12 @@ class WorkspaceDrawer extends StatelessWidget {
           },
         ),
         ListTile(
+          leading: const Icon(Icons.delete_outline),
+          title: const Text('Eliminar workspace'),
+          dense: true,
+          onTap: () => _handleDeleteWorkspace(session, isAuthenticated: true),
+        ),
+        ListTile(
           leading: const Icon(Icons.logout),
           title: const Text('Cerrar sesión'),
           dense: true,
@@ -155,6 +187,13 @@ class WorkspaceDrawer extends StatelessWidget {
             Get.toNamed(Routes.profile, parameters: {'append': '1'});
           },
         ),
+        if (reg?.progress.value?.resolvedWorkspaces.isNotEmpty ?? false)
+          ListTile(
+            leading: const Icon(Icons.delete_outline),
+            title: const Text('Eliminar workspace'),
+            dense: true,
+            onTap: () => _handleDeleteWorkspace(reg, isAuthenticated: false),
+          ),
         ListTile(
           leading: const Icon(Icons.person_add_alt_1),
           title: const Text('Registrarme'),
@@ -177,13 +216,15 @@ class WorkspaceDrawer extends StatelessWidget {
     final roles = session.membershipsRx
         .where((m) => m.estatus == 'activo')
         .expand((m) => m.roles)
-        .map(_normalize)
+        .map(WorkspaceNormalizer.normalize)
         .toSet();
 
     final activeCtx = session.userRx.value?.activeContext;
     final ordered = [
-      if ((activeCtx?.rol ?? '').isNotEmpty) _normalize(activeCtx!.rol),
-      ...roles.where((r) => r != _normalize(activeCtx?.rol ?? '')),
+      if ((activeCtx?.rol ?? '').isNotEmpty)
+        WorkspaceNormalizer.normalize(activeCtx!.rol),
+      ...roles.where(
+          (r) => r != WorkspaceNormalizer.normalize(activeCtx?.rol ?? '')),
     ];
     return ordered;
   }
@@ -201,22 +242,6 @@ class WorkspaceDrawer extends StatelessWidget {
 
   // Evita drift
   static final _supported = _allWorkspaces.toSet();
-
-  static String _normalize(String w) {
-    final low = w.toLowerCase();
-    if (low.contains('admin')) return 'Administrador';
-    if (low.contains('propietario') || low.contains('owner'))
-      return 'Propietario';
-    if (low.contains('proveedor') || low.contains('provider'))
-      return 'Proveedor';
-    if (low.contains('arrendatario') || low.contains('tenant'))
-      return 'Arrendatario';
-    if (low.contains('aseguradora') || low.contains('insurance'))
-      return 'Aseguradora';
-    if (low.contains('abogado') || low.contains('lawyer')) return 'Abogado';
-    if (low.contains('asesor')) return 'Asesor de seguros';
-    return w.isEmpty ? w : w[0].toUpperCase() + w.substring(1);
-  }
 
   static int _preferredOrder(String a, String b) {
     const order = {
@@ -297,11 +322,12 @@ class WorkspaceDrawer extends StatelessWidget {
   ) async {
     if (session?.userRx.value != null) {
       final membership = session!.membershipsRx.firstWhereOrNull(
-        (m) => m.roles.any((r) => _normalize(r) == ws),
+        (m) => m.roles.any((r) => WorkspaceNormalizer.normalize(r) == ws),
       );
 
       if (membership != null) {
-        final role = membership.roles.firstWhere((r) => _normalize(r) == ws);
+        final role = membership.roles
+            .firstWhere((r) => WorkspaceNormalizer.normalize(r) == ws);
         String? providerType;
         if (ws == 'Proveedor' && membership.providerProfiles.isNotEmpty) {
           providerType = membership.providerProfiles.first.providerType;
@@ -404,6 +430,107 @@ class WorkspaceDrawer extends StatelessWidget {
       await reg.clear('current');
     }
     Get.offAllNamed(Routes.countryCity);
+  }
+
+  /// Maneja la eliminación de un workspace
+  Future<void> _handleDeleteWorkspace(
+    dynamic controller, {
+    required bool isAuthenticated,
+  }) async {
+    final context = Get.context;
+    if (context == null) return;
+
+    // Obtener lista de workspaces disponibles
+    final List<String> availableWorkspaces;
+    if (isAuthenticated && controller is SessionContextController) {
+      availableWorkspaces = _extractUserWorkspaces(controller);
+    } else if (!isAuthenticated && controller is RegistrationController) {
+      availableWorkspaces = controller.progress.value?.resolvedWorkspaces ?? [];
+    } else {
+      return;
+    }
+
+    // Si no hay workspaces, mostrar mensaje
+    if (availableWorkspaces.isEmpty) {
+      Get.back(); // Cerrar drawer
+      Get.snackbar(
+        'Sin workspaces',
+        'No tienes workspaces para eliminar',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    // Si solo hay un workspace, no permitir eliminarlo
+    if (availableWorkspaces.length == 1) {
+      Get.back(); // Cerrar drawer
+      Get.snackbar(
+        'Workspace único',
+        'Debes tener al menos un workspace activo',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    Get.back(); // Cerrar drawer
+
+    // Convertir a WorkspaceSelectItem
+    final workspaceItems = availableWorkspaces.map((ws) {
+      final data = _tileFor(ws);
+      final isActive = isAuthenticated &&
+          controller is SessionContextController &&
+          WorkspaceNormalizer.normalize(
+                  controller.userRx.value?.activeContext?.rol ?? '') ==
+              ws;
+
+      return WorkspaceSelectItem(
+        label: data.title,
+        subtitle: data.subtitle,
+        icon: data.icon,
+        isActive: isActive,
+      );
+    }).toList();
+
+    // Mostrar selector de workspace
+    final selected = await WorkspaceSelectorSheet.show(
+      context,
+      title: 'Selecciona el workspace a eliminar',
+      workspaces: workspaceItems,
+    );
+
+    if (selected == null) return; // Usuario canceló
+
+    // Mostrar confirmación
+    final confirmation = await ConfirmationDialog.show(
+      context,
+      ConfirmationDialogConfig(
+        title: '¿Eliminar workspace?',
+        message:
+            '¿Estás seguro de que deseas eliminar el workspace "${selected.label}"?',
+        confirmText: 'Eliminar',
+        cancelText: 'Cancelar',
+        isDestructive: true,
+        icon: Icons.delete_outline,
+      ),
+    );
+
+    if (confirmation != ConfirmationResult.confirmed) return;
+
+    // Ejecutar eliminación (los controladores manejan notificaciones y telemetría)
+    try {
+      if (isAuthenticated && controller is SessionContextController) {
+        await controller.removeWorkspaceFromActiveOrg(role: selected.label);
+      } else if (!isAuthenticated && controller is RegistrationController) {
+        await controller.removeWorkspaceFromProgress(selected.label);
+      }
+    } catch (e) {
+      // Error ya logueado por controlador, solo mostrar mensaje genérico
+      Get.snackbar(
+        'Error',
+        'No se pudo eliminar el workspace',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   Future<void> _logout(SessionContextController? session) async {
@@ -513,8 +640,8 @@ class _EmptyHint extends StatelessWidget {
               Text(
                 'Completa tu registro para habilitar workspaces',
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall!
-                    .copyWith(color: theme.hintColor),
+                style:
+                    theme.textTheme.bodySmall!.copyWith(color: theme.hintColor),
               ),
             ],
           ),

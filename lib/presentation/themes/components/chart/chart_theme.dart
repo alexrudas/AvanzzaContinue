@@ -47,6 +47,34 @@ class AppChartTheme extends ThemeExtension<AppChartTheme> {
     return theme!;
   }
 
+  // ========== GAUGE COLORS (para SemiCircularGaugeChart) ==========
+
+  /// Color de fondo del gauge (arco no lleno).
+  /// Deriva del gridColor para consistencia visual con otros charts.
+  Color get gaugeBackground => gridColor;
+
+  /// Color primario del gauge (ejecución saludable ≤ 85%).
+  /// Deriva del primer color de primaryPalette.
+  Color get gaugePrimary => primaryPalette[0];
+
+  /// Color de warning del gauge (ejecución > 85% y ≤ 100%).
+  /// Deriva del color warning de semanticPalette.
+  Color get gaugeWarning => semanticPalette[1]; // Warning es índice 1 en semantic
+
+  /// Color de error del gauge (sobre-ejecución > 100%).
+  /// Deriva del color error de semanticPalette.
+  Color get gaugeError => semanticPalette[0]; // Error es índice 0 en semantic
+
+  // ========== BAR COLORS (para SimpleBarChart) ==========
+
+  /// Color base de barras (usado por defecto si no hay colorOverride).
+  /// Deriva del primer color de primaryPalette.
+  Color get barBase => primaryPalette[0];
+
+  /// Color de acento de barras (para variación o destacados).
+  /// Deriva del primer color de secondaryPalette.
+  Color get barAccent => secondaryPalette[0];
+
   static const AppChartTheme light = AppChartTheme(
     primaryPalette: ChartPalettes.lightPrimary,
     secondaryPalette: ChartPalettes.lightSecondary,

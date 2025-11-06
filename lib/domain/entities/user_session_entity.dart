@@ -16,5 +16,6 @@ abstract class UserSessionEntity with _$UserSessionEntity {
     Map<String, dynamic>? featureFlags,
   }) = _UserSessionEntity;
 
-  factory UserSessionEntity.fromJson(Map<String, dynamic> json) => _$UserSessionEntityFromJson(json);
+  factory UserSessionEntity.fromJson(Map<String, dynamic> json) =>
+      _$UserSessionEntityFromJson(json);
 }

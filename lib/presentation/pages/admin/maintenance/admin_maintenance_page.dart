@@ -1,3 +1,4 @@
+import 'package:avanzza/presentation/widgets/floating_quick_actions_row/floating_quick_actions_row.dart';
 import 'package:avanzza/presentation/widgets/maintenance/review_events_strip.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,6 +8,8 @@ import '../../../controllers/admin/maintenance/admin_maintenance_controller.dart
 import '../../../controllers/admin/maintenance/maintenance_item.dart' as model;
 import '../../../controllers/admin/maintenance/maintenance_stats_controller.dart';
 import '../../../controllers/admin/maintenance/types/kpi_filter.dart';
+import '../../../themes/tokens/primitives.dart';
+import '../../../themes/tokens/semantic.dart';
 import '../../../widgets/campaign/campaign_launcher.dart';
 import '../../../widgets/maintenance/maintenance_card.dart';
 import '../../../widgets/maintenance/maintenance_kpi_row.dart';
@@ -31,158 +34,192 @@ class AdminMaintenancePage extends GetView<AdminMaintenanceController> {
   Widget build(BuildContext context) {
     final stats = Get.find<MaintenanceStatsController>();
 
-    return CampaignLauncher(
-      screenId: 'admin_maintenance',
-      enabled: kCampaignsEnabled,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF5F6F8),
-        resizeToAvoidBottomInset: true,
-        //floatingActionButton: const MaintenanceFAB(heroTag: 'adminMaintFab'),
-        body: SafeArea(
-          child: Obx(() {
-            final MaintenanceStatsController s = stats;
+    return FloatingQuickActions(
+      child: CampaignLauncher(
+        screenId: 'admin_maintenance',
+        enabled: kCampaignsEnabled,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF5F6F8),
+          resizeToAvoidBottomInset: true,
+          //floatingActionButton: const MaintenanceFAB(heroTag: 'adminMaintFab'),
+          body: SafeArea(
+            child: Obx(() {
+              final MaintenanceStatsController s = stats;
 
-            // Fuente base y filtro por KPI activo
-            final List<model.MaintenanceItem> source = controller.items;
-            final KpiFilter? active = s.activeFilter.value;
+              // Fuente base y filtro por KPI activo
+              final List<model.MaintenanceItem> source = controller.items;
+              final KpiFilter? active = s.activeFilter.value;
 
-            final filtered = active == null
-                ? source
-                : source.where((e) {
-                    switch (active) {
-                      // programados
-                      case KpiFilter.programados:
-                        return e.type == 'programados';
-                      // En proceso
-                      case KpiFilter.enProceso:
-                        return e.type == 'proceso';
-                      // Finalizados
-                      case KpiFilter.finalizados:
-                        return e.type == 'finalizado';
-                    }
-                  }).toList();
+              final filtered = active == null
+                  ? source
+                  : source.where((e) {
+                      switch (active) {
+                        // programados
+                        case KpiFilter.programados:
+                          return e.type == 'programados';
+                        // En proceso
+                        case KpiFilter.enProceso:
+                          return e.type == 'proceso';
+                        // Finalizados
+                        case KpiFilter.finalizados:
+                          return e.type == 'finalizado';
+                      }
+                    }).toList();
 
-            // Métricas para las 2 mini-cards (con fallback por si no existen en stats)
-            final incidenciasCount =
-                source.where((e) => e.type == 'incidencia').length;
+              // Métricas para las 2 mini-cards (con fallback por si no existen en stats)
+              final incidenciasCount =
+                  source.where((e) => e.type == 'incidencia').length;
 
-            final preventivosCount = source
-                .where(
-                    (e) => e.type == 'programacion' || e.type == 'preventivo')
-                .length;
+              final preventivosCount = source
+                  .where(
+                      (e) => e.type == 'programacion' || e.type == 'preventivo')
+                  .length;
 
-            final hasPreventivos = preventivosCount > 0;
+              final hasPreventivos = preventivosCount > 0;
 
-            // -------- CAMBIO: uso SingleChildScrollView + padding y física solicitadas --------
-            return SingleChildScrollView(
-              physics: const BouncingScrollPhysics(
-                parent: AlwaysScrollableScrollPhysics(),
-              ),
-              padding: const EdgeInsets.fromLTRB(0, 0, 0, 60),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Header
-                  _buildHeader(context),
+              // -------- CAMBIO: uso SingleChildScrollView + padding y física solicitadas --------
+              return SingleChildScrollView(
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, 60),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header
+                    _buildHeader(context),
 
-                  // KPIs principales
-                  const MaintenanceKpiRow(),
+                    // KPIs principales
+                    const MaintenanceKpiRow(),
 
-                  // Fila de 3 cards: Incidencias | Próximos mantenimientos | Fuera de servicio
-                  // Bloque: Estado de flota (vertical con ListTile)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // const Text(
-                        //   'Estado de flota',
-                        //   style: TextStyle(
-                        //     fontSize: 18,
-                        //     fontWeight: FontWeight.w700,
-                        //     color: Color(0xFF1E293B),
-                        //   ),
-                        // ),
-                        // const SizedBox(height: 8),
-                        Card(
-                          color: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            side: const BorderSide(color: Color(0xFFE0E3E7)),
-                          ),
-                          child: ListTile(
-                            leading: const CircleAvatar(
-                              backgroundColor: Color(0xFFFEE2E2),
-                              child: Icon(Icons.error_outline,
-                                  color: Color(0xFF991B1B)),
+                    // Fila de 3 cards: Incidencias | Próximos mantenimientos | Fuera de servicio
+                    // Bloque: Estado de flota (vertical con ListTile)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // const Text(
+                          //   'Estado de flota',
+                          //   style: TextStyle(
+                          //     fontSize: 18,
+                          //     fontWeight: FontWeight.w700,
+                          //     color: Color(0xFF1E293B),
+                          //   ),
+                          // ),
+                          // const SizedBox(height: 8),
+                          Card(
+                            color: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              side: const BorderSide(color: Color(0xFFE0E3E7)),
                             ),
-                            title: const Text('Incidencias'),
-                            trailing: Text(
-                              '$incidenciasCount activas',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF111827),
+                            child: ListTile(
+                              leading: const CircleAvatar(
+                                backgroundColor: Color(0xFFFEE2E2),
+                                child: Icon(Icons.error_outline,
+                                    color: Color(0xFF991B1B)),
                               ),
-                            ),
-                            onTap: () {
-                              // TODO: Navegación a incidencias
-                            },
-                          ),
-                        ),
-                        Card(
-                          color: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            side: const BorderSide(color: Color(0xFFE0E3E7)),
-                          ),
-                          child: ListTile(
-                            leading: const CircleAvatar(
-                              backgroundColor: Color(0xFFFDE68A),
-                              child: Icon(Icons.build_circle_rounded,
-                                  color: Color(0xFF92400E)),
-                            ),
-                            title: const Text('Próximos mantenimientos'),
-                            trailing: Text(
-                              hasPreventivos
-                                  ? '$preventivosCount en 7 días'
-                                  : '—',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF111827),
+                              title: const Text('Incidencias'),
+                              trailing: Text(
+                                '$incidenciasCount activas',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF111827),
+                                ),
                               ),
+                              onTap: () {
+                                // TODO: Navegación a incidencias
+                              },
                             ),
-                            onTap: () {
-                              // TODO: Navegación a preventivos
-                            },
                           ),
-                        ),
-                      ],
+                          Card(
+                            color: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              side: const BorderSide(color: Color(0xFFE0E3E7)),
+                            ),
+                            child: ListTile(
+                              leading: const CircleAvatar(
+                                backgroundColor: Color(0xFFFDE68A),
+                                child: Icon(Icons.build_circle_rounded,
+                                    color: Color(0xFF92400E)),
+                              ),
+                              title: const Text('Próximos mantenimientos'),
+                              trailing: Text(
+                                hasPreventivos
+                                    ? '$preventivosCount en 7 días'
+                                    : '—',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF111827),
+                                ),
+                              ),
+                              onTap: () {
+                                // TODO: Navegación a preventivos
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
 
-                  // Bloque gráfico: salud operativa + costo mensual
-                  const MaintenanceAnalyticsBlock(),
+                    // Bloque gráfico: salud operativa + costo mensual
+                    const MaintenanceAnalyticsBlock(),
 
-                  // Lista filtrada
-                  ...filtered.map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 6),
-                      child: MaintenanceCard(item: item),
+                    // Lista filtrada
+                    ...filtered.map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 6),
+                        child: MaintenanceCard(item: item),
+                      ),
                     ),
-                  ),
-                  // Tira de eventos por revisar
-                  const ReviewEventsStrip(),
-                ],
-              ),
-            );
-            // -------- FIN CAMBIO --------
-          }),
+                    // Tira de eventos por revisar
+                    const ReviewEventsStrip(),
+                  ],
+                ),
+              );
+              // -------- FIN CAMBIO --------
+            }),
+          ),
         ),
       ),
     );
+  }
+
+  List<QuickAction> _buildQuickActions() {
+    return [
+      QuickAction(
+        icon: Icons.apartment_rounded,
+        label: 'Activos',
+        color: SemanticColors.success,
+        showBadge: true,
+        badgeCount: 6,
+        badgeColor: SemanticColors.info,
+        onTap: () {},
+      ),
+      QuickAction(
+        icon: Icons.key_rounded,
+        label: 'Propietarios',
+        color: ColorPrimitives.primary,
+        onTap: () {},
+      ),
+      QuickAction(
+        icon: Icons.receipt_long_rounded,
+        label: 'Arrendatarios',
+        color: SemanticColors.info,
+        onTap: () {},
+      ),
+      QuickAction(
+        icon: Icons.groups_2_rounded,
+        label: 'Contactos',
+        color: SemanticColors.warning,
+        onTap: () {},
+      ),
+    ];
   }
 
   // Header
@@ -206,9 +243,13 @@ class AdminMaintenancePage extends GetView<AdminMaintenanceController> {
               final st = statsController.stats.value;
               final totalActivos = st.totalActivos;
               final lastUpdate = st.formattedUpdateTime;
-              return Text(
-                '$totalActivos activos gestionados • Actualizado $lastUpdate',
-                style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+              return Padding(
+                padding: const EdgeInsets.only(left: 20),
+                child: Text(
+                  '$totalActivos activos gestionados • Actualizado $lastUpdate',
+                  style:
+                      const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+                ),
               );
             },
           ),

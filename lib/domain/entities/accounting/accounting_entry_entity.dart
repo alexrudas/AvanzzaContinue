@@ -15,7 +15,7 @@ abstract class AccountingEntryEntity with _$AccountingEntryEntity {
     @Default(0.0) double monto,
     @Default('COP') String currencyCode,
     @Default('') String descripcion,
-    required DateTime fecha,            // required, no @Default here
+    required DateTime fecha, // required, no @Default here
     @Default('') String referenciaType,
     @Default('') String referenciaId,
     String? counterpartyId,

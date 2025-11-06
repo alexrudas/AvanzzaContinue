@@ -8,10 +8,13 @@ abstract class AIRepository {
     required String orgId,
     required String userId,
     required String inputText,
-    Map<String, dynamic>? structuredContext, // e.g., {assetId, assetType, cityId}
+    Map<String, dynamic>?
+        structuredContext, // e.g., {assetId, assetType, cityId}
   });
-  Stream<List<AIAdvisorEntity>> watchAdvisorSessions(String orgId, {String? userId, String? modulo});
-  Future<List<AIAdvisorEntity>> fetchAdvisorSessions(String orgId, {String? userId, String? modulo});
+  Stream<List<AIAdvisorEntity>> watchAdvisorSessions(String orgId,
+      {String? userId, String? modulo});
+  Future<List<AIAdvisorEntity>> fetchAdvisorSessions(String orgId,
+      {String? userId, String? modulo});
   Future<void> upsertAdvisor(AIAdvisorEntity advisor);
 
   // Predictions
@@ -38,12 +41,16 @@ abstract class AIRepository {
     String? cityId,
     Map<String, dynamic>? context,
   });
-  Stream<List<AIPredictionEntity>> watchPredictions(String orgId, {String? tipo, String? targetId});
-  Future<List<AIPredictionEntity>> fetchPredictions(String orgId, {String? tipo, String? targetId});
+  Stream<List<AIPredictionEntity>> watchPredictions(String orgId,
+      {String? tipo, String? targetId});
+  Future<List<AIPredictionEntity>> fetchPredictions(String orgId,
+      {String? tipo, String? targetId});
   Future<void> upsertPrediction(AIPredictionEntity prediction);
 
   // Audit logs
-  Stream<List<AIAuditLogEntity>> watchAuditLogs(String orgId, {String? userId, String? modulo});
-  Future<List<AIAuditLogEntity>> fetchAuditLogs(String orgId, {String? userId, String? modulo});
+  Stream<List<AIAuditLogEntity>> watchAuditLogs(String orgId,
+      {String? userId, String? modulo});
+  Future<List<AIAuditLogEntity>> fetchAuditLogs(String orgId,
+      {String? userId, String? modulo});
   Future<void> upsertAuditLog(AIAuditLogEntity log);
 }

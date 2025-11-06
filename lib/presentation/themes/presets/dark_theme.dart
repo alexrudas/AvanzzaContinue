@@ -11,6 +11,7 @@ import '../components/animation/page_transitions.dart';
 import '../components/custom/loading_theme.dart';
 import '../components/material/buttons.dart';
 import '../components/material/inputs.dart';
+import '../components/material/badge.dart';
 import '../components/material/cards.dart';
 import '../components/material/navigation.dart';
 import '../components/material/surfaces.dart';
@@ -24,10 +25,11 @@ final ThemeData darkTheme = ThemeData(
   // Global icon theme
   iconTheme: AppIconTheme.normal(color: AppColorSchemes.dark.onSurface),
 
-  extensions: const [
+  extensions: [
     CustomThemeExtension.dark,
     AppChartTheme.dark,
     NumberTypographyExtension.base,
+    AppBadgeTheme.fromScheme(AppColorSchemes.dark),
   ],
 
   // Transitions & Loading

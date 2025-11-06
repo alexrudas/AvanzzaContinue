@@ -12,22 +12,28 @@ abstract class GeoRepository {
   Future<void> upsertCountry(CountryEntity country);
 
   // Regions
-  Stream<List<RegionEntity>> watchRegions({required String countryId, bool? isActive});
-  Future<List<RegionEntity>> fetchRegions({required String countryId, bool? isActive});
+  Stream<List<RegionEntity>> watchRegions(
+      {required String countryId, bool? isActive});
+  Future<List<RegionEntity>> fetchRegions(
+      {required String countryId, bool? isActive});
   Stream<RegionEntity?> watchRegion(String id);
   Future<RegionEntity?> getRegion(String id);
   Future<void> upsertRegion(RegionEntity region);
 
   // Cities
-  Stream<List<CityEntity>> watchCities({required String countryId, String? regionId, bool? isActive});
-  Future<List<CityEntity>> fetchCities({required String countryId, String? regionId, bool? isActive});
+  Stream<List<CityEntity>> watchCities(
+      {required String countryId, String? regionId, bool? isActive});
+  Future<List<CityEntity>> fetchCities(
+      {required String countryId, String? regionId, bool? isActive});
   Stream<CityEntity?> watchCity(String id);
   Future<CityEntity?> getCity(String id);
   Future<void> upsertCity(CityEntity city);
 
   // Local Regulations
-  Stream<List<LocalRegulationEntity>> watchLocalRegulations({String? countryId, String? cityId});
-  Future<List<LocalRegulationEntity>> fetchLocalRegulations({String? countryId, String? cityId});
+  Stream<List<LocalRegulationEntity>> watchLocalRegulations(
+      {String? countryId, String? cityId});
+  Future<List<LocalRegulationEntity>> fetchLocalRegulations(
+      {String? countryId, String? cityId});
   Stream<LocalRegulationEntity?> watchLocalRegulation(String id);
   Future<LocalRegulationEntity?> getLocalRegulation(String id);
   Future<void> upsertLocalRegulation(LocalRegulationEntity regulation);

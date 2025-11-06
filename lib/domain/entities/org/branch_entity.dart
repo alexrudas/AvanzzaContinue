@@ -18,5 +18,6 @@ abstract class BranchEntity with _$BranchEntity {
     DateTime? updatedAt,
   }) = _BranchEntity;
 
-  factory BranchEntity.fromJson(Map<String, dynamic> json) => _$BranchEntityFromJson(json);
+  factory BranchEntity.fromJson(Map<String, dynamic> json) =>
+      _$BranchEntityFromJson(json);
 }

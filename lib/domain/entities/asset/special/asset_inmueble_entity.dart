@@ -17,5 +17,6 @@ abstract class AssetInmuebleEntity with _$AssetInmuebleEntity {
     DateTime? updatedAt,
   }) = _AssetInmuebleEntity;
 
-  factory AssetInmuebleEntity.fromJson(Map<String, dynamic> json) => _$AssetInmuebleEntityFromJson(json);
+  factory AssetInmuebleEntity.fromJson(Map<String, dynamic> json) =>
+      _$AssetInmuebleEntityFromJson(json);
 }

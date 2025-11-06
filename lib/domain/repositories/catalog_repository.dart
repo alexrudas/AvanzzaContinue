@@ -3,10 +3,12 @@ abstract class CatalogRepository {
   String get version; // e.g., "2025.10"
 
   // Sincrónico en memoria
-  List<Map<String, dynamic>> getProviderCategories(String providerType, String segment);
+  List<Map<String, dynamic>> getProviderCategories(
+      String providerType, String segment);
 
   // Preparado para remoto
-  Future<List<Map<String, dynamic>>> fetchProviderCategories(String providerType, String segment) async {
+  Future<List<Map<String, dynamic>>> fetchProviderCategories(
+      String providerType, String segment) async {
     return getProviderCategories(providerType, segment);
   }
 }

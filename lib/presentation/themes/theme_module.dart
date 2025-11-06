@@ -38,6 +38,7 @@ export 'foundations/theme_extensions.dart';
 // Components - Material
 export 'components/material/buttons.dart';
 export 'components/material/inputs.dart';
+export 'components/material/badge.dart';
 export 'components/material/cards.dart';
 export 'components/material/navigation.dart';
 export 'components/material/surfaces.dart';
@@ -46,6 +47,8 @@ export 'components/material/icon_sizes_pro.dart';
 // Components - Chart
 export 'components/chart/chart_theme.dart';
 export 'components/chart/chart_presets.dart';
+export 'components/chart/semi_circular_gauge_chart.dart';
+export 'components/chart/simple_bar_chart.dart';
 
 // Components - Animation
 export 'components/animation/page_transitions.dart';

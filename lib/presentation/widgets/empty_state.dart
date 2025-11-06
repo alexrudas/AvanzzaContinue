@@ -5,7 +5,7 @@ class EmptyState extends StatelessWidget {
   final String? subtitle;
   final IconData icon;
   final VoidCallback? onAction;
-  final String actionLabel;
+  final String? actionLabel;
 
   const EmptyState({
     super.key,
@@ -13,31 +13,36 @@ class EmptyState extends StatelessWidget {
     this.subtitle,
     this.icon = Icons.inbox_outlined,
     this.onAction,
-    this.actionLabel = 'Refrescar',
+    this.actionLabel,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 64, color: Theme.of(context).colorScheme.primary.withOpacity(0.6)),
-            const SizedBox(height: 12),
-            Text(title, style: Theme.of(context).textTheme.titleMedium),
-            if (subtitle != null) ...[
-              const SizedBox(height: 4),
-              Text(subtitle!, style: Theme.of(context).textTheme.bodyMedium),
-            ],
-            if (onAction != null) ...[
-              const SizedBox(height: 16),
-              OutlinedButton(onPressed: onAction, child: Text(actionLabel)),
-            ]
-          ],
+    final t = Theme.of(context);
+    final cs = t.colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(icon, size: 28, color: cs.onSurface.withOpacity(0.5)),
+        const SizedBox(height: 8),
+        Text(
+          title,
+          style: t.textTheme.bodyMedium?.copyWith(color: cs.onSurface.withOpacity(0.75)),
+          textAlign: TextAlign.center,
         ),
-      ),
+        if (subtitle != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            subtitle!,
+            style: t.textTheme.bodySmall?.copyWith(color: cs.onSurface.withOpacity(0.6)),
+            textAlign: TextAlign.center,
+          ),
+        ],
+        if (actionLabel != null && onAction != null) ...[
+          const SizedBox(height: 8),
+          OutlinedButton(onPressed: onAction, child: Text(actionLabel!)),
+        ],
+      ],
     );
   }
 }

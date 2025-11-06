@@ -4,8 +4,12 @@ import 'package:avanzza/presentation/pages/admin/chat/admin_chat_page.dart';
 import 'package:avanzza/presentation/pages/admin/home/admin_home_page.dart';
 import 'package:avanzza/presentation/pages/admin/maintenance/admin_maintenance_page.dart';
 import 'package:avanzza/presentation/pages/admin/orders_and_quotation/admin_orders_page.dart';
+import 'package:avanzza/presentation/pages/tenant/home/tenant_home_page.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import '../../core/utils/workspace_normalizer.dart';
+import '../../services/telemetry/telemetry_service.dart';
 import '../bindings/admin/admin_accounting_binding.dart';
 import '../bindings/admin/admin_chat_binding.dart';
 // Reemplazo de AdminShellBinding por bindings individuales
@@ -34,8 +38,6 @@ import '../pages/provider/services/orders/provider_services_orders_page.dart';
 import '../pages/renter/asset/renter_asset_page.dart';
 import '../pages/renter/chat/renter_chat_page.dart';
 import '../pages/renter/documents/renter_documents_page.dart';
-// Renter pages
-import '../pages/renter/home/renter_home_page.dart';
 import '../pages/renter/payments/renter_payments_page.dart';
 import '../pages/workspaces/provider_articles_commercial_page.dart';
 import '../pages/workspaces/provider_articles_orders_shell.dart';
@@ -236,22 +238,22 @@ WorkspaceConfig workspaceFor({
   if (isRenter(r)) {
     return WorkspaceConfig(
       roleKey: 'arrendatario',
-      tabs: const [
-        WorkspaceTab(
-            title: 'Home', icon: Icons.home_outlined, page: RenterHomePage()),
-        WorkspaceTab(
+      tabs: [
+        const WorkspaceTab(
+            title: 'Home', icon: Icons.home_outlined, page: TenantHomePage()),
+        const WorkspaceTab(
             title: 'Pagos',
             icon: Icons.payments_outlined,
             page: RenterPaymentsPage()),
-        WorkspaceTab(
+        const WorkspaceTab(
             title: 'Activo',
             icon: Icons.precision_manufacturing_outlined,
             page: RenterAssetPage()),
-        WorkspaceTab(
+        const WorkspaceTab(
             title: 'Documentos',
             icon: Icons.folder_open_outlined,
             page: RenterDocumentsPage()),
-        WorkspaceTab(
+        const WorkspaceTab(
             title: 'Chat',
             icon: Icons.chat_bubble_outline,
             page: RenterChatPage()),
@@ -262,4 +264,59 @@ WorkspaceConfig workspaceFor({
 
   // Fallback admin
   return workspaceFor(rol: 'admin', providerType: providerType);
+}
+
+/// Versión segura que retorna null para roles desconocidos
+/// Usa WorkspaceNormalizer y registra telemetría
+WorkspaceConfig? getConfigForRole({
+  required String rol,
+  String? providerType,
+  String? orgType,
+}) {
+  if (rol.isEmpty) {
+    debugPrint('[WorkspaceConfig] Empty role provided');
+    _logUnrecognizedRole('', 'empty_role');
+    return null;
+  }
+
+  final normalized = WorkspaceNormalizer.normalize(rol);
+  final r = normalized.toLowerCase();
+
+  // Validar que sea un rol reconocido
+  final recognized = isAdmin(r) ||
+      isOwner(r) ||
+      isRenter(r) ||
+      isProvider(r) ||
+      isAdvisor(r) ||
+      isInsurer(r) ||
+      isLegal(r);
+
+  if (!recognized) {
+    debugPrint(
+        '[WorkspaceConfig] Unrecognized role: $rol (normalized: $normalized)');
+    _logUnrecognizedRole(rol, normalized);
+    return null;
+  }
+
+  // Delegar a workspaceFor (que siempre retorna una config válida)
+  return workspaceFor(
+    rol: normalized,
+    providerType: providerType,
+    orgType: orgType,
+  );
+}
+
+/// Helper para registrar roles no reconocidos en telemetría
+void _logUnrecognizedRole(String original, String normalized) {
+  try {
+    if (Get.isRegistered<TelemetryService>()) {
+      Get.find<TelemetryService>().log('workspace_config_unrecognized_role', {
+        'original': original,
+        'normalized': normalized,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+    }
+  } catch (e) {
+    debugPrint('[WorkspaceConfig] Telemetry error: $e');
+  }
 }

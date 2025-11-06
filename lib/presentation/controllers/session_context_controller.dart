@@ -2,13 +2,17 @@ import 'dart:async';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
+import '../../core/utils/workspace_normalizer.dart';
 import '../../domain/entities/user/active_context.dart';
 import '../../domain/entities/user/membership_entity.dart';
 import '../../domain/entities/user/user_entity.dart';
 import '../../domain/repositories/user_repository.dart';
+import '../../routes/app_pages.dart';
 import '../../services/telemetry/telemetry_service.dart';
+import 'workspace_controller.dart';
 
 /// SessionContextController
 /// - Loads and observes the current user and memberships
@@ -28,6 +32,9 @@ class SessionContextController extends GetxController {
   // MERGE: version bump para invalidar Drawer cuando lista es mutada internamente
   final RxInt membershipsVersion = 0.obs;
 
+  // Anti-race lock para eliminación de workspace
+  bool _isRemovingWorkspace = false;
+
   // Exponer Rx para reactividad en otros controladores
   Rxn<UserEntity> get userRx => _user;
   RxList<MembershipEntity> get membershipsRx => _memberships;
@@ -46,7 +53,38 @@ class SessionContextController extends GetxController {
     _mbrSub = userRepository.watchMemberships(uid).listen((list) {
       _memberships.assignAll(list);
       membershipsVersion.value++; // fuerza re-render dependientes
+      // Sync workspaces to WorkspaceController
+      _syncWorkspacesToController();
     });
+  }
+
+  /// Syncs current memberships/roles to WorkspaceController
+  Future<void> _syncWorkspacesToController() async {
+    if (!Get.isRegistered<WorkspaceController>()) return;
+
+    try {
+      final workspaceController = Get.find<WorkspaceController>();
+
+      // Extract all active roles from memberships
+      final roles = _memberships
+          .where((m) => m.estatus == 'activo')
+          .expand((m) => m.roles)
+          .toList();
+
+      // Sync to WorkspaceController (uses WorkspaceNormalizer internally)
+      await workspaceController.syncFromMemberships(roles);
+
+      // Update active workspace if exists
+      final activeRole = user?.activeContext?.rol;
+      if (activeRole != null && activeRole.isNotEmpty) {
+        await workspaceController.setActiveWorkspace(
+          activeRole,
+          source: 'auth',
+        );
+      }
+    } catch (e) {
+      debugPrint('[SessionContext] Error syncing workspaces: $e');
+    }
   }
 
   Future<void> setActiveContext(ActiveContext ctx) async {
@@ -100,8 +138,8 @@ class SessionContextController extends GetxController {
     if (m == null) return;
 
     // Normalizar el rol para evitar duplicados
-    final normalizedRole = _normalize(role);
-    final normalizedRoles = m.roles.map(_normalize).toSet();
+    final normalizedRole = WorkspaceNormalizer.normalize(role);
+    final normalizedRoles = m.roles.map(WorkspaceNormalizer.normalize).toSet();
 
     // MERGE: roles antes de la operación (para telemetría)
     final rolesBefore = List<String>.from(m.roles);
@@ -164,23 +202,6 @@ class SessionContextController extends GetxController {
     }
   }
 
-  // Helper para normalizar nombres de roles (igual que en WorkspaceDrawer)
-  String _normalize(String role) {
-    final low = role.toLowerCase();
-    if (low.contains('admin')) return 'Administrador';
-    if (low.contains('propietario') || low.contains('owner'))
-      return 'Propietario';
-    if (low.contains('proveedor') || low.contains('provider'))
-      return 'Proveedor';
-    if (low.contains('arrendatario') || low.contains('tenant'))
-      return 'Arrendatario';
-    if (low.contains('aseguradora') || low.contains('insurance'))
-      return 'Aseguradora';
-    if (low.contains('abogado') || low.contains('lawyer')) return 'Abogado';
-    if (low.contains('asesor')) return 'Asesor de seguros';
-    return role.isEmpty ? role : role[0].toUpperCase() + role.substring(1);
-  }
-
   // MERGE: fix append workspace - helper para detectar roles de proveedor
   bool _isProveedor(String role) {
     return role.toLowerCase().contains('proveedor') ||
@@ -202,14 +223,26 @@ class SessionContextController extends GetxController {
   // - Firestore: arrayRemove
   // - Cache: recarga memberships
   // - Contexto: si el rol eliminado era el activo, ajustar al siguiente disponible o limpiar
+  // - WorkspaceController: sincroniza cambios con source:'auth'
   Future<void> removeWorkspaceFromActiveOrg({required String role}) async {
+    // Anti-race: si ya hay una eliminación en curso, salir
+    if (_isRemovingWorkspace) {
+      debugPrint('[SessionContext] Remove already in progress, skipping');
+      return;
+    }
+
     final u = user;
     final ctx = user?.activeContext;
     if (u == null || ctx == null || ctx.orgId.isEmpty) return;
 
-    final normalized = role.trim().toLowerCase();
+    final normalized = WorkspaceNormalizer.normalize(role);
+    final wasActive = WorkspaceNormalizer.areEqual(ctx.rol, role);
+
+    _isRemovingWorkspace = true;
 
     try {
+      final startTime = DateTime.now();
+
       await userRepository.removeRoleFromMembership(
         uid: u.uid,
         orgId: ctx.orgId,
@@ -219,35 +252,111 @@ class SessionContextController extends GetxController {
       // Recargar memberships (o confiar en stream y solo bump)
       await reloadMembershipsFromRepo();
 
-      // Si borramos el rol activo, escoger otro si existe
-      final current = memberships.firstWhereOrNull((m) => m.orgId == ctx.orgId);
-      final remaining = current?.roles ?? const <String>[];
-      if (ctx.rol.toLowerCase() == normalized) {
-        if (remaining.isNotEmpty) {
-          final nextRole = remaining.first;
-          await setActiveContext(ctx.copyWith(rol: nextRole,));
-        } else {
-          // Mantener orgId y limpiar rol; la UI puede forzar selección
-          await setActiveContext(ctx.copyWith(rol: '', ));
+      final latency = DateTime.now().difference(startTime).inMilliseconds;
+
+      // Si borramos el rol activo, seleccionar siguiente con política determinística
+      String? newActiveRole;
+      String? selectionRule;
+
+      if (wasActive) {
+        final currentMembership = memberships.firstWhereOrNull(
+          (m) => m.orgId == ctx.orgId,
+        );
+
+        if (currentMembership != null) {
+          // Política: alfabético de la misma org → alfabético de otras orgs → vacío
+          final sameOrgRoles = currentMembership.roles
+              .where((r) => !WorkspaceNormalizer.areEqual(r, role))
+              .toList();
+
+          if (sameOrgRoles.isNotEmpty) {
+            newActiveRole = WorkspaceNormalizer.findNextAlphabetic(
+              sameOrgRoles,
+            );
+            selectionRule = 'same_org_alpha';
+          } else {
+            // Buscar en otras orgs
+            final otherOrgRoles = memberships
+                .where((m) => m.orgId != ctx.orgId && m.estatus == 'activo')
+                .expand((m) => m.roles)
+                .toList();
+
+            if (otherOrgRoles.isNotEmpty) {
+              newActiveRole = WorkspaceNormalizer.findNextAlphabetic(
+                otherOrgRoles,
+              );
+              selectionRule = 'other_org_alpha';
+            }
+          }
         }
+
+        // Actualizar contexto
+        if (newActiveRole != null && newActiveRole.isNotEmpty) {
+          // Encontrar la org del nuevo rol
+          final newOrgMembership = memberships.firstWhereOrNull(
+            (m) => m.roles.any((r) => WorkspaceNormalizer.areEqual(r, newActiveRole!)),
+          );
+
+          if (newOrgMembership != null) {
+            await setActiveContext(ActiveContext(
+              orgId: newOrgMembership.orgId,
+              orgName: newOrgMembership.orgName,
+              rol: newActiveRole,
+              providerType: ctx.providerType,
+            ));
+
+            // Forzar navegación al nuevo workspace (cierra vista del eliminado)
+            // HomeRouter redirigirá automáticamente al workspace correcto
+            SchedulerBinding.instance.addPostFrameCallback((_) {
+              if (Get.currentRoute != Routes.home) {
+                Get.offAllNamed(Routes.home);
+              }
+            });
+          }
+        } else {
+          // No hay roles, limpiar
+          await setActiveContext(ctx.copyWith(rol: ''));
+          selectionRule = 'empty';
+
+          // Navegar a pantalla segura (sin workspaces)
+          SchedulerBinding.instance.addPostFrameCallback((_) {
+            Get.offAllNamed(Routes.home);
+          });
+        }
+
+        _logTelemetry('workspace_switched_auto', {
+          'from': normalized,
+          'to': newActiveRole ?? '',
+          'cause': 'deleted_active',
+          'rule': selectionRule ?? 'none',
+          'ctx': 'auth',
+        });
       }
 
       membershipsVersion.value++;
-      try {
-        Get.find<TelemetryService>().log('workspace_delete_success', {
-          'orgId': ctx.orgId,
-          'role': normalized,
-        });
-      } catch (_) {}
+
+      // Sincronizar con WorkspaceController
+      await _syncWorkspacesToController();
+
+      _logTelemetry('workspace_delete_success', {
+        'orgId': ctx.orgId,
+        'role': normalized,
+        'wasActive': wasActive,
+        'newActiveRole': newActiveRole,
+        'rule': selectionRule,
+        'latency_ms': latency,
+        'ctx': 'auth',
+      });
     } catch (e) {
-      try {
-        Get.find<TelemetryService>().log('workspace_delete_error', {
-          'orgId': ctx.orgId,
-          'role': normalized,
-          'error': e.toString(),
-        });
-      } catch (_) {}
+      _logTelemetry('workspace_delete_error', {
+        'orgId': ctx.orgId,
+        'role': normalized,
+        'error': e.toString(),
+        'ctx': 'auth',
+      });
       rethrow;
+    } finally {
+      _isRemovingWorkspace = false;
     }
   }
 

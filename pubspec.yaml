@@ -9,7 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   get: ^4.6.6
+  intl: ^0.19.0
   shared_preferences: ^2.2.3
 
   # Firebase
@@ -27,7 +30,6 @@ dependencies:
   json_annotation: ^4.9.0
 
   # Utils
-  intl: ^0.20.2
   equatable: ^2.0.5
   collection: ^1.18.0
   mobile_scanner: ^3.5.6

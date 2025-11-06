@@ -22,6 +22,7 @@ import '../components/animation/page_transitions.dart';
 import '../components/custom/loading_theme.dart';
 import '../components/material/buttons.dart';
 import '../components/material/inputs.dart';
+import '../components/material/badge.dart';
 import '../components/material/cards.dart';
 import '../components/material/navigation.dart';
 import '../components/material/surfaces.dart';
@@ -35,10 +36,11 @@ final ThemeData lightTheme = ThemeData(
   // Global icon theme
   iconTheme: AppIconTheme.normal(color: AppColorSchemes.light.onSurface),
 
-  extensions: const [
+  extensions: [
     CustomThemeExtension.light,
     AppChartTheme.light,
     NumberTypographyExtension.base,
+    AppBadgeTheme.fromScheme(AppColorSchemes.light),
   ],
 
   // Transitions & Loading

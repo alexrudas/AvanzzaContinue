@@ -26,5 +26,6 @@ abstract class UserProfileEntity with _$UserProfileEntity {
     @DateTimeTimestampConverter() DateTime? updatedAt,
   }) = _UserProfileEntity;
 
-  factory UserProfileEntity.fromJson(Map<String, dynamic> json) => _$UserProfileEntityFromJson(json);
+  factory UserProfileEntity.fromJson(Map<String, dynamic> json) =>
+      _$UserProfileEntityFromJson(json);
 }

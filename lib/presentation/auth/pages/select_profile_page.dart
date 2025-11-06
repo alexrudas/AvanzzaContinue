@@ -669,25 +669,31 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
         : null;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Perfil'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(24),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Text('Completa la información de tu perfil',
-                style: theme.textTheme.bodyMedium),
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: _onBack,
-          tooltip: 'Volver',
-        ),
-      ),
+      // appBar: AppBar(
+      //   title: const Text('Volver'), // El 'textAlign' no es necesario aquí.
+      //   centerTitle: false, // ¡Esta es la clave!
+      //   // bottom: PreferredSize(
+      //   //    ... (código comentado)
+      //   // ),
+      //   leading: IconButton(
+      //     icon: const Icon(Icons.arrow_back),
+      //     onPressed: _onBack,
+      //     tooltip: 'Volver',
+      //   ),
+      // ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const SizedBox(
+            height: 80,
+          ),
+          const Text(
+            "Selecciona el modo\ncon el que te identifiques\n",
+            style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(
+            height: 20,
+          ),
           // Tipo de usuario
           ListTile(
             title: const Text('Tipo de usuario'),

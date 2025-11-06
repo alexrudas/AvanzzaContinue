@@ -18,14 +18,18 @@ abstract class UserRepository {
   Stream<List<MembershipEntity>> watchMemberships(String uid);
   Future<List<MembershipEntity>> fetchMemberships(String uid);
 
-  Future<UserProfileEntity> getOrBootstrapProfile({required String uid, required String phone});
+  Future<UserProfileEntity> getOrBootstrapProfile(
+      {required String uid, required String phone});
   Future<void> updateUserProfile(UserProfileEntity profile);
   Future<void> cacheProfile(UserProfileEntity profile);
   Future<List<RolePermissionEntity>> loadRolePermissions(List<String> roles);
   Future<void> setActiveContext(String uid, Map<String, dynamic> activeContext);
 
   // Workspace management
-  Future<void> updateMembershipRoles(String uid, String orgId, List<String> roles);
-  Future<void> updateProviderProfile(String uid, String orgId, String providerType);
-  Future<void> removeRoleFromMembership({required String uid, required String orgId, required String role});
+  Future<void> updateMembershipRoles(
+      String uid, String orgId, List<String> roles);
+  Future<void> updateProviderProfile(
+      String uid, String orgId, String providerType);
+  Future<void> removeRoleFromMembership(
+      {required String uid, required String orgId, required String role});
 }

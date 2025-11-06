@@ -57,18 +57,47 @@ class _SelectCountryCityPageState extends State<SelectCountryCityPage> {
     } catch (_) {}
   }
 
+  // void _onBack() {
+  //   try {
+  //     Get.back();
+  //   } catch (e) {
+  //     debugPrint('[WARN] Navigation back failed: $e');
+  //   }
+  // }
+
   @override
   Widget build(BuildContext context) {
     final canContinue =
         (_countryId != null && _regionId != null && _cityId != null);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Selecciona país y ciudad')),
+      // appBar: AppBar(
+      //   title: const Text('Volver'), // El 'textAlign' no es necesario aquí.
+      //   centerTitle: false, // ¡Esta es la clave!
+      //   // bottom: PreferredSize(
+      //   //    ... (código comentado)
+      //   // ),
+      //   // leading: IconButton(
+      //   //   icon: const Icon(Icons.arrow_back),
+      //   //   onPressed: _onBack,
+      //   //   tooltip: 'Volver',
+      //   // ),
+      // ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SizedBox(
+              height: 80,
+            ),
+            const Text(
+              "Dinos dónde se encuentra tu negocio o actividad",
+              style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(
+              height: 20,
+            ),
             // País selector
             ListTile(
               contentPadding:

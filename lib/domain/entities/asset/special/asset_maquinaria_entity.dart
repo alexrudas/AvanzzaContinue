@@ -17,5 +17,6 @@ abstract class AssetMaquinariaEntity with _$AssetMaquinariaEntity {
     DateTime? updatedAt,
   }) = _AssetMaquinariaEntity;
 
-  factory AssetMaquinariaEntity.fromJson(Map<String, dynamic> json) => _$AssetMaquinariaEntityFromJson(json);
+  factory AssetMaquinariaEntity.fromJson(Map<String, dynamic> json) =>
+      _$AssetMaquinariaEntityFromJson(json);
 }

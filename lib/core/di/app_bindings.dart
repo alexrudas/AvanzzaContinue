@@ -29,8 +29,10 @@ import '../../domain/usecases/verify_mfa_uc.dart';
 import '../../domain/usecases/finalize_registration_uc.dart';
 import '../../presentation/auth/controllers/auth_controller.dart';
 import '../../presentation/auth/controllers/registration_controller.dart';
+import '../../presentation/controllers/workspace_controller.dart';
 import '../../services/telemetry/telemetry_service.dart';
 import '../startup/bootstrap.dart';
+import 'container.dart';
 
 class AppBindings extends Bindings {
   final BootstrapResult bootstrap;
@@ -110,5 +112,14 @@ class AppBindings extends Bindings {
           telemetry: Get.find(),
         ),
         permanent: true);
+
+    // Workspace controller
+    Get.put<WorkspaceController>(
+      WorkspaceController(
+        repository: DIContainer().workspaceRepository,
+        telemetry: Get.find<TelemetryService>(),
+      ),
+      permanent: true,
+    );
   }
 }

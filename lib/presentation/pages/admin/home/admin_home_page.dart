@@ -90,7 +90,7 @@ class AdminHomePage extends StatelessWidget {
       ),
       QuickAction(
         icon: Icons.groups_2_rounded,
-        label: 'Colaboradores',
+        label: 'Contactos',
         color: _DesignSystem.colors.warning,
         onTap: () {},
       ),
