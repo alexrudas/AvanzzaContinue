@@ -27,7 +27,7 @@ export 'tokens/primitives.dart';
 export 'tokens/semantic.dart';
 export 'tokens/motion.dart';
 export 'tokens/elevation.dart';
-export 'tokens/typography.dart';
+export 'tokens/typography_tokens.dart';
 
 // Foundations
 export 'foundations/typography.dart';
@@ -41,6 +41,7 @@ export 'components/material/inputs.dart';
 export 'components/material/cards.dart';
 export 'components/material/navigation.dart';
 export 'components/material/surfaces.dart';
+export 'components/material/icon_sizes_pro.dart';
 
 // Components - Chart
 export 'components/chart/chart_theme.dart';

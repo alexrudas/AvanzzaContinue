@@ -25,19 +25,26 @@ import '../components/material/inputs.dart';
 import '../components/material/cards.dart';
 import '../components/material/navigation.dart';
 import '../components/material/surfaces.dart';
+import '../components/material/icon_sizes_pro.dart';
 
 final ThemeData lightTheme = ThemeData(
   useMaterial3: true,
   colorScheme: AppColorSchemes.light,
   textTheme: AppTypography.textTheme,
+
+  // Global icon theme
+  iconTheme: AppIconTheme.normal(color: AppColorSchemes.light.onSurface),
+
   extensions: const [
     CustomThemeExtension.light,
     AppChartTheme.light,
+    NumberTypographyExtension.base,
   ],
 
   // Transitions & Loading
   pageTransitionsTheme: AppPageTransitions.theme,
-  progressIndicatorTheme: AppLoadingThemes.progressIndicator(AppColorSchemes.light),
+  progressIndicatorTheme:
+      AppLoadingThemes.progressIndicator(AppColorSchemes.light),
 
   // Buttons
   elevatedButtonTheme: AppButtonThemes.elevatedButton(AppColorSchemes.light),
@@ -54,8 +61,10 @@ final ThemeData lightTheme = ThemeData(
 
   // Navigation
   appBarTheme: AppNavigationThemes.appBar(AppColorSchemes.light),
-  bottomNavigationBarTheme: AppNavigationThemes.bottomNavigationBar(AppColorSchemes.light),
-  navigationRailTheme: AppNavigationThemes.navigationRail(AppColorSchemes.light),
+  bottomNavigationBarTheme:
+      AppNavigationThemes.bottomNavigationBar(AppColorSchemes.light),
+  navigationRailTheme:
+      AppNavigationThemes.navigationRail(AppColorSchemes.light),
   drawerTheme: AppNavigationThemes.drawer(AppColorSchemes.light),
 
   // Surfaces

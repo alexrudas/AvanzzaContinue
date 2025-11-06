@@ -19,9 +19,12 @@ final ThemeData highContrastTheme = ThemeData(
   useMaterial3: true,
   colorScheme: AppColorSchemes.highContrastLight,
   textTheme: AppTypography.highContrastTextTheme,
+  // FIX: Registro de extensiones obligatorias para high contrast.
+  // NumberTypographyExtension.base agregado para evitar fallos en KPIs y componentes numéricos.
   extensions: const [
     CustomThemeExtension.highContrast,
     AppChartTheme.highContrast,
+    NumberTypographyExtension.base, // FIX: Added for high contrast support
   ],
 
   // Transitions & Loading

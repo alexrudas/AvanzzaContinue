@@ -44,7 +44,8 @@
 // ============================================================================
 
 import 'package:flutter/material.dart';
-import '../tokens/typography.dart';
+
+import '../tokens/typography_tokens.dart';
 
 /// Tipografía de la aplicación basada en Material 3 Type Scale.
 /// NOTA: Los colores NO se definen aquí, se heredan de Theme.of(context).colorScheme.
@@ -52,7 +53,20 @@ abstract class AppTypography {
   AppTypography._();
 
   /// Familia de fuente por defecto.
-  /// TODO: Reemplazar con fuente custom del brand si se requiere (ej: 'Inter', 'Poppins').
+  ///
+  /// Roboto está incluida por defecto en Flutter y NO requiere registro en pubspec.yaml.
+  /// Si se cambia a una fuente custom (ej: 'Inter', 'Poppins'), se debe:
+  /// 1. Descargar los archivos .ttf y colocarlos en assets/fonts/
+  /// 2. Registrar en pubspec.yaml:
+  ///    flutter:
+  ///      fonts:
+  ///        - family: [NombreFuente]
+  ///          fonts:
+  ///            - asset: assets/fonts/[NombreFuente]-Regular.ttf
+  ///            - asset: assets/fonts/[NombreFuente]-Medium.ttf
+  ///              weight: 500
+  ///            - asset: assets/fonts/[NombreFuente]-Bold.ttf
+  ///              weight: 700
   static const String fontFamily = 'Roboto';
 
   /// Fallback fonts si fontFamily no está disponible (prevenir reflows).
@@ -205,7 +219,8 @@ abstract class AppTypography {
   static TextTheme get highContrastTextTheme => textTheme.copyWith(
         displayLarge: textTheme.displayLarge?.copyWith(
           fontWeight: FontWeightTokens.medium,
-          letterSpacing: LetterSpacingTokens.normal, // Eliminar tracking negativo
+          letterSpacing:
+              LetterSpacingTokens.normal, // Eliminar tracking negativo
         ),
         displayMedium: textTheme.displayMedium?.copyWith(
           fontWeight: FontWeightTokens.medium,
@@ -232,4 +247,83 @@ abstract class AppTypography {
           fontWeight: FontWeightTokens.semiBold,
         ),
       );
+
+  // ========== NUMBER TYPOGRAPHY: Estilos optimizados para números ==========
+  // Diseñados para valores monetarios, KPIs y contadores destacados.
+  // Uso recomendado:
+  //   - numberSM: badges, chips, subtotales compactos
+  //   - numberMD: totales secundarios y KPIs en cards
+  //   - numberLG: totales principales en secciones
+  //   - numberXL: valores monetarios principales ($450.000)
+  //   - numberXXL: números hero, contadores destacados
+  //   - numberXXXL: valores extremadamente destacados (dashboard, analytics)
+  //
+  // Acceso vía NumberTypographyExtension:
+  //   Theme.of(context).extension<NumberTypographyExtension>()?.numberXL
+
+  /// Número small: para badges, chips y subtotales compactos
+  static const TextStyle numberSM = TextStyle(
+    fontFamily: fontFamily,
+    fontFamilyFallback: fontFamilyFallback,
+    fontSize: 14.0,
+    fontWeight: FontWeightTokens.semiBold,
+    height: 1.2,
+    letterSpacing: -0.1,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
+
+  /// Número medium: para totales secundarios y KPIs en cards
+  static const TextStyle numberMD = TextStyle(
+    fontFamily: fontFamily,
+    fontFamilyFallback: fontFamilyFallback,
+    fontSize: 20.0,
+    fontWeight: FontWeightTokens.semiBold,
+    height: 1.2,
+    letterSpacing: -0.2,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
+
+  /// Número large: para totales principales dentro de secciones
+  static const TextStyle numberLG = TextStyle(
+    fontFamily: fontFamily,
+    fontFamilyFallback: fontFamilyFallback,
+    fontSize: 28.0,
+    fontWeight: FontWeightTokens.bold,
+    height: 1.15,
+    letterSpacing: -0.3,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
+
+  /// Número extra-large: valores monetarios destacados y KPIs importantes
+  static const TextStyle numberXL = TextStyle(
+    fontFamily: fontFamily,
+    fontFamilyFallback: fontFamilyFallback,
+    fontSize: 40.0,
+    fontWeight: FontWeightTokens.bold,
+    height: 1.2,
+    letterSpacing: -0.5,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
+
+  /// Número extra-extra-large: contadores hero y valores muy destacados
+  static const TextStyle numberXXL = TextStyle(
+    fontFamily: fontFamily,
+    fontFamilyFallback: fontFamilyFallback,
+    fontSize: 56.0,
+    fontWeight: FontWeightTokens.bold,
+    height: 1.1,
+    letterSpacing: -1.0,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
+
+  /// Número extra-extra-extra-large: dashboard analytics y métricas críticas
+  static const TextStyle numberXXXL = TextStyle(
+    fontFamily: fontFamily,
+    fontFamilyFallback: fontFamilyFallback,
+    fontSize: 72.0,
+    fontWeight: FontWeightTokens.bold,
+    height: 1.0,
+    letterSpacing: -1.5,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
 }

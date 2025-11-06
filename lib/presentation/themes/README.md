@@ -298,6 +298,7 @@ final radius = DS.radii.mdRadius;  // BorderRadius.circular(12)
 ### Ejemplo Práctico: AdminMaintenancePage
 
 **Antes:**
+
 ```dart
 import '../widgets/_design_system.dart';
 
@@ -308,6 +309,7 @@ QuickAction(
 ```
 
 **Después:**
+
 ```dart
 import '../../../themes/tokens/primitives.dart';
 import '../../../themes/tokens/semantic.dart';
@@ -520,6 +522,7 @@ IconButton
 Helpers de animación reutilizables con soporte automático para accesibilidad.
 
 **✨ Características:**
+
 - ✅ Respetan `MediaQuery.disableAnimations` automáticamente
 - ✅ Usan tokens de `DS.motion` para consistencia
 - ✅ Stateless y sin rebuilds innecesarios
@@ -626,6 +629,7 @@ final lightTheme = ThemeData(
 ```
 
 **Características:**
+
 - Brightness: light
 - Seed color: 0xFF1E88E5
 - Surface tints automáticos (M3)
@@ -644,9 +648,10 @@ final darkTheme = ThemeData(
 ```
 
 **Características:**
+
 - Brightness: dark
 - Surface tints sutiles
-- Mayor contraste en on* colors
+- Mayor contraste en on\* colors
 - Optimizado para OLED
 
 ### High Contrast Theme
@@ -662,6 +667,7 @@ final highContrastTheme = ThemeData(
 ```
 
 **Características:**
+
 - Contraste WCAG AAA
 - onPrimary/onSecondary: siempre blanco
 - Sin gradientes (colores sólidos)
@@ -716,6 +722,7 @@ AnimatedBuilder(
 ### Adaptación a otros State Managers
 
 **GetX:**
+
 ```dart
 class ThemeController extends GetxController {
   final mode = ThemeMode.system.obs;
@@ -729,6 +736,7 @@ class ThemeController extends GetxController {
 ```
 
 **Riverpod:**
+
 ```dart
 final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
   return ThemeModeNotifier();
@@ -999,6 +1007,7 @@ static const String fontFamily = 'Inter';
 ## 📝 Changelog
 
 ### v1.0.0 (2025-01-XX)
+
 - ✅ Módulo inicial completo
 - ✅ Tokens: primitives, semantic, motion, elevation, typography
 - ✅ Foundations: typography, color_schemes, design_system, theme_extensions
@@ -1027,6 +1036,7 @@ Para agregar nuevos componentes o tokens:
 🔒 **NO borrar design systems locales todavía** (migración gradual)
 
 📝 **TODOs pendientes:**
+
 - Derivar gradientes desde Dynamic Color cuando se active
 - Agregar pruebas golden con textScaler 1.0/1.2/1.4
 - Registrar fuente Roboto en pubspec.yaml (opcional)
@@ -1034,6 +1044,5 @@ Para agregar nuevos componentes o tokens:
 
 ---
 
-**Creado por:** Claude AI
 **Rama:** `refactor/themes-module`
 **Estado:** ✅ Completado y funcional

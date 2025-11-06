@@ -3,8 +3,9 @@
 // ============================================================================
 
 import 'package:flutter/material.dart';
-import '../../tokens/semantic.dart';
+
 import '../../foundations/design_system.dart';
+import '../../tokens/semantic.dart';
 
 abstract class AppButtonThemes {
   AppButtonThemes._();
@@ -15,10 +16,12 @@ abstract class AppButtonThemes {
         foregroundColor: scheme.onPrimary,
         backgroundColor: scheme.primary,
         disabledForegroundColor: scheme.onSurface.withValues(alpha: 0.38),
-        disabledBackgroundColor: StateOverlay.disabled(scheme.surface, scheme.onSurface),
+        disabledBackgroundColor:
+            StateOverlay.disabled(scheme.surface, scheme.onSurface),
         elevation: DS.elevation.value1,
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
         minimumSize: Size.square(DS.semantic.minTouchTarget),
       ),
     );
@@ -43,7 +46,8 @@ abstract class AppButtonThemes {
         disabledForegroundColor: scheme.onSurface.withValues(alpha: 0.38),
         side: BorderSide(color: scheme.outlineVariant),
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
         minimumSize: Size.square(DS.semantic.minTouchTarget),
       ),
     );
@@ -55,9 +59,11 @@ abstract class AppButtonThemes {
         foregroundColor: scheme.onPrimary,
         backgroundColor: scheme.primary,
         disabledForegroundColor: scheme.onSurface.withValues(alpha: 0.38),
-        disabledBackgroundColor: StateOverlay.disabled(scheme.surface, scheme.onSurface),
+        disabledBackgroundColor:
+            StateOverlay.disabled(scheme.surface, scheme.onSurface),
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
         minimumSize: Size.square(DS.semantic.minTouchTarget),
       ),
     );

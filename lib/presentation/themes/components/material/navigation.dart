@@ -1,6 +1,8 @@
 // components/material/navigation.dart
 import 'package:flutter/material.dart';
+
 import '../../foundations/design_system.dart';
+import 'icon_sizes_pro.dart';
 
 abstract class AppNavigationThemes {
   AppNavigationThemes._();
@@ -9,10 +11,12 @@ abstract class AppNavigationThemes {
     return AppBarTheme(
       backgroundColor: scheme.surface,
       foregroundColor: scheme.onSurface,
-      iconTheme: IconThemeData(color: scheme.onSurface),
+      iconTheme: IconThemeData(
+          color: scheme.onSurface, size: IconSizesPro.appBarAction),
       elevation: 0,
       centerTitle: false,
-      titleTextStyle: DS.typography.textTheme.titleLarge?.copyWith(color: scheme.onSurface),
+      titleTextStyle:
+          DS.typography.textTheme.titleLarge?.copyWith(color: scheme.onSurface),
     );
   }
 
@@ -29,12 +33,14 @@ abstract class AppNavigationThemes {
   static NavigationRailThemeData navigationRail(ColorScheme scheme) {
     return NavigationRailThemeData(
       backgroundColor: scheme.surface,
-      selectedIconTheme: IconThemeData(color: scheme.primary),
-      unselectedIconTheme: IconThemeData(color: scheme.onSurfaceVariant),
+      selectedIconTheme:
+          IconThemeData(color: scheme.primary, size: IconSizesPro.lg),
+      unselectedIconTheme: IconThemeData(
+          color: scheme.onSurfaceVariant, size: IconSizesPro.normal),
       selectedLabelTextStyle:
           DS.typography.textTheme.labelMedium?.copyWith(color: scheme.primary),
-      unselectedLabelTextStyle:
-          DS.typography.textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant),
+      unselectedLabelTextStyle: DS.typography.textTheme.labelMedium
+          ?.copyWith(color: scheme.onSurfaceVariant),
     );
   }
 

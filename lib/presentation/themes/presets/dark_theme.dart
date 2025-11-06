@@ -14,19 +14,26 @@ import '../components/material/inputs.dart';
 import '../components/material/cards.dart';
 import '../components/material/navigation.dart';
 import '../components/material/surfaces.dart';
+import '../components/material/icon_sizes_pro.dart';
 
 final ThemeData darkTheme = ThemeData(
   useMaterial3: true,
   colorScheme: AppColorSchemes.dark,
   textTheme: AppTypography.textTheme,
+
+  // Global icon theme
+  iconTheme: AppIconTheme.normal(color: AppColorSchemes.dark.onSurface),
+
   extensions: const [
     CustomThemeExtension.dark,
     AppChartTheme.dark,
+    NumberTypographyExtension.base,
   ],
 
   // Transitions & Loading
   pageTransitionsTheme: AppPageTransitions.theme,
-  progressIndicatorTheme: AppLoadingThemes.progressIndicator(AppColorSchemes.dark),
+  progressIndicatorTheme:
+      AppLoadingThemes.progressIndicator(AppColorSchemes.dark),
 
   elevatedButtonTheme: AppButtonThemes.elevatedButton(AppColorSchemes.dark),
   textButtonTheme: AppButtonThemes.textButton(AppColorSchemes.dark),
@@ -38,7 +45,8 @@ final ThemeData darkTheme = ThemeData(
   cardTheme: AppCardThemes.card(AppColorSchemes.dark),
 
   appBarTheme: AppNavigationThemes.appBar(AppColorSchemes.dark),
-  bottomNavigationBarTheme: AppNavigationThemes.bottomNavigationBar(AppColorSchemes.dark),
+  bottomNavigationBarTheme:
+      AppNavigationThemes.bottomNavigationBar(AppColorSchemes.dark),
   navigationRailTheme: AppNavigationThemes.navigationRail(AppColorSchemes.dark),
   drawerTheme: AppNavigationThemes.drawer(AppColorSchemes.dark),
 
