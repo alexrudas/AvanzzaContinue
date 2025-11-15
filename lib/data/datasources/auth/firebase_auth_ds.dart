@@ -146,6 +146,9 @@ class FirebaseAuthDS {
   /// - Para FirebaseAuth solo se necesita idToken
   Future<UserCredential> signInWithGoogle() async {
     try {
+      // Inicializar GoogleSignIn con serverClientId antes de usarlo
+      await _ensureGoogleInitialized();
+
       // v7.x: GoogleSignIn es singleton, no se instancia con constructor
       final googleSignIn = GoogleSignIn.instance;
 
