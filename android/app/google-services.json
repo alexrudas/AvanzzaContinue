@@ -12,7 +12,12 @@
           "package_name": "com.example.avanzza"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "778457383096-jr1jn89kdp30stdif9i8jpd0ue8j0eps.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBoo6jdlBA7UOag2OVxKG8nQEvtJYcRd4s"
