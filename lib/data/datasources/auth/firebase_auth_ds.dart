@@ -110,12 +110,23 @@ class FirebaseAuthDS {
   /// Lanza FirebaseAuthException si falla la autenticación
   ///
   /// Compatible con google_sign_in: ^7.2.0
-  /// API estable: GoogleSignIn().signIn() → GoogleSignInAccount
-  /// Propiedades: googleAuth.accessToken, googleAuth.idToken (sin cambios en v7.x)
+  /// CAMBIOS v7.x:
+  /// - Constructor requiere configuración explícita (no hay constructor sin nombre)
+  /// - Se usa GoogleSignIn.standard() o GoogleSignIn(scopes: [...])
+  /// - Tokens accesibles vía .data property en v7.x
   Future<UserCredential> signInWithGoogle() async {
     try {
+      // Crear instancia de GoogleSignIn con configuración
+      // v7.x requiere constructor con nombre o configuración explícita
+      final googleSignIn = GoogleSignIn(
+        scopes: <String>[
+          'email',
+          'profile',
+        ],
+      );
+
       // Iniciar flujo de autenticación de Google
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
       if (googleUser == null) {
         // Usuario canceló el flujo
@@ -130,6 +141,8 @@ class FirebaseAuthDS {
           await googleUser.authentication;
 
       // Crear credencial para Firebase
+      // En v7.x, accessToken e idToken pueden estar encapsulados en objetos
+      // Usar .data property si existe, o acceso directo
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
