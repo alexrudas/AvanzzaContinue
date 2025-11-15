@@ -102,7 +102,34 @@ class FirebaseAuthDS {
       forceResendingToken: null,
     );
   }
+  // ---------------------------------------------------------------------------
+  // CONFIG GOOGLE SIGN-IN (v7.x)
+  // ---------------------------------------------------------------------------
 
+  /// Web client ID (serverClientId) requerido por google_sign_in 7.x en Android
+  /// para poder emitir idToken válido que luego usa FirebaseAuth.
+  ///
+  /// Debe ser el "Client ID" que aparece en:
+  /// Firebase Console → Authentication → Método de inicio de sesión → Google →
+  /// Configuración del SDK web.
+  static const String _googleServerClientId =
+      '778457383096-jr1jn89kdp30stdif9i8jpd0ue8j0eps.apps.googleusercontent.com';
+
+  /// Flag para evitar inicializar GoogleSignIn más de una vez.
+  static bool _googleInitialized = false;
+
+  /// Inicializa GoogleSignIn.instance con la configuración correcta.
+  /// Debe llamarse ANTES de usar authenticate() o cualquier flujo con Google.
+  Future<void> _ensureGoogleInitialized() async {
+    if (_googleInitialized) return;
+
+    await GoogleSignIn.instance.initialize(
+      serverClientId: _googleServerClientId,
+      // clientId: opcional; normalmente no es necesario en Android
+    );
+
+    _googleInitialized = true;
+  }
   // ============================================================================
   // AUTENTICACIÓN FEDERADA
   // ============================================================================
