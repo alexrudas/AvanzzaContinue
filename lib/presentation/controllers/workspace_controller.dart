@@ -1,8 +1,8 @@
 // lib/presentation/controllers/workspace_controller.dart
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:collection/collection.dart';
 
 import '../../core/utils/workspace_normalizer.dart';
 import '../../domain/entities/workspace/workspace_lite_entity.dart';
@@ -128,7 +128,8 @@ class WorkspaceController extends GetxController {
       String? selectionRule;
 
       if (wasActive) {
-        final result = await selectNextActive(deletedId, source: _currentSource);
+        final result =
+            await selectNextActive(deletedId, source: _currentSource);
         newActiveId = result['newActiveId'] as String?;
         selectionRule = result['rule'] as String?;
 
@@ -194,8 +195,7 @@ class WorkspaceController extends GetxController {
 
     // Regla 1: Buscar en MRU queue (excluyendo el eliminado)
     final validMRU = mruQueue
-        .where((id) =>
-            id != deletedId && workspaces.any((w) => w.id == id))
+        .where((id) => id != deletedId && workspaces.any((w) => w.id == id))
         .toList();
 
     if (validMRU.isNotEmpty) {
@@ -369,9 +369,8 @@ class WorkspaceController extends GetxController {
       }).toList();
 
       workspaces.assignAll(liteWorkspaces);
-      activeWorkspaceId.value = activeRole != null
-          ? WorkspaceNormalizer.normalize(activeRole)
-          : '';
+      activeWorkspaceId.value =
+          activeRole != null ? WorkspaceNormalizer.normalize(activeRole) : '';
 
       _logTelemetry('workspace_synced', {
         'ctx': 'guest',
