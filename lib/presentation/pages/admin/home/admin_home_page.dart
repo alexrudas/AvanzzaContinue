@@ -9,6 +9,7 @@
 // - Responsive design avanzado
 // - Accesibilidad mejorada
 
+import 'package:avanzza/presentation/common/ensure_registered_guard.dart';
 import 'package:avanzza/presentation/widgets/floating_quick_actions_row/floating_quick_actions_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,7 +29,7 @@ class AdminHomePage extends StatelessWidget {
         systemNavigationBarColor: _DesignSystem.colors.background,
       ),
       child: FloatingQuickActions(
-        items: _buildQuickActions(),
+        items: _buildQuickActions(context),
         child: Scaffold(
           backgroundColor: _DesignSystem.colors.background,
           extendBodyBehindAppBar: true,
@@ -65,7 +66,7 @@ class AdminHomePage extends StatelessWidget {
     );
   }
 
-  List<QuickAction> _buildQuickActions() {
+  List<QuickAction> _buildQuickActions(BuildContext context) {
     return [
       QuickAction(
         icon: Icons.apartment_rounded,
@@ -74,7 +75,21 @@ class AdminHomePage extends StatelessWidget {
         showBadge: true,
         badgeCount: 6,
         badgeColor: _DesignSystem.colors.info,
-        onTap: () {},
+        onTap: () async {
+          // showBottomSheetScanner(
+          //   context,
+          //   onResult: (user, error) {
+          //     print("[user] : $user");
+          //   },
+          //   userDocument: UserDocument.cardId,
+          // );
+          final guard = EnsureRegisteredGuard();
+          await guard.run(() async {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Nuevo Activo')),
+            );
+          });
+        },
       ),
       QuickAction(
         icon: Icons.key_rounded,
