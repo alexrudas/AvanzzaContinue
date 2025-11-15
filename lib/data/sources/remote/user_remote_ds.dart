@@ -37,4 +37,13 @@ class UserRemoteDataSource {
         .map((d) => MembershipModel.fromFirestore(d.id, d.data(), db: db))
         .toList();
   }
+
+  /// Upsert membership to Firestore
+  /// Uses membership.id as document ID for consistent indexing
+  Future<void> upsertMembership(MembershipModel model) async {
+    await db
+        .collection('memberships')
+        .doc(model.id)
+        .set(model.toJson(), SetOptions(merge: true));
+  }
 }

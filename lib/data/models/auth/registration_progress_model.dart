@@ -43,6 +43,10 @@ class RegistrationProgressModel {
   List<String> resolvedRoles = []; // Ej: ['Administrador', 'Propietario']
   List<String> resolvedWorkspaces = []; // Ej: ['Administrador', 'Propietario']
 
+  // Campos para registro mejorado con autenticación federada
+  String? companyName; // Nombre de empresa (obligatorio si titularType == 'empresa')
+  String? authMethod; // Método de autenticación: 'phone', 'email-password', 'google', 'apple', 'facebook'
+
   bool termsAccepted = false;
 
   late DateTime updatedAt;

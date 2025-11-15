@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 
 import '../presentation/auth/pages/auth_welcome_page.dart';
 import '../presentation/auth/pages/email_optional_page.dart';
+import '../presentation/auth/pages/enhanced_registration_page.dart';
 import '../presentation/auth/pages/id_scan_page.dart';
 import '../presentation/auth/pages/login_username_password_page.dart';
 import '../presentation/auth/pages/mfa_otp_page.dart';
@@ -19,6 +20,7 @@ import '../presentation/auth/pages/select_profile_page.dart';
 import '../presentation/auth/pages/summary_page.dart';
 import '../presentation/auth/pages/terms_page.dart';
 import '../presentation/auth/pages/username_password_page.dart';
+import '../presentation/auth/bindings/enhanced_registration_binding.dart';
 import '../presentation/bindings/home_binding.dart';
 import '../presentation/bindings/tenant_home_binding.dart';
 import '../presentation/home/pages/home_router.dart';
@@ -47,6 +49,9 @@ class Routes {
   static const registerSummary = '/auth/register/summary';
   static const holderType = '/auth/holder-type';
   static const providerProfile = '/auth/provider/profile';
+
+  // Registro mejorado con MFA + Auth Federada
+  static const enhancedRegistration = '/auth/enhanced-registration';
 
   static const providerCoverage = '/auth/provider/coverage';
   static const providerHomeArticles = '/provider/home/articles';
@@ -90,6 +95,13 @@ class Routes {
     GetPage(name: holderType, page: () => const SelectProfilePage()),
     // Perfil proveedor unificado y alias legacy
     GetPage(name: providerProfile, page: () => const ProviderProfilePage()),
+
+    // Wizard de registro mejorado con MFA + Auth Federada
+    GetPage(
+      name: enhancedRegistration,
+      page: () => const EnhancedRegistrationPage(),
+      binding: EnhancedRegistrationBinding(),
+    ),
 
     GetPage(name: providerCoverage, page: () => const ProviderCoveragePage()),
     GetPage(
