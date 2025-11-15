@@ -48,6 +48,9 @@ class Routes {
   static const holderType = '/auth/holder-type';
   static const providerProfile = '/auth/provider/profile';
 
+  // Registro mejorado con MFA + Auth Federada
+  static const enhancedRegistration = '/auth/enhanced-registration';
+
   static const providerCoverage = '/auth/provider/coverage';
   static const providerHomeArticles = '/provider/home/articles';
   static const providerHomeServices = '/provider/home/services';

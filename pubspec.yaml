@@ -20,6 +20,11 @@ dependencies:
   firebase_auth: ^5.7.0
   cloud_firestore: ^5.4.4
 
+  # Auth Federada
+  google_sign_in: ^6.1.5
+  sign_in_with_apple: ^5.0.0
+  flutter_facebook_auth: ^6.0.3
+
   # Isar community
   isar_community: ^3.1.0+1
   isar_community_flutter_libs: ^3.1.0+1
