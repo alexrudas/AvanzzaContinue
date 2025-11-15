@@ -111,40 +111,32 @@ class FirebaseAuthDS {
   ///
   /// Compatible con google_sign_in: ^7.2.0
   /// CAMBIOS v7.x:
-  /// - Constructor requiere configuración explícita (no hay constructor sin nombre)
-  /// - Se usa GoogleSignIn.standard() o GoogleSignIn(scopes: [...])
-  /// - Tokens accesibles vía .data property en v7.x
+  /// - GoogleSignIn ahora es singleton: GoogleSignIn.instance
+  /// - signIn() reemplazado por authenticate(scopeHint: [...])
+  /// - GoogleSignInAuthentication solo expone idToken (NO accessToken)
+  /// - Para FirebaseAuth solo se necesita idToken
   Future<UserCredential> signInWithGoogle() async {
     try {
-      // Crear instancia de GoogleSignIn con configuración
-      // v7.x requiere constructor con nombre o configuración explícita
-      final googleSignIn = GoogleSignIn(
-        scopes: <String>[
+      // v7.x: GoogleSignIn es singleton, no se instancia con constructor
+      final googleSignIn = GoogleSignIn.instance;
+
+      // Iniciar flujo de autenticación interactivo de Google
+      // authenticate() reemplaza al antiguo signIn()
+      final GoogleSignInAccount googleUser = await googleSignIn.authenticate(
+        scopeHint: const <String>[
           'email',
           'profile',
         ],
       );
 
-      // Iniciar flujo de autenticación de Google
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      // Obtener token de autenticación (solo idToken en v7.x)
+      // GoogleSignInAuthentication ya NO tiene accessToken
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
-      if (googleUser == null) {
-        // Usuario canceló el flujo
-        throw FirebaseAuthException(
-          code: 'ERROR_ABORTED_BY_USER',
-          message: 'Sign in aborted by user',
-        );
-      }
-
-      // Obtener detalles de autenticación del request
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      // Crear credencial para Firebase
-      // En v7.x, accessToken e idToken pueden estar encapsulados en objetos
-      // Usar .data property si existe, o acceso directo
+      // Crear credencial para Firebase usando SOLO idToken
+      // En v7.x, accessToken ya no está disponible en GoogleSignInAuthentication
+      // Para FirebaseAuth, idToken es suficiente para autenticar
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
