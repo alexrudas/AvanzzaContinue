@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
 /// FirebaseAuthDS - Data Source para autenticación con Firebase
 ///
@@ -94,8 +94,10 @@ class FirebaseAuthDS {
         // En MFA, exigimos ingresar código explícitamente
       },
       verificationFailed: (FirebaseAuthException e) => onFailed(e),
-      codeSent: (String verificationId, int? forceResendingToken) => onCodeSent(verificationId),
-      codeAutoRetrievalTimeout: (String verificationId) => onCodeTimeout(verificationId),
+      codeSent: (String verificationId, int? forceResendingToken) =>
+          onCodeSent(verificationId),
+      codeAutoRetrievalTimeout: (String verificationId) =>
+          onCodeTimeout(verificationId),
       timeout: const Duration(seconds: 60),
       forceResendingToken: null,
     );
@@ -239,7 +241,8 @@ class FirebaseAuthDS {
 
     // También cerrar sesión de proveedores federados
     try {
-      await GoogleSignIn().signOut();
+      final googleSignIn = GoogleSignIn.instance;
+      await googleSignIn.signOut();
     } catch (_) {}
 
     try {

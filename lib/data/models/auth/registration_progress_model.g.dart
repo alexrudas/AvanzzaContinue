@@ -33,123 +33,133 @@ const RegistrationProgressModelSchema = CollectionSchema(
       name: r'assetTypeIds',
       type: IsarType.stringList,
     ),
-    r'barcodeRaw': PropertySchema(
+    r'authMethod': PropertySchema(
       id: 3,
+      name: r'authMethod',
+      type: IsarType.string,
+    ),
+    r'barcodeRaw': PropertySchema(
+      id: 4,
       name: r'barcodeRaw',
       type: IsarType.string,
     ),
     r'businessCategoryId': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'businessCategoryId',
       type: IsarType.string,
     ),
     r'categories': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'categories',
       type: IsarType.stringList,
     ),
     r'cityId': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'cityId',
       type: IsarType.string,
     ),
+    r'companyName': PropertySchema(
+      id: 8,
+      name: r'companyName',
+      type: IsarType.string,
+    ),
     r'countryId': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'countryId',
       type: IsarType.string,
     ),
     r'coverageCities': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'coverageCities',
       type: IsarType.stringList,
     ),
     r'docNumber': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'docNumber',
       type: IsarType.string,
     ),
     r'docType': PropertySchema(
-      id: 10,
+      id: 12,
       name: r'docType',
       type: IsarType.string,
     ),
     r'email': PropertySchema(
-      id: 11,
+      id: 13,
       name: r'email',
       type: IsarType.string,
     ),
     r'id': PropertySchema(
-      id: 12,
+      id: 14,
       name: r'id',
       type: IsarType.string,
     ),
     r'offeringLineIds': PropertySchema(
-      id: 13,
+      id: 15,
       name: r'offeringLineIds',
       type: IsarType.stringList,
     ),
     r'ownerFollowUp': PropertySchema(
-      id: 14,
+      id: 16,
       name: r'ownerFollowUp',
       type: IsarType.string,
     ),
     r'passwordSet': PropertySchema(
-      id: 15,
+      id: 17,
       name: r'passwordSet',
       type: IsarType.bool,
     ),
     r'phone': PropertySchema(
-      id: 16,
+      id: 18,
       name: r'phone',
       type: IsarType.string,
     ),
     r'providerType': PropertySchema(
-      id: 17,
+      id: 19,
       name: r'providerType',
       type: IsarType.string,
     ),
     r'regionId': PropertySchema(
-      id: 18,
+      id: 20,
       name: r'regionId',
       type: IsarType.string,
     ),
     r'resolvedRoles': PropertySchema(
-      id: 19,
+      id: 21,
       name: r'resolvedRoles',
       type: IsarType.stringList,
     ),
     r'resolvedWorkspaces': PropertySchema(
-      id: 20,
+      id: 22,
       name: r'resolvedWorkspaces',
       type: IsarType.stringList,
     ),
     r'selectedRole': PropertySchema(
-      id: 21,
+      id: 23,
       name: r'selectedRole',
       type: IsarType.string,
     ),
     r'step': PropertySchema(
-      id: 22,
+      id: 24,
       name: r'step',
       type: IsarType.long,
     ),
     r'termsAccepted': PropertySchema(
-      id: 23,
+      id: 25,
       name: r'termsAccepted',
       type: IsarType.bool,
     ),
     r'titularType': PropertySchema(
-      id: 24,
+      id: 26,
       name: r'titularType',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 25,
+      id: 27,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'username': PropertySchema(
-      id: 26,
+      id: 28,
       name: r'username',
       type: IsarType.string,
     )
@@ -209,6 +219,12 @@ int _registrationProgressModelEstimateSize(
     }
   }
   {
+    final value = object.authMethod;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.barcodeRaw;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -229,6 +245,12 @@ int _registrationProgressModelEstimateSize(
   }
   {
     final value = object.cityId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.companyName;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -340,30 +362,32 @@ void _registrationProgressModelSerialize(
   writer.writeString(offsets[0], object.adminFollowUp);
   writer.writeStringList(offsets[1], object.assetSegmentIds);
   writer.writeStringList(offsets[2], object.assetTypeIds);
-  writer.writeString(offsets[3], object.barcodeRaw);
-  writer.writeString(offsets[4], object.businessCategoryId);
-  writer.writeStringList(offsets[5], object.categories);
-  writer.writeString(offsets[6], object.cityId);
-  writer.writeString(offsets[7], object.countryId);
-  writer.writeStringList(offsets[8], object.coverageCities);
-  writer.writeString(offsets[9], object.docNumber);
-  writer.writeString(offsets[10], object.docType);
-  writer.writeString(offsets[11], object.email);
-  writer.writeString(offsets[12], object.id);
-  writer.writeStringList(offsets[13], object.offeringLineIds);
-  writer.writeString(offsets[14], object.ownerFollowUp);
-  writer.writeBool(offsets[15], object.passwordSet);
-  writer.writeString(offsets[16], object.phone);
-  writer.writeString(offsets[17], object.providerType);
-  writer.writeString(offsets[18], object.regionId);
-  writer.writeStringList(offsets[19], object.resolvedRoles);
-  writer.writeStringList(offsets[20], object.resolvedWorkspaces);
-  writer.writeString(offsets[21], object.selectedRole);
-  writer.writeLong(offsets[22], object.step);
-  writer.writeBool(offsets[23], object.termsAccepted);
-  writer.writeString(offsets[24], object.titularType);
-  writer.writeDateTime(offsets[25], object.updatedAt);
-  writer.writeString(offsets[26], object.username);
+  writer.writeString(offsets[3], object.authMethod);
+  writer.writeString(offsets[4], object.barcodeRaw);
+  writer.writeString(offsets[5], object.businessCategoryId);
+  writer.writeStringList(offsets[6], object.categories);
+  writer.writeString(offsets[7], object.cityId);
+  writer.writeString(offsets[8], object.companyName);
+  writer.writeString(offsets[9], object.countryId);
+  writer.writeStringList(offsets[10], object.coverageCities);
+  writer.writeString(offsets[11], object.docNumber);
+  writer.writeString(offsets[12], object.docType);
+  writer.writeString(offsets[13], object.email);
+  writer.writeString(offsets[14], object.id);
+  writer.writeStringList(offsets[15], object.offeringLineIds);
+  writer.writeString(offsets[16], object.ownerFollowUp);
+  writer.writeBool(offsets[17], object.passwordSet);
+  writer.writeString(offsets[18], object.phone);
+  writer.writeString(offsets[19], object.providerType);
+  writer.writeString(offsets[20], object.regionId);
+  writer.writeStringList(offsets[21], object.resolvedRoles);
+  writer.writeStringList(offsets[22], object.resolvedWorkspaces);
+  writer.writeString(offsets[23], object.selectedRole);
+  writer.writeLong(offsets[24], object.step);
+  writer.writeBool(offsets[25], object.termsAccepted);
+  writer.writeString(offsets[26], object.titularType);
+  writer.writeDateTime(offsets[27], object.updatedAt);
+  writer.writeString(offsets[28], object.username);
 }
 
 RegistrationProgressModel _registrationProgressModelDeserialize(
@@ -376,31 +400,33 @@ RegistrationProgressModel _registrationProgressModelDeserialize(
   object.adminFollowUp = reader.readStringOrNull(offsets[0]);
   object.assetSegmentIds = reader.readStringList(offsets[1]) ?? [];
   object.assetTypeIds = reader.readStringList(offsets[2]) ?? [];
-  object.barcodeRaw = reader.readStringOrNull(offsets[3]);
-  object.businessCategoryId = reader.readStringOrNull(offsets[4]);
-  object.categories = reader.readStringList(offsets[5]) ?? [];
-  object.cityId = reader.readStringOrNull(offsets[6]);
-  object.countryId = reader.readStringOrNull(offsets[7]);
-  object.coverageCities = reader.readStringList(offsets[8]) ?? [];
-  object.docNumber = reader.readStringOrNull(offsets[9]);
-  object.docType = reader.readStringOrNull(offsets[10]);
-  object.email = reader.readStringOrNull(offsets[11]);
-  object.id = reader.readString(offsets[12]);
+  object.authMethod = reader.readStringOrNull(offsets[3]);
+  object.barcodeRaw = reader.readStringOrNull(offsets[4]);
+  object.businessCategoryId = reader.readStringOrNull(offsets[5]);
+  object.categories = reader.readStringList(offsets[6]) ?? [];
+  object.cityId = reader.readStringOrNull(offsets[7]);
+  object.companyName = reader.readStringOrNull(offsets[8]);
+  object.countryId = reader.readStringOrNull(offsets[9]);
+  object.coverageCities = reader.readStringList(offsets[10]) ?? [];
+  object.docNumber = reader.readStringOrNull(offsets[11]);
+  object.docType = reader.readStringOrNull(offsets[12]);
+  object.email = reader.readStringOrNull(offsets[13]);
+  object.id = reader.readString(offsets[14]);
   object.isarId = id;
-  object.offeringLineIds = reader.readStringList(offsets[13]) ?? [];
-  object.ownerFollowUp = reader.readStringOrNull(offsets[14]);
-  object.passwordSet = reader.readBool(offsets[15]);
-  object.phone = reader.readStringOrNull(offsets[16]);
-  object.providerType = reader.readStringOrNull(offsets[17]);
-  object.regionId = reader.readStringOrNull(offsets[18]);
-  object.resolvedRoles = reader.readStringList(offsets[19]) ?? [];
-  object.resolvedWorkspaces = reader.readStringList(offsets[20]) ?? [];
-  object.selectedRole = reader.readStringOrNull(offsets[21]);
-  object.step = reader.readLong(offsets[22]);
-  object.termsAccepted = reader.readBool(offsets[23]);
-  object.titularType = reader.readStringOrNull(offsets[24]);
-  object.updatedAt = reader.readDateTime(offsets[25]);
-  object.username = reader.readStringOrNull(offsets[26]);
+  object.offeringLineIds = reader.readStringList(offsets[15]) ?? [];
+  object.ownerFollowUp = reader.readStringOrNull(offsets[16]);
+  object.passwordSet = reader.readBool(offsets[17]);
+  object.phone = reader.readStringOrNull(offsets[18]);
+  object.providerType = reader.readStringOrNull(offsets[19]);
+  object.regionId = reader.readStringOrNull(offsets[20]);
+  object.resolvedRoles = reader.readStringList(offsets[21]) ?? [];
+  object.resolvedWorkspaces = reader.readStringList(offsets[22]) ?? [];
+  object.selectedRole = reader.readStringOrNull(offsets[23]);
+  object.step = reader.readLong(offsets[24]);
+  object.termsAccepted = reader.readBool(offsets[25]);
+  object.titularType = reader.readStringOrNull(offsets[26]);
+  object.updatedAt = reader.readDateTime(offsets[27]);
+  object.username = reader.readStringOrNull(offsets[28]);
   return object;
 }
 
@@ -422,48 +448,52 @@ P _registrationProgressModelDeserializeProp<P>(
     case 4:
       return (reader.readStringOrNull(offset)) as P;
     case 5:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 6:
       return (reader.readStringOrNull(offset)) as P;
+    case 6:
+      return (reader.readStringList(offset) ?? []) as P;
     case 7:
       return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 9:
       return (reader.readStringOrNull(offset)) as P;
     case 10:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 11:
       return (reader.readStringOrNull(offset)) as P;
     case 12:
-      return (reader.readString(offset)) as P;
-    case 13:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 14:
       return (reader.readStringOrNull(offset)) as P;
+    case 13:
+      return (reader.readStringOrNull(offset)) as P;
+    case 14:
+      return (reader.readString(offset)) as P;
     case 15:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 16:
       return (reader.readStringOrNull(offset)) as P;
     case 17:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 18:
       return (reader.readStringOrNull(offset)) as P;
     case 19:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 20:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 21:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 22:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 23:
-      return (reader.readBool(offset)) as P;
-    case 24:
       return (reader.readStringOrNull(offset)) as P;
+    case 24:
+      return (reader.readLong(offset)) as P;
     case 25:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 26:
+      return (reader.readStringOrNull(offset)) as P;
+    case 27:
+      return (reader.readDateTime(offset)) as P;
+    case 28:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1281,6 +1311,162 @@ extension RegistrationProgressModelQueryFilter on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> authMethodIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'authMethod',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> authMethodIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'authMethod',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> authMethodEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'authMethod',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> authMethodGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'authMethod',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> authMethodLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'authMethod',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> authMethodBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'authMethod',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> authMethodStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'authMethod',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> authMethodEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'authMethod',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      authMethodContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'authMethod',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      authMethodMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'authMethod',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> authMethodIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'authMethod',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> authMethodIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'authMethod',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
       QAfterFilterCondition> barcodeRawIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1970,6 +2156,162 @@ extension RegistrationProgressModelQueryFilter on QueryBuilder<
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'cityId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> companyNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'companyName',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> companyNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'companyName',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> companyNameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'companyName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> companyNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'companyName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> companyNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'companyName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> companyNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'companyName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> companyNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'companyName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> companyNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'companyName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      companyNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'companyName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      companyNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'companyName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> companyNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'companyName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> companyNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'companyName',
         value: '',
       ));
     });
@@ -4972,6 +5314,20 @@ extension RegistrationProgressModelQuerySortBy on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByAuthMethod() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'authMethod', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByAuthMethodDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'authMethod', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
       QAfterSortBy> sortByBarcodeRaw() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'barcodeRaw', Sort.asc);
@@ -5010,6 +5366,20 @@ extension RegistrationProgressModelQuerySortBy on QueryBuilder<
       QAfterSortBy> sortByCityIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cityId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByCompanyName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'companyName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByCompanyNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'companyName', Sort.desc);
     });
   }
 
@@ -5255,6 +5625,20 @@ extension RegistrationProgressModelQuerySortThenBy on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByAuthMethod() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'authMethod', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByAuthMethodDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'authMethod', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
       QAfterSortBy> thenByBarcodeRaw() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'barcodeRaw', Sort.asc);
@@ -5293,6 +5677,20 @@ extension RegistrationProgressModelQuerySortThenBy on QueryBuilder<
       QAfterSortBy> thenByCityIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cityId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByCompanyName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'companyName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByCompanyNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'companyName', Sort.desc);
     });
   }
 
@@ -5560,6 +5958,13 @@ extension RegistrationProgressModelQueryWhereDistinct on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
+      distinctByAuthMethod({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'authMethod', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
       distinctByBarcodeRaw({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'barcodeRaw', caseSensitive: caseSensitive);
@@ -5585,6 +5990,13 @@ extension RegistrationProgressModelQueryWhereDistinct on QueryBuilder<
       distinctByCityId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'cityId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
+      distinctByCompanyName({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'companyName', caseSensitive: caseSensitive);
     });
   }
 
@@ -5761,6 +6173,13 @@ extension RegistrationProgressModelQueryProperty on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, String?, QQueryOperations>
+      authMethodProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'authMethod');
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, String?, QQueryOperations>
       barcodeRawProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'barcodeRaw');
@@ -5785,6 +6204,13 @@ extension RegistrationProgressModelQueryProperty on QueryBuilder<
       cityIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'cityId');
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, String?, QQueryOperations>
+      companyNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'companyName');
     });
   }
 
