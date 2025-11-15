@@ -17,6 +17,7 @@ abstract class UserRepository {
   // Memberships
   Stream<List<MembershipEntity>> watchMemberships(String uid);
   Future<List<MembershipEntity>> fetchMemberships(String uid);
+  Future<void> upsertMembership(MembershipEntity membership);
 
   Future<UserProfileEntity> getOrBootstrapProfile(
       {required String uid, required String phone});

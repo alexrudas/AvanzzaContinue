@@ -154,6 +154,25 @@ class UserRepositoryImpl implements UserRepository {
     }
   }
 
+  /// Upsert membership (write-through: local + remote con fallback a sync queue)
+  @override
+  Future<void> upsertMembership(MembershipEntity membership) async {
+    final now = DateTime.now().toUtc();
+    final m = MembershipModel.fromEntity(
+      membership.copyWith(updatedAt: membership.updatedAt ?? now),
+    );
+
+    // Local optimistic update
+    await local.upsertMembership(m);
+
+    // Remote sync with fallback to queue
+    try {
+      await remote.upsertMembership(m);
+    } catch (_) {
+      DIContainer().syncService.enqueue(() => remote.upsertMembership(m));
+    }
+  }
+
   @override
   Future<UserProfileEntity> getOrBootstrapProfile(
       {required String uid, required String phone}) async {
