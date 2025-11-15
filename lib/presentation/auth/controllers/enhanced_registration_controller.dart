@@ -535,26 +535,35 @@ class EnhancedRegistrationController extends GetxController {
       errorMessage.value = '';
 
       // Usar el scanner oficial del proyecto
-      final result = await showBottomSheetScanner(context);
+      await showBottomSheetScanner(
+        context,
+        onResult: (result, error) async {
+          if (result != null) {
+            scannedDocument.value = result;
+            documentScanCompleted.value = true;
 
-      if (result != null) {
-        scannedDocument.value = result;
-        documentScanCompleted.value = true;
+            // Guardar en progress
+            await registrationController.setIdentity(
+              docType:
+                  result.userDocument == UserDocument.cardId ? 'CC' : 'other',
+              docNumber: result.numeroDocumento ?? '',
+              barcodeRaw: result.fullDecode ?? '',
+            );
 
-        // Guardar en progress
-        await registrationController.setIdentity(
-          docType: result.userDocument == UserDocument.cardId ? 'CC' : 'other',
-          docNumber: result.numeroDocumento ?? '',
-          barcodeRaw: result.fullDecode ?? '',
-        );
-
-        Get.snackbar(
-          'Documento escaneado',
-          'Verifica que los datos sean correctos',
-          backgroundColor: Colors.green.shade100,
-          colorText: Colors.green.shade900,
-        );
-      }
+            Get.snackbar(
+              'Documento escaneado',
+              'Verifica que los datos sean correctos',
+              backgroundColor: Colors.green.shade100,
+              colorText: Colors.green.shade900,
+            );
+          } else {
+            if (error != null) {
+              errorMessage.value =
+                  'Error al escanear documento: ${error.toString()}';
+            }
+          }
+        },
+      );
     } catch (e) {
       errorMessage.value = 'Error al escanear documento: ${e.toString()}';
     } finally {
@@ -640,8 +649,8 @@ class EnhancedRegistrationController extends GetxController {
       final scannedDoc = scannedDocument.value;
 
       final userName = scannedDoc?.nombreCompleto.trim() ??
-                       currentUser.displayName ??
-                       email.value.split('@').first;
+          currentUser.displayName ??
+          email.value.split('@').first;
 
       final userEntity = UserEntity(
         uid: uid,

@@ -77,7 +77,7 @@ Future<T?> showBottomSheetWidget<T>(
 
 showBottomSheetScanner(
   BuildContext context, {
-  required UserDocument userDocument,
+  UserDocument userDocument = UserDocument.cardId,
   required void Function(ScannerDocumentModel? user, String? error) onResult,
 }) {
   showBottomSheetWidget(
