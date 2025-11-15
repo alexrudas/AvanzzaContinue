@@ -3,6 +3,13 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
+/// FirebaseAuthDS - Data Source para autenticación con Firebase
+///
+/// Versiones de paquetes soportadas:
+/// - google_sign_in: ^7.2.0
+/// - sign_in_with_apple: ^7.0.1
+/// - flutter_facebook_auth: ^7.1.2
+/// - firebase_auth: (latest compatible)
 class FirebaseAuthDS {
   final FirebaseAuth _auth;
 
@@ -101,6 +108,10 @@ class FirebaseAuthDS {
   /// Autenticación con Google Sign-In
   /// Retorna UserCredential con el usuario autenticado
   /// Lanza FirebaseAuthException si falla la autenticación
+  ///
+  /// Compatible con google_sign_in: ^7.2.0
+  /// API estable: GoogleSignIn().signIn() → GoogleSignInAccount
+  /// Propiedades: googleAuth.accessToken, googleAuth.idToken (sin cambios en v7.x)
   Future<UserCredential> signInWithGoogle() async {
     try {
       // Iniciar flujo de autenticación de Google
@@ -138,6 +149,11 @@ class FirebaseAuthDS {
   /// Autenticación con Apple Sign-In
   /// Solo disponible en iOS 13+ y macOS 10.15+
   /// Retorna UserCredential con el usuario autenticado
+  ///
+  /// Compatible con sign_in_with_apple: ^7.0.1
+  /// API: SignInWithApple.getAppleIDCredential() → AuthorizationCredentialAppleID
+  /// Scopes: AppleIDAuthorizationScopes.email, .fullName (enum estable en v7.x)
+  /// Credencial: identityToken (idToken), authorizationCode (accessToken)
   Future<UserCredential> signInWithApple() async {
     try {
       // Solicitar credencial de Apple
@@ -149,6 +165,7 @@ class FirebaseAuthDS {
       );
 
       // Crear credencial de OAuth para Firebase
+      // OAuthProvider("apple.com") es la API de Firebase (no del plugin)
       final oauthCredential = OAuthProvider("apple.com").credential(
         idToken: appleCredential.identityToken,
         accessToken: appleCredential.authorizationCode,
@@ -168,6 +185,8 @@ class FirebaseAuthDS {
   /// Autenticación con Facebook
   /// Requiere configuración de Facebook App ID en Firebase Console
   /// Retorna UserCredential con el usuario autenticado
+  ///
+  /// IMPORTANTE (v7.1.2+): AccessToken.token fue renombrado a AccessToken.tokenString
   Future<UserCredential> signInWithFacebook() async {
     try {
       // Iniciar flujo de login de Facebook
@@ -191,8 +210,9 @@ class FirebaseAuthDS {
       }
 
       // Crear credencial de Facebook para Firebase
+      // CAMBIO v7.x: .token → .tokenString
       final OAuthCredential credential =
-          FacebookAuthProvider.credential(result.accessToken!.token);
+          FacebookAuthProvider.credential(result.accessToken!.tokenString);
 
       // Autenticar con Firebase
       return await _auth.signInWithCredential(credential);
