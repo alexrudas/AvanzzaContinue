@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/di/container.dart';
+import '../../../data/datasources/auth/firebase_auth_ds.dart';
 import '../../../domain/entities/org/organization_entity.dart';
 import '../../../domain/entities/user/active_context.dart';
 import '../../../domain/entities/user/membership_entity.dart';
@@ -259,7 +260,7 @@ class EnhancedRegistrationController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
 
-      final firebaseAuthDS = DIContainer().firebaseAuthDS;
+      final firebaseAuthDS = Get.find<FirebaseAuthDS>();
 
       // Crear alias email (username@avanzza.local)
       final username = email.value.split('@').first;
@@ -301,7 +302,7 @@ class EnhancedRegistrationController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
 
-      final firebaseAuthDS = DIContainer().firebaseAuthDS;
+      final firebaseAuthDS = Get.find<FirebaseAuthDS>();
       final userCredential = await firebaseAuthDS.signInWithGoogle();
 
       selectedAuthMethod.value = 'google';
@@ -343,7 +344,7 @@ class EnhancedRegistrationController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
 
-      final firebaseAuthDS = DIContainer().firebaseAuthDS;
+      final firebaseAuthDS = Get.find<FirebaseAuthDS>();
       final userCredential = await firebaseAuthDS.signInWithApple();
 
       selectedAuthMethod.value = 'apple';
@@ -381,7 +382,7 @@ class EnhancedRegistrationController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
 
-      final firebaseAuthDS = DIContainer().firebaseAuthDS;
+      final firebaseAuthDS = Get.find<FirebaseAuthDS>();
       final userCredential = await firebaseAuthDS.signInWithFacebook();
 
       selectedAuthMethod.value = 'facebook';
@@ -428,7 +429,7 @@ class EnhancedRegistrationController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
 
-      final firebaseAuthDS = DIContainer().firebaseAuthDS;
+      final firebaseAuthDS = Get.find<FirebaseAuthDS>();
 
       await firebaseAuthDS.sendOtp(
         phoneNumber: phoneNumber.value,
@@ -479,7 +480,7 @@ class EnhancedRegistrationController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
 
-      final firebaseAuthDS = DIContainer().firebaseAuthDS;
+      final firebaseAuthDS = Get.find<FirebaseAuthDS>();
 
       await firebaseAuthDS.verifyOtp(
         verificationId: _verificationId!,
@@ -664,11 +665,16 @@ class EnhancedRegistrationController extends GetxController {
       final roles = [selectedRole];
 
       final membership = MembershipEntity(
-        uid: uid,
+        userId: uid,
         orgId: orgId,
         orgName: orgName,
         roles: roles,
         estatus: 'activo',
+        primaryLocation: {
+          'countryId': countryId.value,
+          if (regionId.value.isNotEmpty) 'regionId': regionId.value,
+          'cityId': cityId.value,
+        },
         createdAt: DateTime.now().toUtc(),
         updatedAt: DateTime.now().toUtc(),
       );
