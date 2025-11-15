@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controllers/enhanced_registration_controller.dart';
+import '../widgets/auth_method_selection_step.dart';
+import '../widgets/phone_mfa_step.dart';
+import '../widgets/id_scan_step.dart';
+import '../widgets/location_company_terms_step.dart';
 
 /// EnhancedRegistrationPage - Wizard de registro mejorado UI PRO 2025
 ///
@@ -213,34 +217,7 @@ class EnhancedRegistrationPage extends StatelessWidget {
     BuildContext context,
     EnhancedRegistrationController controller,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          '¿Cómo quieres registrarte?',
-          style: Theme.of(context).textTheme.headlineSmall,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Elige tu método de autenticación preferido',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 32),
-
-        // TODO (Fase 3): Reemplazar con FederatedAuthButtons widget
-        const Center(
-          child: Text(
-            '🚧 Botones de auth federada\n(Se implementarán en Fase 3)',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
-          ),
-        ),
-      ],
-    );
+    return const AuthMethodSelectionStep();
   }
 
   /// STEP 1: MFA con teléfono (obligatorio)
@@ -248,34 +225,7 @@ class EnhancedRegistrationPage extends StatelessWidget {
     BuildContext context,
     EnhancedRegistrationController controller,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Verifica tu número de teléfono',
-          style: Theme.of(context).textTheme.headlineSmall,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Es obligatorio para proteger tu cuenta',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 32),
-
-        // TODO (Fase 3): Reemplazar con PhoneMfaStep widget
-        const Center(
-          child: Text(
-            '🚧 Formulario de MFA\n(Se implementará en Fase 3)',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
-          ),
-        ),
-      ],
-    );
+    return const PhoneMfaStep();
   }
 
   /// STEP 2: Escaneo de documento
@@ -283,34 +233,7 @@ class EnhancedRegistrationPage extends StatelessWidget {
     BuildContext context,
     EnhancedRegistrationController controller,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Escanea tu documento',
-          style: Theme.of(context).textTheme.headlineSmall,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Verifica tu identidad escaneando tu cédula',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 32),
-
-        // TODO (Fase 3): Reemplazar con IdScanStep widget
-        const Center(
-          child: Text(
-            '🚧 Scanner de documentos\n(Se implementará en Fase 3)',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
-          ),
-        ),
-      ],
-    );
+    return const IdScanStep();
   }
 
   /// STEP 3: Ubicación + empresa + términos
@@ -318,34 +241,7 @@ class EnhancedRegistrationPage extends StatelessWidget {
     BuildContext context,
     EnhancedRegistrationController controller,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Últimos detalles',
-          style: Theme.of(context).textTheme.headlineSmall,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Confirma tu ubicación y acepta los términos',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 32),
-
-        // TODO (Fase 3): Reemplazar con LocationCompanyTermsStep widget
-        const Center(
-          child: Text(
-            '🚧 Formulario de ubicación y términos\n(Se implementará en Fase 3)',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
-          ),
-        ),
-      ],
-    );
+    return const LocationCompanyTermsStep();
   }
 
   /// Botones de navegación (Anterior / Siguiente)
