@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "778457383096-ptbn1t33lttvdrtoa8o4hpqsm2pvnost.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.avanzza",
+            "certificate_hash": "d35723211dc0f503dc9be154677c9e80554a4606"
+          }
+        },
+        {
           "client_id": "778457383096-jr1jn89kdp30stdif9i8jpd0ue8j0eps.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -25,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "778457383096-jr1jn89kdp30stdif9i8jpd0ue8j0eps.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "778457383096-lp38faj71i52k7q6aenjrrmkqrunp3gm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.avanzza"
+              }
+            }
+          ]
         }
       }
     }
