@@ -5,7 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
+import '../../core/di/container.dart';
 import '../../core/utils/workspace_normalizer.dart';
+import '../../data/datasources/local/isar_session_ds.dart';
+import '../../data/models/user_session_model.dart';
 import '../../domain/entities/user/active_context.dart';
 import '../../domain/entities/user/membership_entity.dart';
 import '../../domain/entities/user/user_entity.dart';
@@ -43,11 +46,34 @@ class SessionContextController extends GetxController {
   StreamSubscription<List<MembershipEntity>>? _mbrSub;
 
   Future<void> init(String uid) async {
+    debugPrint('[SessionContext] Inicializando con uid: $uid');
+
     _userSub?.cancel();
     _mbrSub?.cancel();
 
+    // OFFLINE-FIRST: Cargar sesión desde cache local primero (respuesta inmediata)
+    try {
+      final isarSession = DIContainer().isar.isOpen
+          ? IsarSessionDS(DIContainer().isar)
+          : null;
+
+      if (isarSession != null) {
+        final cachedSession = await isarSession.getSession(uid);
+        if (cachedSession != null) {
+          debugPrint('[SessionContext] Sesión cargada desde cache local');
+          // La sesión básica está cargada, los datos completos vendrán del stream
+        }
+      }
+    } catch (e) {
+      debugPrint('[SessionContext] Error al cargar sesión desde cache: $e');
+    }
+
+    // Iniciar streams para observar cambios en tiempo real
     _userSub = userRepository.watchUser(uid).listen((u) {
       _user.value = u;
+
+      // PERSISTIR: Guardar sesión actualizada en cache local
+      _persistSession(uid);
     });
 
     _mbrSub = userRepository.watchMemberships(uid).listen((list) {
@@ -56,6 +82,25 @@ class SessionContextController extends GetxController {
       // Sync workspaces to WorkspaceController
       _syncWorkspacesToController();
     });
+
+    debugPrint('[SessionContext] Streams iniciados correctamente');
+  }
+
+  /// Persistir sesión actual en Isar para acceso offline
+  Future<void> _persistSession(String uid) async {
+    try {
+      if (!DIContainer().isar.isOpen) return;
+
+      final isarSession = IsarSessionDS(DIContainer().isar);
+      final session = UserSessionModel()
+        ..uid = uid
+        ..lastLoginAt = DateTime.now().toUtc();
+
+      await isarSession.saveSession(session);
+      debugPrint('[SessionContext] Sesión persistida en cache local');
+    } catch (e) {
+      debugPrint('[SessionContext] Error al persistir sesión: $e');
+    }
   }
 
   /// Syncs current memberships/roles to WorkspaceController

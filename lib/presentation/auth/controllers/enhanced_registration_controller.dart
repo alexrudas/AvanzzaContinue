@@ -704,6 +704,22 @@ class EnhancedRegistrationController extends GetxController {
       await sessionController.setActiveContext(activeContext);
 
       // ========================================================================
+      // 4.1. INICIALIZAR SESSION CONTROLLER (CRÍTICO)
+      // ========================================================================
+
+      // CRITICAL: Inicializar SessionController para que observe el usuario recién creado
+      debugPrint(
+          '[EnhancedRegistration] Inicializando SessionController con uid: $uid');
+      try {
+        await sessionController.init(uid);
+        debugPrint('[EnhancedRegistration] SessionController inicializado');
+      } catch (e) {
+        debugPrint(
+            '[EnhancedRegistration] Error al inicializar SessionController: $e');
+        // Continuar de todos modos - el usuario está creado
+      }
+
+      // ========================================================================
       // 5. LIMPIAR REGISTRATION PROGRESS (MUY IMPORTANTE)
       // ========================================================================
 

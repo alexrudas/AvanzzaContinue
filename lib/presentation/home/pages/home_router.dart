@@ -1,5 +1,6 @@
 // lib/presentation/home/pages/home_router.dart
 import 'package:avanzza/presentation/auth/controllers/registration_controller.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -32,6 +33,27 @@ class HomeRouter extends StatelessWidget {
 
   Future<void> _route() async {
     final session = Get.find<SessionContextController>();
+    final firebaseAuth = FirebaseAuth.instance;
+    final currentUser = firebaseAuth.currentUser;
+
+    // CRITICAL: Verificar si hay usuario autenticado en Firebase pero no cargado en SessionController
+    if (currentUser != null && session.user == null) {
+      debugPrint(
+          '[HomeRouter] Usuario autenticado en Firebase (${currentUser.uid}) pero no cargado en SessionController. Inicializando...');
+
+      try {
+        // Inicializar SessionController con el usuario actual de Firebase
+        await session.init(currentUser.uid);
+
+        // Esperar un momento para que los streams se establezcan
+        await Future.delayed(const Duration(milliseconds: 300));
+
+        debugPrint('[HomeRouter] SessionController inicializado correctamente');
+      } catch (e) {
+        debugPrint('[HomeRouter] Error al inicializar SessionController: $e');
+        // Si falla la inicialización, continuar con el flujo normal
+      }
+    }
 
     // 1) Con sesión activa y activeContext → enrutar por rol
     final ctx = session.user?.activeContext;
@@ -110,8 +132,13 @@ class HomeRouter extends StatelessWidget {
       }
     } catch (_) {}
 
-    // 3) Si no hay rol de exploración, iniciar onboarding
+    // 3) Si no hay rol de exploración y no hay usuario autenticado, iniciar onboarding
     if (selectedRole == null || selectedRole.isEmpty) {
+      // Si hay usuario autenticado pero sin rol, algo salió mal - ir a home con warning
+      if (currentUser != null) {
+        debugPrint(
+            '[HomeRouter] WARN: Usuario autenticado pero sin rol ni progreso de registro');
+      }
       Get.offAllNamed(Routes.countryCity);
       return;
     }
