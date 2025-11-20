@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:isar_community/isar.dart';
 
+import '../auth/auth_state_observer.dart';
 import '../db/isar_instance.dart';
 import '../db/migrations.dart';
 import '../di/container.dart';
@@ -27,8 +28,16 @@ class Bootstrap {
     await initDI(isar: isar, firestore: firestore);
     syncObserver.start();
 
+    // CRITICAL: Inicializar AuthStateObserver para manejar cambios de sesión automáticamente
+    final authStateObserver = AuthStateObserver();
+    authStateObserver.start();
+
     final bootsTrap = BootstrapResult(
-        isar: isar, firestore: firestore, syncObserver: syncObserver);
+      isar: isar,
+      firestore: firestore,
+      syncObserver: syncObserver,
+      authStateObserver: authStateObserver,
+    );
     final appBinding = AppBindings(bootsTrap);
     appBinding.dependencies();
     return bootsTrap;
@@ -39,9 +48,12 @@ class BootstrapResult {
   final Isar isar;
   final FirebaseFirestore firestore;
   final SyncObserver syncObserver;
+  final AuthStateObserver authStateObserver;
 
-  BootstrapResult(
-      {required this.isar,
-      required this.firestore,
-      required this.syncObserver});
+  BootstrapResult({
+    required this.isar,
+    required this.firestore,
+    required this.syncObserver,
+    required this.authStateObserver,
+  });
 }
