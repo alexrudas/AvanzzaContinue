@@ -15,7 +15,7 @@ part 'asset_model.g.dart';
 class AssetModel {
   isar.Id? isarId;
 
-  @isar.Index(unique: true)
+  @isar.Index(unique: true, replace: true)
   final String id;
 
   // Índices útiles: orgId, estado, cityId (assetType/ownerId opcional si se filtra)

@@ -22,11 +22,16 @@ import '../presentation/auth/pages/terms_page.dart';
 import '../presentation/auth/pages/username_password_page.dart';
 import '../presentation/auth/bindings/enhanced_registration_binding.dart';
 import '../presentation/bindings/home_binding.dart';
+import '../presentation/bindings/runt/runt_binding.dart';
+import '../presentation/bindings/simit/simit_binding.dart';
 import '../presentation/bindings/tenant_home_binding.dart';
 import '../presentation/home/pages/home_router.dart';
 import '../presentation/pages/incidencia_page.dart';
 import '../presentation/pages/org_selection_page.dart';
 import '../presentation/pages/purchase_request_page.dart';
+import '../presentation/pages/runt/runt_person_consult_page.dart';
+import '../presentation/pages/runt/runt_vehicle_consult_page.dart';
+import '../presentation/pages/simit/simit_consult_page.dart';
 import '../presentation/pages/tenant/home/tenant_home_page.dart';
 
 class Routes {
@@ -65,6 +70,11 @@ class Routes {
 
   static const String assets = '/assets';
   static const String tenantHome = '/tenant/home';
+
+  // Consultas RUNT y SIMIT
+  static const String runtPersonConsult = '/runt/person';
+  static const String runtVehicleConsult = '/runt/vehicle';
+  static const String simitConsult = '/simit/multas';
 
   // Demo y desarrollo
   static const bottomNavDemo = '/demo/bottom-nav';
@@ -130,6 +140,25 @@ class Routes {
       name: tenantHome,
       page: () => const TenantHomePage(),
       binding: TenantHomeBinding(),
+    ),
+
+    // Consultas RUNT
+    GetPage(
+      name: runtPersonConsult,
+      page: () => RuntPersonConsultPage(),
+      binding: RuntBinding(),
+    ),
+    GetPage(
+      name: runtVehicleConsult,
+      page: () => RuntVehicleConsultPage(),
+      binding: RuntBinding(),
+    ),
+
+    // Consultas SIMIT
+    GetPage(
+      name: simitConsult,
+      page: () => SimitConsultPage(),
+      binding: SimitBinding(),
     ),
 
     // Demo

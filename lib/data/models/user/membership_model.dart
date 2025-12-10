@@ -17,7 +17,7 @@ part 'membership_model.g.dart';
 class MembershipModel {
   isar.Id? isarId;
 
-  @isar.Index(unique: true)
+  @isar.Index(unique: true, replace: true)
   final String id; // synthetic key: userId_orgId
   @isar.Index()
   final String userId;

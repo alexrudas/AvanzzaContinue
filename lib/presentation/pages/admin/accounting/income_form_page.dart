@@ -4,6 +4,7 @@
 // REEMPLAZADO: 'revenue' por 'income' en todo el archivo.
 // ============================================================================
 
+import 'package:avanzza/domain/shared/enums/asset_type.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Para TextInputFormatter
@@ -15,30 +16,6 @@ final _money =
     NumberFormat.currency(locale: 'es_CO', symbol: r'$ ', decimalDigits: 0);
 
 // ------------------------------- MODELOS -------------------------------------
-
-// Reutilizamos el AssetType (Tipo de Activo Arrendado)
-enum AssetType {
-  vehiculo,
-  inmueble,
-  equipoConstruccion,
-  equipoOficina,
-  otros
-}
-
-IconData ccIconFor(AssetType t) {
-  switch (t) {
-    case AssetType.vehiculo:
-      return Icons.directions_car_filled_outlined;
-    case AssetType.inmueble:
-      return Icons.apartment_outlined;
-    case AssetType.equipoConstruccion:
-      return Icons.construction_outlined;
-    case AssetType.equipoOficina:
-      return Icons.desktop_windows_outlined;
-    case AssetType.otros:
-      return Icons.widgets_outlined;
-  }
-}
 
 // Actualizado: Tipos de Ingreso (Income Type)
 enum IncomeType {
@@ -849,12 +826,12 @@ class _ModernSelectAssetType extends StatelessWidget {
         return '🚗 Vehículo';
       case AssetType.inmueble:
         return '🏢 Inmueble';
-      case AssetType.equipoConstruccion:
-        return '🏗️ Maquinaria/Construcción';
-      case AssetType.equipoOficina:
-        return '💼 Equipo Oficina';
-      case AssetType.otros:
-        return '✨ Otros Activos';
+      case AssetType.maquinaria:
+        return '🏗️ Maquinaria';
+      case AssetType.equipo:
+        return '💼 Equipo';
+      case AssetType.otro:
+        return '✨ Otro';
     }
   }
 }

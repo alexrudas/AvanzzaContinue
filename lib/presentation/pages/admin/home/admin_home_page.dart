@@ -9,10 +9,12 @@
 // - Responsive design avanzado
 // - Accesibilidad mejorada
 
-import 'package:avanzza/presentation/common/ensure_registered_guard.dart';
+import 'package:avanzza/presentation/controllers/session_context_controller.dart';
 import 'package:avanzza/presentation/widgets/floating_quick_actions_row/floating_quick_actions_row.dart';
+import 'package:avanzza/routes/app_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // ============================================================================
@@ -41,15 +43,20 @@ class AdminHomePage extends StatelessWidget {
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final session = Get.isRegistered<SessionContextController>()
+        ? Get.find<SessionContextController>()
+        : null;
+    final user = session?.userRx.value;
+
     return AppBar(
       elevation: 0,
       backgroundColor: Colors.transparent,
       scrolledUnderElevation: 0,
       centerTitle: false,
       titleSpacing: 20,
-      title: const _HeaderSection(
+      title: _HeaderSection(
         title: 'Administrador',
-        subtitle: 'Ingresos S.A.',
+        subtitle: user?.name ?? "Registrate",
       ),
       actions: [
         _AppBarAction(
@@ -76,32 +83,37 @@ class AdminHomePage extends StatelessWidget {
         badgeCount: 6,
         badgeColor: _DesignSystem.colors.info,
         onTap: () async {
-          // showBottomSheetScanner(
-          //   context,
-          //   onResult: (user, error) {
-          //     print("[user] : $user");
-          //   },
-          //   userDocument: UserDocument.cardId,
-          // );
-          final guard = EnsureRegisteredGuard();
-          await guard.run(() async {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Nuevo Activo')),
-            );
-          });
+          Get.toNamed(Routes.runtVehicleConsult);
+
+          // // Ejecutar esto cuando se quiera validar el registro antes de la
+          // // acción
+          // final guard = EnsureRegisteredGuard();
+          // //
+          // await guard.run(() async {
+          //   //Aquí va la acción original del botón
+          //   Get.toNamed("/assets");
+
+          //   ScaffoldMessenger.of(context).showSnackBar(
+          //     const SnackBar(content: Text('Navegando a  Activos')),
+          //   );
+          // });
         },
       ),
       QuickAction(
         icon: Icons.key_rounded,
         label: 'Propietarios',
         color: _DesignSystem.colors.primary,
-        onTap: () {},
+        onTap: () {
+          Get.toNamed(Routes.runtPersonConsult);
+        },
       ),
       QuickAction(
         icon: Icons.receipt_long_rounded,
         label: 'Arrendatarios',
         color: _DesignSystem.colors.info,
-        onTap: () {},
+        onTap: () {
+          Get.toNamed(Routes.simitConsult);
+        },
       ),
       QuickAction(
         icon: Icons.groups_2_rounded,

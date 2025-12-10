@@ -9,6 +9,7 @@ import 'package:avanzza/domain/usecases/set_active_context_uc.dart'
 import 'package:avanzza/domain/usecases/verify_otp_uc.dart' show VerifyOtpUC;
 import 'package:avanzza/presentation/auth/scanners/scanner_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
@@ -39,10 +40,37 @@ class AppBindings extends Bindings {
 
   @override
   void dependencies() {
-    // Core
+    // ==================== INFRAESTRUCTURA CORE ====================
+
+    // Firebase
     Get.put<FirebaseAuth>(FirebaseAuth.instance, permanent: true);
     Get.put<FirebaseFirestore>(bootstrap.firestore, permanent: true);
+
+    // Base de datos local
     Get.put<Isar>(bootstrap.isar, permanent: true);
+
+    // Cliente HTTP único para toda la aplicación
+    // Este Dio será reutilizado por todos los services (RuntService, SimitService, etc.)
+    // mediante Get.find<Dio>()
+    Get.put<Dio>(
+      Dio(BaseOptions(
+        // Timeouts globales
+        connectTimeout: const Duration(seconds: 200),
+        receiveTimeout: const Duration(seconds: 200),
+        sendTimeout: const Duration(seconds: 200),
+
+        // Headers comunes para todas las requests
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+
+        // Configuración de redirects
+        followRedirects: true,
+        maxRedirects: 5,
+      )),
+      permanent: true,
+    );
 
     // Telemetry
     Get.put<TelemetryService>(TelemetryService(), permanent: true);

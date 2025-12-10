@@ -17,7 +17,7 @@ part 'organization_model.g.dart';
 class OrganizationModel {
   isar.Id? isarId;
 
-  @isar.Index(unique: true)
+  @isar.Index(unique: true, replace: true)
   final String id;
 
   String nombre;

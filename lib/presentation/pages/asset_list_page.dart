@@ -1,10 +1,16 @@
+import 'package:avanzza/domain/shared/enums/asset_type.dart';
+import 'package:avanzza/presentation/widgets/selectors/asset_type_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controllers/asset_list_controller.dart';
 
 class AssetListPage extends StatelessWidget {
-  const AssetListPage({super.key});
+  const AssetListPage({
+    super.key,
+  });
+
+  final AssetType? assetType = AssetType.vehiculo;
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +20,22 @@ class AssetListPage extends StatelessWidget {
       appBar: AppBar(title: const Text('Activos')),
       body: Obx(() {
         final items = controller.assets;
-        if (items.isEmpty) return const Center(child: Text('Sin activos'));
+        if (items.isEmpty) {
+          return Column(
+            children: [
+              AssetTypeSelector(
+                selected: assetType,
+                enabled: true,
+                onChanged: (type) {
+                  // controller.assetType.value = type;
+                },
+                title: 'Tipo de activo',
+                subtitle: 'Selecciona la categoría del activo',
+              ),
+              const Center(child: Text('Sin activos')),
+            ],
+          );
+        }
         return ListView.builder(
           itemCount: items.length,
           itemBuilder: (_, i) {
@@ -28,9 +49,14 @@ class AssetListPage extends StatelessWidget {
       }),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          // Mock add
-          // final nowId = DateTime.now().millisecondsSinceEpoch.toString();
-          // TODO: construct AssetEntity via a form; using placeholder here
+          showAssetTypeSheet(
+            context,
+            onChanged: (value) {
+              if (value.isVehiculo) {
+                
+              }
+            },
+          );
         },
         child: const Icon(Icons.add),
       ),

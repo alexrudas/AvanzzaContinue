@@ -3,6 +3,7 @@
 // NUEVO GASTO — Avanzza 2.0 (UI PRO 2025 + lógica optimizada)
 // ============================================================================
 
+import 'package:avanzza/domain/shared/enums/asset_type.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -13,8 +14,6 @@ final _money =
     NumberFormat.currency(locale: 'es_CO', symbol: r'$ ', decimalDigits: 0);
 
 // ------------------------------- MODELOS -------------------------------------
-enum AssetType { vehiculo, inmueble, equipoConstruccion, equipoOficina, otros }
-
 enum ExpenseType {
   operativo,
   mantenimiento,
@@ -22,21 +21,6 @@ enum ExpenseType {
   impuesto,
   financiero,
   otros
-}
-
-IconData ccIconFor(AssetType t) {
-  switch (t) {
-    case AssetType.vehiculo:
-      return Icons.directions_car_filled_outlined;
-    case AssetType.inmueble:
-      return Icons.apartment_outlined;
-    case AssetType.equipoConstruccion:
-      return Icons.construction_outlined;
-    case AssetType.equipoOficina:
-      return Icons.desktop_windows_outlined;
-    case AssetType.otros:
-      return Icons.widgets_outlined;
-  }
 }
 
 enum PaymentMethod { efectivo, transferencia, debito, credito, cheque, otro }
@@ -739,12 +723,12 @@ class _ModernSelectAssetType extends StatelessWidget {
         return '🚗 Vehículo';
       case AssetType.inmueble:
         return '🏢 Inmueble';
-      case AssetType.equipoConstruccion:
-        return '🏗️ Equipo Construcción';
-      case AssetType.equipoOficina:
-        return '💼 Equipo Oficina';
-      case AssetType.otros:
-        return '✨ Otros';
+      case AssetType.maquinaria:
+        return '🏗️ Maquinaria';
+      case AssetType.equipo:
+        return '💼 Equipo';
+      case AssetType.otro:
+        return '✨ Otro';
     }
   }
 }
@@ -844,7 +828,7 @@ class _ModernCentroCostoField extends StatelessWidget {
           label: 'Centro de Costo',
           hint: 'Ej. Operaciones',
           value: c.centroCosto,
-          icon: ccIconFor(c.assetType.value),
+          icon: c.assetType.value.icon,
         ));
   }
 }
