@@ -1,0 +1,27 @@
+# ================================
+# Global line endings normalization
+# ================================
+
+# Normaliza todo el repo a LF
+* text=auto eol=lf
+
+# ----------------
+# Dart / Flutter
+# ----------------
+*.dart text eol=lf
+*.md   text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+
+# ----------------
+# Config / scripts
+# ----------------
+*.json text eol=lf
+*.js   text eol=lf
+*.ts   text eol=lf
+*.sh   text eol=lf
+
+# ----------------
+# Lock & misc
+# ----------------
+*.lock text eol=lf
