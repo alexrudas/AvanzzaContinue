@@ -216,7 +216,7 @@ class RuntController extends GetxController {
 
   /// Traduce una [RuntApiException] a un mensaje amigable para el usuario.
   ///
-  /// Según la fuente del error (network, parsing, business_logic),
+  /// Según la fuente del error (network, parsing, business_logic, server),
   /// retorna un mensaje apropiado en español.
   String _translateRuntError(RuntApiException e) {
     switch (e.errorSource) {
@@ -225,9 +225,11 @@ class RuntController extends GetxController {
       case 'parsing':
         return 'Error al procesar los datos del RUNT. Intenta nuevamente en unos momentos.';
       case 'business_logic':
-        return e.message;
+        return e.message; // Mensaje real del backend
+      case 'server':
+        return 'Error del servidor RUNT. Intenta nuevamente en unos momentos.';
       default:
-        return 'Error al consultar RUNT: ${e.message}';
+        return 'Error al consultar RUNT:\n${e.message}';
     }
   }
 

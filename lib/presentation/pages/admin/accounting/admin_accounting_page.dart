@@ -104,32 +104,32 @@ class AdminAccountingPage extends GetView<AdminAccountingController> {
           // ----------------------- Mensajes IA (banner) ------------------------------
           // Mantiene los mensajes existentes.
           List<AIBannerMessage> msgs = [
-            const AIBannerMessage(
+            AIBannerMessage(
               type: AIMessageType.success,
               icon: Icons.auto_graph_rounded,
               title: 'Liquidez saludable (+12%). Flujo neto positivo este mes.',
             ),
-            const AIBannerMessage(
+            AIBannerMessage(
               type: AIMessageType.warning,
               icon: Icons.local_gas_station_rounded,
               title: 'IA: reduce combustible 8% → utilidad +9%.',
             ),
-            const AIBannerMessage(
+            AIBannerMessage(
               type: AIMessageType.critical,
               icon: Icons.priority_high_rounded,
               title: 'Alerta: presupuesto de gastos supera el 110% del plan.',
             ),
-            const AIBannerMessage(
+            AIBannerMessage(
               type: AIMessageType.info,
               icon: Icons.people_alt_rounded,
               title: 'Morosidad 6.3%: contactar 3 arrendatarios en riesgo.',
             ),
-            const AIBannerMessage(
+            AIBannerMessage(
               type: AIMessageType.warning,
               icon: Icons.build_rounded,
               title: 'IA: reprograma mantenimientos menores a ventana ociosa.',
             ),
-            const AIBannerMessage(
+            AIBannerMessage(
               type: AIMessageType.success,
               icon: Icons.sell_rounded,
               title: 'IA: sube tarifa diaria +3% en alta demanda (ROI +2 pts).',

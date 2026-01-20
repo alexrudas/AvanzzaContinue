@@ -80,9 +80,9 @@ WorkspaceConfig workspaceFor({
       roleKey: 'admin_activos',
       tabs: const [
         WorkspaceTab(
-            title: 'Home', icon: Icons.home_outlined, page: AdminHomePage()),
+            title: 'Inicio', icon: Icons.home_outlined, page: AdminHomePage()),
         WorkspaceTab(
-            title: 'Mttos.',
+            title: 'Mantenimientos',
             icon: Icons.build_outlined,
             page: AdminMaintenancePage()),
         WorkspaceTab(
@@ -138,7 +138,7 @@ WorkspaceConfig workspaceFor({
         roleKey: 'prov_articulos',
         tabs: [
           const WorkspaceTab(
-              title: 'Home',
+              title: 'Inicio',
               icon: Icons.home_outlined,
               page: ProviderArticlesHomePage()),
           const WorkspaceTab(
@@ -184,7 +184,7 @@ WorkspaceConfig workspaceFor({
       roleKey: 'prov_servicios',
       tabs: const [
         WorkspaceTab(
-            title: 'Home',
+            title: 'Inicio',
             icon: Icons.home_outlined,
             page: ProviderServicesHomePage()),
         WorkspaceTab(
@@ -213,7 +213,7 @@ WorkspaceConfig workspaceFor({
       roleKey: 'propietario',
       tabs: const [
         WorkspaceTab(
-            title: 'Home', icon: Icons.home_outlined, page: OwnerHomePage()),
+            title: 'Inicio', icon: Icons.home_outlined, page: OwnerHomePage()),
         WorkspaceTab(
             title: 'Portafolio',
             icon: Icons.inventory_2_outlined,
@@ -240,7 +240,7 @@ WorkspaceConfig workspaceFor({
       roleKey: 'arrendatario',
       tabs: [
         const WorkspaceTab(
-            title: 'Home', icon: Icons.home_outlined, page: TenantHomePage()),
+            title: 'Inicio', icon: Icons.home_outlined, page: TenantHomePage()),
         const WorkspaceTab(
             title: 'Pagos',
             icon: Icons.payments_outlined,

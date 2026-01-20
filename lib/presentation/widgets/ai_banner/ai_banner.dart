@@ -31,23 +31,50 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-/// Severidad tipada
+/// Dominios de alertas para clasificación
+enum AIAlertDomain {
+  documentos,
+  financiero,
+  operativo,
+  comercial,
+  multas,
+  legal
+}
+
+/// Severidad tipada - Compatible con versión anterior
 enum AIMessageType { success, warning, critical, info }
 
-/// Modelo del mensaje
+/// Prioridad de alerta (mapea desde severidad)
+enum AIAlertPriority { critica, alta, media, oportunidad }
+
+// Mapeo automático de severidad a prioridad
+AIAlertPriority _defaultPriority(AIMessageType type) {
+  return switch (type) {
+    AIMessageType.critical => AIAlertPriority.critica,
+    AIMessageType.warning => AIAlertPriority.alta,
+    AIMessageType.info => AIAlertPriority.media,
+    AIMessageType.success => AIAlertPriority.oportunidad,
+  };
+}
+
+/// Modelo del mensaje con taxonomía extendida
 @immutable
 class AIBannerMessage {
   final AIMessageType type;
   final IconData icon;
   final String title;
   final String? subtitle;
+  final AIAlertDomain domain;
+  final AIAlertPriority priority;
 
-  const AIBannerMessage({
+  AIBannerMessage({
     required this.type,
     required this.icon,
     required this.title,
     this.subtitle,
-  });
+    this.domain = AIAlertDomain.operativo,
+    AIAlertPriority? priority,
+  }) : priority = priority ?? _defaultPriority(type);
 
   /// Compatibilidad legada con string
   factory AIBannerMessage.legacy({
@@ -64,7 +91,12 @@ class AIBannerMessage {
     };
     // Usamos el mismo texto en title y null en subtitle para no romper layouts.
     return AIBannerMessage(
-        type: mapped, icon: icon, title: text, subtitle: null);
+      type: mapped,
+      icon: icon,
+      title: text,
+      subtitle: null,
+      domain: AIAlertDomain.operativo,
+    );
   }
 }
 
@@ -76,20 +108,12 @@ class _AITypeColors {
 }
 
 _AITypeColors _typeColors(AIMessageType type, ColorScheme cs) {
-  switch (type) {
-    case AIMessageType.success:
-      return const _AITypeColors(Color(0xFFD1FAE5), Color(0xFF10B981));
-    case AIMessageType.warning:
-      return const _AITypeColors(Color(0xFFFEF3C7), Color(0xFFF59E0B));
-    case AIMessageType.critical:
-      return const _AITypeColors(Color(0xFFFEE2E2), Color(0xFFEF4444));
-    case AIMessageType.info:
-    default:
-      // Asumo que .withValues es un método de extensión de tu proyecto.
-      // Si no, reemplázalo por .withOpacity(0.35)
-      final bg = cs.primaryContainer.withValues(alpha: 0.35);
-      return _AITypeColors(bg, cs.primary);
-  }
+  return switch (type) {
+    AIMessageType.success => const _AITypeColors(Color(0xFFD1FAE5), Color(0xFF10B981)),
+    AIMessageType.warning => const _AITypeColors(Color(0xFFFEF3C7), Color(0xFFF59E0B)),
+    AIMessageType.critical => const _AITypeColors(Color(0xFFFEE2E2), Color(0xFFEF4444)),
+    AIMessageType.info => _AITypeColors(cs.primaryContainer.withValues(alpha: 0.35), cs.primary),
+  };
 }
 
 /// Banner principal
@@ -629,122 +653,139 @@ class _AIBannerHeaderDelegate extends SliverPersistentHeaderDelegate {
 
 final aiMessagesTenantVehicle = <AIBannerMessage>[
   // MULTAS
-  const AIBannerMessage(
+  AIBannerMessage(
     type: AIMessageType.warning,
     icon: Icons.gavel_rounded,
     title: 'Multas activas detectadas',
     subtitle: 'Revisa comparendos pendientes y evita intereses',
+    domain: AIAlertDomain.multas,
   ),
-  const AIBannerMessage(
+  AIBannerMessage(
     type: AIMessageType.info,
     icon: Icons.verified_rounded,
     title: 'Sin multas registradas',
     subtitle: 'Buen comportamiento vial. Mantén esta racha',
+    domain: AIAlertDomain.multas,
   ),
 
   // PICO Y PLACA
-  const AIBannerMessage(
+  AIBannerMessage(
     type: AIMessageType.info,
     icon: Icons.rule_rounded,
     title: 'Restricción por pico y placa',
     subtitle: 'Hoy la placa {placa} está restringida en {ciudad}',
+    domain: AIAlertDomain.operativo,
   ),
-  const AIBannerMessage(
+  AIBannerMessage(
     type: AIMessageType.success,
     icon: Icons.directions_car_filled_rounded,
     title: 'Sin restricción vehicular',
     subtitle: 'Puedes circular hoy en {ciudad}',
+    domain: AIAlertDomain.operativo,
   ),
 
   // DESCANSO
-  const AIBannerMessage(
+  AIBannerMessage(
     type: AIMessageType.info,
     icon: Icons.event_busy_rounded,
     title: 'Día de descanso: {díaDescanso}',
     subtitle: 'Aprovecha para mantenimiento preventivo',
+    domain: AIAlertDomain.operativo,
   ),
 
   // LICENCIA
-  const AIBannerMessage(
+  AIBannerMessage(
     type: AIMessageType.warning,
     icon: Icons.badge_rounded,
     title: 'Licencia próxima a vencer',
     subtitle: 'Renueva antes de {fechaLicencia}',
+    domain: AIAlertDomain.documentos,
   ),
-  const AIBannerMessage(
+  AIBannerMessage(
     type: AIMessageType.critical,
     icon: Icons.report_rounded,
     title: 'Licencia vencida',
     subtitle: 'Venció el {fechaLicencia}. No circules hasta renovarla',
+    domain: AIAlertDomain.legal,
   ),
 
   // SOAT
-  const AIBannerMessage(
+  AIBannerMessage(
     type: AIMessageType.warning,
     icon: Icons.receipt_long_rounded,
     title: 'SOAT por vencer',
     subtitle: '{placa} vence el {fechaSOAT}',
+    domain: AIAlertDomain.documentos,
   ),
-  const AIBannerMessage(
+  AIBannerMessage(
     type: AIMessageType.critical,
     icon: Icons.block_rounded,
     title: 'SOAT vencido',
     subtitle: '{placa} sin cobertura. Evita sanciones, renueva ya',
+    domain: AIAlertDomain.legal,
   ),
 
   // SEGURO CONTRACTUAL
-  const AIBannerMessage(
+  AIBannerMessage(
     type: AIMessageType.warning,
     icon: Icons.policy_rounded,
     title: 'Seguro contractual por vencer',
     subtitle: 'Fecha límite {fechaContractual}',
+    domain: AIAlertDomain.documentos,
   ),
-  const AIBannerMessage(
+  AIBannerMessage(
     type: AIMessageType.critical,
     icon: Icons.warning_amber_rounded,
     title: 'Seguro contractual vencido',
     subtitle: 'Venció el {fechaContractual}. Actualiza tu póliza',
+    domain: AIAlertDomain.legal,
   ),
 
   // SEGURO EXTRACONTRACTUAL
-  const AIBannerMessage(
+  AIBannerMessage(
     type: AIMessageType.warning,
     icon: Icons.health_and_safety_rounded,
     title: 'Seguro extracontractual por vencer',
     subtitle: 'Revisa coberturas antes de {fechaExtra}',
+    domain: AIAlertDomain.documentos,
   ),
-  const AIBannerMessage(
+  AIBannerMessage(
     type: AIMessageType.critical,
     icon: Icons.health_and_safety_outlined,
     title: 'Seguro extracontractual vencido',
     subtitle: 'Sin cobertura a terceros desde {fechaExtra}',
+    domain: AIAlertDomain.legal,
   ),
 
   // RTM
-  const AIBannerMessage(
+  AIBannerMessage(
     type: AIMessageType.warning,
     icon: Icons.build_circle_rounded,
     title: 'RTM próxima a vencer',
     subtitle: 'Agenda la inspección antes de {fechaRTM}',
+    domain: AIAlertDomain.documentos,
   ),
-  const AIBannerMessage(
+  AIBannerMessage(
     type: AIMessageType.critical,
     icon: Icons.engineering_rounded,
     title: 'RTM vencida',
     subtitle: 'Evita comparendos realizando la revisión',
+    domain: AIAlertDomain.legal,
   ),
 
   // CONTRATO DE ARRENDAMIENTO
-  const AIBannerMessage(
+  AIBannerMessage(
     type: AIMessageType.warning,
     icon: Icons.description_rounded,
     title: 'Contrato por vencer',
     subtitle: 'Finaliza el {fechaContrato}. Decide renovar o terminar',
+    domain: AIAlertDomain.comercial,
   ),
-  const AIBannerMessage(
+  AIBannerMessage(
     type: AIMessageType.critical,
     icon: Icons.assignment_late_rounded,
     title: 'Contrato vencido',
     subtitle: 'Sin vigencia desde {fechaContrato}. Regulariza el estado',
+    domain: AIAlertDomain.legal,
   ),
 ];

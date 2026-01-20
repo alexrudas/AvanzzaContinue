@@ -196,13 +196,13 @@ class TenantHomeController extends GetxController {
 
       // Multas
       if (multas > 0) {
-        out.add(const AIBannerMessage(
+        out.add(AIBannerMessage(
             type: AIMessageType.warning,
             icon: Icons.gavel_rounded,
             title: 'Tienes multas activas por pagar.',
             subtitle: 'Evita intereses.'));
       } else {
-        out.add(const AIBannerMessage(
+        out.add(AIBannerMessage(
           type: AIMessageType.info,
           icon: Icons.verified_rounded,
           title: 'Sin multas registradas. Excelente historial de conducción.',
@@ -256,7 +256,7 @@ class TenantHomeController extends GetxController {
 
       // Seguro Contractual
       if (contractual != null && contractual.isNotEmpty) {
-        out.add(const AIBannerMessage(
+        out.add(AIBannerMessage(
           type: AIMessageType.warning,
           icon: Icons.policy_rounded,
           title: 'Seguro contractual próximo a vencer.',

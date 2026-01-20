@@ -10,6 +10,7 @@ import '../../controllers/runt/runt_controller.dart';
 /// Permite consultar información de un vehículo por placa:
 /// - Información básica y general
 /// - Historial SOAT
+/// - Seguros RC (Responsabilidad Civil)
 /// - Historial RTM (Revisión Técnico-Mecánica)
 /// - Limitaciones de propiedad
 /// - Garantías
@@ -114,16 +115,17 @@ class RuntVehicleConsultPage extends StatelessWidget {
                   hintText: 'Ej: ABC123',
                   border: OutlineInputBorder(),
                 ),
+                maxLength: 6,
                 inputFormatters: [UpperCaseTextFormatter()],
                 textCapitalization: TextCapitalization.characters,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'La placa es requerida';
                   }
-                  if (!RegExp(r'^[A-Z]{3}\d{3}$')
-                      .hasMatch(value.toUpperCase())) {
-                    return 'Formato inválido. Ej: ABC123';
-                  }
+                  // if (!RegExp(r'^[A-Z]{3}\d{3}$')
+                  //     .hasMatch(value.toUpperCase())) {
+                  //   return 'Formato inválido. Ej: ABC123';
+                  // }
                   return null;
                 },
               ),
@@ -258,12 +260,13 @@ class RuntVehicleConsultPage extends StatelessWidget {
   }
 
   // ==================== RESULTADOS ====================
+  Future<void> _onNext() async {}
 
   Widget _buildResultsSection() {
     final vehicle = _controller.vehicleData!;
 
     return DefaultTabController(
-      length: 5,
+      length: 6,
       child: Column(
         children: [
           const TabBar(
@@ -271,6 +274,7 @@ class RuntVehicleConsultPage extends StatelessWidget {
             tabs: [
               Tab(icon: Icon(Icons.info), text: 'Info Básica'),
               Tab(icon: Icon(Icons.shield), text: 'SOAT'),
+              Tab(icon: Icon(Icons.security), text: 'Seguros RC'),
               Tab(icon: Icon(Icons.build), text: 'RTM'),
               Tab(icon: Icon(Icons.warning), text: 'Limitaciones'),
               Tab(icon: Icon(Icons.account_balance), text: 'Garantías'),
@@ -282,10 +286,19 @@ class RuntVehicleConsultPage extends StatelessWidget {
               children: [
                 _buildInfoTab(vehicle),
                 _buildSoatTab(vehicle),
+                _buildRcInsuranceTab(vehicle),
                 _buildRtmTab(vehicle),
                 _buildLimitationsTab(vehicle),
                 _buildWarrantiesTab(vehicle),
               ],
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: _onNext,
+            // icon: const Icon(Icons.search),
+            label: const Text('Continuar'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
             ),
           ),
         ],
@@ -347,7 +360,7 @@ class RuntVehicleConsultPage extends StatelessWidget {
 
   Widget _buildSoatTab(RuntVehicleData vehicle) {
     if (vehicle.soat.isEmpty) {
-      return _buildEmptyTabState('No se encontró historial de SOAT');
+      return _buildEmptyTabState('SOAT: Sin registros disponibles');
     }
 
     return ListView.builder(
@@ -396,11 +409,66 @@ class RuntVehicleConsultPage extends StatelessWidget {
     );
   }
 
+  // ==================== TAB: SEGUROS RC ====================
+
+  Widget _buildRcInsuranceTab(RuntVehicleData vehicle) {
+    if (vehicle.rcInsurances.isEmpty) {
+      return _buildEmptyTabState('Seguros RC: Sin registros disponibles');
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: vehicle.rcInsurances.length,
+      itemBuilder: (context, index) {
+        final rc = vehicle.rcInsurances[index];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.security, color: Colors.green),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        rc.policyNumber ?? 'Sin número',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    if (rc.estado != null) _buildStatusChip(rc.estado!),
+                  ],
+                ),
+                const Divider(height: 16),
+                if (rc.insurer != null)
+                  _buildInfoRow('Aseguradora', rc.insurer!),
+                if (rc.policyType != null)
+                  _buildInfoRow('Tipo de Póliza', rc.policyType!),
+                if (rc.issueDate != null)
+                  _buildInfoRow('Fecha Expedición', rc.issueDate!),
+                if (rc.validityStart != null)
+                  _buildInfoRow('Inicio Vigencia', rc.validityStart!),
+                if (rc.validityEnd != null)
+                  _buildInfoRow('Fin Vigencia', rc.validityEnd!),
+                if (rc.detail != null) _buildInfoRow('Detalle', rc.detail!),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   // ==================== TAB: RTM ====================
 
   Widget _buildRtmTab(RuntVehicleData vehicle) {
     if (vehicle.rtmHistory.isEmpty) {
-      return _buildEmptyTabState('No se encontró historial de RTM');
+      return _buildEmptyTabState('RTM: Sin registros disponibles');
     }
 
     return ListView.builder(
@@ -455,7 +523,7 @@ class RuntVehicleConsultPage extends StatelessWidget {
 
   Widget _buildLimitationsTab(RuntVehicleData vehicle) {
     if (vehicle.ownershipLimitations.isEmpty) {
-      return _buildEmptyTabState('✅ Sin limitaciones registradas',
+      return _buildEmptyTabState('Limitaciones: Sin registros disponibles',
           isPositive: true);
     }
 
@@ -463,7 +531,17 @@ class RuntVehicleConsultPage extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       itemCount: vehicle.ownershipLimitations.length,
       itemBuilder: (context, index) {
-        final limitation = vehicle.ownershipLimitations[index];
+        final l = vehicle.ownershipLimitations[index];
+
+        // Normalización mínima (evita null/strings vacíos)
+        final tipo = (l.limitationType ?? '').trim();
+        final entidad = (l.legalEntity ?? '').trim();
+        final depto = (l.department ?? '').trim();
+        final muni = (l.municipality ?? '').trim();
+        final fechaOficio = (l.officeIssueDate ?? '').trim();
+        final fechaRegistro = (l.systemRegistrationDate ?? '').trim();
+        final oficio = l.officeNumber;
+
         return Card(
           color: Colors.orange.shade50,
           margin: const EdgeInsets.only(bottom: 12),
@@ -474,27 +552,46 @@ class RuntVehicleConsultPage extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.warning, color: Colors.orange.shade700),
+                    Icon(Icons.warning_amber_rounded,
+                        color: Colors.orange.shade700),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        limitation.limitationType ?? 'Limitación',
+                        tipo.isNotEmpty ? tipo : 'Limitación a la propiedad',
                         style: TextStyle(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                           fontSize: 16,
                           color: Colors.orange.shade900,
+                          letterSpacing: 0.2,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const Divider(height: 16),
-                // NOTA: El modelo no tiene campo 'status' para limitaciones, se omite.
+                const Divider(height: 20),
 
-                // CORRECCIÓN: 'registrationDate' -> 'systemRegistrationDate'
-                if (limitation.systemRegistrationDate != null)
+                // Campos requeridos (según data RUNT)
+
+                if (entidad.isNotEmpty)
+                  _buildInfoRow('Entidad jurídica', entidad),
+                if (depto.isNotEmpty) _buildInfoRow('Departamento', depto),
+                if (muni.isNotEmpty) _buildInfoRow('Municipio', muni),
+                if (oficio != null)
+                  _buildInfoRow('Número de oficio', '$oficio'),
+                if (fechaOficio.isNotEmpty)
+                  _buildInfoRow('Fecha expedición oficio', fechaOficio),
+                if (fechaRegistro.isNotEmpty)
+                  _buildInfoRow('Fecha registro en el sistema', fechaRegistro),
+
+                // Fallback ultra simple si por alguna razón TODO viene vacío
+                if (oficio == null &&
+                    entidad.isEmpty &&
+                    depto.isEmpty &&
+                    muni.isEmpty &&
+                    fechaOficio.isEmpty &&
+                    fechaRegistro.isEmpty)
                   _buildInfoRow(
-                      'Fecha registro', limitation.systemRegistrationDate!),
+                      'Detalle', 'Sin información adicional disponible'),
               ],
             ),
           ),
@@ -507,7 +604,7 @@ class RuntVehicleConsultPage extends StatelessWidget {
 
   Widget _buildWarrantiesTab(RuntVehicleData vehicle) {
     if (vehicle.warranties.isEmpty) {
-      return _buildEmptyTabState('Sin garantías registradas');
+      return _buildEmptyTabState('Garantías: Sin registros disponibles');
     }
 
     return ListView.builder(
@@ -584,23 +681,23 @@ class RuntVehicleConsultPage extends StatelessWidget {
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: TextStyle(
-                color: Colors.grey.shade700,
-                fontWeight: FontWeight.w500,
-              ),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+          const SizedBox(height: 2),
+          SelectableText(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

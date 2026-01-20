@@ -476,8 +476,8 @@ class _ActionTileState extends State<_ActionTile> {
         if (mounted) setState(() => _loading = false);
       }
     } else {
+      if (mounted) Navigator.of(context).pop();
       i.onTap?.call();
-      if (mounted) Navigator.of(context).maybePop();
     }
   }
 }

@@ -9,6 +9,7 @@ part of 'asset_entity.dart';
 _AssetEntity _$AssetEntityFromJson(Map<String, dynamic> json) => _AssetEntity(
       id: json['id'] as String,
       orgId: json['orgId'] as String,
+      portfolioId: json['portfolioId'] as String?,
       assetType: json['assetType'] as String,
       assetSegmentId: json['assetSegmentId'] as String?,
       countryId: json['countryId'] as String,
@@ -41,6 +42,7 @@ Map<String, dynamic> _$AssetEntityToJson(_AssetEntity instance) =>
     <String, dynamic>{
       'id': instance.id,
       'orgId': instance.orgId,
+      'portfolioId': instance.portfolioId,
       'assetType': instance.assetType,
       'assetSegmentId': instance.assetSegmentId,
       'countryId': instance.countryId,

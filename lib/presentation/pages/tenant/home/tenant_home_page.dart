@@ -406,23 +406,23 @@ class TenantHomeController extends GetxController {
     ];
 
     aiMessages.value = [
-      const AIBannerMessage(
+      AIBannerMessage(
         type: AIMessageType.warning,
         icon: Icons.gavel_rounded,
         title: 'Tienes 3 multas vigentes.',
         subtitle: 'Verifica',
       ),
-      const AIBannerMessage(
+      AIBannerMessage(
         type: AIMessageType.info,
         icon: Icons.trending_up_rounded,
         title: 'Morosidad en 6.3%',
       ),
-      const AIBannerMessage(
+      AIBannerMessage(
         type: AIMessageType.success,
         icon: Icons.lightbulb_outline_rounded,
         title: 'Tip:  ahorra 2%',
       ),
-      const AIBannerMessage(
+      AIBannerMessage(
         type: AIMessageType.critical,
         icon: Icons.lightbulb_outline_rounded,
         title: 'Tip: Programa pagos',

@@ -33,7 +33,7 @@ class EnsureRegisteredGuard {
     // Usuario NO registrado → Mostrar diálogo de confirmación
     final result = await ConfirmationDialog.show(
       Get.context!,
-      ConfirmationDialogConfig(
+      const ConfirmationDialogConfig(
         title: '¡Desbloquea todo el potencial de Avanzza!',
         message:
             'Regístrate para guardar tus datos, sincronizar entre dispositivos y acceder a todas las funcionalidades',

@@ -8,6 +8,7 @@ abstract class AssetEntity with _$AssetEntity {
   const factory AssetEntity({
     required String id,
     required String orgId,
+    String? portfolioId, // NUEVO: Vincula activo con portafolio (opcional para compatibilidad)
     required String
         assetType, // vehiculos | inmuebles | maquinaria | equipos | otros (normalizado)
     String? assetSegmentId, // NUEVO: 'moto'|'auto'|'camion'|...

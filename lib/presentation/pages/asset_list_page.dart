@@ -1,5 +1,6 @@
 import 'package:avanzza/domain/shared/enums/asset_type.dart';
 import 'package:avanzza/presentation/widgets/selectors/asset_type_selector.dart';
+import 'package:avanzza/routes/app_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -53,7 +54,7 @@ class AssetListPage extends StatelessWidget {
             context,
             onChanged: (value) {
               if (value.isVehiculo) {
-                
+                Get.toNamed(Routes.runtVehicleConsult);
               }
             },
           );

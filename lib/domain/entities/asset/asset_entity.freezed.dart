@@ -16,6 +16,8 @@ T _$identity<T>(T value) => value;
 mixin _$AssetEntity {
   String get id;
   String get orgId;
+  String?
+      get portfolioId; // NUEVO: Vincula activo con portafolio (opcional para compatibilidad)
   String
       get assetType; // vehiculos | inmuebles | maquinaria | equipos | otros (normalizado)
   String? get assetSegmentId; // NUEVO: 'moto'|'auto'|'camion'|...
@@ -48,6 +50,8 @@ mixin _$AssetEntity {
             other is AssetEntity &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.orgId, orgId) || other.orgId == orgId) &&
+            (identical(other.portfolioId, portfolioId) ||
+                other.portfolioId == portfolioId) &&
             (identical(other.assetType, assetType) ||
                 other.assetType == assetType) &&
             (identical(other.assetSegmentId, assetSegmentId) ||
@@ -76,6 +80,7 @@ mixin _$AssetEntity {
       runtimeType,
       id,
       orgId,
+      portfolioId,
       assetType,
       assetSegmentId,
       countryId,
@@ -92,7 +97,7 @@ mixin _$AssetEntity {
 
   @override
   String toString() {
-    return 'AssetEntity(id: $id, orgId: $orgId, assetType: $assetType, assetSegmentId: $assetSegmentId, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerType: $ownerType, ownerId: $ownerId, estado: $estado, etiquetas: $etiquetas, fotosUrls: $fotosUrls, access: $access, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'AssetEntity(id: $id, orgId: $orgId, portfolioId: $portfolioId, assetType: $assetType, assetSegmentId: $assetSegmentId, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerType: $ownerType, ownerId: $ownerId, estado: $estado, etiquetas: $etiquetas, fotosUrls: $fotosUrls, access: $access, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -105,6 +110,7 @@ abstract mixin class $AssetEntityCopyWith<$Res> {
   $Res call(
       {String id,
       String orgId,
+      String? portfolioId,
       String assetType,
       String? assetSegmentId,
       String countryId,
@@ -134,6 +140,7 @@ class _$AssetEntityCopyWithImpl<$Res> implements $AssetEntityCopyWith<$Res> {
   $Res call({
     Object? id = null,
     Object? orgId = null,
+    Object? portfolioId = freezed,
     Object? assetType = null,
     Object? assetSegmentId = freezed,
     Object? countryId = null,
@@ -157,6 +164,10 @@ class _$AssetEntityCopyWithImpl<$Res> implements $AssetEntityCopyWith<$Res> {
           ? _self.orgId
           : orgId // ignore: cast_nullable_to_non_nullable
               as String,
+      portfolioId: freezed == portfolioId
+          ? _self.portfolioId
+          : portfolioId // ignore: cast_nullable_to_non_nullable
+              as String?,
       assetType: null == assetType
           ? _self.assetType
           : assetType // ignore: cast_nullable_to_non_nullable
@@ -309,6 +320,7 @@ extension AssetEntityPatterns on AssetEntity {
     TResult Function(
             String id,
             String orgId,
+            String? portfolioId,
             String assetType,
             String? assetSegmentId,
             String countryId,
@@ -331,6 +343,7 @@ extension AssetEntityPatterns on AssetEntity {
         return $default(
             _that.id,
             _that.orgId,
+            _that.portfolioId,
             _that.assetType,
             _that.assetSegmentId,
             _that.countryId,
@@ -367,6 +380,7 @@ extension AssetEntityPatterns on AssetEntity {
     TResult Function(
             String id,
             String orgId,
+            String? portfolioId,
             String assetType,
             String? assetSegmentId,
             String countryId,
@@ -388,6 +402,7 @@ extension AssetEntityPatterns on AssetEntity {
         return $default(
             _that.id,
             _that.orgId,
+            _that.portfolioId,
             _that.assetType,
             _that.assetSegmentId,
             _that.countryId,
@@ -423,6 +438,7 @@ extension AssetEntityPatterns on AssetEntity {
     TResult? Function(
             String id,
             String orgId,
+            String? portfolioId,
             String assetType,
             String? assetSegmentId,
             String countryId,
@@ -444,6 +460,7 @@ extension AssetEntityPatterns on AssetEntity {
         return $default(
             _that.id,
             _that.orgId,
+            _that.portfolioId,
             _that.assetType,
             _that.assetSegmentId,
             _that.countryId,
@@ -469,6 +486,7 @@ class _AssetEntity implements AssetEntity {
   const _AssetEntity(
       {required this.id,
       required this.orgId,
+      this.portfolioId,
       required this.assetType,
       this.assetSegmentId,
       required this.countryId,
@@ -492,6 +510,9 @@ class _AssetEntity implements AssetEntity {
   final String id;
   @override
   final String orgId;
+  @override
+  final String? portfolioId;
+// NUEVO: Vincula activo con portafolio (opcional para compatibilidad)
   @override
   final String assetType;
 // vehiculos | inmuebles | maquinaria | equipos | otros (normalizado)
@@ -568,6 +589,8 @@ class _AssetEntity implements AssetEntity {
             other is _AssetEntity &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.orgId, orgId) || other.orgId == orgId) &&
+            (identical(other.portfolioId, portfolioId) ||
+                other.portfolioId == portfolioId) &&
             (identical(other.assetType, assetType) ||
                 other.assetType == assetType) &&
             (identical(other.assetSegmentId, assetSegmentId) ||
@@ -598,6 +621,7 @@ class _AssetEntity implements AssetEntity {
       runtimeType,
       id,
       orgId,
+      portfolioId,
       assetType,
       assetSegmentId,
       countryId,
@@ -614,7 +638,7 @@ class _AssetEntity implements AssetEntity {
 
   @override
   String toString() {
-    return 'AssetEntity(id: $id, orgId: $orgId, assetType: $assetType, assetSegmentId: $assetSegmentId, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerType: $ownerType, ownerId: $ownerId, estado: $estado, etiquetas: $etiquetas, fotosUrls: $fotosUrls, access: $access, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'AssetEntity(id: $id, orgId: $orgId, portfolioId: $portfolioId, assetType: $assetType, assetSegmentId: $assetSegmentId, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerType: $ownerType, ownerId: $ownerId, estado: $estado, etiquetas: $etiquetas, fotosUrls: $fotosUrls, access: $access, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -629,6 +653,7 @@ abstract mixin class _$AssetEntityCopyWith<$Res>
   $Res call(
       {String id,
       String orgId,
+      String? portfolioId,
       String assetType,
       String? assetSegmentId,
       String countryId,
@@ -658,6 +683,7 @@ class __$AssetEntityCopyWithImpl<$Res> implements _$AssetEntityCopyWith<$Res> {
   $Res call({
     Object? id = null,
     Object? orgId = null,
+    Object? portfolioId = freezed,
     Object? assetType = null,
     Object? assetSegmentId = freezed,
     Object? countryId = null,
@@ -681,6 +707,10 @@ class __$AssetEntityCopyWithImpl<$Res> implements _$AssetEntityCopyWith<$Res> {
           ? _self.orgId
           : orgId // ignore: cast_nullable_to_non_nullable
               as String,
+      portfolioId: freezed == portfolioId
+          ? _self.portfolioId
+          : portfolioId // ignore: cast_nullable_to_non_nullable
+              as String?,
       assetType: null == assetType
           ? _self.assetType
           : assetType // ignore: cast_nullable_to_non_nullable
