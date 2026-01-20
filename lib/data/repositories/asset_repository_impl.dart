@@ -232,4 +232,38 @@ class AssetRepositoryImpl implements AssetRepository {
       DIContainer().syncService.enqueue(() => remote.upsertDocument(m));
     }
   }
+
+  // NUEVO: Portfolio integration
+  @override
+  Future<AssetEntity> createAssetFromRuntAndLinkToPortfolio({
+    required String portfolioId,
+    required String orgId,
+    required String plate,
+    required String marca,
+    required String modelo,
+    required int anio,
+    required String countryId,
+    required String cityId,
+    required String createdBy,
+  }) async {
+    // TODO: Implementar en siguiente prompt
+    // 1. Generar assetId único
+    // 2. Crear AssetEntity con portfolioId
+    // 3. Crear AssetVehiculoEntity
+    // 4. Persistir ambos (local + remote)
+    // 5. Incrementar assetsCount del portfolio (PortfolioRepository)
+    throw UnimplementedError(
+      'AssetRepository.createAssetFromRuntAndLinkToPortfolio() not implemented yet',
+    );
+  }
+
+  @override
+  Future<List<AssetEntity>> getAssetsByPortfolio(String portfolioId) async {
+    // TODO: Implementar en siguiente prompt
+    // Consultar assets where portfolioId == portfolioId
+    // Sincronizar local + remote
+    throw UnimplementedError(
+      'AssetRepository.getAssetsByPortfolio() not implemented yet',
+    );
+  }
 }

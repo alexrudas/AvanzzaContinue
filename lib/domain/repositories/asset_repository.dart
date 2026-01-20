@@ -31,4 +31,23 @@ abstract class AssetRepository {
   Future<List<AssetDocumentEntity>> fetchAssetDocuments(String assetId,
       {String? countryId, String? cityId});
   Future<void> upsertAssetDocument(AssetDocumentEntity document);
+
+  // NUEVO: Portfolio integration
+  /// Crear activo desde RUNT y vincularlo a un portafolio
+  /// - Incrementa assetsCount del portafolio (transición DRAFT → ACTIVE si es el primero)
+  /// - Retorna el asset creado
+  Future<AssetEntity> createAssetFromRuntAndLinkToPortfolio({
+    required String portfolioId,
+    required String orgId,
+    required String plate,
+    required String marca,
+    required String modelo,
+    required int anio,
+    required String countryId,
+    required String cityId,
+    required String createdBy,
+  });
+
+  /// Obtener activos de un portafolio
+  Future<List<AssetEntity>> getAssetsByPortfolio(String portfolioId);
 }
