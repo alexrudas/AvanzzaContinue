@@ -24,6 +24,7 @@ import 'package:avanzza/data/models/maintenance/maintenance_finished_model.dart'
 import 'package:avanzza/data/models/maintenance/maintenance_process_model.dart';
 import 'package:avanzza/data/models/maintenance/maintenance_programming_model.dart';
 import 'package:avanzza/data/models/org/organization_model.dart';
+import 'package:avanzza/data/models/portfolio/portfolio_model.dart';
 import 'package:avanzza/data/models/purchase/purchase_request_model.dart';
 import 'package:avanzza/data/models/purchase/supplier_response_model.dart';
 import 'package:avanzza/data/models/settings/theme_pref_model.dart';
@@ -58,6 +59,7 @@ final allIsarSchemas = [
   MaintenanceProgrammingModelSchema,
   MembershipModelSchema,
   OrganizationModelSchema,
+  PortfolioModelSchema,
   PurchaseRequestModelSchema,
   RegionModelSchema,
   RegistrationProgressModelSchema,

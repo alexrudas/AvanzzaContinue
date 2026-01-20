@@ -1,5 +1,7 @@
 // ===================== lib/data/runt/runt_service.dart =====================
 
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 
 import '../../core/exceptions/api_exceptions.dart';
@@ -78,10 +80,8 @@ class RuntService {
     } on DioException catch (e) {
       print(e);
 
-      // Errores de red: timeout, no connection, etc.
-      throw RuntApiException.network(
-        'Error de red al consultar RUNT Persona: ${e.message}',
-      );
+      // Mapear DioException con clasificación correcta según response
+      throw _mapDioException(e, 'Persona');
     } on RuntApiException {
       // Re-lanzar excepciones propias
       rethrow;
@@ -152,10 +152,8 @@ class RuntService {
     } on DioException catch (e) {
       print(e);
 
-      // Errores de red: timeout, no connection, etc.
-      throw RuntApiException.network(
-        'Error de red al consultar RUNT Vehículo: ${e.message}',
-      );
+      // Mapear DioException con clasificación correcta según response
+      throw _mapDioException(e, 'Vehículo');
     } on RuntApiException {
       // Re-lanzar excepciones propias
       rethrow;
@@ -167,5 +165,98 @@ class RuntService {
         originalError: e,
       );
     }
+  }
+
+  /// Mapea un [DioException] a [RuntApiException] con clasificación correcta.
+  ///
+  /// Reglas de clasificación:
+  /// 1. Si NO hay response HTTP (null) => errorSource='network'
+  /// 2. Si HAY response HTTP con body válido:
+  ///    a) Si body.errorSource existe => usar ese valor
+  ///    b) Si body.message existe => errorSource='business_logic' (mensaje de negocio)
+  ///    c) Si no hay message útil => errorSource='server' (error HTTP genérico)
+  ///
+  /// EJEMPLOS:
+  /// - 400 + {"error":{"errorSource":"business_logic","message":"Identificación incorrecta"}}
+  ///   => business_logic + "Identificación incorrecta" ✅
+  /// - 422 + {"message":"Propietario no coincide"} (root)
+  ///   => business_logic + "Propietario no coincide" ✅
+  /// - 500 + {"error":{"message":"Error interno del servidor"}}
+  ///   => business_logic + "Error interno del servidor" ✅
+  /// - 500 sin body
+  ///   => server + "Error HTTP 500..." ⚠️
+  /// - timeout/DNS/sin internet (response==null)
+  ///   => network + "Error de red..." ⚠️
+  RuntApiException _mapDioException(DioException dioException, String context) {
+    final response = dioException.response;
+
+    // ============================================================
+    // CASO 1: SIN respuesta HTTP => error de RED REAL
+    // ============================================================
+    if (response == null) {
+      return RuntApiException.network(
+        'Error de red al consultar RUNT $context: ${dioException.message}',
+      );
+    }
+
+    // ============================================================
+    // CASO 2: CON respuesta HTTP => parsear body defensivamente
+    // ============================================================
+    final int statusCode = response.statusCode ?? 0;
+    final dynamic responseData = response.data;
+    Map<String, dynamic>? bodyMap;
+
+    // Paso A: Parsear response.data según su tipo (Map o String JSON)
+    if (responseData is Map<String, dynamic>) {
+      bodyMap = responseData;
+    } else if (responseData is String && responseData.isNotEmpty) {
+      try {
+        bodyMap = jsonDecode(responseData) as Map<String, dynamic>;
+      } catch (_) {
+        // No es JSON válido, bodyMap queda null
+      }
+    }
+
+    // Paso B: Extraer campos en orden de prioridad (error anidado > root)
+    final Map<String, dynamic>? errorObj = bodyMap?['error'] as Map<String, dynamic>?;
+    final String? backendErrorSource = errorObj?['errorSource'] as String? ?? bodyMap?['errorSource'] as String?;
+    final String? backendMessage = errorObj?['message'] as String? ?? bodyMap?['message'] as String?;
+
+    // ============================================================
+    // REGLA 2.1: Backend envía errorSource explícito => USARLO
+    // ============================================================
+    if (backendErrorSource == 'business_logic') {
+      return RuntApiException.businessLogic(
+        message: backendMessage ?? 'Error de negocio en RUNT $context',
+        statusCode: statusCode,
+      );
+    }
+
+    if (backendErrorSource == 'parsing') {
+      return RuntApiException.parsing(
+        backendMessage ?? 'Error de parsing en RUNT $context',
+      );
+    }
+
+    // ============================================================
+    // REGLA 2.2: HAY mensaje del backend => es lógica de negocio
+    // (Aplica para 4xx, 5xx, cualquier status con mensaje útil)
+    // ============================================================
+    if (backendMessage != null && backendMessage.isNotEmpty) {
+      return RuntApiException.businessLogic(
+        message: backendMessage, // PRESERVAR mensaje real del backend
+        statusCode: statusCode,
+      );
+    }
+
+    // ============================================================
+    // REGLA 2.3: NO hay mensaje útil => error HTTP genérico
+    // (NO es network porque SÍ hubo respuesta HTTP)
+    // ============================================================
+    return RuntApiException(
+      message: 'Error HTTP $statusCode al consultar RUNT $context',
+      statusCode: statusCode,
+      errorSource: 'server', // Clasificar como error del servidor
+    );
   }
 }
