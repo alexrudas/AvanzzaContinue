@@ -9,6 +9,7 @@ import '../../data/repositories/geo_repository_impl.dart';
 import '../../data/repositories/insurance_repository_impl.dart';
 import '../../data/repositories/maintenance_repository_impl.dart';
 import '../../data/repositories/org_repository_impl.dart';
+import '../../data/repositories/portfolio_repository_impl.dart';
 import '../../data/repositories/purchase_repository_impl.dart';
 import '../../data/repositories/user_repository_impl.dart';
 import '../../data/sources/local/accounting_local_ds.dart';
@@ -19,6 +20,7 @@ import '../../data/sources/local/geo_local_ds.dart';
 import '../../data/sources/local/insurance_local_ds.dart';
 import '../../data/sources/local/maintenance_local_ds.dart';
 import '../../data/sources/local/org_local_ds.dart';
+import '../../data/sources/local/portfolio_local_ds.dart';
 import '../../data/sources/local/purchase_local_ds.dart';
 import '../../data/sources/local/user_local_ds.dart';
 import '../../data/sources/remote/accounting_remote_ds.dart';
@@ -41,12 +43,23 @@ import '../../domain/repositories/geo_repository.dart';
 import '../../domain/repositories/insurance_repository.dart';
 import '../../domain/repositories/maintenance_repository.dart';
 import '../../domain/repositories/org_repository.dart';
+import '../../domain/repositories/portfolio_repository.dart';
 import '../../domain/repositories/purchase_repository.dart';
 import '../../domain/repositories/user_repository.dart';
 import '../../domain/repositories/workspace_repository.dart';
 import '../../data/repositories/workspace_repository_impl.dart';
 import '../platform/offline_sync_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+// Policy Layer imports
+import '../../domain/policies/policy_context_factory.dart';
+import '../../domain/policies/automation_policy.dart';
+import '../../domain/policies/payout_policy.dart';
+import '../../domain/policies/access_policy.dart';
+import '../../domain/policies/default_automation_policy.dart';
+import '../../domain/policies/default_payout_policy.dart';
+import '../../domain/policies/default_access_policy.dart';
+import '../../domain/policies/policy_engine.dart';
 
 class DIContainer {
   static final DIContainer _instance = DIContainer._internal();
@@ -78,6 +91,7 @@ class DIContainer {
   late final ChatRemoteDataSource chatRemote;
   late final AILocalDataSource aiLocal;
   late final AIRemoteDataSource aiRemote;
+  late final PortfolioLocalDataSource portfolioLocal;
 
   // Repositories
   late final GeoRepository geoRepository;
@@ -93,6 +107,14 @@ class DIContainer {
   // Catálogo (local en memoria por ahora)
   late final CatalogRepository catalogRepository;
   late final WorkspaceRepository workspaceRepository;
+  late final PortfolioRepository portfolioRepository;
+
+  // Policy Layer
+  late final PolicyContextFactory policyContextFactory;
+  late final AutomationPolicy automationPolicy;
+  late final PayoutPolicy payoutPolicy;
+  late final AccessPolicy accessPolicy;
+  late final PolicyEngine policyEngine;
 
   Isar get isar => _isar;
   FirebaseFirestore get firestore => _firestore;
@@ -127,6 +149,7 @@ Future<void> initDI(
   c.chatRemote = ChatRemoteDataSource(firestore);
   c.aiLocal = AILocalDataSource(isar);
   c.aiRemote = AIRemoteDataSource(firestore);
+  c.portfolioLocal = PortfolioLocalDataSource(isar);
 
   // Instantiate repositories
   c.geoRepository = GeoRepositoryImpl(local: c.geoLocal, remote: c.geoRemote);
@@ -151,6 +174,19 @@ Future<void> initDI(
     isar: isar,
     prefsProvider: SharedPreferences.getInstance,
   );
+  c.portfolioRepository = PortfolioRepositoryImpl(local: c.portfolioLocal);
+
+  // Policy Layer (singletons)
+  c.policyContextFactory = const DefaultPolicyContextFactory();
+  c.automationPolicy = DefaultAutomationPolicy(c.policyContextFactory);
+  c.payoutPolicy = DefaultPayoutPolicy(c.policyContextFactory);
+  c.accessPolicy = DefaultAccessPolicy(c.policyContextFactory);
+  c.policyEngine = PolicyEngine(
+    automationPolicy: c.automationPolicy,
+    payoutPolicy: c.payoutPolicy,
+    accessPolicy: c.accessPolicy,
+  );
+
   // Log versión del catálogo
   // ignore: avoid_print
   print('[Catalog] version: ${c.catalogRepository.version}');

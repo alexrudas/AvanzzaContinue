@@ -31,7 +31,9 @@ import '../../domain/usecases/sign_up_username_password_uc.dart';
 import '../../domain/usecases/verify_mfa_uc.dart';
 import '../../presentation/auth/controllers/auth_controller.dart';
 import '../../presentation/auth/controllers/registration_controller.dart';
+import '../../presentation/location/controllers/location_controller.dart';
 import '../../services/telemetry/telemetry_service.dart';
+import '../di/container.dart';
 import '../startup/bootstrap.dart';
 
 class AppBindings extends Bindings {
@@ -144,6 +146,12 @@ class AppBindings extends Bindings {
           telemetry: Get.find(),
         ),
         permanent: true);
+
+    // Location controller
+    Get.lazyPut<LocationController>(
+      () => LocationController(DIContainer().geoRepository),
+      fenix: true,
+    );
 
     // Workspace controller
     Get.put<ScannerController>(
