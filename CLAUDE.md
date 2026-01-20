@@ -52,34 +52,186 @@ Eres **Claude**, el agente ejecutor en Visual Studio Code. Tu misión es transfo
 
 ---
 
-## ARQUITECTURA OBLIGATORIA: CLEAN ARCHITECTURE
+## GOBERNANZA DE ARQUITECTURA (NO NEGOCIABLE)
+
+### 1) ESTRUCTURA DE DIRECTORIOS (SOURCE OF TRUTH)
+
+**Este proyecto usa arquitectura LAYER-FIRST. Está PROHIBIDO crear carpetas bajo `lib/features/`.**
 
 ```
 lib/
-├── core/                    # Utilidades globales, temas, constantes
+├── core/                    # DI, utils, theme, constants, platform services
+│   ├── di/                 # DIContainer (singleton para repos/services)
 │   ├── theme/              # app_theme.dart, app_colors.dart, app_text_styles.dart
 │   ├── constants/          # app_constants.dart, app_routes.dart
-│   └── utils/              # Helpers, extensions, validators
+│   ├── utils/              # Helpers, extensions, validators
+│   └── platform/           # OfflineSyncService, DeviceInfo, etc.
 │
-├── features/                # Módulos por funcionalidad
-│   └── [feature_name]/
-│       ├── presentation/   # UI Layer
-│       │   ├── pages/      # Screens completas
-│       │   ├── widgets/    # Componentes reutilizables
-│       │   └── controllers/ # GetX Controllers (estado)
-│       │
-│       ├── domain/         # Business Logic Layer
-│       │   ├── entities/   # Modelos puros de negocio
-│       │   ├── repositories/ # Interfaces (contratos)
-│       │   └── usecases/   # Casos de uso (1 acción = 1 clase)
-│       │
-│       └── data/           # Data Layer
-│           ├── models/     # DTOs con serialización
-│           ├── repositories/ # Implementaciones
-│           └── datasources/ # Local (Isar) + Remote (Firebase)
+├── domain/                  # Business Logic Layer (agnóstico de framework)
+│   ├── entities/           # Modelos puros de negocio (freezed)
+│   └── repositories/       # Interfaces (contratos) - NO implementaciones
 │
+├── data/                    # Data Layer (implementaciones)
+│   ├── models/             # DTOs con serialización (JSON + Isar)
+│   ├── repositories/       # Implementaciones de contratos domain/
+│   └── datasources/        # Local (Isar) + Remote (Firebase)
+│
+├── presentation/            # UI Layer
+│   ├── pages/              # Screens completas
+│   ├── widgets/            # Componentes reutilizables
+│   ├── controllers/        # GetX Controllers (estado)
+│   └── common/             # Guards, middlewares
+│
+├── routes/                  # Navegación centralizada
 └── main.dart               # Entry point con bindings de GetX
 ```
+
+**Reglas de dependencia (Dependency Rule):**
+- ❌ **Presentation** NO debe importar **Data**
+- ✅ **Presentation** importa **Domain**
+- ✅ **Data** implementa contratos de **Domain**
+- ✅ Las capas internas no conocen las externas
+
+---
+
+### 2) DICCIONARIO DE OWNERSHIP & MULTI-TENANCY (Wire-stable)
+
+**Convención única para evitar ambigüedades semánticas:**
+
+| Campo | Definición estricta | Uso permitido | ❌ Uso prohibido |
+|-------|---------------------|---------------|------------------|
+| **orgId** | SaaS tenant / Organization (partición de datos) | Partition key Firestore/Isar, scoping global de queries | NO usar como "workspace" ni "tenant de arriendo" |
+| **workspaceId** | Contexto UX (workspace/rol del usuario) | Menús, permisos UI, filtros de navegación | NO usar como partition key de datos |
+| **tenantId** | Arrendatario/Inquilino (rental tenant) | SOLO en contratos de arrendamiento (leases, rental agreements) | NO usar para referirse a org/empresa |
+| **assetOwnerId** | Dueño patrimonial/legal del activo | Trazabilidad de propiedad, permisos de modificación | NO confundir con createdBy |
+| **createdById** | Auditoría de registro | Quién creó/registró la entidad en el sistema | NO usar para lógica de permisos |
+
+**Ejemplos correctos:**
+```dart
+// ✅ CORRECTO: Query con partición orgId
+final assets = await firestore
+  .collection('assets')
+  .where('orgId', isEqualTo: currentOrgId)
+  .get();
+
+// ✅ CORRECTO: Workspace para UX
+final workspace = user.activeContext.workspaceId; // 'admin_dashboard', 'propietario_panel'
+
+// ✅ CORRECTO: Tenant en contrato de arriendo
+final rentalContract = RentalContract(
+  assetId: 'asset-123',
+  tenantId: 'tenant-xyz',  // Persona/empresa que arrienda
+  tenantName: 'Juan Pérez',
+);
+
+// ❌ INCORRECTO: Usar tenantId para org
+final assets = await firestore
+  .collection('assets')
+  .where('tenantId', isEqualTo: companyId) // ← MAL, debe ser orgId
+  .get();
+```
+
+---
+
+### 3) PATRÓN DE DI (NO MEZCLAR)
+
+**Regla madre:** Controllers y bindings usan GetX. Repositorios y servicios usan DIContainer.
+
+#### ✅ Controllers (GetX):
+```dart
+// En AppBindings o bindings específicos
+class AppBindings extends Bindings {
+  @override
+  void dependencies() {
+    Get.lazyPut<ProductController>(() => ProductController());
+    Get.lazyPut<AuthController>(() => AuthController());
+  }
+}
+
+// En widgets
+final controller = Get.find<ProductController>();
+```
+
+#### ✅ Repositorios y Servicios (DIContainer):
+```dart
+class ProductController extends GetxController {
+  // ✅ CORRECTO: Repos desde DIContainer
+  final _productRepo = DIContainer().productRepository;
+  final _syncService = DIContainer().syncService;
+
+  // ❌ INCORRECTO: Get.find<Repository>()
+  // final _productRepo = Get.find<ProductRepository>(); // NO HACER ESTO
+}
+
+class ProductRepositoryImpl implements ProductRepository {
+  // ✅ CORRECTO: Servicios desde DIContainer
+  final _syncService = DIContainer().syncService;
+  final _localDs = DIContainer().productLocalDataSource;
+}
+```
+
+**Justificación:**
+- GetX es para estado reactivo y navegación
+- DIContainer es para inyección de dependencias arquitectónicas (repos, services, datasources)
+- Mezclarlos genera acoplamiento innecesario
+
+---
+
+### 4) PROTOCOLO OFFLINE-FIRST (SyncService central)
+
+**Lectura:** Isar first, luego sync en background
+**Escritura:** Local first + enqueue en SyncService
+
+#### Ejemplo de lectura:
+```dart
+Future<List<Entity>> getItems() async {
+  // 1. Leer local (Isar) primero
+  final localItems = await _localDataSource.getItems();
+
+  // 2. Si hay datos, retornar inmediatamente
+  if (localItems.isNotEmpty) {
+    // 3. Sincronizar en segundo plano (fire-and-forget)
+    _syncFromRemote();
+    return localItems;
+  }
+
+  // 4. Si no hay cache, consultar remoto y guardar
+  final remoteItems = await _remoteDataSource.getItems();
+  await _localDataSource.saveItems(remoteItems);
+  return remoteItems;
+}
+```
+
+#### Ejemplo de escritura (patrón obligatorio):
+```dart
+Future<void> saveItem(Entity item) async {
+  // 1. Guardar localmente PRIMERO (respuesta inmediata)
+  await _localDataSource.saveItem(item);
+
+  // 2. UI actualiza inmediatamente (optimistic update)
+
+  // 3. Encolar sincronización con remoto
+  DIContainer().syncService.enqueue(() async {
+    await _remoteDataSource.saveItem(item);
+  });
+}
+```
+
+**❌ Anti-pattern:** Reintentos manuales dispersos en controllers
+```dart
+// NO HACER ESTO:
+try {
+  await _remoteDataSource.saveItem(item);
+} catch (e) {
+  // Retry manual ← MAL, usar syncService.enqueue
+  await Future.delayed(Duration(seconds: 5));
+  await _remoteDataSource.saveItem(item);
+}
+```
+
+---
+
+## ARQUITECTURA OBLIGATORIA: CLEAN ARCHITECTURE (LAYER-FIRST)
 
 ### Reglas de dependencia (Dependency Rule)
 
@@ -90,50 +242,19 @@ lib/
 
 ---
 
-## PATRÓN OFFLINE-FIRST OBLIGATORIO
+## RESTRICCIONES CRÍTICAS ADICIONALES
 
-### Flujo estándar para operaciones de datos:
+Estas reglas complementan las restricciones arquitectónicas ya definidas en "GOBERNANZA DE ARQUITECTURA":
 
-```dart
-// 1. LECTURA (Read)
-Future<List<Entity>> getItems() async {
-  try {
-    // Paso 1: Consultar Isar (cache local)
-    final localItems = await _localDataSource.getItems();
+- ❌ **NO usar `tenantId` para referirse a org/empresa**; usar `orgId`
+- ❌ **NO crear `lib/features/`** si es layer-first (este repo)
+- ❌ **NO usar `Get.put(Repository)` / `Get.find<Repository>()`**; usar `DIContainer()`
+- ❌ **NO reintentos manuales** en controllers; usar `DIContainer().syncService.enqueue()`
+- ✅ **Repos/services SOLO desde `DIContainer()`**
+- ✅ **Controllers SOLO desde `Get.put()` / `Get.lazyPut()` en bindings**
+- ✅ **Escrituras SIEMPRE** via `syncService.enqueue()` para garantizar persistencia offline
 
-    // Paso 2: Si hay datos locales, retornarlos inmediatamente
-    if (localItems.isNotEmpty) {
-      // Paso 3: Sincronizar en segundo plano (fire-and-forget)
-      _syncFromRemote();
-      return localItems;
-    }
-
-    // Paso 4: Si no hay cache, consultar remoto y guardar
-    final remoteItems = await _remoteDataSource.getItems();
-    await _localDataSource.saveItems(remoteItems);
-    return remoteItems;
-  } catch (e) {
-    // Manejo de errores con GetX Snackbar o logging
-    throw DataException(e.toString());
-  }
-}
-
-// 2. ESCRITURA (Create/Update)
-Future<void> saveItem(Entity item) async {
-  // Paso 1: Guardar localmente PRIMERO (respuesta inmediata)
-  await _localDataSource.saveItem(item);
-
-  // Paso 2: Actualizar UI inmediatamente (optimistic update)
-
-  // Paso 3: Sincronizar con remoto (con retry en caso de fallo)
-  try {
-    await _remoteDataSource.saveItem(item);
-  } catch (e) {
-    // Marcar como pendiente de sincronización
-    await _localDataSource.markAsPendingSync(item.id);
-  }
-}
-```
+---
 
 ### Listeners de Firestore para sync en tiempo real:
 

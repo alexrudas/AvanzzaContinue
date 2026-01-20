@@ -6,9 +6,26 @@
 
 ---
 
+## ⚠️ CLARIFICACIÓN TERMINOLÓGICA (NO NEGOCIABLE)
+
+**workspaceId vs orgId - Diferencias críticas:**
+
+| Campo | Definición | Scope | Ejemplo |
+|-------|------------|-------|---------|
+| **workspaceId** | Contexto UX (workspace/rol) | Menús, navegación, permisos UI | `'admin_dashboard'`, `'propietario_panel'` |
+| **orgId** | Partición multi-tenant (SaaS organization) | Partition key Firestore/Isar, scoping de datos | `'org-empresa-123'`, `'org-abc-456'` |
+
+**En este documento:**
+- **"workspace"** = contexto UX del usuario (rol, permisos, menús)
+- **"organización activa" / "org"** = entidad SaaS multi-tenant (orgId)
+
+**NO confundir:** Un usuario puede tener múltiples workspaces (roles) dentro de una misma org.
+
+---
+
 ## 📋 Resumen
 
-Implementación del **modo "añadir workspace"** que permite a usuarios autenticados agregar nuevos roles/workspaces a su organización activa sin crear una nueva cuenta o perder su sesión. También soporta fusión de workspaces durante el proceso de registro para usuarios no autenticados.
+Implementación del **modo "añadir workspace"** que permite a usuarios autenticados agregar nuevos roles/workspaces (contextos UX) a su organización activa (orgId) sin crear una nueva cuenta o perder su sesión. También soporta fusión de workspaces durante el proceso de registro para usuarios no autenticados.
 
 ---
 

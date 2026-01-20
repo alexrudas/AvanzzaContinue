@@ -6,10 +6,22 @@
 
 ---
 
+## ⚠️ CONVENCIÓN DE SCOPING (NO NEGOCIABLE)
+
+**Antes de continuar con el análisis, aclaración crítica de nomenclatura:**
+
+- **`orgId`**: Partition key multi-tenant (SaaS organization). Usado en queries Firestore como scope principal.
+- **`workspaceId`**: Contexto UX (workspace/rol del usuario). NO es partition key de datos.
+- **`tenantId`**: Arrendatario/inquilino (rental tenant). SOLO en contratos de arrendamiento (rental agreements).
+
+**Todas las referencias en este documento a "particionamiento multi-tenant" usan `orgId`.**
+
+---
+
 ## 📊 Resumen Ejecutivo
 
 ### ✅ Fortalezas Identificadas
-- **Particionamiento por `orgId`**: Excelente estrategia multi-tenant
+- **Particionamiento por `orgId`**: Excelente estrategia multi-tenant (SaaS organization)
 - **Arquitectura offline-first**: Reduce costos de lectura
 - **Colecciones flat (no anidadas)**: Facilita queries y costos predecibles
 - **Uso de índices compuestos**: Queries con múltiples where
