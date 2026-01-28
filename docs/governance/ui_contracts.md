@@ -13,7 +13,7 @@
 > - DOMAIN_CONTRACTS.md (v1.1.1)
 >   **APLICA A:** Humanos e IA
 
----
+--
 
 ## 1. PROPÓSITO Y ALCANCE
 
