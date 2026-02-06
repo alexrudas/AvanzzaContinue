@@ -116,10 +116,12 @@ class ExpenseFormController extends GetxController {
   String? validate() {
     if (destinatario.value.trim().isEmpty) return 'Falta el destinatario.';
     if (centroCosto.value.trim().isEmpty) return 'Falta el centro de costo.';
-    if (items.any((e) => e.concepto.trim().isEmpty))
+    if (items.any((e) => e.concepto.trim().isEmpty)) {
       return 'Hay ítems sin concepto.';
-    if (items.any((e) => e.vrUnit <= 0 || e.cantidad <= 0))
+    }
+    if (items.any((e) => e.vrUnit <= 0 || e.cantidad <= 0)) {
       return 'Ítems con valores/cantidades inválidos.';
+    }
     if (totalItems <= 0) return 'El total del gasto debe ser mayor a 0.';
     if (diferencia != 0 && !marcarComoCxP.value) {
       return 'El total de pagos no coincide. Marca diferencia como CxP o ajusta montos.';
@@ -474,7 +476,7 @@ class ExpenseFormPage extends StatelessWidget {
 // ========================= MODERN WIDGETS ====================================
 
 class ModernSection extends StatelessWidget {
-  const ModernSection({
+  const ModernSection({super.key, 
     required this.title,
     required this.child,
     this.trailing,
@@ -1266,7 +1268,7 @@ class _ModernPagoCard extends StatelessWidget {
 }
 
 class ModernAddButton extends StatelessWidget {
-  const ModernAddButton({
+  const ModernAddButton({super.key, 
     required this.label,
     required this.icon,
     required this.onPressed,
@@ -1354,7 +1356,7 @@ class _ModernSwitch extends StatelessWidget {
 }
 
 class ModernCheckbox extends StatelessWidget {
-  const ModernCheckbox({required this.label, required this.value});
+  const ModernCheckbox({super.key, required this.label, required this.value});
 
   final String label;
   final RxBool value;
@@ -1423,7 +1425,7 @@ class ModernCheckbox extends StatelessWidget {
 }
 
 class BalanceCard extends StatelessWidget {
-  const BalanceCard({
+  const BalanceCard({super.key, 
     required this.label,
     required this.amount,
     required this.isBalanced,
@@ -1493,7 +1495,7 @@ class BalanceCard extends StatelessWidget {
 }
 
 class ModernSubmitButton extends StatelessWidget {
-  const ModernSubmitButton({required this.onPressed});
+  const ModernSubmitButton({super.key, required this.onPressed});
   final VoidCallback onPressed;
 
   @override

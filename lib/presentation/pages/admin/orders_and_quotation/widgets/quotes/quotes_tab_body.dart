@@ -33,15 +33,15 @@ class QuotesTabBody extends StatelessWidget {
               'Buje puño tijera izquierda',
             ],
             stores: [
-              const StoreReply(
+              StoreReply(
                   name: 'Autokorea',
                   status: StoreStatus.pending,
                   delivery: DeliveryType.home),
-              const StoreReply(
+              StoreReply(
                   name: 'RepuCar',
                   status: StoreStatus.pending,
                   delivery: DeliveryType.pickup),
-              const StoreReply(
+              StoreReply(
                   name: 'PartesYa',
                   status: StoreStatus.answered,
                   delivery: DeliveryType.home,
@@ -62,19 +62,19 @@ class QuotesTabBody extends StatelessWidget {
               'Amortiguador delantero derecho',
             ],
             stores: [
-              const StoreReply(
+              StoreReply(
                   name: 'AutoMax',
                   status: StoreStatus.answered,
                   delivery: DeliveryType.home,
                   price: 450000,
                   etaDays: 1),
-              const StoreReply(
+              StoreReply(
                   name: 'RepuCenter',
                   status: StoreStatus.answered,
                   delivery: DeliveryType.pickup,
                   price: 470000,
                   etaDays: 3),
-              const StoreReply(
+              StoreReply(
                   name: 'PartesYa',
                   status: StoreStatus.pending,
                   delivery: DeliveryType.home),

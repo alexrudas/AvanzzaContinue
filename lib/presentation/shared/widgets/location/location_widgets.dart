@@ -7,6 +7,7 @@
 /// ```dart
 /// import 'package:avanzza/presentation/shared/widgets/location/location_widgets.dart';
 /// ```
+library;
 
 export 'city_selector_field.dart';
 export 'country_selector_field.dart';

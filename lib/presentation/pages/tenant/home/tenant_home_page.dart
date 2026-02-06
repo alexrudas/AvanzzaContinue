@@ -194,7 +194,8 @@ class Analytics {
   }
 }
 
-class Routes {
+// TODO: Migrar estas rutas a app_routes.dart cuando se implementen las pantallas
+class _TenantRoutes {
   static const paymentsPending = '/payments/pending';
   static const picoPlacaCalendar = '/traffic/restrictions';
   static const tasksAll = '/tasks';
@@ -451,19 +452,19 @@ class TenantHomeController extends GetxController {
   void goToPayment() {
     HapticFeedback.mediumImpact();
     Analytics.track('urgent_payment_tap');
-    Get.toNamed(Routes.paymentsPending);
+    Get.toNamed(_TenantRoutes.paymentsPending);
   }
 
   void goToNotifications() {
     HapticFeedback.lightImpact();
     Analytics.track('notifications_tap');
-    Get.toNamed(Routes.notifications);
+    Get.toNamed(_TenantRoutes.notifications);
   }
 
   void goToProfile() {
     HapticFeedback.lightImpact();
     Analytics.track('profile_tap');
-    Get.toNamed(Routes.profile);
+    Get.toNamed(_TenantRoutes.profile);
   }
 
   void onTaskTap(TaskVM task) {
@@ -485,55 +486,55 @@ class TenantHomeController extends GetxController {
   void openCai() {
     HapticFeedback.mediumImpact();
     Analytics.track('emergency_cai');
-    Get.toNamed(Routes.emergencyCai);
+    Get.toNamed(_TenantRoutes.emergencyCai);
   }
 
   void callAmbulance() {
     HapticFeedback.mediumImpact();
     Analytics.track('emergency_ambulance');
-    Get.toNamed(Routes.emergencyAmbulance);
+    Get.toNamed(_TenantRoutes.emergencyAmbulance);
   }
 
   void callFirefighters() {
     HapticFeedback.mediumImpact();
     Analytics.track('emergency_firefighters');
-    Get.toNamed(Routes.emergencyFirefighters);
+    Get.toNamed(_TenantRoutes.emergencyFirefighters);
   }
 
   void requestTow() {
     HapticFeedback.mediumImpact();
     Analytics.track('emergency_tow');
-    Get.toNamed(Routes.emergencyTow);
+    Get.toNamed(_TenantRoutes.emergencyTow);
   }
 
   void openAccidentGuide() {
     HapticFeedback.lightImpact();
     Analytics.track('accident_guide');
-    Get.toNamed(Routes.accidentGuide);
+    Get.toNamed(_TenantRoutes.accidentGuide);
   }
 
   void registerCallInsurance() {
     HapticFeedback.lightImpact();
     Analytics.track('accident_guide');
-    Get.toNamed(Routes.callInsurance);
+    Get.toNamed(_TenantRoutes.callInsurance);
   }
 
   void openLegalHelp() {
     HapticFeedback.lightImpact();
     Analytics.track('accident_guide');
-    Get.toNamed(Routes.legalHelp);
+    Get.toNamed(_TenantRoutes.legalHelp);
   }
 
   void openTechHelp() {
     HapticFeedback.lightImpact();
     Analytics.track('tech_help');
-    Get.toNamed(Routes.techHelp);
+    Get.toNamed(_TenantRoutes.techHelp);
   }
 
   void openOnlineAssistance() {
     HapticFeedback.lightImpact();
     Analytics.track('online_assistance');
-    Get.toNamed(Routes.onlineAssistance);
+    Get.toNamed(_TenantRoutes.onlineAssistance);
   }
 }
 
@@ -1437,7 +1438,7 @@ class TenantHomePage extends GetView<TenantHomeController> {
             TextButton(
               onPressed: () {
                 Analytics.track('view_all_rentals');
-                Get.toNamed(Routes.rentalsAll);
+                Get.toNamed(_TenantRoutes.rentalsAll);
               },
               child: Text(
                 'Ver todos',

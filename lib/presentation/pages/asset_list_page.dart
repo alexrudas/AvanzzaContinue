@@ -1,3 +1,4 @@
+import 'package:avanzza/domain/entities/asset/asset_content.dart';
 import 'package:avanzza/domain/shared/enums/asset_type.dart';
 import 'package:avanzza/presentation/widgets/selectors/asset_type_selector.dart';
 import 'package:avanzza/routes/app_pages.dart';
@@ -42,7 +43,7 @@ class AssetListPage extends StatelessWidget {
           itemBuilder: (_, i) {
             final a = items[i];
             return ListTile(
-              title: Text(a.assetType),
+              title: Text(a.content.typeDiscriminator),
               subtitle: Text(a.id),
             );
           },

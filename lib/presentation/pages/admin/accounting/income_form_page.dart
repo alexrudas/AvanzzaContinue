@@ -91,7 +91,8 @@ class IncomeFormController extends GetxController {
   final consecutivo = 'ING-${DateTime.now().year}-00001'.obs;
   final assetType = AssetType.vehiculo.obs; // Tipo de activo arrendado
   final centroCosto = ''.obs; // Centro de Ingreso
-  final incomeType = IncomeType.arriendoTiempo.obs; // Actualizado: revenueType -> incomeType
+  final incomeType =
+      IncomeType.arriendoTiempo.obs; // Actualizado: revenueType -> incomeType
 
   // Cliente
   final cliente = ''.obs;
@@ -120,7 +121,7 @@ class IncomeFormController extends GetxController {
 
   double get totalIVA => items.fold<double>(
       0, (s, e) => s + (e.gravaIVA ? e.total * 0.19 : 0)); // Suponemos 19%
-  
+
   // Actualizado: totalRevenue -> totalIncome
   double get totalIncome => totalItems + totalIVA;
 
@@ -136,8 +137,8 @@ class IncomeFormController extends GetxController {
     update();
   }
 
-  double get totalRecaudos => recaudos.fold<double>(
-      0, (s, p) => s + (p.monto.isFinite ? p.monto : 0));
+  double get totalRecaudos =>
+      recaudos.fold<double>(0, (s, p) => s + (p.monto.isFinite ? p.monto : 0));
 
   // Actualizado: totalRevenue -> totalIncome
   double get diferencia => (totalIncome - totalRecaudos);
@@ -146,13 +147,16 @@ class IncomeFormController extends GetxController {
   String? validate() {
     if (cliente.value.trim().isEmpty) return 'Falta el nombre del cliente.';
     if (centroCosto.value.trim().isEmpty) return 'Falta el centro de ingreso.';
-    if (items.any((e) => e.concepto.trim().isEmpty))
+    if (items.any((e) => e.concepto.trim().isEmpty)) {
       return 'Hay ítems sin concepto.';
-    if (items.any((e) => e.vrUnit <= 0 || e.cantidad <= 0))
+    }
+    if (items.any((e) => e.vrUnit <= 0 || e.cantidad <= 0)) {
       return 'Ítems con valores/cantidades inválidos.';
+    }
     // Actualizado: totalRevenue -> totalIncome
-    if (totalIncome <= 0)
+    if (totalIncome <= 0) {
       return 'El total del ingreso (incl. IVA) debe ser mayor a 0.';
+    }
     if (diferencia != 0 && !marcarComoCxC.value) {
       return 'El total de recaudos no coincide. Marca diferencia como CxC o ajusta montos.';
     }
@@ -365,7 +369,7 @@ class IncomeFormPage extends StatelessWidget {
                       // 2. Detalle de Ingreso y Totales
                       // Actualizado: Título
                       _ModernSection(
-                        title: '💰 Valor Recibido', 
+                        title: '💰 Valor Recibido',
                         trailing: Obx(() {
                           final touch = c.items.length;
                           return Container(
@@ -375,13 +379,16 @@ class IncomeFormPage extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(horizontal: 14),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [Color(0xFF10B981), Color(0xFF059669)], // Verde
+                                colors: [
+                                  Color(0xFF10B981),
+                                  Color(0xFF059669)
+                                ], // Verde
                               ),
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF10B981)
-                                      .withOpacity(0.3),
+                                  color:
+                                      const Color(0xFF10B981).withOpacity(0.3),
                                   blurRadius: 15,
                                   offset: const Offset(0, 5),
                                 ),
@@ -522,11 +529,13 @@ class IncomeFormPage extends StatelessWidget {
                               return Column(
                                 children: [
                                   _BalanceCard(
-                                    label:
-                                        diff > 0 ? 'Por Cobrar (CxC)' : 'Excedente (Error)',
+                                    label: diff > 0
+                                        ? 'Por Cobrar (CxC)'
+                                        : 'Excedente (Error)',
                                     amount: diff.abs(),
                                     isBalanced: false,
-                                    isRevenue: true, // Color para Ingreso (Azul)
+                                    isRevenue:
+                                        true, // Color para Ingreso (Azul)
                                   ),
                                   const SizedBox(height: 12),
                                   _ModernCheckbox(
@@ -634,12 +643,13 @@ class _ModernSection extends StatelessWidget {
 // Reutilizamos _ModernTextField
 class _ModernTextField extends StatelessWidget {
   const _ModernTextField({
+    super.key,
     required this.label,
     required this.hint,
     required this.value,
     required this.icon,
     this.keyboardType,
-    this.initialValue,
+    this.initialValue, // ✅ FIX
   });
 
   final String label;
@@ -651,7 +661,6 @@ class _ModernTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Código de _ModernTextField del formulario de gastos (se mantiene igual)
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -680,8 +689,10 @@ class _ModernTextField extends StatelessWidget {
                   initialValue: initialValue ?? value.value,
                   keyboardType: keyboardType,
                   onChanged: (v) => value.value = v,
-                  style:
-                      const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     hintText: hint,
@@ -839,7 +850,8 @@ class _ModernSelectAssetType extends StatelessWidget {
 // Actualizado: Selector de Tipo de Ingreso
 class _ModernSelectIncomeType extends StatelessWidget {
   const _ModernSelectIncomeType({required this.c});
-  final IncomeFormController c; // Actualizado: RevenueFormController -> IncomeFormController
+  final IncomeFormController
+      c; // Actualizado: RevenueFormController -> IncomeFormController
 
   @override
   Widget build(BuildContext context) {
@@ -865,11 +877,11 @@ class _ModernSelectIncomeType extends StatelessWidget {
               child: DropdownButtonHideUnderline(
                 // Actualizado: RevenueType -> IncomeType
                 child: DropdownButton2<IncomeType>(
-                  value: c.incomeType.value, // Actualizado: revenueType -> incomeType
+                  value: c.incomeType
+                      .value, // Actualizado: revenueType -> incomeType
                   isExpanded: true,
                   iconStyleData: const IconStyleData(
-                    icon:
-                        Icon(Icons.arrow_drop_down, color: Color(0xFF9CA3AF)),
+                    icon: Icon(Icons.arrow_drop_down, color: Color(0xFF9CA3AF)),
                   ),
                   style: const TextStyle(
                     fontSize: 15,
@@ -880,12 +892,13 @@ class _ModernSelectIncomeType extends StatelessWidget {
                   items: IncomeType.values
                       .map((t) => DropdownMenuItem<IncomeType>(
                             value: t,
-                            child: Text(_incomeTypeLabel(t)), // Actualizado: _revenueTypeLabel -> _incomeTypeLabel
+                            child: Text(_incomeTypeLabel(
+                                t)), // Actualizado: _revenueTypeLabel -> _incomeTypeLabel
                           ))
                       .toList(),
                   onChanged: (v) {
                     // Actualizado: incomeType -> incomeType
-                    if (v != null) c.incomeType.value = v; 
+                    if (v != null) c.incomeType.value = v;
                   },
                 ),
               ),
@@ -893,7 +906,7 @@ class _ModernSelectIncomeType extends StatelessWidget {
       ],
     );
   }
-  
+
   // Actualizado: _revenueTypeLabel -> _incomeTypeLabel
   static String _incomeTypeLabel(IncomeType t) {
     switch (t) {
@@ -997,8 +1010,8 @@ class _RentalSpecificFields extends StatelessWidget {
                     value: c.rentalDetails.value.rentalTimeType,
                     isExpanded: true,
                     iconStyleData: const IconStyleData(
-                      icon: Icon(Icons.arrow_drop_down,
-                          color: Color(0xFF9CA3AF)),
+                      icon:
+                          Icon(Icons.arrow_drop_down, color: Color(0xFF9CA3AF)),
                     ),
                     style: const TextStyle(
                       fontSize: 15,
@@ -1063,7 +1076,7 @@ class _RentalSpecificFields extends StatelessWidget {
               : const SizedBox.shrink()),
         ],
       );
-    // Actualizado: RevenueType -> IncomeType
+      // Actualizado: RevenueType -> IncomeType
     } else if (c.incomeType.value == IncomeType.arriendoTrayecto) {
       return Column(
         children: [
@@ -1199,12 +1212,13 @@ class _ModernDateField extends StatelessWidget {
 class _ModernIncomeItemCard extends StatelessWidget {
   const _ModernIncomeItemCard({required this.index, required this.c});
   final int index;
-  final IncomeFormController c; // Actualizado: RevenueFormController -> IncomeFormController
+  final IncomeFormController
+      c; // Actualizado: RevenueFormController -> IncomeFormController
 
   @override
   Widget build(BuildContext context) {
     // Reemplazamos c.items.elementAt(index) para evitar la copia y permitir la modificación
-    final item = c.items[index]; 
+    final item = c.items[index];
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1230,7 +1244,8 @@ class _ModernIncomeItemCard extends StatelessWidget {
               ),
               if (c.items.length > 1)
                 IconButton(
-                  icon: const Icon(Icons.close, color: Color(0xFFEF4444), size: 20),
+                  icon: const Icon(Icons.close,
+                      color: Color(0xFFEF4444), size: 20),
                   onPressed: () => c.removeItem(index),
                 ),
             ],
@@ -1246,7 +1261,8 @@ class _ModernIncomeItemCard extends StatelessWidget {
             decoration: InputDecoration(
               labelText: 'Concepto (Ej. Arriendo Retroexcavadora)',
               labelStyle: const TextStyle(fontSize: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               isDense: true,
             ),
           ),
@@ -1259,7 +1275,8 @@ class _ModernIncomeItemCard extends StatelessWidget {
                   initialValue: item.vrUnit > 0 ? item.vrUnit.toString() : '',
                   keyboardType: TextInputType.number,
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                    FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d+\.?\d{0,2}')),
                   ],
                   onChanged: (v) {
                     item.vrUnit = double.tryParse(v) ?? 0;
@@ -1268,7 +1285,8 @@ class _ModernIncomeItemCard extends StatelessWidget {
                   decoration: InputDecoration(
                     labelText: 'Valor Unitario (\$)',
                     labelStyle: const TextStyle(fontSize: 14),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
                     isDense: true,
                   ),
                 ),
@@ -1289,7 +1307,8 @@ class _ModernIncomeItemCard extends StatelessWidget {
                   decoration: InputDecoration(
                     labelText: 'Cantidad',
                     labelStyle: const TextStyle(fontSize: 14),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
                     isDense: true,
                   ),
                 ),
@@ -1331,11 +1350,11 @@ class _ModernIncomeItemCard extends StatelessWidget {
   }
 }
 
-
 // Actualizado: Resumen de Ingreso
 class _IncomeSummary extends StatelessWidget {
   const _IncomeSummary({required this.c});
-  final IncomeFormController c; // Actualizado: RevenueFormController -> IncomeFormController
+  final IncomeFormController
+      c; // Actualizado: RevenueFormController -> IncomeFormController
 
   @override
   Widget build(BuildContext context) {
@@ -1355,7 +1374,7 @@ class _IncomeSummary extends StatelessWidget {
             const Divider(height: 20, thickness: 1, color: Color(0xFFE5E7EB)),
             _SummaryRow(
               // Actualizado: Total Ingreso -> Valor Total
-              label: 'Valor Total', 
+              label: 'Valor Total',
               amount: c.totalIncome, // Actualizado: totalRevenue -> totalIncome
               isTotal: true,
             ),
@@ -1412,7 +1431,7 @@ class _ModernRecaudoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // ... Código de _ModernRecaudoCard (se mantiene igual, solo usa el nuevo controlador)
     final recaudo = c.recaudos[index];
-    
+
     // El resto del widget de recaudo se mantiene igual usando el objeto `recaudo`
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1432,7 +1451,8 @@ class _ModernRecaudoCard extends StatelessWidget {
                       fontWeight: FontWeight.w700, color: Color(0xFF1F2937))),
               if (c.recaudos.length > 1)
                 IconButton(
-                  icon: const Icon(Icons.close, color: Color(0xFFEF4444), size: 20),
+                  icon: const Icon(Icons.close,
+                      color: Color(0xFFEF4444), size: 20),
                   onPressed: () => c.removeRecaudo(index),
                 ),
             ],
@@ -1474,7 +1494,8 @@ class _ModernRecaudoCard extends StatelessWidget {
               labelText: 'Monto Recibido (\$)',
               prefixText: '\$',
               labelStyle: const TextStyle(fontSize: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               isDense: true,
             ),
           ),
@@ -1491,7 +1512,8 @@ class _ModernRecaudoCard extends StatelessWidget {
                     labelText: 'Banco',
                     hintText: 'Ej. Bancolombia',
                     labelStyle: const TextStyle(fontSize: 14),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
                     isDense: true,
                   ),
                 ),
@@ -1502,7 +1524,8 @@ class _ModernRecaudoCard extends StatelessWidget {
                   decoration: InputDecoration(
                     labelText: 'Referencia / No. Transacción',
                     labelStyle: const TextStyle(fontSize: 14),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
                     isDense: true,
                   ),
                 ),
@@ -1519,7 +1542,8 @@ class _ModernRecaudoCard extends StatelessWidget {
                     labelText: 'Nota del Otro Recaudo',
                     hintText: 'Ej. Criptomoneda, Activo canjeado',
                     labelStyle: const TextStyle(fontSize: 14),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
                     isDense: true,
                   ),
                 ),
@@ -1651,7 +1675,6 @@ class _ModernCheckbox extends StatelessWidget {
     );
   }
 }
-
 
 // Reutilizamos _ModernSubmitButton
 // Actualizado: RevenueFormController -> IncomeFormController

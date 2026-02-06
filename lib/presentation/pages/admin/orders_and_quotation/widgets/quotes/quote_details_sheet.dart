@@ -1,7 +1,6 @@
 /// Modal con el detalle completo de una cotización.
 library;
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'quote_request_card.dart';

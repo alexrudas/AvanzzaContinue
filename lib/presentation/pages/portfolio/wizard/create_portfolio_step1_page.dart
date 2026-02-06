@@ -3,12 +3,19 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../../../domain/entities/portfolio/portfolio_entity.dart';
+import '../../../../domain/shared/enums/asset_type.dart';
+import '../../../../routes/app_routes.dart';
 import '../controllers/create_portfolio_controller.dart';
 
-/// Wizard Paso 1: Crear Portafolio
-/// Campos obligatorios:
-/// - portfolioType (VEHICULOS | INMUEBLES)
-/// - portfolioName
+/// Wizard Paso 1: Registrar Activo (crea portafolio internamente)
+///
+/// Recibe obligatoriamente `preselectedAssetType` desde ActionSheet.
+/// El tipo de activo determina automáticamente el PortfolioType.
+/// El usuario NO debe sentir que "crea un portafolio".
+///
+/// Campos:
+/// - assetType (readonly, viene preseleccionado)
+/// - portfolioName (sugerido automáticamente)
 /// - country
 /// - city
 ///
@@ -16,11 +23,11 @@ import '../controllers/create_portfolio_controller.dart';
 /// - Controller crea portafolio con status = DRAFT y assetsCount = 0
 /// - Navega a Paso 2 (agregar primer activo)
 class CreatePortfolioStep1Page extends StatefulWidget {
-  final PortfolioType? preselectedType;
+  final AssetType? preselectedAssetType;
 
   const CreatePortfolioStep1Page({
     super.key,
-    this.preselectedType,
+    this.preselectedAssetType,
   });
 
   @override
@@ -32,18 +39,28 @@ class _CreatePortfolioStep1PageState extends State<CreatePortfolioStep1Page> {
   final _formKey = GlobalKey<FormState>();
   final _controller = Get.put(CreatePortfolioController());
 
-  PortfolioType? _selectedType;
+  late AssetType _assetType;
+  late PortfolioType _portfolioType;
   final _nameController = TextEditingController();
   String? _selectedCountryId;
   String? _selectedCityId;
 
+  /// True si el tipo viene preseleccionado (readonly)
+  bool get _isTypePreselected => widget.preselectedAssetType != null;
+
   @override
   void initState() {
     super.initState();
-    // Preseleccionar tipo si viene del parámetro
-    if (widget.preselectedType != null) {
-      _selectedType = widget.preselectedType;
-    }
+
+    // Usar tipo preseleccionado o default a vehículo
+    _assetType = widget.preselectedAssetType ?? AssetType.vehiculo;
+    _portfolioType = _assetType.portfolioType;
+
+    // CRÍTICO: Persistir assetType en controller para Step2
+    _controller.selectedAssetType.value = _assetType;
+
+    // Pre-rellenar nombre sugerido
+    _nameController.text = _assetType.suggestedPortfolioName;
   }
 
   @override
@@ -53,7 +70,6 @@ class _CreatePortfolioStep1PageState extends State<CreatePortfolioStep1Page> {
   }
 
   bool get _canContinue =>
-      _selectedType != null &&
       _nameController.text.isNotEmpty &&
       _selectedCountryId != null &&
       _selectedCityId != null;
@@ -64,42 +80,46 @@ class _CreatePortfolioStep1PageState extends State<CreatePortfolioStep1Page> {
 
     HapticFeedback.lightImpact();
 
-    // UI solo envía params al controller
-    // Controller crea PortfolioEntity y maneja repo
-    await _controller.createPortfolioStep1(
-      portfolioType: _selectedType!,
-      portfolioName: _nameController.text.trim(),
-      countryId: _selectedCountryId!,
-      cityId: _selectedCityId!,
-    );
-
-    // TODO: Navegar a Step 2 con portfolioId real
-    // Get.to(() => CreatePortfolioStep2Page(portfolioId: _controller.portfolioId));
-
-    // PLACEHOLDER: Snackbar temporal
-    if (mounted) {
-      Get.snackbar(
-        'Paso 1 Completado',
-        'Portafolio creado. Ir a Paso 2 para agregar primer activo.',
-        snackPosition: SnackPosition.BOTTOM,
+    try {
+      // UI solo envía params al controller
+      // Controller crea PortfolioEntity y maneja repo
+      await _controller.createPortfolioStep1(
+        portfolioType: _portfolioType,
+        portfolioName: _nameController.text.trim(),
+        countryId: _selectedCountryId!,
+        cityId: _selectedCityId!,
       );
+
+      // Navegar a Step 2 (controller ya tiene portfolioId)
+      if (mounted) {
+        Get.toNamed(Routes.createPortfolioStep2);
+      }
+    } catch (e) {
+      if (mounted) {
+        Get.snackbar(
+          'Error',
+          'No se pudo continuar: $e',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Crear Portafolio'),
+            const Text('Registrar activo'),
             Text(
               'Paso 1 de 2',
               style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+                color: cs.onSurfaceVariant,
               ),
             ),
           ],
@@ -119,55 +139,32 @@ class _CreatePortfolioStep1PageState extends State<CreatePortfolioStep1Page> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Comienza creando tu portafolio. Luego agregarás tu primer activo.',
+              'Se creará un portafolio para organizar tus activos.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+                color: cs.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 24),
 
-            // Tipo de Portafolio
+            // Tipo de Activo (readonly si viene preseleccionado)
             Text(
-              'Tipo de portafolio *',
+              'Tipo de activo',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 12,
-              children: [
-                ChoiceChip(
-                  label: const Text('Vehículos'),
-                  selected: _selectedType == PortfolioType.vehiculos,
-                  onSelected: (selected) {
-                    setState(() {
-                      _selectedType = selected ? PortfolioType.vehiculos : null;
-                    });
-                    HapticFeedback.selectionClick();
-                  },
-                ),
-                ChoiceChip(
-                  label: const Text('Inmuebles'),
-                  selected: _selectedType == PortfolioType.inmuebles,
-                  onSelected: (selected) {
-                    setState(() {
-                      _selectedType = selected ? PortfolioType.inmuebles : null;
-                    });
-                    HapticFeedback.selectionClick();
-                  },
-                ),
-              ],
-            ),
+            _buildAssetTypeDisplay(theme, cs),
             const SizedBox(height: 24),
 
             // Nombre del Portafolio
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Nombre del portafolio *',
-                hintText: 'Ej: Mi Flota de Vehículos',
-                border: OutlineInputBorder(),
+                hintText: _assetType.suggestedPortfolioName,
+                border: const OutlineInputBorder(),
+                helperText: 'Puedes personalizarlo como desees',
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -179,13 +176,11 @@ class _CreatePortfolioStep1PageState extends State<CreatePortfolioStep1Page> {
             ),
             const SizedBox(height: 24),
 
-            // País - TODO: Usar selector real (Country Selector)
-            // MOCK temporal con dropdown hardcoded
+            // País
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(
                 labelText: 'País *',
                 border: OutlineInputBorder(),
-                helperText: 'TODO: Usar selector real de países',
               ),
               value: _selectedCountryId,
               items: const [
@@ -205,13 +200,11 @@ class _CreatePortfolioStep1PageState extends State<CreatePortfolioStep1Page> {
             ),
             const SizedBox(height: 20),
 
-            // Ciudad - TODO: Usar selector real (City Selector)
-            // MOCK temporal con dropdown hardcoded
+            // Ciudad
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(
                 labelText: 'Ciudad *',
                 border: OutlineInputBorder(),
-                helperText: 'TODO: Usar selector real de ciudades',
               ),
               value: _selectedCityId,
               items: _selectedCountryId == 'CO'
@@ -255,6 +248,74 @@ class _CreatePortfolioStep1PageState extends State<CreatePortfolioStep1Page> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Muestra el tipo de activo seleccionado.
+  /// Si viene preseleccionado: chip único readonly (disabled).
+  /// Si NO viene preseleccionado: selector interactivo.
+  Widget _buildAssetTypeDisplay(ThemeData theme, ColorScheme cs) {
+    if (_isTypePreselected) {
+      // READONLY: Chip único, no interactivo
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: cs.outline.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _assetType.icon,
+              color: cs.primary,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _assetType.displayName,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.lock_outline,
+              color: cs.onSurfaceVariant,
+              size: 16,
+            ),
+          ],
+        ),
+      );
+    }
+
+    // INTERACTIVO: Permite selección (caso raro, no debería ocurrir)
+    return Wrap(
+      spacing: 12,
+      children: AssetType.values.map((type) {
+        final isSelected = _assetType == type;
+        return ChoiceChip(
+          label: Text(type.displayName),
+          avatar: Icon(type.icon, size: 18),
+          selected: isSelected,
+          onSelected: (selected) {
+            if (selected) {
+              setState(() {
+                _assetType = type;
+                _portfolioType = type.portfolioType;
+                // Actualizar nombre sugerido si no fue modificado
+                if (_nameController.text == _assetType.suggestedPortfolioName ||
+                    _nameController.text.isEmpty) {
+                  _nameController.text = type.suggestedPortfolioName;
+                }
+              });
+              HapticFeedback.selectionClick();
+            }
+          },
+        );
+      }).toList(),
     );
   }
 }

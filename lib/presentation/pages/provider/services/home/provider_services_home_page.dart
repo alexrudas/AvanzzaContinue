@@ -14,8 +14,9 @@ class ProviderServicesHomePage extends StatelessWidget {
     final controller = Get.put(ProviderServicesHomeController());
     return Obx(() {
       if (controller.loading.value) return const LoadingState();
-      if (controller.error.value != null)
+      if (controller.error.value != null) {
         return ErrorState(message: controller.error.value!);
+      }
       return ListView(
         padding: const EdgeInsets.all(16),
         children: const [

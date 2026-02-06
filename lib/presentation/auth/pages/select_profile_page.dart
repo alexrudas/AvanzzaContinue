@@ -394,8 +394,9 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
       // 4) Navegación basada en workspaces resueltos (flujo original)
       String routeForWorkspaces(List<String> wss) {
         final low = wss.map((w) => w.toLowerCase()).toList();
-        if (low.any((w) => w.contains('proveedor')))
+        if (low.any((w) => w.contains('proveedor'))) {
           return Routes.providerProfile;
+        }
         if (low.any((w) => w.contains('administrador'))) return Routes.home;
         if (low.any((w) => w.contains('propietario'))) return Routes.home;
         if (low.any((w) => w.contains('arrendatario'))) return Routes.home;
@@ -477,8 +478,9 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
     // Helper para determinar ruta según workspace
     String routeForWorkspaces(List<String> wss) {
       final low = wss.map((w) => w.toLowerCase()).toList();
-      if (low.any((w) => w.contains('proveedor')))
+      if (low.any((w) => w.contains('proveedor'))) {
         return Routes.providerProfile;
+      }
       if (low.any((w) => w.contains('administrador'))) return Routes.home;
       if (low.any((w) => w.contains('propietario'))) return Routes.home;
       if (low.any((w) => w.contains('arrendatario'))) return Routes.home;
@@ -867,7 +869,7 @@ class _RadioTile<T> extends StatelessWidget {
 // ---- Acceso sugerido ----
 class _AccessPreviewCard extends StatelessWidget {
   final AccessPreview preview;
-  const _AccessPreviewCard({super.key, required this.preview});
+  const _AccessPreviewCard({required this.preview});
 
   @override
   Widget build(BuildContext context) {

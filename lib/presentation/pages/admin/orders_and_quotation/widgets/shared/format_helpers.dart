@@ -5,6 +5,7 @@
 /// - fmtDateTime: formatea fechas y horas
 /// - assetKindCode: obtiene código de tipo de activo
 /// - openAddressPicker: abre selector de dirección (placeholder)
+library;
 
 import 'package:get/get.dart';
 

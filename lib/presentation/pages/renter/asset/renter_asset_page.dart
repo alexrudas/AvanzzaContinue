@@ -13,8 +13,9 @@ class RenterAssetPage extends GetView<RenterAssetController> {
   Widget build(BuildContext context) {
     return Obx(() {
       if (controller.loading.value) return const LoadingState();
-      if (controller.error.value != null)
+      if (controller.error.value != null) {
         return ErrorState(message: controller.error.value!);
+      }
       return ListView(
         padding: const EdgeInsets.all(16),
         children: const [

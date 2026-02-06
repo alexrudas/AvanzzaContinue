@@ -5,11 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/di/container.dart';
-import '../../../core/utils/workspace_normalizer.dart';
 import '../../../data/datasources/local/registration_progress_ds.dart';
 import '../../../data/models/auth/registration_progress_model.dart';
 import '../../../routes/app_pages.dart';
-import '../../../services/telemetry/telemetry_service.dart';
 import '../../controllers/session_context_controller.dart';
 import '../../workspace/workspace_config.dart';
 import '../../workspace/workspace_shell.dart';

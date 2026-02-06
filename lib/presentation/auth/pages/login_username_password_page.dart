@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/login_password_controller.dart';
-import '../../../core/di/app_bindings.dart';
 
 class LoginUsernamePasswordPage extends StatefulWidget {
   const LoginUsernamePasswordPage({super.key});

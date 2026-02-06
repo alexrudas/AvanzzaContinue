@@ -288,7 +288,6 @@ class _NavBarItem extends StatelessWidget {
   final int badgeCount;
 
   const _NavBarItem({
-    super.key, // Agregado super.key buena práctica
     required this.icon,
     required this.label,
     required this.isSelected,

@@ -1,7 +1,6 @@
 /// Tarjeta de pedido con items, pagos, estado y acciones.
 library;
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../shared/format_helpers.dart';

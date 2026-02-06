@@ -554,8 +554,9 @@ class SliverAIBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (messages.isEmpty)
+    if (messages.isEmpty) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
     return SliverPersistentHeader(
       pinned: true,
       delegate: _AIBannerHeaderDelegate(

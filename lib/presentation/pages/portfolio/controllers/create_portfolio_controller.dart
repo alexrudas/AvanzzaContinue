@@ -4,14 +4,25 @@ import 'package:get/get.dart';
 import '../../../../core/di/container.dart';
 import '../../../../domain/entities/portfolio/portfolio_entity.dart';
 import '../../../../domain/repositories/portfolio_repository.dart';
+import '../../../../domain/shared/enums/asset_type.dart';
 
 /// Controller para el wizard de creación de portafolio
 /// Gestiona la lógica de negocio y coordina con el repositorio
+///
+/// IMPORTANTE: Este controller es compartido entre Step1 y Step2.
+/// Step1 usa Get.put(), Step2 usa Get.find().
 class CreatePortfolioController extends GetxController {
   late final PortfolioRepository _portfolioRepository;
 
   final isLoading = false.obs;
   String? portfolioId; // ID del portafolio creado en Step 1
+
+  /// Tipo de activo seleccionado (persiste entre steps)
+  /// Se setea en Step1 desde preselectedAssetType
+  final Rxn<AssetType> selectedAssetType = Rxn<AssetType>();
+
+  /// Getter sync para verificar si es vehículo
+  bool get isVehiculo => selectedAssetType.value == AssetType.vehiculo;
 
   @override
   void onInit() {
