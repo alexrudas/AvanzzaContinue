@@ -89,7 +89,7 @@ class CampaignFrequencyStore {
     if (freq.consecutiveManualCloses >=
         CampaignFrequencyLimits.consecutiveDismissThreshold) {
       freq.nextEligibleAt = DateTime.now().add(
-        Duration(hours: CampaignFrequencyLimits.silenceHoursAfterDismiss),
+        const Duration(hours: CampaignFrequencyLimits.silenceHoursAfterDismiss),
       );
     }
 

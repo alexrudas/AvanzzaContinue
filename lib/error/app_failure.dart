@@ -15,8 +15,7 @@ class NetworkFailure extends AppFailure {
 }
 
 class AuthFailure extends AppFailure {
-  const AuthFailure(String code, String message, {Object? error, StackTrace? stackTrace})
-      : super(code, message, error: error, stackTrace: stackTrace);
+  const AuthFailure(super.code, super.message, {super.error, super.stackTrace});
 }
 
 class UnknownFailure extends AppFailure {

@@ -69,6 +69,7 @@
 /// - No valida el "formato" del path; se asume que proviene de tu propia escritura o de una fuente validada.
 ///
 /// ------------------------------------------------------------
+library;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:json_annotation/json_annotation.dart';

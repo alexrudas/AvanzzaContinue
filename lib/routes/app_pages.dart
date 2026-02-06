@@ -1,10 +1,24 @@
+// lib/routes/app_pages.dart
+// ============================================================================
+// APP PAGES - Definición de GetPage y Bindings
+// ============================================================================
+// Separación estándar GetX:
+// - app_routes.dart → Constantes de rutas (Routes, _Paths)
+// - app_pages.dart → GetPage list y bindings (este archivo)
+// ============================================================================
+
 import 'package:avanzza/core/campaign/demo/demo_soat_campaign.dart';
+import 'package:avanzza/domain/shared/enums/asset_type.dart';
 import 'package:avanzza/presentation/pages/asset_list_page.dart';
 import 'package:avanzza/presentation/pages/workspaces/provider_articles_workspace_page.dart'
     show ProviderArticlesWorkspacePage;
 import 'package:avanzza/presentation/pages/workspaces/provider_services_workspace_page.dart';
+import 'package:flutter/foundation.dart';
+// NOTE: material.dart is imported ONLY for debug-only error page; in release we redirect without UI.
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../presentation/auth/bindings/enhanced_registration_binding.dart';
 import '../presentation/auth/pages/auth_welcome_page.dart';
 import '../presentation/auth/pages/email_optional_page.dart';
 import '../presentation/auth/pages/enhanced_registration_page.dart';
@@ -20,7 +34,6 @@ import '../presentation/auth/pages/select_profile_page.dart';
 import '../presentation/auth/pages/summary_page.dart';
 import '../presentation/auth/pages/terms_page.dart';
 import '../presentation/auth/pages/username_password_page.dart';
-import '../presentation/auth/bindings/enhanced_registration_binding.dart';
 import '../presentation/bindings/home_binding.dart';
 import '../presentation/bindings/runt/runt_binding.dart';
 import '../presentation/bindings/simit/simit_binding.dart';
@@ -31,140 +44,274 @@ import '../presentation/pages/org_selection_page.dart';
 import '../presentation/pages/purchase_request_page.dart';
 import '../presentation/pages/runt/runt_person_consult_page.dart';
 import '../presentation/pages/runt/runt_vehicle_consult_page.dart';
+import '../presentation/pages/portfolio/wizard/create_portfolio_step1_page.dart';
+import '../presentation/pages/portfolio/wizard/create_portfolio_step2_page.dart';
 import '../presentation/pages/simit/simit_consult_page.dart';
 import '../presentation/pages/tenant/home/tenant_home_page.dart';
+import 'app_routes.dart';
 
-class Routes {
-  static const welcome = '/auth/welcome';
-  static const phone = '/auth/phone';
-  static const otp = '/auth/otp';
-  static const countryCity = '/auth/country-city';
-  static const role = '/auth/role'; // legacy alias
-  static const profile = '/auth/profile';
-  static const home = '/home';
-  static const orgSelect = '/org_select';
+// TODO(cleanup): migrar imports a app_routes.dart donde solo se usan constantes
+export 'app_routes.dart';
 
-  // Nuevas rutas
-  static const registerUsername = '/auth/register/username';
-  static const registerEmail = '/auth/register/email';
-  static const registerIdScan = '/auth/register/id-scan';
-  static const registerTerms = '/auth/register/terms';
-  static const loginUserPass = '/auth/login';
-  static const loginMfa = '/auth/login/mfa';
-  static const registerSummary = '/auth/register/summary';
-  static const holderType = '/auth/holder-type';
-  static const providerProfile = '/auth/provider/profile';
+/// Definición de páginas de la aplicación
+class AppPages {
+  AppPages._();
 
-  // Registro mejorado con MFA + Auth Federada
-  static const enhancedRegistration = '/auth/enhanced-registration';
-
-  static const providerCoverage = '/auth/provider/coverage';
-  static const providerHomeArticles = '/provider/home/articles';
-  static const providerHomeServices = '/provider/home/services';
-  static const providerWorkspaceArticles = '/provider/workspace/articles';
-  static const providerWorkspaceServices = '/provider/workspace/services';
-
-  // Módulos ya existentes
-  static const incidencia = '/incidencia';
-  static const purchase = '/purchase';
-
-  static const String assets = '/assets';
-  static const String tenantHome = '/tenant/home';
-
-  // Consultas RUNT y SIMIT
-  static const String runtPersonConsult = '/runt/person';
-  static const String runtVehicleConsult = '/runt/vehicle';
-  static const String simitConsult = '/simit/multas';
-
-  // Demo y desarrollo
-  static const bottomNavDemo = '/demo/bottom-nav';
-  static const demoSoat = '/campaign/soat';
+  static const initial = Routes.welcome;
 
   static final pages = <GetPage<dynamic>>[
-    GetPage(name: welcome, page: () => AuthWelcomePage()),
-    GetPage(name: phone, page: () => const PhoneInputPage()),
-    GetPage(name: otp, page: () => const OtpVerifyPage()),
-    GetPage(name: countryCity, page: () => const SelectCountryCityPage()),
-    GetPage(name: profile, page: () => const SelectProfilePage()),
-    // legacy aliases
-    GetPage(name: role, page: () => const SelectProfilePage()),
-    GetPage(name: orgSelect, page: () => const OrgSelectionPage()),
+    // ════════════════════════════════════════════════════════════════════════
+    // AUTH
+    // ════════════════════════════════════════════════════════════════════════
+    GetPage(name: Routes.welcome, page: () => AuthWelcomePage()),
+    GetPage(name: Routes.phone, page: () => const PhoneInputPage()),
+    GetPage(name: Routes.otp, page: () => const OtpVerifyPage()),
+    GetPage(name: Routes.countryCity, page: () => const SelectCountryCityPage()),
+    GetPage(name: Routes.profile, page: () => const SelectProfilePage()),
+    GetPage(name: Routes.orgSelect, page: () => const OrgSelectionPage()),
+
+    // LEGACY_ALIAS: Routes.role -> Canonical: Routes.profile
+    GetPage(name: Routes.role, page: () => const _LegacyRedirectPage(to: Routes.profile)),
 
     // HomeRouter decide workspace según activeContext
-    GetPage(name: home, page: () => const HomeRouter(), binding: HomeBinding()),
-
-    // Nuevas
-    GetPage(name: registerUsername, page: () => const UsernamePasswordPage()),
-    GetPage(name: registerEmail, page: () => const EmailOptionalPage()),
-    GetPage(name: registerIdScan, page: () => const IdScanPage()),
-    GetPage(name: registerTerms, page: () => const TermsPage()),
-    GetPage(name: loginUserPass, page: () => const LoginUsernamePasswordPage()),
-    GetPage(name: loginMfa, page: () => const MfaOtpPage()),
-    GetPage(name: registerSummary, page: () => const SummaryPage()),
-    // legacy alias
-    GetPage(name: holderType, page: () => const SelectProfilePage()),
-    // Perfil proveedor unificado y alias legacy
-    GetPage(name: providerProfile, page: () => const ProviderProfilePage()),
-
-    // Wizard de registro mejorado con MFA + Auth Federada
     GetPage(
-      name: enhancedRegistration,
+      name: Routes.home,
+      page: () => const HomeRouter(),
+      binding: HomeBinding(),
+    ),
+
+    // Registro
+    GetPage(name: Routes.registerUsername, page: () => const UsernamePasswordPage()),
+    GetPage(name: Routes.registerEmail, page: () => const EmailOptionalPage()),
+    GetPage(name: Routes.registerIdScan, page: () => const IdScanPage()),
+    GetPage(name: Routes.registerTerms, page: () => const TermsPage()),
+    GetPage(name: Routes.loginUserPass, page: () => const LoginUsernamePasswordPage()),
+    GetPage(name: Routes.loginMfa, page: () => const MfaOtpPage()),
+    GetPage(name: Routes.registerSummary, page: () => const SummaryPage()),
+
+    // LEGACY_ALIAS: Routes.holderType -> Canonical: Routes.profile
+    GetPage(name: Routes.holderType, page: () => const _LegacyRedirectPage(to: Routes.profile)),
+
+    // Provider
+    GetPage(name: Routes.providerProfile, page: () => const ProviderProfilePage()),
+    GetPage(
+      name: Routes.enhancedRegistration,
       page: () => const EnhancedRegistrationPage(),
       binding: EnhancedRegistrationBinding(),
     ),
+    GetPage(name: Routes.providerCoverage, page: () => const ProviderCoveragePage()),
 
-    GetPage(name: providerCoverage, page: () => const ProviderCoveragePage()),
+    // Canonical: Routes.providerWorkspaceArticles (provider articles workspace)
     GetPage(
-        name: providerHomeArticles,
-        page: () => const ProviderArticlesWorkspacePage()),
+      name: Routes.providerWorkspaceArticles,
+      page: () => const ProviderArticlesWorkspacePage(),
+    ),
+    // LEGACY_ALIAS: Routes.providerHomeArticles -> Canonical: Routes.providerWorkspaceArticles
     GetPage(
-        name: providerHomeServices,
-        page: () => const ProviderServicesWorkspacePage()),
-    GetPage(
-        name: providerWorkspaceArticles,
-        page: () => const ProviderArticlesWorkspacePage()),
-    GetPage(
-        name: providerWorkspaceServices,
-        page: () => const ProviderServicesWorkspacePage()),
+      name: Routes.providerHomeArticles,
+      page: () => const _LegacyRedirectPage(to: Routes.providerWorkspaceArticles),
+    ),
 
-    // Módulos legacy
+    // Canonical: Routes.providerWorkspaceServices (provider services workspace)
     GetPage(
-        name: incidencia,
-        page: () => const IncidenciaPage(assetId: 'asset_mock')),
-    GetPage(name: purchase, page: () => const PurchaseRequestPage()),
+      name: Routes.providerWorkspaceServices,
+      page: () => const ProviderServicesWorkspacePage(),
+    ),
+    // LEGACY_ALIAS: Routes.providerHomeServices -> Canonical: Routes.providerWorkspaceServices
+    GetPage(
+      name: Routes.providerHomeServices,
+      page: () => const _LegacyRedirectPage(to: Routes.providerWorkspaceServices),
+    ),
 
-    GetPage(name: assets, page: () => const AssetListPage()),
+    // ════════════════════════════════════════════════════════════════════════
+    // MÓDULOS OPERATIVOS
+    // ════════════════════════════════════════════════════════════════════════
+
+    // CONTRACT: Routes.incidencia requiere argument String assetId (no vacío)
+    // Uso: Get.toNamed(Routes.incidencia, arguments: assetId)
+    // También acepta: Get.toNamed(Routes.incidencia, arguments: {'assetId': assetId})
+    GetPage(
+      name: Routes.incidencia,
+      page: () => _buildIncidenciaPage(),
+    ),
+    GetPage(name: Routes.purchase, page: () => const PurchaseRequestPage()),
+    GetPage(name: Routes.assets, page: () => const AssetListPage()),
 
     // Tenant Home
     GetPage(
-      name: tenantHome,
+      name: Routes.tenantHome,
       page: () => const TenantHomePage(),
       binding: TenantHomeBinding(),
     ),
 
-    // Consultas RUNT
+    // ════════════════════════════════════════════════════════════════════════
+    // CONSULTAS EXTERNAS (RUNT / SIMIT)
+    // ════════════════════════════════════════════════════════════════════════
     GetPage(
-      name: runtPersonConsult,
+      name: Routes.runtPersonConsult,
       page: () => RuntPersonConsultPage(),
       binding: RuntBinding(),
     ),
     GetPage(
-      name: runtVehicleConsult,
+      name: Routes.runtVehicleConsult,
       page: () => RuntVehicleConsultPage(),
       binding: RuntBinding(),
     ),
-
-    // Consultas SIMIT
     GetPage(
-      name: simitConsult,
+      name: Routes.simitConsult,
       page: () => SimitConsultPage(),
       binding: SimitBinding(),
     ),
 
-    // Demo
-    // GetPage(name: bottomNavDemo, page: () => const BottomNavDemoPage()),
+    // ════════════════════════════════════════════════════════════════════════
+    // PORTFOLIO / WIZARD
+    // ════════════════════════════════════════════════════════════════════════
+    GetPage(
+      name: Routes.createPortfolioStep1,
+      page: () => _buildCreatePortfolioStep1Page(),
+    ),
+    GetPage(
+      name: Routes.createPortfolioStep2,
+      page: () => const CreatePortfolioStep2Page(),
+      binding: RuntBinding(), // Inyecta RuntController para consulta de vehículos
+    ),
 
-    // Demo Campaña Publicidad Seguros
-    GetPage(name: demoSoat, page: () => const DemoSoatCampaignPage()),
+    // ════════════════════════════════════════════════════════════════════════
+    // DEMO
+    // ════════════════════════════════════════════════════════════════════════
+    GetPage(name: Routes.demoSoat, page: () => const DemoSoatCampaignPage()),
   ];
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// HELPERS PRIVADOS
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Página de redirección para alias legacy.
+/// StatefulWidget para garantizar 1 sola ejecución de redirect en initState.
+/// Preserva arguments y parameters al redirigir.
+class _LegacyRedirectPage extends StatefulWidget {
+  final String to;
+  const _LegacyRedirectPage({required this.to});
+
+  @override
+  State<_LegacyRedirectPage> createState() => _LegacyRedirectPageState();
+}
+
+class _LegacyRedirectPageState extends State<_LegacyRedirectPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Ejecuta redirect 1 sola vez, preservando arguments
+    Future.microtask(() {
+      // TODO: Get.parameters not available / not guaranteed in this project. Add back only if confirmed.
+      Get.offNamed(
+        widget.to,
+        arguments: Get.arguments,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox.shrink();
+  }
+}
+
+/// Construye CreatePortfolioStep1Page con preselectedAssetType desde arguments
+Widget _buildCreatePortfolioStep1Page() {
+  final args = Get.arguments;
+  AssetType? preselectedAssetType;
+
+  if (args is Map) {
+    final typeArg = args['preselectedAssetType'];
+    if (typeArg is AssetType) {
+      preselectedAssetType = typeArg;
+    }
+  }
+
+  return CreatePortfolioStep1Page(preselectedAssetType: preselectedAssetType);
+}
+
+/// Extrae assetId de Get.arguments (String o Map)
+String? _resolveAssetIdFromArgs(dynamic args) {
+  if (args == null) return null;
+  if (args is String && args.isNotEmpty) return args;
+  if (args is Map) {
+    final value = args['assetId'];
+    if (value is String && value.isNotEmpty) return value;
+  }
+  return null;
+}
+
+/// Construye IncidenciaPage con validación estricta de assetId.
+/// - En RELEASE: redirige a assets sin UI intermedia.
+/// - En DEBUG/PROFILE: muestra pantalla de error para facilitar debugging.
+Widget _buildIncidenciaPage() {
+  final assetId = _resolveAssetIdFromArgs(Get.arguments);
+
+  if (assetId == null) {
+    debugPrint('[AppPages] ERROR: Routes.incidencia navegado sin assetId válido. args=${Get.arguments}');
+
+    if (kReleaseMode) {
+      // RELEASE: redirige inmediatamente sin UI intermedia
+      Future.microtask(() {
+        Get.offNamed(Routes.assets);
+      });
+      return const SizedBox.shrink();
+    } else {
+      // DEBUG/PROFILE: muestra pantalla de error para facilitar debugging
+      return const _IncidenciaErrorPage();
+    }
+  }
+
+  return IncidenciaPage(assetId: assetId);
+}
+
+/// DEBUG_ONLY_UI: Pantalla de error para DEBUG/PROFILE cuando falta assetId.
+/// NUNCA se construye en kReleaseMode (ver _buildIncidenciaPage).
+class _IncidenciaErrorPage extends StatelessWidget {
+  const _IncidenciaErrorPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Error de Navegación'),
+        backgroundColor: Colors.red.shade700,
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.bug_report, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              const Text(
+                'DEBUG: assetId faltante',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Routes.incidencia requiere:\nGet.toNamed(Routes.incidencia, arguments: assetId)',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade700),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Get.arguments actual: ${Get.arguments}',
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Get.offNamed(Routes.assets),
+                child: const Text('Ir a Activos'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

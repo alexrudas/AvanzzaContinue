@@ -7,6 +7,7 @@
 /// - O eliminar el wrapper CampaignLauncher de las páginas
 ///
 /// No requiere rebuild de assets ni migraciones.
+library;
 
 /// Kill-switch global para campañas
 ///
