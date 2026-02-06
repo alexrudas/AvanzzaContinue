@@ -29,14 +29,18 @@ class UserRepositoryImpl implements UserRepository {
   String _normalizeRole(String role) {
     final low = role.toLowerCase();
     if (low.contains('admin')) return 'Administrador';
-    if (low.contains('propietario') || low.contains('owner'))
+    if (low.contains('propietario') || low.contains('owner')) {
       return 'Propietario';
-    if (low.contains('proveedor') || low.contains('provider'))
+    }
+    if (low.contains('proveedor') || low.contains('provider')) {
       return 'Proveedor';
-    if (low.contains('arrendatario') || low.contains('tenant'))
+    }
+    if (low.contains('arrendatario') || low.contains('tenant')) {
       return 'Arrendatario';
-    if (low.contains('aseguradora') || low.contains('insurance'))
+    }
+    if (low.contains('aseguradora') || low.contains('insurance')) {
       return 'Aseguradora';
+    }
     if (low.contains('abogado') || low.contains('lawyer')) return 'Abogado';
     if (low.contains('asesor')) return 'Asesor de seguros';
     return role.isEmpty ? role : role[0].toUpperCase() + role.substring(1);

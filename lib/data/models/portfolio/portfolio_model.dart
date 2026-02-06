@@ -93,8 +93,10 @@ class PortfolioModel {
         return PortfolioType.vehiculos;
       case 'INMUEBLES':
         return PortfolioType.inmuebles;
+      case 'OPERACION_GENERAL':
+        return PortfolioType.operacionGeneral;
       default:
-        return PortfolioType.vehiculos;
+        return PortfolioType.operacionGeneral;
     }
   }
 
@@ -104,6 +106,8 @@ class PortfolioModel {
         return 'VEHICULOS';
       case PortfolioType.inmuebles:
         return 'INMUEBLES';
+      case PortfolioType.operacionGeneral:
+        return 'OPERACION_GENERAL';
     }
   }
 

@@ -76,6 +76,8 @@ class PortfolioRepositoryImpl implements PortfolioRepository {
         return 'VEHICULOS';
       case PortfolioType.inmuebles:
         return 'INMUEBLES';
+      case PortfolioType.operacionGeneral:
+        return 'OPERACION_GENERAL';
     }
   }
 }
