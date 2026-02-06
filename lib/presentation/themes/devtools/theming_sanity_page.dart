@@ -244,13 +244,13 @@ class ThemingSanityPage extends StatelessWidget {
             const _SectionHeader(title: 'Badges & Chips'),
             const SizedBox(height: 16.0),
 
-            _DemoCard(
+            const _DemoCard(
               title: 'Badge Tones (Semantic)',
               description: 'Badges con tonos semánticos derivados de ColorScheme.',
               child: Wrap(
                 spacing: 8.0,
                 runSpacing: 8.0,
-                children: const [
+                children: [
                   BadgePro(label: 'Neutral', tone: BadgeTone.neutral),
                   BadgePro(label: 'Info', tone: BadgeTone.info),
                   BadgePro(label: 'Success', tone: BadgeTone.success),
@@ -264,13 +264,13 @@ class ThemingSanityPage extends StatelessWidget {
 
             const SizedBox(height: 24.0),
 
-            _DemoCard(
+            const _DemoCard(
               title: 'Badge Variants',
               description: 'Con íconos, modo dense y casos de uso.',
               child: Wrap(
                 spacing: 12.0,
                 runSpacing: 12.0,
-                children: const [
+                children: [
                   // Con ícono
                   BadgePro.icon(
                     label: '3',
