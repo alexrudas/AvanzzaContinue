@@ -1,3 +1,5 @@
+// lib\main.dart
+
 import 'package:avanzza/routes/app_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -8,8 +10,8 @@ import 'package:intl/intl.dart';
 
 import 'core/startup/bootstrap.dart';
 import 'presentation/controllers/app_theme_controller.dart';
-import 'presentation/themes/presets/light_theme.dart';
 import 'presentation/themes/presets/dark_theme.dart';
+import 'presentation/themes/presets/light_theme.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -26,7 +28,7 @@ class App extends StatelessWidget {
         title: 'Avanzza 2.0',
         debugShowCheckedModeBanner: false,
         initialRoute: Routes.home,
-        getPages: Routes.pages,
+        getPages: AppPages.pages,
         theme: light,
         darkTheme: dark,
         themeMode: themeController.themeMode.value,

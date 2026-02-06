@@ -1,4 +1,5 @@
 import 'package:avanzza/core/di/container.dart';
+import 'package:avanzza/domain/entities/asset/asset_content.dart';
 import 'package:avanzza/domain/entities/asset/asset_entity.dart';
 import 'package:avanzza/domain/entities/geo/country_entity.dart';
 import 'package:avanzza/domain/entities/maintenance/incidencia_entity.dart';
@@ -82,24 +83,67 @@ Future<void> seedMain() async {
   }, SetOptions(merge: true));
 
   // Assets
-  final asset1 = AssetEntity(
+  // Assets (V2)
+  // Nota: orgId/countryId/regionId/cityId/etiquetas/fotosUrls ahora van en metadata legacy.
+  final asset1 = AssetEntity.create(
     id: 'asset_demo_1',
-    orgId: 'org_demo',
-    assetType: 'vehiculo',
-    countryId: 'CO',
-    regionId: 'cund',
-    cityId: 'bogota',
-    ownerType: 'org',
-    ownerId: 'org_demo',
-    estado: 'activo',
-    etiquetas: const ['demo'],
-    fotosUrls: const [],
-    createdAt: DateTime.now().toUtc(),
-    updatedAt: DateTime.now().toUtc(),
+    state: AssetState.active,
+    content: const AssetContent.vehicle(
+      assetKey: 'ABC123', // placa (CO = 6 chars)
+      brand: 'PENDIENTE',
+      model: '2024', // V2: String
+      color: 'PENDIENTE',
+      engineDisplacement: 0, // default seguro
+      mileage: 0,
+    ),
+    beneficialOwner: BeneficialOwner(
+      ownerType: BeneficialOwnerType.org,
+      ownerId: 'org_demo',
+      ownerName: 'Org Demo',
+      relationship: OwnershipRelationship.owner,
+      assignedAt: DateTime.now().toUtc(),
+      assignedBy: 'seed',
+    ),
+    metadata: {
+      'orgId': 'org_demo',
+      'countryId': 'CO',
+      'regionId': 'cund',
+      'cityId': 'bogota',
+      'etiquetas': ['demo'],
+      'fotosUrls': <String>[],
+      'seed': true,
+    },
   );
   await di.assetRepository.upsertAsset(asset1);
 
-  final asset2 = asset1.copyWith(id: 'asset_demo_2', assetType: 'inmueble');
+  final asset2 = AssetEntity.create(
+    id: 'asset_demo_2',
+    state: AssetState.active,
+    content: const AssetContent.realEstate(
+      assetKey: 'MATRICULA-123456', // NO 6 chars, ok (solo vehículos son 6)
+      address: 'PENDIENTE',
+      city: 'BOGOTA',
+      area: 0,
+      usage: 'PENDIENTE',
+    ),
+    beneficialOwner: BeneficialOwner(
+      ownerType: BeneficialOwnerType.org,
+      ownerId: 'org_demo',
+      ownerName: 'Org Demo',
+      relationship: OwnershipRelationship.owner,
+      assignedAt: DateTime.now().toUtc(),
+      assignedBy: 'seed',
+    ),
+    metadata: {
+      'orgId': 'org_demo',
+      'countryId': 'CO',
+      'regionId': 'cund',
+      'cityId': 'bogota',
+      'etiquetas': ['demo'],
+      'fotosUrls': <String>[],
+      'seed': true,
+    },
+  );
   await di.assetRepository.upsertAsset(asset2);
 
   // Incidencia
