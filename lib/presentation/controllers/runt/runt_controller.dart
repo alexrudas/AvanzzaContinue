@@ -34,7 +34,7 @@ class RuntController extends GetxController {
   /// Tipo de documento seleccionado (C, E, P).
   final documentType = 'C'.obs;
 
-  // ==================== ESTADOS OBSERVABLES ====================
+  // ==================== ESTADOS OBSERVABLES (PRIVADOS) ====================
 
   /// Indica si está cargando datos de persona.
   final _isLoadingPerson = false.obs;
@@ -67,6 +67,14 @@ class RuntController extends GetxController {
 
   /// Mensaje de error actual (null si no hay error).
   String? get errorMessage => _errorMessage.value;
+
+  /// Rx público para que la UI (Obx) sea reactiva de forma correcta.
+  /// Uso recomendado en UI: controller.errorMessageRx.value
+  Rx<String?> get errorMessageRx => _errorMessage;
+
+  /// Rx público (opcional) para que la UI sea reactiva cuando cambie vehicleData.
+  /// Uso recomendado en UI: Obx(() { final data = controller.vehicleDataRx.value; ... })
+  Rx<RuntVehicleData?> get vehicleDataRx => _vehicleData;
 
   // ==================== CICLO DE VIDA ====================
 
@@ -103,14 +111,11 @@ class RuntController extends GetxController {
       // Actualizar estado con datos
       _personData.value = data;
     } on RuntApiException catch (e) {
-      print(e);
       // Traducir excepción a mensaje amigable
       final message = _translateRuntError(e);
       _errorMessage.value = message;
       _showError('Error RUNT', message);
     } catch (e) {
-      print(e);
-
       // Error inesperado
       final message = 'Error inesperado: ${e.toString()}';
       _errorMessage.value = message;
@@ -151,17 +156,19 @@ class RuntController extends GetxController {
         ownerDocumentType: ownerDocumentType,
       );
 
+      debugPrint('[RUNT][CTRL] basicInfo: ${data.basicInfo.plate}');
+      debugPrint(
+        '[RUNT][CTRL] soat=${data.soat.length} rc=${data.rcInsurances.length} rtm=${data.rtmHistory.length} lim=${data.ownershipLimitations.length} gar=${data.warranties.length}',
+      );
+
       // Actualizar estado con datos
       _vehicleData.value = data;
     } on RuntApiException catch (e) {
-      print(e);
       // Traducir excepción a mensaje amigable
       final message = _translateRuntError(e);
       _errorMessage.value = message;
       _showError('Error RUNT', message);
     } catch (e) {
-      print(e);
-
       // Error inesperado
       final message = 'Error inesperado: ${e.toString()}';
       _errorMessage.value = message;
@@ -198,6 +205,14 @@ class RuntController extends GetxController {
 
   /// Reinicia los datos de vehículo consultado.
   void resetVehicleData() {
+    _vehicleData.value = null;
+    _errorMessage.value = null;
+  }
+
+  /// Alias explícito para limpiar datos del vehículo (compat con UI).
+  ///
+  /// Útil para botón "Editar" / "Nueva consulta".
+  void clearVehicleData() {
     _vehicleData.value = null;
     _errorMessage.value = null;
   }
