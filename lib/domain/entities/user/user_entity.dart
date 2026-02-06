@@ -1,4 +1,3 @@
-import 'package:avanzza/core/utils/datetime_timestamp_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../geo/address_entity.dart';
 import 'active_context.dart';

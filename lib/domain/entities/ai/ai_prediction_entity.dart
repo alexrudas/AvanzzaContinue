@@ -1,4 +1,3 @@
-import 'package:avanzza/core/utils/datetime_timestamp_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'ai_prediction_entity.freezed.dart';

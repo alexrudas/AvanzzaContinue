@@ -7,6 +7,7 @@
 /// PRINCIPIO FUNDAMENTAL (NO NEGOCIABLE):
 /// La informalidad NO afecta el registro financiero (ledger).
 /// La informalidad SOLO afecta automatización, ejecución y visibilidad.
+library;
 
 import 'policy_context.dart';
 

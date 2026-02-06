@@ -12,6 +12,7 @@
 /// Sincronización y Ejecución, pero NO la Visibilidad de datos históricos
 /// locales (Isar). Bloquear visibilidad local por contrato es anti-patrón
 /// ("Data Hostage"). Por tanto, AccessPolicy depende EXCLUSIVAMENTE del Rol.
+library;
 
 import 'access_policy.dart';
 import 'policy_context.dart';

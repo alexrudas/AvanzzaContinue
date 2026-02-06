@@ -19,6 +19,8 @@ enum PortfolioType {
   vehiculos,
   @JsonValue('INMUEBLES')
   inmuebles,
+  @JsonValue('OPERACION_GENERAL')
+  operacionGeneral,
 }
 
 /// Entidad de Portafolio

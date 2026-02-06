@@ -7,6 +7,7 @@
 /// PRINCIPIO FUNDAMENTAL (NO NEGOCIABLE):
 /// La automatización afecta SOLO ejecución, NUNCA el ledger.
 /// El registro financiero (Event -> Impact -> Ledger) es SIEMPRE inmutable.
+library;
 
 /// Contrato abstracto para políticas de automatización
 ///

@@ -42,6 +42,7 @@ Map<String, dynamic> _$PortfolioEntityToJson(_PortfolioEntity instance) =>
 const _$PortfolioTypeEnumMap = {
   PortfolioType.vehiculos: 'VEHICULOS',
   PortfolioType.inmuebles: 'INMUEBLES',
+  PortfolioType.operacionGeneral: 'OPERACION_GENERAL',
 };
 
 const _$PortfolioStatusEnumMap = {

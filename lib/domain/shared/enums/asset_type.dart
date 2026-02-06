@@ -4,6 +4,8 @@
 
 import 'package:flutter/material.dart';
 
+import '../../entities/portfolio/portfolio_entity.dart';
+
 // Comentarios en el código: enum tipado para tipo de activo y serializar a wireName.
 enum AssetType {
   vehiculo,
@@ -83,6 +85,39 @@ extension AssetTypeUI on AssetType {
         return Icons.construction_outlined;
       case AssetType.otro:
         return Icons.widgets_outlined;
+    }
+  }
+}
+
+// Comentarios en el código: extensión para mapeo a PortfolioType.
+extension AssetTypePortfolio on AssetType {
+  /// Mapea AssetType a PortfolioType para creación automática de portafolio
+  PortfolioType get portfolioType {
+    switch (this) {
+      case AssetType.vehiculo:
+        return PortfolioType.vehiculos;
+      case AssetType.inmueble:
+        return PortfolioType.inmuebles;
+      case AssetType.maquinaria:
+      case AssetType.equipo:
+      case AssetType.otro:
+        return PortfolioType.operacionGeneral;
+    }
+  }
+
+  /// Nombre sugerido para el portafolio basado en el tipo de activo
+  String get suggestedPortfolioName {
+    switch (this) {
+      case AssetType.vehiculo:
+        return 'Mi Flota de Vehículos';
+      case AssetType.inmueble:
+        return 'Mis Inmuebles';
+      case AssetType.maquinaria:
+        return 'Mi Maquinaria';
+      case AssetType.equipo:
+        return 'Mis Equipos';
+      case AssetType.otro:
+        return 'Mis Activos';
     }
   }
 }
