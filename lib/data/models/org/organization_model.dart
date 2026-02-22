@@ -8,6 +8,7 @@ import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import '../../../domain/entities/org/organization_entity.dart' as domain;
+import '../../../domain/value/organization_contract/organization_access_contract.dart';
 import '../common/converters/doc_ref_path_converter.dart';
 
 part 'organization_model.g.dart';
@@ -56,6 +57,10 @@ class OrganizationModel {
   // antes: Map<String, dynamic>? metadata;
   String? metadataJson;
 
+  /// Contrato de acceso serializado como JSON String (Isar-safe).
+  /// Expected shape: OrganizationAccessContract.toJson()
+  String? contractJson;
+
   @isar.Index()
   bool isActive;
   DateTime? createdAt;
@@ -80,6 +85,7 @@ class OrganizationModel {
     this.ownerRef,
     this.ownerRefPath,
     this.metadataJson,
+    this.contractJson,
     this.isActive = true,
     this.createdAt,
     this.updatedAt,
@@ -88,6 +94,26 @@ class OrganizationModel {
   factory OrganizationModel.fromJson(Map<String, dynamic> json) =>
       _$OrganizationModelFromJson(json);
   Map<String, dynamic> toJson() => _$OrganizationModelToJson(this);
+
+  // --------------------------------------------------------------------------
+  // SAFE PARSERS (ISAR-SAFE)
+  // --------------------------------------------------------------------------
+
+  /// Parse seguro de `contractJson` → `OrganizationAccessContract`.
+  /// Si falla o es null/vacío, retorna default restrictivo (deny-by-default).
+  @isar.ignore
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  OrganizationAccessContract get parsedContract {
+    if (contractJson == null || contractJson!.trim().isEmpty) {
+      return const OrganizationAccessContract();
+    }
+    try {
+      final map = jsonDecode(contractJson!) as Map<String, dynamic>;
+      return OrganizationAccessContract.fromJson(map);
+    } catch (_) {
+      return const OrganizationAccessContract();
+    }
+  }
 
   static DocumentReference<Map<String, dynamic>>? _refFrom(
       FirebaseFirestore db, dynamic any) {
@@ -98,6 +124,41 @@ class OrganizationModel {
       );
     }
     if (any is String && any.isNotEmpty) return db.doc(any);
+    return null;
+  }
+
+  /// Serializa OrganizationAccessContract a JSON String.
+  /// Retorna null si es el default restrictivo (ahorra bytes).
+  static String? _encodeContractJson(OrganizationAccessContract contract) {
+    // Si es el default (deny-by-default), no persistir — ahorra bytes.
+    if (contract == const OrganizationAccessContract()) return null;
+    try {
+      return jsonEncode(contract.toJson());
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Normaliza contract desde Firestore (puede venir como Map o String).
+  static String? _parseContractJson(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is Map) {
+      try {
+        final m = Map<String, dynamic>.from(raw);
+        return m.isEmpty ? null : jsonEncode(m);
+      } catch (_) {
+        return null;
+      }
+    }
+    if (raw is String && raw.trim().isNotEmpty) {
+      // Validate it's valid JSON before persisting
+      try {
+        final decoded = jsonDecode(raw.trim());
+        if (decoded is Map) return jsonEncode(decoded);
+      } catch (_) {
+        // ignore corruption
+      }
+    }
     return null;
   }
 
@@ -162,6 +223,7 @@ class OrganizationModel {
       ownerRef: oRef,
       ownerRefPath: conv.toPath(oRef),
       metadataJson: json['metadataJson'] as String?,
+      contractJson: _parseContractJson(json['contract']),
       isActive: (json['isActive'] as bool?) ?? true,
       createdAt: _parseTimestamp(json['createdAt']),
       updatedAt: _parseTimestamp(json['updatedAt']),
@@ -181,6 +243,8 @@ class OrganizationModel {
       'ownerRef': ownerRef,
       if (metadataJson != null && metadataJson!.isNotEmpty)
         'metadata': jsonDecode(metadataJson!),
+      if (contractJson != null && contractJson!.isNotEmpty)
+        'contract': jsonDecode(contractJson!),
     };
   }
 
@@ -196,6 +260,7 @@ class OrganizationModel {
       'ownerUid': ownerUid,
       'logoUrl': logoUrl,
       'metadataJson': metadataJson,
+      'contractJson': contractJson,
       'isActive': isActive,
       'countryRefPath': countryRefPath,
       'regionRefPath': regionRefPath,
@@ -233,6 +298,7 @@ class OrganizationModel {
       ownerRef: conv.fromPath(db, oPath),
       ownerRefPath: oPath,
       metadataJson: isar['metadataJson'] as String?,
+      contractJson: isar['contractJson'] as String?,
       isActive: (isar['isActive'] as bool?) ?? true,
       createdAt: (isar['createdAt'] is String)
           ? DateTime.tryParse(isar['createdAt'] as String)
@@ -254,6 +320,7 @@ class OrganizationModel {
         ownerUid: e.ownerUid,
         logoUrl: e.logoUrl,
         metadataJson: e.metadata == null ? null : jsonEncode(e.metadata),
+        contractJson: _encodeContractJson(e.contract),
         isActive: e.isActive,
         createdAt: e.createdAt,
         updatedAt: e.updatedAt,
@@ -275,6 +342,7 @@ class OrganizationModel {
               ? m
               : Map<String, dynamic>.from(m as Map);
         })(),
+        contract: parsedContract,
         isActive: isActive,
         createdAt: createdAt,
         updatedAt: updatedAt,

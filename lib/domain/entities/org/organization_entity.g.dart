@@ -18,6 +18,10 @@ _OrganizationEntity _$OrganizationEntityFromJson(Map<String, dynamic> json) =>
       logoUrl: json['logoUrl'] as String?,
       nitOrTaxId: json['nitOrTaxId'] as String?,
       metadata: json['metadata'] as Map<String, dynamic>?,
+      contract: json['contract'] == null
+          ? const OrganizationAccessContract()
+          : OrganizationAccessContract.fromJson(
+              json['contract'] as Map<String, dynamic>),
       isActive: json['isActive'] as bool? ?? true,
       createdAt: json['createdAt'] == null
           ? null
@@ -39,6 +43,7 @@ Map<String, dynamic> _$OrganizationEntityToJson(_OrganizationEntity instance) =>
       'logoUrl': instance.logoUrl,
       'nitOrTaxId': instance.nitOrTaxId,
       'metadata': instance.metadata,
+      'contract': instance.contract,
       'isActive': instance.isActive,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),

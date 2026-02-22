@@ -1,3 +1,5 @@
+// lib\data\models\auth\registration_progress_model.dart
+
 import 'package:isar_community/isar.dart' as isar;
 import 'package:isar_community/isar.dart';
 
@@ -44,8 +46,10 @@ class RegistrationProgressModel {
   List<String> resolvedWorkspaces = []; // Ej: ['Administrador', 'Propietario']
 
   // Campos para registro mejorado con autenticación federada
-  String? companyName; // Nombre de empresa (obligatorio si titularType == 'empresa')
-  String? authMethod; // Método de autenticación: 'phone', 'email-password', 'google', 'apple', 'facebook'
+  String?
+      companyName; // Nombre de empresa (obligatorio si titularType == 'empresa')
+  String?
+      authMethod; // Método de autenticación: 'phone', 'email-password', 'google', 'apple', 'facebook'
 
   bool termsAccepted = false;
 

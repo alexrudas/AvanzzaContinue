@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../models/geo/city_model.dart';
 import '../../models/geo/country_model.dart';
@@ -26,19 +27,25 @@ class GeoRemoteDataSource {
   // Extendido: opciones (no rompe firmas públicas)
   Future<List<CountryModel>> countriesWithOptions(
       {bool? isActive, int? limit, bool orderByName = true}) async {
-    Query q = db.collection('countries');
-    if (isActive != null) q = q.where('isActive', isEqualTo: isActive);
-    if (orderByName) {
-      try {
-        q = q.orderBy('name');
-      } catch (_) {}
+    try {
+      Query q = db.collection('countries');
+      if (isActive != null) q = q.where('isActive', isEqualTo: isActive);
+      if (orderByName) {
+        try {
+          q = q.orderBy('name');
+        } catch (_) {}
+      }
+      if (limit != null && limit > 0) q = q.limit(limit);
+      final snap = await q.get();
+      debugPrint('[GeoRemoteDS] countriesWithOptions: ${snap.docs.length} docs');
+      return snap.docs
+          .map((d) => CountryModel.fromFirestore(
+              d.id, d.data() as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('[GeoRemoteDS] countriesWithOptions ERROR: $e');
+      rethrow;
     }
-    if (limit != null && limit > 0) q = q.limit(limit);
-    final snap = await q.get();
-    return snap.docs
-        .map((d) =>
-            CountryModel.fromFirestore(d.id, d.data() as Map<String, dynamic>))
-        .toList();
   }
 
   Future<CountryModel?> getCountry(String id) async {

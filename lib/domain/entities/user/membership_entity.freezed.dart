@@ -21,6 +21,8 @@ mixin _$MembershipEntity {
   List<ProviderProfile> get providerProfiles;
   String get estatus; // activo | inactivo | invited | suspended | left
   Map<String, String> get primaryLocation; // { countryId, regionId?, cityId? }
+  /// Alcance de acceso a activos. Default seguro: restricted sin asignaciones.
+  MembershipScope get scope;
   bool? get isOwner;
   DateTime? get createdAt;
   DateTime? get updatedAt;
@@ -50,6 +52,7 @@ mixin _$MembershipEntity {
             (identical(other.estatus, estatus) || other.estatus == estatus) &&
             const DeepCollectionEquality()
                 .equals(other.primaryLocation, primaryLocation) &&
+            (identical(other.scope, scope) || other.scope == scope) &&
             (identical(other.isOwner, isOwner) || other.isOwner == isOwner) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
@@ -68,13 +71,14 @@ mixin _$MembershipEntity {
       const DeepCollectionEquality().hash(providerProfiles),
       estatus,
       const DeepCollectionEquality().hash(primaryLocation),
+      scope,
       isOwner,
       createdAt,
       updatedAt);
 
   @override
   String toString() {
-    return 'MembershipEntity(userId: $userId, orgId: $orgId, orgName: $orgName, roles: $roles, providerProfiles: $providerProfiles, estatus: $estatus, primaryLocation: $primaryLocation, isOwner: $isOwner, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'MembershipEntity(userId: $userId, orgId: $orgId, orgName: $orgName, roles: $roles, providerProfiles: $providerProfiles, estatus: $estatus, primaryLocation: $primaryLocation, scope: $scope, isOwner: $isOwner, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -92,9 +96,12 @@ abstract mixin class $MembershipEntityCopyWith<$Res> {
       List<ProviderProfile> providerProfiles,
       String estatus,
       Map<String, String> primaryLocation,
+      MembershipScope scope,
       bool? isOwner,
       DateTime? createdAt,
       DateTime? updatedAt});
+
+  $MembershipScopeCopyWith<$Res> get scope;
 }
 
 /// @nodoc
@@ -117,6 +124,7 @@ class _$MembershipEntityCopyWithImpl<$Res>
     Object? providerProfiles = null,
     Object? estatus = null,
     Object? primaryLocation = null,
+    Object? scope = null,
     Object? isOwner = freezed,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
@@ -150,6 +158,10 @@ class _$MembershipEntityCopyWithImpl<$Res>
           ? _self.primaryLocation
           : primaryLocation // ignore: cast_nullable_to_non_nullable
               as Map<String, String>,
+      scope: null == scope
+          ? _self.scope
+          : scope // ignore: cast_nullable_to_non_nullable
+              as MembershipScope,
       isOwner: freezed == isOwner
           ? _self.isOwner
           : isOwner // ignore: cast_nullable_to_non_nullable
@@ -163,6 +175,16 @@ class _$MembershipEntityCopyWithImpl<$Res>
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
     ));
+  }
+
+  /// Create a copy of MembershipEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MembershipScopeCopyWith<$Res> get scope {
+    return $MembershipScopeCopyWith<$Res>(_self.scope, (value) {
+      return _then(_self.copyWith(scope: value));
+    });
   }
 }
 
@@ -267,6 +289,7 @@ extension MembershipEntityPatterns on MembershipEntity {
             List<ProviderProfile> providerProfiles,
             String estatus,
             Map<String, String> primaryLocation,
+            MembershipScope scope,
             bool? isOwner,
             DateTime? createdAt,
             DateTime? updatedAt)?
@@ -284,6 +307,7 @@ extension MembershipEntityPatterns on MembershipEntity {
             _that.providerProfiles,
             _that.estatus,
             _that.primaryLocation,
+            _that.scope,
             _that.isOwner,
             _that.createdAt,
             _that.updatedAt);
@@ -315,6 +339,7 @@ extension MembershipEntityPatterns on MembershipEntity {
             List<ProviderProfile> providerProfiles,
             String estatus,
             Map<String, String> primaryLocation,
+            MembershipScope scope,
             bool? isOwner,
             DateTime? createdAt,
             DateTime? updatedAt)
@@ -331,6 +356,7 @@ extension MembershipEntityPatterns on MembershipEntity {
             _that.providerProfiles,
             _that.estatus,
             _that.primaryLocation,
+            _that.scope,
             _that.isOwner,
             _that.createdAt,
             _that.updatedAt);
@@ -361,6 +387,7 @@ extension MembershipEntityPatterns on MembershipEntity {
             List<ProviderProfile> providerProfiles,
             String estatus,
             Map<String, String> primaryLocation,
+            MembershipScope scope,
             bool? isOwner,
             DateTime? createdAt,
             DateTime? updatedAt)?
@@ -377,6 +404,7 @@ extension MembershipEntityPatterns on MembershipEntity {
             _that.providerProfiles,
             _that.estatus,
             _that.primaryLocation,
+            _that.scope,
             _that.isOwner,
             _that.createdAt,
             _that.updatedAt);
@@ -397,6 +425,7 @@ class _MembershipEntity implements MembershipEntity {
       final List<ProviderProfile> providerProfiles = const <ProviderProfile>[],
       required this.estatus,
       required final Map<String, String> primaryLocation,
+      this.scope = const MembershipScope(),
       this.isOwner,
       this.createdAt,
       this.updatedAt})
@@ -444,6 +473,10 @@ class _MembershipEntity implements MembershipEntity {
   }
 
 // { countryId, regionId?, cityId? }
+  /// Alcance de acceso a activos. Default seguro: restricted sin asignaciones.
+  @override
+  @JsonKey()
+  final MembershipScope scope;
   @override
   final bool? isOwner;
   @override
@@ -480,6 +513,7 @@ class _MembershipEntity implements MembershipEntity {
             (identical(other.estatus, estatus) || other.estatus == estatus) &&
             const DeepCollectionEquality()
                 .equals(other._primaryLocation, _primaryLocation) &&
+            (identical(other.scope, scope) || other.scope == scope) &&
             (identical(other.isOwner, isOwner) || other.isOwner == isOwner) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
@@ -498,13 +532,14 @@ class _MembershipEntity implements MembershipEntity {
       const DeepCollectionEquality().hash(_providerProfiles),
       estatus,
       const DeepCollectionEquality().hash(_primaryLocation),
+      scope,
       isOwner,
       createdAt,
       updatedAt);
 
   @override
   String toString() {
-    return 'MembershipEntity(userId: $userId, orgId: $orgId, orgName: $orgName, roles: $roles, providerProfiles: $providerProfiles, estatus: $estatus, primaryLocation: $primaryLocation, isOwner: $isOwner, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'MembershipEntity(userId: $userId, orgId: $orgId, orgName: $orgName, roles: $roles, providerProfiles: $providerProfiles, estatus: $estatus, primaryLocation: $primaryLocation, scope: $scope, isOwner: $isOwner, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -524,9 +559,13 @@ abstract mixin class _$MembershipEntityCopyWith<$Res>
       List<ProviderProfile> providerProfiles,
       String estatus,
       Map<String, String> primaryLocation,
+      MembershipScope scope,
       bool? isOwner,
       DateTime? createdAt,
       DateTime? updatedAt});
+
+  @override
+  $MembershipScopeCopyWith<$Res> get scope;
 }
 
 /// @nodoc
@@ -549,6 +588,7 @@ class __$MembershipEntityCopyWithImpl<$Res>
     Object? providerProfiles = null,
     Object? estatus = null,
     Object? primaryLocation = null,
+    Object? scope = null,
     Object? isOwner = freezed,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
@@ -582,6 +622,10 @@ class __$MembershipEntityCopyWithImpl<$Res>
           ? _self._primaryLocation
           : primaryLocation // ignore: cast_nullable_to_non_nullable
               as Map<String, String>,
+      scope: null == scope
+          ? _self.scope
+          : scope // ignore: cast_nullable_to_non_nullable
+              as MembershipScope,
       isOwner: freezed == isOwner
           ? _self.isOwner
           : isOwner // ignore: cast_nullable_to_non_nullable
@@ -595,6 +639,16 @@ class __$MembershipEntityCopyWithImpl<$Res>
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
     ));
+  }
+
+  /// Create a copy of MembershipEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MembershipScopeCopyWith<$Res> get scope {
+    return $MembershipScopeCopyWith<$Res>(_self.scope, (value) {
+      return _then(_self.copyWith(scope: value));
+    });
   }
 }
 

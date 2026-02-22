@@ -24,6 +24,10 @@ mixin _$OrganizationEntity {
   String? get logoUrl;
   String? get nitOrTaxId; // NUEVO
   Map<String, dynamic>? get metadata;
+
+  /// Contrato de acceso de la organización.
+  /// Default seguro: deny-by-default (localOnly, sin IA, sin capacidades, 0 assets/members).
+  OrganizationAccessContract get contract;
   bool get isActive;
   DateTime? get createdAt;
   DateTime? get updatedAt;
@@ -58,6 +62,8 @@ mixin _$OrganizationEntity {
             (identical(other.nitOrTaxId, nitOrTaxId) ||
                 other.nitOrTaxId == nitOrTaxId) &&
             const DeepCollectionEquality().equals(other.metadata, metadata) &&
+            (identical(other.contract, contract) ||
+                other.contract == contract) &&
             (identical(other.isActive, isActive) ||
                 other.isActive == isActive) &&
             (identical(other.createdAt, createdAt) ||
@@ -80,13 +86,14 @@ mixin _$OrganizationEntity {
       logoUrl,
       nitOrTaxId,
       const DeepCollectionEquality().hash(metadata),
+      contract,
       isActive,
       createdAt,
       updatedAt);
 
   @override
   String toString() {
-    return 'OrganizationEntity(id: $id, nombre: $nombre, tipo: $tipo, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerUid: $ownerUid, logoUrl: $logoUrl, nitOrTaxId: $nitOrTaxId, metadata: $metadata, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'OrganizationEntity(id: $id, nombre: $nombre, tipo: $tipo, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerUid: $ownerUid, logoUrl: $logoUrl, nitOrTaxId: $nitOrTaxId, metadata: $metadata, contract: $contract, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -107,9 +114,12 @@ abstract mixin class $OrganizationEntityCopyWith<$Res> {
       String? logoUrl,
       String? nitOrTaxId,
       Map<String, dynamic>? metadata,
+      OrganizationAccessContract contract,
       bool isActive,
       DateTime? createdAt,
       DateTime? updatedAt});
+
+  $OrganizationAccessContractCopyWith<$Res> get contract;
 }
 
 /// @nodoc
@@ -135,6 +145,7 @@ class _$OrganizationEntityCopyWithImpl<$Res>
     Object? logoUrl = freezed,
     Object? nitOrTaxId = freezed,
     Object? metadata = freezed,
+    Object? contract = null,
     Object? isActive = null,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
@@ -180,6 +191,10 @@ class _$OrganizationEntityCopyWithImpl<$Res>
           ? _self.metadata
           : metadata // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>?,
+      contract: null == contract
+          ? _self.contract
+          : contract // ignore: cast_nullable_to_non_nullable
+              as OrganizationAccessContract,
       isActive: null == isActive
           ? _self.isActive
           : isActive // ignore: cast_nullable_to_non_nullable
@@ -193,6 +208,16 @@ class _$OrganizationEntityCopyWithImpl<$Res>
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
     ));
+  }
+
+  /// Create a copy of OrganizationEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $OrganizationAccessContractCopyWith<$Res> get contract {
+    return $OrganizationAccessContractCopyWith<$Res>(_self.contract, (value) {
+      return _then(_self.copyWith(contract: value));
+    });
   }
 }
 
@@ -300,6 +325,7 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             String? logoUrl,
             String? nitOrTaxId,
             Map<String, dynamic>? metadata,
+            OrganizationAccessContract contract,
             bool isActive,
             DateTime? createdAt,
             DateTime? updatedAt)?
@@ -320,6 +346,7 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             _that.logoUrl,
             _that.nitOrTaxId,
             _that.metadata,
+            _that.contract,
             _that.isActive,
             _that.createdAt,
             _that.updatedAt);
@@ -354,6 +381,7 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             String? logoUrl,
             String? nitOrTaxId,
             Map<String, dynamic>? metadata,
+            OrganizationAccessContract contract,
             bool isActive,
             DateTime? createdAt,
             DateTime? updatedAt)
@@ -373,6 +401,7 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             _that.logoUrl,
             _that.nitOrTaxId,
             _that.metadata,
+            _that.contract,
             _that.isActive,
             _that.createdAt,
             _that.updatedAt);
@@ -406,6 +435,7 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             String? logoUrl,
             String? nitOrTaxId,
             Map<String, dynamic>? metadata,
+            OrganizationAccessContract contract,
             bool isActive,
             DateTime? createdAt,
             DateTime? updatedAt)?
@@ -425,6 +455,7 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             _that.logoUrl,
             _that.nitOrTaxId,
             _that.metadata,
+            _that.contract,
             _that.isActive,
             _that.createdAt,
             _that.updatedAt);
@@ -448,6 +479,7 @@ class _OrganizationEntity implements OrganizationEntity {
       this.logoUrl,
       this.nitOrTaxId,
       final Map<String, dynamic>? metadata,
+      this.contract = const OrganizationAccessContract(),
       this.isActive = true,
       this.createdAt,
       this.updatedAt})
@@ -486,6 +518,11 @@ class _OrganizationEntity implements OrganizationEntity {
     return EqualUnmodifiableMapView(value);
   }
 
+  /// Contrato de acceso de la organización.
+  /// Default seguro: deny-by-default (localOnly, sin IA, sin capacidades, 0 assets/members).
+  @override
+  @JsonKey()
+  final OrganizationAccessContract contract;
   @override
   @JsonKey()
   final bool isActive;
@@ -528,6 +565,8 @@ class _OrganizationEntity implements OrganizationEntity {
             (identical(other.nitOrTaxId, nitOrTaxId) ||
                 other.nitOrTaxId == nitOrTaxId) &&
             const DeepCollectionEquality().equals(other._metadata, _metadata) &&
+            (identical(other.contract, contract) ||
+                other.contract == contract) &&
             (identical(other.isActive, isActive) ||
                 other.isActive == isActive) &&
             (identical(other.createdAt, createdAt) ||
@@ -550,13 +589,14 @@ class _OrganizationEntity implements OrganizationEntity {
       logoUrl,
       nitOrTaxId,
       const DeepCollectionEquality().hash(_metadata),
+      contract,
       isActive,
       createdAt,
       updatedAt);
 
   @override
   String toString() {
-    return 'OrganizationEntity(id: $id, nombre: $nombre, tipo: $tipo, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerUid: $ownerUid, logoUrl: $logoUrl, nitOrTaxId: $nitOrTaxId, metadata: $metadata, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'OrganizationEntity(id: $id, nombre: $nombre, tipo: $tipo, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerUid: $ownerUid, logoUrl: $logoUrl, nitOrTaxId: $nitOrTaxId, metadata: $metadata, contract: $contract, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -579,9 +619,13 @@ abstract mixin class _$OrganizationEntityCopyWith<$Res>
       String? logoUrl,
       String? nitOrTaxId,
       Map<String, dynamic>? metadata,
+      OrganizationAccessContract contract,
       bool isActive,
       DateTime? createdAt,
       DateTime? updatedAt});
+
+  @override
+  $OrganizationAccessContractCopyWith<$Res> get contract;
 }
 
 /// @nodoc
@@ -607,6 +651,7 @@ class __$OrganizationEntityCopyWithImpl<$Res>
     Object? logoUrl = freezed,
     Object? nitOrTaxId = freezed,
     Object? metadata = freezed,
+    Object? contract = null,
     Object? isActive = null,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
@@ -652,6 +697,10 @@ class __$OrganizationEntityCopyWithImpl<$Res>
           ? _self._metadata
           : metadata // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>?,
+      contract: null == contract
+          ? _self.contract
+          : contract // ignore: cast_nullable_to_non_nullable
+              as OrganizationAccessContract,
       isActive: null == isActive
           ? _self.isActive
           : isActive // ignore: cast_nullable_to_non_nullable
@@ -665,6 +714,16 @@ class __$OrganizationEntityCopyWithImpl<$Res>
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
     ));
+  }
+
+  /// Create a copy of OrganizationEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $OrganizationAccessContractCopyWith<$Res> get contract {
+    return $OrganizationAccessContractCopyWith<$Res>(_self.contract, (value) {
+      return _then(_self.copyWith(contract: value));
+    });
   }
 }
 

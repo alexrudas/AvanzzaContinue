@@ -27,16 +27,22 @@ class GeoRepositoryImpl implements GeoRepository {
   Stream<List<CountryEntity>> watchCountries({bool? isActive}) async* {
     final controller = StreamController<List<CountryEntity>>();
     Future(() async {
-      final locals = await local.countries(isActive: isActive);
-      controller.add(locals.map((e) => e.toEntity()).toList());
-      // background sync (orden por nombre)
-      _telemetry.log('[Geo] watchCountries', {'isActive': isActive ?? 'any'});
-      final remotes = await remote.countriesWithOptions(
-          isActive: isActive, limit: null, orderByName: true);
-      await _syncCountries(locals, remotes);
-      final updated = await local.countries(isActive: isActive);
-      controller.add(updated.map((e) => e.toEntity()).toList());
-      await controller.close();
+      try {
+        final locals = await local.countries(isActive: isActive);
+        controller.add(locals.map((e) => e.toEntity()).toList());
+        // sync remoto
+        _telemetry
+            .log('[Geo] watchCountries', {'isActive': isActive ?? 'any'});
+        final remotes = await remote.countriesWithOptions(
+            isActive: isActive, limit: null, orderByName: true);
+        await _syncCountries(locals, remotes);
+        final updated = await local.countries(isActive: isActive);
+        controller.add(updated.map((e) => e.toEntity()).toList());
+      } catch (e) {
+        controller.addError(e);
+      } finally {
+        await controller.close();
+      }
     });
     yield* controller.stream;
   }
@@ -116,21 +122,26 @@ class GeoRepositoryImpl implements GeoRepository {
       {required String countryId, bool? isActive}) async* {
     final controller = StreamController<List<RegionEntity>>();
     Future(() async {
-      final locals =
-          await local.regions(countryId: countryId, isActive: isActive);
-      controller.add(locals.map((e) => e.toEntity()).toList());
-      _telemetry.log('[Geo] regionsByCountry',
-          {'countryId': countryId, 'isActive': isActive ?? 'any'});
-      final remotes = await remote.regionsByCountry(
-          countryId: countryId,
-          isActive: isActive,
-          limit: null,
-          orderByName: true);
-      await _syncRegions(locals, remotes);
-      final updated =
-          await local.regions(countryId: countryId, isActive: isActive);
-      controller.add(updated.map((e) => e.toEntity()).toList());
-      await controller.close();
+      try {
+        final locals =
+            await local.regions(countryId: countryId, isActive: isActive);
+        controller.add(locals.map((e) => e.toEntity()).toList());
+        _telemetry.log('[Geo] regionsByCountry',
+            {'countryId': countryId, 'isActive': isActive ?? 'any'});
+        final remotes = await remote.regionsByCountry(
+            countryId: countryId,
+            isActive: isActive,
+            limit: null,
+            orderByName: true);
+        await _syncRegions(locals, remotes);
+        final updated =
+            await local.regions(countryId: countryId, isActive: isActive);
+        controller.add(updated.map((e) => e.toEntity()).toList());
+      } catch (e) {
+        controller.addError(e);
+      } finally {
+        await controller.close();
+      }
     });
     yield* controller.stream;
   }
@@ -213,30 +224,35 @@ class GeoRepositoryImpl implements GeoRepository {
       {required String countryId, String? regionId, bool? isActive}) async* {
     final controller = StreamController<List<CityEntity>>();
     Future(() async {
-      final locals = await local.cities(
-          countryId: countryId, regionId: regionId, isActive: isActive);
-      controller.add(locals.map((e) => e.toEntity()).toList());
-      _telemetry.log('[Geo] cities', {
-        'countryId': countryId,
-        'regionId': regionId ?? 'any',
-        'isActive': isActive ?? 'any'
-      });
-      final remotes = regionId != null
-          ? await remote.citiesByRegion(
-              regionId: regionId,
-              isActive: isActive,
-              limit: null,
-              orderByName: true)
-          : await remote.citiesByCountry(
-              countryId: countryId,
-              isActive: isActive,
-              limit: null,
-              orderByName: true);
-      await _syncCities(locals, remotes);
-      final updated = await local.cities(
-          countryId: countryId, regionId: regionId, isActive: isActive);
-      controller.add(updated.map((e) => e.toEntity()).toList());
-      await controller.close();
+      try {
+        final locals = await local.cities(
+            countryId: countryId, regionId: regionId, isActive: isActive);
+        controller.add(locals.map((e) => e.toEntity()).toList());
+        _telemetry.log('[Geo] cities', {
+          'countryId': countryId,
+          'regionId': regionId ?? 'any',
+          'isActive': isActive ?? 'any'
+        });
+        final remotes = regionId != null
+            ? await remote.citiesByRegion(
+                regionId: regionId,
+                isActive: isActive,
+                limit: null,
+                orderByName: true)
+            : await remote.citiesByCountry(
+                countryId: countryId,
+                isActive: isActive,
+                limit: null,
+                orderByName: true);
+        await _syncCities(locals, remotes);
+        final updated = await local.cities(
+            countryId: countryId, regionId: regionId, isActive: isActive);
+        controller.add(updated.map((e) => e.toEntity()).toList());
+      } catch (e) {
+        controller.addError(e);
+      } finally {
+        await controller.close();
+      }
     });
     yield* controller.stream;
   }

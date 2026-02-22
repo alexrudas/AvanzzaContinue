@@ -27,73 +27,78 @@ const OrganizationModelSchema = CollectionSchema(
       name: r'cityRefPath',
       type: IsarType.string,
     ),
-    r'countryId': PropertySchema(
+    r'contractJson': PropertySchema(
       id: 2,
+      name: r'contractJson',
+      type: IsarType.string,
+    ),
+    r'countryId': PropertySchema(
+      id: 3,
       name: r'countryId',
       type: IsarType.string,
     ),
     r'countryRefPath': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'countryRefPath',
       type: IsarType.string,
     ),
     r'createdAt': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'id': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'id',
       type: IsarType.string,
     ),
     r'isActive': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'isActive',
       type: IsarType.bool,
     ),
     r'logoUrl': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'logoUrl',
       type: IsarType.string,
     ),
     r'metadataJson': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'metadataJson',
       type: IsarType.string,
     ),
     r'nombre': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'nombre',
       type: IsarType.string,
     ),
     r'ownerRefPath': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'ownerRefPath',
       type: IsarType.string,
     ),
     r'ownerUid': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'ownerUid',
       type: IsarType.string,
     ),
     r'regionId': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'regionId',
       type: IsarType.string,
     ),
     r'regionRefPath': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'regionRefPath',
       type: IsarType.string,
     ),
     r'tipo': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'tipo',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -209,6 +214,12 @@ int _organizationModelEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.contractJson;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.countryId.length * 3;
   {
     final value = object.countryRefPath;
@@ -266,20 +277,21 @@ void _organizationModelSerialize(
 ) {
   writer.writeString(offsets[0], object.cityId);
   writer.writeString(offsets[1], object.cityRefPath);
-  writer.writeString(offsets[2], object.countryId);
-  writer.writeString(offsets[3], object.countryRefPath);
-  writer.writeDateTime(offsets[4], object.createdAt);
-  writer.writeString(offsets[5], object.id);
-  writer.writeBool(offsets[6], object.isActive);
-  writer.writeString(offsets[7], object.logoUrl);
-  writer.writeString(offsets[8], object.metadataJson);
-  writer.writeString(offsets[9], object.nombre);
-  writer.writeString(offsets[10], object.ownerRefPath);
-  writer.writeString(offsets[11], object.ownerUid);
-  writer.writeString(offsets[12], object.regionId);
-  writer.writeString(offsets[13], object.regionRefPath);
-  writer.writeString(offsets[14], object.tipo);
-  writer.writeDateTime(offsets[15], object.updatedAt);
+  writer.writeString(offsets[2], object.contractJson);
+  writer.writeString(offsets[3], object.countryId);
+  writer.writeString(offsets[4], object.countryRefPath);
+  writer.writeDateTime(offsets[5], object.createdAt);
+  writer.writeString(offsets[6], object.id);
+  writer.writeBool(offsets[7], object.isActive);
+  writer.writeString(offsets[8], object.logoUrl);
+  writer.writeString(offsets[9], object.metadataJson);
+  writer.writeString(offsets[10], object.nombre);
+  writer.writeString(offsets[11], object.ownerRefPath);
+  writer.writeString(offsets[12], object.ownerUid);
+  writer.writeString(offsets[13], object.regionId);
+  writer.writeString(offsets[14], object.regionRefPath);
+  writer.writeString(offsets[15], object.tipo);
+  writer.writeDateTime(offsets[16], object.updatedAt);
 }
 
 OrganizationModel _organizationModelDeserialize(
@@ -291,21 +303,22 @@ OrganizationModel _organizationModelDeserialize(
   final object = OrganizationModel(
     cityId: reader.readStringOrNull(offsets[0]),
     cityRefPath: reader.readStringOrNull(offsets[1]),
-    countryId: reader.readString(offsets[2]),
-    countryRefPath: reader.readStringOrNull(offsets[3]),
-    createdAt: reader.readDateTimeOrNull(offsets[4]),
-    id: reader.readString(offsets[5]),
-    isActive: reader.readBoolOrNull(offsets[6]) ?? true,
+    contractJson: reader.readStringOrNull(offsets[2]),
+    countryId: reader.readString(offsets[3]),
+    countryRefPath: reader.readStringOrNull(offsets[4]),
+    createdAt: reader.readDateTimeOrNull(offsets[5]),
+    id: reader.readString(offsets[6]),
+    isActive: reader.readBoolOrNull(offsets[7]) ?? true,
     isarId: id,
-    logoUrl: reader.readStringOrNull(offsets[7]),
-    metadataJson: reader.readStringOrNull(offsets[8]),
-    nombre: reader.readString(offsets[9]),
-    ownerRefPath: reader.readStringOrNull(offsets[10]),
-    ownerUid: reader.readStringOrNull(offsets[11]),
-    regionId: reader.readStringOrNull(offsets[12]),
-    regionRefPath: reader.readStringOrNull(offsets[13]),
-    tipo: reader.readString(offsets[14]),
-    updatedAt: reader.readDateTimeOrNull(offsets[15]),
+    logoUrl: reader.readStringOrNull(offsets[8]),
+    metadataJson: reader.readStringOrNull(offsets[9]),
+    nombre: reader.readString(offsets[10]),
+    ownerRefPath: reader.readStringOrNull(offsets[11]),
+    ownerUid: reader.readStringOrNull(offsets[12]),
+    regionId: reader.readStringOrNull(offsets[13]),
+    regionRefPath: reader.readStringOrNull(offsets[14]),
+    tipo: reader.readString(offsets[15]),
+    updatedAt: reader.readDateTimeOrNull(offsets[16]),
   );
   return object;
 }
@@ -322,23 +335,23 @@ P _organizationModelDeserializeProp<P>(
     case 1:
       return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readStringOrNull(offset)) as P;
-    case 4:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 5:
       return (reader.readString(offset)) as P;
-    case 6:
-      return (reader.readBoolOrNull(offset) ?? true) as P;
-    case 7:
+    case 4:
       return (reader.readStringOrNull(offset)) as P;
+    case 5:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 6:
+      return (reader.readString(offset)) as P;
+    case 7:
+      return (reader.readBoolOrNull(offset) ?? true) as P;
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readString(offset)) as P;
-    case 10:
       return (reader.readStringOrNull(offset)) as P;
+    case 10:
+      return (reader.readString(offset)) as P;
     case 11:
       return (reader.readStringOrNull(offset)) as P;
     case 12:
@@ -346,8 +359,10 @@ P _organizationModelDeserializeProp<P>(
     case 13:
       return (reader.readStringOrNull(offset)) as P;
     case 14:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 15:
+      return (reader.readString(offset)) as P;
+    case 16:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1153,6 +1168,160 @@ extension OrganizationModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'cityRefPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      contractJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'contractJson',
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      contractJsonIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'contractJson',
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      contractJsonEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'contractJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      contractJsonGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'contractJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      contractJsonLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'contractJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      contractJsonBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'contractJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      contractJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'contractJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      contractJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'contractJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      contractJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'contractJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      contractJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'contractJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      contractJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'contractJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterFilterCondition>
+      contractJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'contractJson',
         value: '',
       ));
     });
@@ -3050,6 +3219,20 @@ extension OrganizationModelQuerySortBy
   }
 
   QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByContractJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'contractJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      sortByContractJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'contractJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
       sortByCountryId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'countryId', Sort.asc);
@@ -3272,6 +3455,20 @@ extension OrganizationModelQuerySortThenBy
       thenByCityRefPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cityRefPath', Sort.desc);
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByContractJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'contractJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QAfterSortBy>
+      thenByContractJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'contractJson', Sort.desc);
     });
   }
 
@@ -3502,6 +3699,13 @@ extension OrganizationModelQueryWhereDistinct
   }
 
   QueryBuilder<OrganizationModel, OrganizationModel, QDistinct>
+      distinctByContractJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'contractJson', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<OrganizationModel, OrganizationModel, QDistinct>
       distinctByCountryId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'countryId', caseSensitive: caseSensitive);
@@ -3623,6 +3827,13 @@ extension OrganizationModelQueryProperty
     });
   }
 
+  QueryBuilder<OrganizationModel, String?, QQueryOperations>
+      contractJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'contractJson');
+    });
+  }
+
   QueryBuilder<OrganizationModel, String, QQueryOperations>
       countryIdProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -3737,6 +3948,7 @@ OrganizationModel _$OrganizationModelFromJson(Map<String, dynamic> json) =>
       cityRefPath: json['cityRefPath'] as String?,
       ownerRefPath: json['ownerRefPath'] as String?,
       metadataJson: json['metadataJson'] as String?,
+      contractJson: json['contractJson'] as String?,
       isActive: json['isActive'] as bool? ?? true,
       createdAt: json['createdAt'] == null
           ? null
@@ -3762,6 +3974,7 @@ Map<String, dynamic> _$OrganizationModelToJson(OrganizationModel instance) =>
       'cityRefPath': instance.cityRefPath,
       'ownerRefPath': instance.ownerRefPath,
       'metadataJson': instance.metadataJson,
+      'contractJson': instance.contractJson,
       'isActive': instance.isActive,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),

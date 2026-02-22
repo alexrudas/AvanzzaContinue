@@ -1,7 +1,9 @@
-import '../entities/geo/country_entity.dart';
-import '../entities/geo/region_entity.dart';
+// lib\domain\repositories\geo_repository.dart
+
 import '../entities/geo/city_entity.dart';
+import '../entities/geo/country_entity.dart';
 import '../entities/geo/local_regulation_entity.dart';
+import '../entities/geo/region_entity.dart';
 
 abstract class GeoRepository {
   // Countries

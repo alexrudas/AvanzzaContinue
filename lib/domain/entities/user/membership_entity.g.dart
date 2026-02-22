@@ -20,6 +20,9 @@ _MembershipEntity _$MembershipEntityFromJson(Map<String, dynamic> json) =>
           const <ProviderProfile>[],
       estatus: json['estatus'] as String,
       primaryLocation: Map<String, String>.from(json['primaryLocation'] as Map),
+      scope: json['scope'] == null
+          ? const MembershipScope()
+          : MembershipScope.fromJson(json['scope'] as Map<String, dynamic>),
       isOwner: json['isOwner'] as bool?,
       createdAt: json['createdAt'] == null
           ? null
@@ -38,6 +41,7 @@ Map<String, dynamic> _$MembershipEntityToJson(_MembershipEntity instance) =>
       'providerProfiles': instance.providerProfiles,
       'estatus': instance.estatus,
       'primaryLocation': instance.primaryLocation,
+      'scope': instance.scope,
       'isOwner': instance.isOwner,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),

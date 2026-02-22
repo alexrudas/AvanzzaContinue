@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../value/organization_contract/organization_access_contract.dart';
+
 part 'organization_entity.freezed.dart';
 part 'organization_entity.g.dart';
 
@@ -16,6 +18,11 @@ abstract class OrganizationEntity with _$OrganizationEntity {
     String? logoUrl,
     String? nitOrTaxId, // NUEVO
     Map<String, dynamic>? metadata,
+
+    /// Contrato de acceso de la organización.
+    /// Default seguro: deny-by-default (localOnly, sin IA, sin capacidades, 0 assets/members).
+    @Default(OrganizationAccessContract()) OrganizationAccessContract contract,
+
     @Default(true) bool isActive,
     DateTime? createdAt,
     DateTime? updatedAt,

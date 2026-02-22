@@ -32,38 +32,48 @@ const MembershipModelSchema = CollectionSchema(
       name: r'id',
       type: IsarType.string,
     ),
-    r'orgId': PropertySchema(
+    r'isOwner': PropertySchema(
       id: 3,
+      name: r'isOwner',
+      type: IsarType.bool,
+    ),
+    r'orgId': PropertySchema(
+      id: 4,
       name: r'orgId',
       type: IsarType.string,
     ),
     r'orgName': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'orgName',
       type: IsarType.string,
     ),
     r'orgRefPath': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'orgRefPath',
       type: IsarType.string,
     ),
     r'primaryLocationJson': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'primaryLocationJson',
       type: IsarType.string,
     ),
     r'roles': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'roles',
       type: IsarType.stringList,
     ),
+    r'scopeJson': PropertySchema(
+      id: 9,
+      name: r'scopeJson',
+      type: IsarType.string,
+    ),
     r'updatedAt': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'userId': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'userId',
       type: IsarType.string,
     )
@@ -164,6 +174,12 @@ int _membershipModelEstimateSize(
       bytesCount += value.length * 3;
     }
   }
+  {
+    final value = object.scopeJson;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.userId.length * 3;
   return bytesCount;
 }
@@ -177,13 +193,15 @@ void _membershipModelSerialize(
   writer.writeDateTime(offsets[0], object.createdAt);
   writer.writeString(offsets[1], object.estatus);
   writer.writeString(offsets[2], object.id);
-  writer.writeString(offsets[3], object.orgId);
-  writer.writeString(offsets[4], object.orgName);
-  writer.writeString(offsets[5], object.orgRefPath);
-  writer.writeString(offsets[6], object.primaryLocationJson);
-  writer.writeStringList(offsets[7], object.roles);
-  writer.writeDateTime(offsets[8], object.updatedAt);
-  writer.writeString(offsets[9], object.userId);
+  writer.writeBool(offsets[3], object.isOwner);
+  writer.writeString(offsets[4], object.orgId);
+  writer.writeString(offsets[5], object.orgName);
+  writer.writeString(offsets[6], object.orgRefPath);
+  writer.writeString(offsets[7], object.primaryLocationJson);
+  writer.writeStringList(offsets[8], object.roles);
+  writer.writeString(offsets[9], object.scopeJson);
+  writer.writeDateTime(offsets[10], object.updatedAt);
+  writer.writeString(offsets[11], object.userId);
 }
 
 MembershipModel _membershipModelDeserialize(
@@ -196,14 +214,16 @@ MembershipModel _membershipModelDeserialize(
     createdAt: reader.readDateTimeOrNull(offsets[0]),
     estatus: reader.readString(offsets[1]),
     id: reader.readString(offsets[2]),
+    isOwner: reader.readBoolOrNull(offsets[3]),
     isarId: id,
-    orgId: reader.readString(offsets[3]),
-    orgName: reader.readString(offsets[4]),
-    orgRefPath: reader.readStringOrNull(offsets[5]),
-    primaryLocationJson: reader.readStringOrNull(offsets[6]),
-    roles: reader.readStringList(offsets[7]) ?? const [],
-    updatedAt: reader.readDateTimeOrNull(offsets[8]),
-    userId: reader.readString(offsets[9]),
+    orgId: reader.readString(offsets[4]),
+    orgName: reader.readString(offsets[5]),
+    orgRefPath: reader.readStringOrNull(offsets[6]),
+    primaryLocationJson: reader.readStringOrNull(offsets[7]),
+    roles: reader.readStringList(offsets[8]) ?? const <String>[],
+    scopeJson: reader.readStringOrNull(offsets[9]),
+    updatedAt: reader.readDateTimeOrNull(offsets[10]),
+    userId: reader.readString(offsets[11]),
   );
   return object;
 }
@@ -222,18 +242,22 @@ P _membershipModelDeserializeProp<P>(
     case 2:
       return (reader.readString(offset)) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 4:
       return (reader.readString(offset)) as P;
     case 5:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 6:
       return (reader.readStringOrNull(offset)) as P;
     case 7:
-      return (reader.readStringList(offset) ?? const []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? const <String>[]) as P;
     case 9:
+      return (reader.readStringOrNull(offset)) as P;
+    case 10:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 11:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -912,6 +936,34 @@ extension MembershipModelQueryFilter
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'id',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      isOwnerIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'isOwner',
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      isOwnerIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'isOwner',
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      isOwnerEqualTo(bool? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isOwner',
+        value: value,
       ));
     });
   }
@@ -1796,6 +1848,160 @@ extension MembershipModelQueryFilter
   }
 
   QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      scopeJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'scopeJson',
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      scopeJsonIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'scopeJson',
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      scopeJsonEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'scopeJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      scopeJsonGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'scopeJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      scopeJsonLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'scopeJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      scopeJsonBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'scopeJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      scopeJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'scopeJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      scopeJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'scopeJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      scopeJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'scopeJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      scopeJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'scopeJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      scopeJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'scopeJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
+      scopeJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'scopeJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterFilterCondition>
       updatedAtIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -2053,6 +2259,19 @@ extension MembershipModelQuerySortBy
     });
   }
 
+  QueryBuilder<MembershipModel, MembershipModel, QAfterSortBy> sortByIsOwner() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isOwner', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterSortBy>
+      sortByIsOwnerDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isOwner', Sort.desc);
+    });
+  }
+
   QueryBuilder<MembershipModel, MembershipModel, QAfterSortBy> sortByOrgId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'orgId', Sort.asc);
@@ -2104,6 +2323,20 @@ extension MembershipModelQuerySortBy
       sortByPrimaryLocationJsonDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'primaryLocationJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterSortBy>
+      sortByScopeJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'scopeJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterSortBy>
+      sortByScopeJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'scopeJson', Sort.desc);
     });
   }
 
@@ -2176,6 +2409,19 @@ extension MembershipModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<MembershipModel, MembershipModel, QAfterSortBy> thenByIsOwner() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isOwner', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterSortBy>
+      thenByIsOwnerDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isOwner', Sort.desc);
+    });
+  }
+
   QueryBuilder<MembershipModel, MembershipModel, QAfterSortBy> thenByIsarId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isarId', Sort.asc);
@@ -2244,6 +2490,20 @@ extension MembershipModelQuerySortThenBy
   }
 
   QueryBuilder<MembershipModel, MembershipModel, QAfterSortBy>
+      thenByScopeJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'scopeJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterSortBy>
+      thenByScopeJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'scopeJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QAfterSortBy>
       thenByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
@@ -2294,6 +2554,13 @@ extension MembershipModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<MembershipModel, MembershipModel, QDistinct>
+      distinctByIsOwner() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isOwner');
+    });
+  }
+
   QueryBuilder<MembershipModel, MembershipModel, QDistinct> distinctByOrgId(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2326,6 +2593,13 @@ extension MembershipModelQueryWhereDistinct
   QueryBuilder<MembershipModel, MembershipModel, QDistinct> distinctByRoles() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'roles');
+    });
+  }
+
+  QueryBuilder<MembershipModel, MembershipModel, QDistinct> distinctByScopeJson(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'scopeJson', caseSensitive: caseSensitive);
     });
   }
 
@@ -2371,6 +2645,12 @@ extension MembershipModelQueryProperty
     });
   }
 
+  QueryBuilder<MembershipModel, bool?, QQueryOperations> isOwnerProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isOwner');
+    });
+  }
+
   QueryBuilder<MembershipModel, String, QQueryOperations> orgIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'orgId');
@@ -2404,6 +2684,12 @@ extension MembershipModelQueryProperty
     });
   }
 
+  QueryBuilder<MembershipModel, String?, QQueryOperations> scopeJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'scopeJson');
+    });
+  }
+
   QueryBuilder<MembershipModel, DateTime?, QQueryOperations>
       updatedAtProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -2431,9 +2717,11 @@ MembershipModel _$MembershipModelFromJson(Map<String, dynamic> json) =>
       orgName: json['orgName'] as String,
       roles:
           (json['roles'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-              const [],
+              const <String>[],
       estatus: json['estatus'] as String,
+      isOwner: json['isOwner'] as bool?,
       primaryLocationJson: json['primaryLocationJson'] as String?,
+      scopeJson: json['scopeJson'] as String?,
       orgRefPath: json['orgRefPath'] as String?,
       createdAt: json['createdAt'] == null
           ? null
@@ -2452,7 +2740,9 @@ Map<String, dynamic> _$MembershipModelToJson(MembershipModel instance) =>
       'orgName': instance.orgName,
       'roles': instance.roles,
       'estatus': instance.estatus,
+      'isOwner': instance.isOwner,
       'primaryLocationJson': instance.primaryLocationJson,
+      'scopeJson': instance.scopeJson,
       'orgRefPath': instance.orgRefPath,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
