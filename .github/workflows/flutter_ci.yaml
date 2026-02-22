@@ -39,6 +39,9 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
+      - name: Enforce DOMAIN_CONTRACTS: No .wire usage
+        run: dart run tool/enforce_domain_contracts.dart
+
       - name: Analyze
         run: flutter analyze
 
