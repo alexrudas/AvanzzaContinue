@@ -1,9 +1,13 @@
+//lib\core\di\container.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:isar_community/isar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/repositories/accounting_repository_impl.dart';
 import '../../data/repositories/ai_repository_impl.dart';
 import '../../data/repositories/asset_repository_impl.dart';
+import '../../data/repositories/catalog_repository_impl.dart';
 import '../../data/repositories/chat_repository_impl.dart';
 import '../../data/repositories/geo_repository_impl.dart';
 import '../../data/repositories/insurance_repository_impl.dart';
@@ -11,7 +15,10 @@ import '../../data/repositories/maintenance_repository_impl.dart';
 import '../../data/repositories/org_repository_impl.dart';
 import '../../data/repositories/portfolio_repository_impl.dart';
 import '../../data/repositories/purchase_repository_impl.dart';
+// Sync Engine V2 imports
+import '../../data/repositories/sync_outbox_repository_impl.dart';
 import '../../data/repositories/user_repository_impl.dart';
+import '../../data/repositories/workspace_repository_impl.dart';
 import '../../data/sources/local/accounting_local_ds.dart';
 import '../../data/sources/local/ai_local_ds.dart';
 import '../../data/sources/local/asset_local_ds.dart';
@@ -33,33 +40,36 @@ import '../../data/sources/remote/maintenance_remote_ds.dart';
 import '../../data/sources/remote/org_remote_ds.dart';
 import '../../data/sources/remote/purchase_remote_ds.dart';
 import '../../data/sources/remote/user_remote_ds.dart';
+import '../../domain/policies/access_policy.dart';
+import '../../domain/policies/automation_policy.dart';
+import '../../domain/policies/default_access_policy.dart';
+import '../../domain/policies/default_automation_policy.dart';
+import '../../domain/policies/default_payout_policy.dart';
+import '../../domain/policies/payout_policy.dart';
+// Policy Layer imports
+import '../../domain/policies/policy_context_factory.dart';
+import '../../domain/policies/policy_engine.dart';
 import '../../domain/repositories/accounting_repository.dart';
 import '../../domain/repositories/ai_repository.dart';
 import '../../domain/repositories/asset_repository.dart';
-import '../../domain/repositories/chat_repository.dart';
 import '../../domain/repositories/catalog_repository.dart';
-import '../../data/repositories/catalog_repository_impl.dart';
+import '../../domain/repositories/chat_repository.dart';
 import '../../domain/repositories/geo_repository.dart';
 import '../../domain/repositories/insurance_repository.dart';
 import '../../domain/repositories/maintenance_repository.dart';
 import '../../domain/repositories/org_repository.dart';
 import '../../domain/repositories/portfolio_repository.dart';
 import '../../domain/repositories/purchase_repository.dart';
+import '../../domain/repositories/sync_outbox_repository.dart';
 import '../../domain/repositories/user_repository.dart';
 import '../../domain/repositories/workspace_repository.dart';
-import '../../data/repositories/workspace_repository_impl.dart';
+import '../../domain/services/sync/sync_dispatcher.dart';
+import '../../domain/services/sync/sync_engine.dart';
+import '../../infrastructure/sync/connectivity_service_adapter.dart';
+import '../../infrastructure/sync/firestore_sync_executor.dart';
+import '../../infrastructure/sync/system_now_provider.dart';
+import '../network/connectivity_service.dart';
 import '../platform/offline_sync_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-// Policy Layer imports
-import '../../domain/policies/policy_context_factory.dart';
-import '../../domain/policies/automation_policy.dart';
-import '../../domain/policies/payout_policy.dart';
-import '../../domain/policies/access_policy.dart';
-import '../../domain/policies/default_automation_policy.dart';
-import '../../domain/policies/default_payout_policy.dart';
-import '../../domain/policies/default_access_policy.dart';
-import '../../domain/policies/policy_engine.dart';
 
 class DIContainer {
   static final DIContainer _instance = DIContainer._internal();
@@ -109,6 +119,11 @@ class DIContainer {
   late final WorkspaceRepository workspaceRepository;
   late final PortfolioRepository portfolioRepository;
 
+  // Sync Engine V2
+  late final SyncOutboxRepository syncOutboxRepository;
+  late final SyncDispatcher syncDispatcher;
+  late final SyncEngineService syncEngineService;
+
   // Policy Layer
   late final PolicyContextFactory policyContextFactory;
   late final AutomationPolicy automationPolicy;
@@ -116,17 +131,24 @@ class DIContainer {
   late final AccessPolicy accessPolicy;
   late final PolicyEngine policyEngine;
 
+  // Connectivity
+  late final ConnectivityService connectivityService;
+
   Isar get isar => _isar;
   FirebaseFirestore get firestore => _firestore;
   OfflineSyncService get syncService => _syncService;
 }
 
-Future<void> initDI(
-    {required Isar isar, required FirebaseFirestore firestore}) async {
+Future<void> initDI({
+  required Isar isar,
+  required FirebaseFirestore firestore,
+  required ConnectivityService connectivity,
+}) async {
   final c = DIContainer();
   c._isar = isar;
   c._firestore = firestore;
   c._syncService = OfflineSyncService();
+  c.connectivityService = connectivity;
 
   // Instantiate data sources
   c.geoLocal = GeoLocalDataSource(isar);
@@ -185,6 +207,25 @@ Future<void> initDI(
     automationPolicy: c.automationPolicy,
     payoutPolicy: c.payoutPolicy,
     accessPolicy: c.accessPolicy,
+  );
+
+  // Sync Engine V2
+  c.syncOutboxRepository = SyncOutboxRepositoryImpl(isar: isar);
+
+  final syncExecutor = FirestoreSyncExecutor(firestore: firestore);
+  final connectivityAdapter = ConnectivityServiceAdapter(service: connectivity);
+  final nowProvider = SystemNowProvider();
+
+  c.syncDispatcher = SyncDispatcher(
+    outboxRepository: c.syncOutboxRepository,
+    executor: syncExecutor,
+    workerId: 'main_isolate',
+  );
+
+  c.syncEngineService = SyncEngineService(
+    dispatcher: c.syncDispatcher,
+    clock: nowProvider,
+    connectivity: connectivityAdapter,
   );
 
   // Log versión del catálogo
