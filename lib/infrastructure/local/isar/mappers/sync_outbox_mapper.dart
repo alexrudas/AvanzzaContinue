@@ -1,11 +1,19 @@
 // ============================================================================
 // lib/infrastructure/local/isar/mappers/sync_outbox_mapper.dart
-// MAPPER ENTRE DOMAIN ENTITY Y ISAR MODEL - ULTRA PRO (Bulletproof)
+// MAPPER ENTRE DOMAIN ENTITY Y ISAR MODEL — Enterprise Ultra Pro (V2.3)
 //
-// - Sanitización JSON-safe determinista (keys ordenadas)
-// - Parsing robusto de Firestore Timestamp (anti-crash)
-// - Guard de tamaño TOTAL (payload + metadata) 800KB
-// - Trazabilidad SOLO en metadata, NUNCA en payload
+// CONTRATO:
+// - Alineación 1:1 (22/22 campos) entre SyncOutboxEntry y SyncOutboxEntryModel.
+// - Deep copy defensivo de payload y metadata antes de sanitizar.
+// - Sanitización determinista (keys ordenadas, Firestore Timestamp → ISO8601).
+// - Guard de tamaño TOTAL (payload + metadata) ≤ 800KB.
+// - Trazabilidad de sanitización SOLO en metadata, NUNCA en payload.
+// - Corrupción en lectura (toEntity): NO silenciada → FormatException.
+//
+// POLÍTICA DE TIMESTAMPS:
+// - El mapper NO rehidrata Firestore Timestamp como objeto Dart.
+// - DateTime → ISO8601 UTC String para persistencia.
+// - Map tipo Timestamp ({seconds, nanoseconds}) → ISO8601 UTC String.
 // ============================================================================
 
 import 'dart:convert';
@@ -27,7 +35,7 @@ const String _sanitizationKey = '__outboxSanitization';
 // SYNC OUTBOX MAPPER
 // ============================================================================
 
-/// Mapper para convertir entre SyncOutboxEntry (Domain) y
+/// Mapper bidireccional entre SyncOutboxEntry (Domain) y
 /// SyncOutboxEntryModel (Isar).
 ///
 /// GARANTÍAS:
@@ -35,41 +43,48 @@ const String _sanitizationKey = '__outboxSanitization';
 /// - Sanitización determinista (keys ordenadas lexicográficamente).
 /// - Guard de tamaño TOTAL antes de persistir.
 /// - Trazabilidad en __outboxSanitization solo si hubo cambios.
+/// - Corrupción en lectura lanza FormatException (el repo decide deadLetter).
 class SyncOutboxMapper {
   const SyncOutboxMapper();
 
   // ==========================================================================
-  // ENTITY -> MODEL
+  // ENTITY -> MODEL (22/22 campos)
   // ==========================================================================
 
   /// Convierte una entidad de dominio a modelo Isar.
   ///
+  /// - Deep copy defensivo de payload y metadata.
   /// - Sanitiza payload y metadata para JSON-safe (determinista).
   /// - Agrega trazabilidad en metadata SOLO si hubo sanitización.
   /// - Lanza [ArgumentError] si el total excede 800KB.
   SyncOutboxEntryModel toModel(SyncOutboxEntry entity) {
-    // 1. Sanitizar payload (sin contaminar)
+    // 1. Deep copy defensivo (prevenir mutación cross-layer)
+    final payloadCopy = Map<String, dynamic>.from(entity.payload);
+    final metadataCopy = Map<String, dynamic>.from(entity.metadata);
+
+    // 2. Sanitizar payload (sin contaminar)
     final payloadReport = _SanitizationReport();
-    final sanitizedPayload = _sanitizeMap(entity.payload, payloadReport);
+    final sanitizedPayload = _sanitizeMap(payloadCopy, payloadReport);
     final payloadJson = jsonEncode(sanitizedPayload);
 
-    // 2. Sanitizar metadata
+    // 3. Sanitizar metadata
     final metadataReport = _SanitizationReport();
-    final sanitizedMetadata = _sanitizeMap(entity.metadata, metadataReport);
+    final sanitizedMetadata = _sanitizeMap(metadataCopy, metadataReport);
 
-    // 3. Combinar reportes y agregar trazabilidad si aplica
+    // 4. Combinar reportes y agregar trazabilidad si aplica
+    //    REPLACE (no duplicate): sobreescribe _sanitizationKey previo si existe.
     final combinedReport = payloadReport.merge(metadataReport);
     Map<String, dynamic> finalMetadata;
     if (combinedReport.wasSanitized) {
-      // Agregar reporte al final de metadata (ya sanitizada)
       finalMetadata = Map<String, dynamic>.from(sanitizedMetadata);
       finalMetadata[_sanitizationKey] = combinedReport.toJson();
     } else {
-      finalMetadata = sanitizedMetadata;
+      finalMetadata = Map<String, dynamic>.from(sanitizedMetadata)
+        ..remove(_sanitizationKey);
     }
     final metadataJson = jsonEncode(finalMetadata);
 
-    // 4. Guard de tamaño TOTAL
+    // 5. Guard de tamaño TOTAL
     final payloadBytes = utf8.encode(payloadJson).length;
     final metadataBytes = utf8.encode(metadataJson).length;
     final totalBytes = payloadBytes + metadataBytes;
@@ -77,51 +92,101 @@ class SyncOutboxMapper {
       throw ArgumentError(
         'Outbox entry too large ($totalBytes bytes > $_maxTotalBytes bytes). '
         'Payload: $payloadBytes bytes, Metadata: $metadataBytes bytes. '
+        'Entry: ${entity.id}. '
         'Store binaries in Storage and keep only URLs.',
       );
     }
 
-    // 5. Construir modelo
+    // 6. Construir modelo via SyncOutboxEntryModel.create (22 campos)
     return SyncOutboxEntryModel.create(
       id: entity.id,
+      idempotencyKey: entity.idempotencyKey,
+      partitionKey: entity.partitionKey,
       operationType: entity.operationType,
       entityType: entity.entityType,
       entityId: entity.entityId,
       firestorePath: entity.firestorePath,
       payload: payloadJson,
+      schemaVersion: entity.schemaVersion,
       status: entity.status,
       retryCount: entity.retryCount,
       maxRetries: entity.maxRetries,
-      createdAtIso: entity.createdAt.toUtc().toIso8601String(),
-      metadata: metadataJson,
+      nextAttemptAtIso: entity.nextAttemptAt?.toUtc().toIso8601String(),
       lastError: entity.lastError,
+      lastErrorCodeName: entity.lastErrorCode?.name,
+      lastHttpStatus: entity.lastHttpStatus,
+      lockToken: entity.lockToken,
+      lockedUntilIso: entity.lockedUntil?.toUtc().toIso8601String(),
+      createdAtIso: entity.createdAt.toUtc().toIso8601String(),
       lastAttemptAtIso: entity.lastAttemptAt?.toUtc().toIso8601String(),
       completedAtIso: entity.completedAt?.toUtc().toIso8601String(),
+      metadata: metadataJson,
     );
   }
 
   // ==========================================================================
-  // MODEL -> ENTITY
+  // MODEL -> ENTITY (22/22 campos)
   // ==========================================================================
 
   /// Convierte un modelo Isar a entidad de dominio.
-  /// Reconstruye exactamente payloadMap y metadataMap sin re-sanitizar.
+  ///
+  /// Usa los getters seguros del modelo (payloadMap, metadataMap, DateTime
+  /// accessors, lastErrorCode). No re-sanitiza.
+  ///
+  /// Lanza [FormatException] si payload o metadata están corruptos
+  /// (JSON no parseable o no es Map). El Repository decide deadLetter.
   SyncOutboxEntry toEntity(SyncOutboxEntryModel model) {
+    // Corrupción guard: no silenciar datos corruptos
+    if (model.payload.isNotEmpty && model.isPayloadCorrupt) {
+      throw FormatException(
+        'Corrupt payload JSON in outbox entry ${model.entryId}. '
+        'Raw: ${model.payload.length > 100 ? '${model.payload.substring(0, 100)}...' : model.payload}',
+      );
+    }
+    if (model.metadata.isNotEmpty && model.isMetadataCorrupt) {
+      throw FormatException(
+        'Corrupt metadata JSON in outbox entry ${model.entryId}. '
+        'Raw: ${model.metadata.length > 100 ? '${model.metadata.substring(0, 100)}...' : model.metadata}',
+      );
+    }
+
+    // DateTime corruption guards: validar raw strings ANTES de usar getters.
+    // Los getters del model usan epoch fallback (1970) que ocultaría corrupción
+    // y rompería orden FIFO en el engine.
+    _guardDateTime(model.createdAtIso, 'createdAtIso', model.entryId);
+    _guardDateTimeNullable(model.nextAttemptAtIso, 'nextAttemptAtIso', model.entryId);
+    _guardDateTimeNullable(model.lockedUntilIso, 'lockedUntilIso', model.entryId);
+    _guardDateTimeNullable(model.lastAttemptAtIso, 'lastAttemptAtIso', model.entryId);
+    _guardDateTimeNullable(model.completedAtIso, 'completedAtIso', model.entryId);
+
+    // Deep copy defensivo de Maps decodificados
+    final payloadCopy = Map<String, dynamic>.from(model.payloadMap);
+    final metadataCopy = Map<String, dynamic>.from(model.metadataMap);
+
+    // Parseo explícito desde raw strings (NO getters con epoch fallback)
     return SyncOutboxEntry(
       id: model.entryId,
+      idempotencyKey: model.idempotencyKey,
+      partitionKey: model.partitionKey,
       operationType: model.operationType,
       entityType: model.entityType,
       entityId: model.entityId,
       firestorePath: model.firestorePath,
-      payload: model.payloadMap,
+      payload: payloadCopy,
+      schemaVersion: model.schemaVersion,
       status: model.status,
       retryCount: model.retryCount,
       maxRetries: model.maxRetries,
-      createdAt: model.createdAt,
-      metadata: model.metadataMap,
+      nextAttemptAt: _parseIso(model.nextAttemptAtIso),
       lastError: model.lastError,
-      lastAttemptAt: model.lastAttemptAt,
-      completedAt: model.completedAt,
+      lastErrorCode: model.lastErrorCode,
+      lastHttpStatus: model.lastHttpStatus,
+      lockToken: model.lockToken,
+      lockedUntil: _parseIso(model.lockedUntilIso),
+      createdAt: DateTime.parse(model.createdAtIso),
+      lastAttemptAt: _parseIso(model.lastAttemptAtIso),
+      completedAt: _parseIso(model.completedAtIso),
+      metadata: metadataCopy,
     );
   }
 
@@ -134,50 +199,39 @@ class SyncOutboxMapper {
     Map<String, dynamic> input,
     _SanitizationReport report,
   ) {
-    // Ordenar keys lexicográficamente para determinismo
     final sortedKeys = input.keys.toList()..sort();
     final result = <String, dynamic>{};
-
     for (final key in sortedKeys) {
       result[key] = _sanitizeValue(input[key], report);
     }
-
     return result;
   }
 
   /// Sanitiza un valor individual, actualizando el reporte.
   dynamic _sanitizeValue(dynamic value, _SanitizationReport report) {
-    // null, bool, num, String son JSON-safe
     if (value == null || value is bool || value is num || value is String) {
       return value;
     }
 
-    // DateTime -> ISO8601 UTC
     if (value is DateTime) {
       report.dateTimeConvertedCount++;
       return value.toUtc().toIso8601String();
     }
 
-    // List -> sanitizar elementos (mantener orden original)
     if (value is List) {
       return value.map((item) => _sanitizeValue(item, report)).toList();
     }
 
-    // Map
     if (value is Map) {
-      // Detectar Firestore Timestamp primero
       if (_isFirestoreTimestamp(value)) {
         report.timestampConvertedCount++;
         return _convertFirestoreTimestamp(value);
       }
 
-      // Map normal -> sanitizar con keys ordenadas
       final sortedKeys = value.keys.toList()
         ..sort((a, b) => a.toString().compareTo(b.toString()));
       final sanitizedMap = <String, dynamic>{};
-
       for (final key in sortedKeys) {
-        // Keys no-string -> convertir a String
         final stringKey = key is String ? key : key.toString();
         if (key is! String) {
           report.nonStringKeyConvertedCount++;
@@ -187,7 +241,6 @@ class SyncOutboxMapper {
       return sanitizedMap;
     }
 
-    // Tipo no soportado -> toString() y registrar
     report.unsupportedTypeNames.add(value.runtimeType.toString());
     return value.toString();
   }
@@ -197,7 +250,10 @@ class SyncOutboxMapper {
   // ==========================================================================
 
   /// Detecta si un Map es un Firestore Timestamp.
+  /// Requiere exactamente 2 keys para evitar false positives con Maps normales
+  /// que casualmente contengan "seconds" y "nanoseconds" como campos de negocio.
   bool _isFirestoreTimestamp(Map<dynamic, dynamic> map) {
+    if (map.length != 2) return false;
     return (map.containsKey('_seconds') && map.containsKey('_nanoseconds')) ||
         (map.containsKey('seconds') && map.containsKey('nanoseconds'));
   }
@@ -217,12 +273,40 @@ class SyncOutboxMapper {
   }
 
   /// Lee un valor como int de forma segura.
-  /// Soporta: int, num, String parseable.
   int _readInt(dynamic v, {int defaultValue = 0}) {
     if (v is int) return v;
     if (v is num) return v.toInt();
     if (v is String) return int.tryParse(v) ?? defaultValue;
     return defaultValue;
+  }
+
+  // ==========================================================================
+  // DATETIME CORRUPTION GUARDS (toEntity)
+  // ==========================================================================
+
+  /// Falla rápido si un ISO string required no es parseable.
+  static void _guardDateTime(String iso, String field, String entryId) {
+    if (DateTime.tryParse(iso) == null) {
+      throw FormatException(
+        'Corrupt $field in outbox entry $entryId. Raw: "$iso"',
+      );
+    }
+  }
+
+  /// Falla rápido si un ISO string nullable existe pero no es parseable.
+  static void _guardDateTimeNullable(
+      String? iso, String field, String entryId) {
+    if (iso != null && DateTime.tryParse(iso) == null) {
+      throw FormatException(
+        'Corrupt $field in outbox entry $entryId. Raw: "$iso"',
+      );
+    }
+  }
+
+  /// Parsea un ISO string nullable. Solo se llama DESPUÉS de _guardDateTimeNullable.
+  static DateTime? _parseIso(String? iso) {
+    if (iso == null) return null;
+    return DateTime.parse(iso);
   }
 }
 
@@ -236,14 +320,12 @@ class _SanitizationReport {
   int nonStringKeyConvertedCount = 0;
   final Set<String> unsupportedTypeNames = {};
 
-  /// True si hubo alguna conversión/degradación.
   bool get wasSanitized =>
       timestampConvertedCount > 0 ||
       dateTimeConvertedCount > 0 ||
       nonStringKeyConvertedCount > 0 ||
       unsupportedTypeNames.isNotEmpty;
 
-  /// Combina dos reportes.
   _SanitizationReport merge(_SanitizationReport other) {
     return _SanitizationReport()
       ..timestampConvertedCount =
@@ -256,7 +338,6 @@ class _SanitizationReport {
       ..unsupportedTypeNames.addAll(other.unsupportedTypeNames);
   }
 
-  /// Serializa a JSON (solo campos con valor).
   Map<String, dynamic> toJson() {
     return {
       'wasSanitized': true,
@@ -271,3 +352,24 @@ class _SanitizationReport {
     };
   }
 }
+
+// ============================================================================
+// CHECKLIST FINAL
+// ============================================================================
+// [x] 22/22 campos mapeados (toModel + toEntity)
+//     id↔entryId, idempotencyKey, partitionKey, operationType, entityType,
+//     entityId, firestorePath, payload↔payloadJson, schemaVersion, status,
+//     retryCount, maxRetries, nextAttemptAt↔nextAttemptAtIso,
+//     lastError, lastErrorCode↔lastErrorCodeName, lastHttpStatus,
+//     lockToken, lockedUntil↔lockedUntilIso, createdAt↔createdAtIso,
+//     lastAttemptAt↔lastAttemptAtIso, completedAt↔completedAtIso,
+//     metadata↔metadataJson
+// [x] Sanitización determinista (keys ordenadas, Timestamp→ISO, DateTime→ISO)
+// [x] Deep copy defensivo en ambas direcciones
+// [x] Guardrail tamaño 800KB (UTF-8)
+// [x] Trazabilidad solo en metadata (_sanitizationKey), nunca en payload
+// [x] Corrupción en toEntity: FormatException (no silenciada)
+// [x] Firestore Timestamp: false-positive fix (map.length == 2)
+// [x] Sin dependencias de Engine / Repo / corruptionSnapshot
+// [x] Compatible con Model V2.3 real (SyncOutboxEntryModel.create)
+// [x] Enums por .name (String), Fechas siempre UTC ISO8601

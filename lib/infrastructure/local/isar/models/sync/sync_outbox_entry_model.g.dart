@@ -49,44 +49,84 @@ const SyncOutboxEntryModelSchema = CollectionSchema(
       name: r'firestorePath',
       type: IsarType.string,
     ),
-    r'lastAttemptAtIso': PropertySchema(
+    r'idempotencyKey': PropertySchema(
       id: 6,
+      name: r'idempotencyKey',
+      type: IsarType.string,
+    ),
+    r'lastAttemptAtIso': PropertySchema(
+      id: 7,
       name: r'lastAttemptAtIso',
       type: IsarType.string,
     ),
     r'lastError': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'lastError',
       type: IsarType.string,
     ),
+    r'lastErrorCodeName': PropertySchema(
+      id: 9,
+      name: r'lastErrorCodeName',
+      type: IsarType.string,
+    ),
+    r'lastHttpStatus': PropertySchema(
+      id: 10,
+      name: r'lastHttpStatus',
+      type: IsarType.long,
+    ),
+    r'lockToken': PropertySchema(
+      id: 11,
+      name: r'lockToken',
+      type: IsarType.string,
+    ),
+    r'lockedUntilIso': PropertySchema(
+      id: 12,
+      name: r'lockedUntilIso',
+      type: IsarType.string,
+    ),
     r'maxRetries': PropertySchema(
-      id: 8,
+      id: 13,
       name: r'maxRetries',
       type: IsarType.long,
     ),
     r'metadata': PropertySchema(
-      id: 9,
+      id: 14,
       name: r'metadata',
       type: IsarType.string,
     ),
+    r'nextAttemptAtIso': PropertySchema(
+      id: 15,
+      name: r'nextAttemptAtIso',
+      type: IsarType.string,
+    ),
     r'operationType': PropertySchema(
-      id: 10,
+      id: 16,
       name: r'operationType',
       type: IsarType.string,
       enumMap: _SyncOutboxEntryModeloperationTypeEnumValueMap,
     ),
+    r'partitionKey': PropertySchema(
+      id: 17,
+      name: r'partitionKey',
+      type: IsarType.string,
+    ),
     r'payload': PropertySchema(
-      id: 11,
+      id: 18,
       name: r'payload',
       type: IsarType.string,
     ),
     r'retryCount': PropertySchema(
-      id: 12,
+      id: 19,
       name: r'retryCount',
       type: IsarType.long,
     ),
+    r'schemaVersion': PropertySchema(
+      id: 20,
+      name: r'schemaVersion',
+      type: IsarType.long,
+    ),
     r'status': PropertySchema(
-      id: 13,
+      id: 21,
       name: r'status',
       type: IsarType.string,
       enumMap: _SyncOutboxEntryModelstatusEnumValueMap,
@@ -111,6 +151,32 @@ const SyncOutboxEntryModelSchema = CollectionSchema(
         )
       ],
     ),
+    r'idempotencyKey': IndexSchema(
+      id: 6522471565226449816,
+      name: r'idempotencyKey',
+      unique: true,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'idempotencyKey',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'partitionKey': IndexSchema(
+      id: 459398546349037409,
+      name: r'partitionKey',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'partitionKey',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
     r'entityId': IndexSchema(
       id: 745355021660786263,
       name: r'entityId',
@@ -119,6 +185,45 @@ const SyncOutboxEntryModelSchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'entityId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'status': IndexSchema(
+      id: -107785170620420283,
+      name: r'status',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'status',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'nextAttemptAtIso': IndexSchema(
+      id: -220330449482815205,
+      name: r'nextAttemptAtIso',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'nextAttemptAtIso',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'lockedUntilIso': IndexSchema(
+      id: -4158774010416252207,
+      name: r'lockedUntilIso',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'lockedUntilIso',
           type: IndexType.hash,
           caseSensitive: true,
         )
@@ -163,6 +268,7 @@ int _syncOutboxEntryModelEstimateSize(
   bytesCount += 3 + object.entityType.name.length * 3;
   bytesCount += 3 + object.entryId.length * 3;
   bytesCount += 3 + object.firestorePath.length * 3;
+  bytesCount += 3 + object.idempotencyKey.length * 3;
   {
     final value = object.lastAttemptAtIso;
     if (value != null) {
@@ -175,8 +281,33 @@ int _syncOutboxEntryModelEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.lastErrorCodeName;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.lockToken;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.lockedUntilIso;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.metadata.length * 3;
+  {
+    final value = object.nextAttemptAtIso;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.operationType.name.length * 3;
+  bytesCount += 3 + object.partitionKey.length * 3;
   bytesCount += 3 + object.payload.length * 3;
   bytesCount += 3 + object.status.name.length * 3;
   return bytesCount;
@@ -194,14 +325,22 @@ void _syncOutboxEntryModelSerialize(
   writer.writeString(offsets[3], object.entityType.name);
   writer.writeString(offsets[4], object.entryId);
   writer.writeString(offsets[5], object.firestorePath);
-  writer.writeString(offsets[6], object.lastAttemptAtIso);
-  writer.writeString(offsets[7], object.lastError);
-  writer.writeLong(offsets[8], object.maxRetries);
-  writer.writeString(offsets[9], object.metadata);
-  writer.writeString(offsets[10], object.operationType.name);
-  writer.writeString(offsets[11], object.payload);
-  writer.writeLong(offsets[12], object.retryCount);
-  writer.writeString(offsets[13], object.status.name);
+  writer.writeString(offsets[6], object.idempotencyKey);
+  writer.writeString(offsets[7], object.lastAttemptAtIso);
+  writer.writeString(offsets[8], object.lastError);
+  writer.writeString(offsets[9], object.lastErrorCodeName);
+  writer.writeLong(offsets[10], object.lastHttpStatus);
+  writer.writeString(offsets[11], object.lockToken);
+  writer.writeString(offsets[12], object.lockedUntilIso);
+  writer.writeLong(offsets[13], object.maxRetries);
+  writer.writeString(offsets[14], object.metadata);
+  writer.writeString(offsets[15], object.nextAttemptAtIso);
+  writer.writeString(offsets[16], object.operationType.name);
+  writer.writeString(offsets[17], object.partitionKey);
+  writer.writeString(offsets[18], object.payload);
+  writer.writeLong(offsets[19], object.retryCount);
+  writer.writeLong(offsets[20], object.schemaVersion);
+  writer.writeString(offsets[21], object.status.name);
 }
 
 SyncOutboxEntryModel _syncOutboxEntryModelDeserialize(
@@ -220,17 +359,25 @@ SyncOutboxEntryModel _syncOutboxEntryModelDeserialize(
   object.entryId = reader.readString(offsets[4]);
   object.firestorePath = reader.readString(offsets[5]);
   object.id = id;
-  object.lastAttemptAtIso = reader.readStringOrNull(offsets[6]);
-  object.lastError = reader.readStringOrNull(offsets[7]);
-  object.maxRetries = reader.readLong(offsets[8]);
-  object.metadata = reader.readString(offsets[9]);
+  object.idempotencyKey = reader.readString(offsets[6]);
+  object.lastAttemptAtIso = reader.readStringOrNull(offsets[7]);
+  object.lastError = reader.readStringOrNull(offsets[8]);
+  object.lastErrorCodeName = reader.readStringOrNull(offsets[9]);
+  object.lastHttpStatus = reader.readLongOrNull(offsets[10]);
+  object.lockToken = reader.readStringOrNull(offsets[11]);
+  object.lockedUntilIso = reader.readStringOrNull(offsets[12]);
+  object.maxRetries = reader.readLong(offsets[13]);
+  object.metadata = reader.readString(offsets[14]);
+  object.nextAttemptAtIso = reader.readStringOrNull(offsets[15]);
   object.operationType = _SyncOutboxEntryModeloperationTypeValueEnumMap[
-          reader.readStringOrNull(offsets[10])] ??
+          reader.readStringOrNull(offsets[16])] ??
       SyncOperationType.create;
-  object.payload = reader.readString(offsets[11]);
-  object.retryCount = reader.readLong(offsets[12]);
+  object.partitionKey = reader.readString(offsets[17]);
+  object.payload = reader.readString(offsets[18]);
+  object.retryCount = reader.readLong(offsets[19]);
+  object.schemaVersion = reader.readLong(offsets[20]);
   object.status = _SyncOutboxEntryModelstatusValueEnumMap[
-          reader.readStringOrNull(offsets[13])] ??
+          reader.readStringOrNull(offsets[21])] ??
       SyncStatus.pending;
   return object;
 }
@@ -257,22 +404,38 @@ P _syncOutboxEntryModelDeserializeProp<P>(
     case 5:
       return (reader.readString(offset)) as P;
     case 6:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 7:
       return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
+      return (reader.readLongOrNull(offset)) as P;
+    case 11:
+      return (reader.readStringOrNull(offset)) as P;
+    case 12:
+      return (reader.readStringOrNull(offset)) as P;
+    case 13:
+      return (reader.readLong(offset)) as P;
+    case 14:
+      return (reader.readString(offset)) as P;
+    case 15:
+      return (reader.readStringOrNull(offset)) as P;
+    case 16:
       return (_SyncOutboxEntryModeloperationTypeValueEnumMap[
               reader.readStringOrNull(offset)] ??
           SyncOperationType.create) as P;
-    case 11:
+    case 17:
       return (reader.readString(offset)) as P;
-    case 12:
+    case 18:
+      return (reader.readString(offset)) as P;
+    case 19:
       return (reader.readLong(offset)) as P;
-    case 13:
+    case 20:
+      return (reader.readLong(offset)) as P;
+    case 21:
       return (_SyncOutboxEntryModelstatusValueEnumMap[
               reader.readStringOrNull(offset)] ??
           SyncStatus.pending) as P;
@@ -389,6 +552,62 @@ extension SyncOutboxEntryModelByIndex on IsarCollection<SyncOutboxEntryModel> {
   List<Id> putAllByEntryIdSync(List<SyncOutboxEntryModel> objects,
       {bool saveLinks = true}) {
     return putAllByIndexSync(r'entryId', objects, saveLinks: saveLinks);
+  }
+
+  Future<SyncOutboxEntryModel?> getByIdempotencyKey(String idempotencyKey) {
+    return getByIndex(r'idempotencyKey', [idempotencyKey]);
+  }
+
+  SyncOutboxEntryModel? getByIdempotencyKeySync(String idempotencyKey) {
+    return getByIndexSync(r'idempotencyKey', [idempotencyKey]);
+  }
+
+  Future<bool> deleteByIdempotencyKey(String idempotencyKey) {
+    return deleteByIndex(r'idempotencyKey', [idempotencyKey]);
+  }
+
+  bool deleteByIdempotencyKeySync(String idempotencyKey) {
+    return deleteByIndexSync(r'idempotencyKey', [idempotencyKey]);
+  }
+
+  Future<List<SyncOutboxEntryModel?>> getAllByIdempotencyKey(
+      List<String> idempotencyKeyValues) {
+    final values = idempotencyKeyValues.map((e) => [e]).toList();
+    return getAllByIndex(r'idempotencyKey', values);
+  }
+
+  List<SyncOutboxEntryModel?> getAllByIdempotencyKeySync(
+      List<String> idempotencyKeyValues) {
+    final values = idempotencyKeyValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'idempotencyKey', values);
+  }
+
+  Future<int> deleteAllByIdempotencyKey(List<String> idempotencyKeyValues) {
+    final values = idempotencyKeyValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'idempotencyKey', values);
+  }
+
+  int deleteAllByIdempotencyKeySync(List<String> idempotencyKeyValues) {
+    final values = idempotencyKeyValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'idempotencyKey', values);
+  }
+
+  Future<Id> putByIdempotencyKey(SyncOutboxEntryModel object) {
+    return putByIndex(r'idempotencyKey', object);
+  }
+
+  Id putByIdempotencyKeySync(SyncOutboxEntryModel object,
+      {bool saveLinks = true}) {
+    return putByIndexSync(r'idempotencyKey', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByIdempotencyKey(List<SyncOutboxEntryModel> objects) {
+    return putAllByIndex(r'idempotencyKey', objects);
+  }
+
+  List<Id> putAllByIdempotencyKeySync(List<SyncOutboxEntryModel> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'idempotencyKey', objects, saveLinks: saveLinks);
   }
 }
 
@@ -518,6 +737,96 @@ extension SyncOutboxEntryModelQueryWhere
   }
 
   QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterWhereClause>
+      idempotencyKeyEqualTo(String idempotencyKey) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'idempotencyKey',
+        value: [idempotencyKey],
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterWhereClause>
+      idempotencyKeyNotEqualTo(String idempotencyKey) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'idempotencyKey',
+              lower: [],
+              upper: [idempotencyKey],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'idempotencyKey',
+              lower: [idempotencyKey],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'idempotencyKey',
+              lower: [idempotencyKey],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'idempotencyKey',
+              lower: [],
+              upper: [idempotencyKey],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterWhereClause>
+      partitionKeyEqualTo(String partitionKey) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'partitionKey',
+        value: [partitionKey],
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterWhereClause>
+      partitionKeyNotEqualTo(String partitionKey) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'partitionKey',
+              lower: [],
+              upper: [partitionKey],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'partitionKey',
+              lower: [partitionKey],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'partitionKey',
+              lower: [partitionKey],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'partitionKey',
+              lower: [],
+              upper: [partitionKey],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterWhereClause>
       entityIdEqualTo(String entityId) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IndexWhereClause.equalTo(
@@ -556,6 +865,185 @@ extension SyncOutboxEntryModelQueryWhere
               indexName: r'entityId',
               lower: [],
               upper: [entityId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterWhereClause>
+      statusEqualTo(SyncStatus status) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'status',
+        value: [status],
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterWhereClause>
+      statusNotEqualTo(SyncStatus status) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'status',
+              lower: [],
+              upper: [status],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'status',
+              lower: [status],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'status',
+              lower: [status],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'status',
+              lower: [],
+              upper: [status],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterWhereClause>
+      nextAttemptAtIsoIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'nextAttemptAtIso',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterWhereClause>
+      nextAttemptAtIsoIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'nextAttemptAtIso',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterWhereClause>
+      nextAttemptAtIsoEqualTo(String? nextAttemptAtIso) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'nextAttemptAtIso',
+        value: [nextAttemptAtIso],
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterWhereClause>
+      nextAttemptAtIsoNotEqualTo(String? nextAttemptAtIso) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'nextAttemptAtIso',
+              lower: [],
+              upper: [nextAttemptAtIso],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'nextAttemptAtIso',
+              lower: [nextAttemptAtIso],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'nextAttemptAtIso',
+              lower: [nextAttemptAtIso],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'nextAttemptAtIso',
+              lower: [],
+              upper: [nextAttemptAtIso],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterWhereClause>
+      lockedUntilIsoIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'lockedUntilIso',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterWhereClause>
+      lockedUntilIsoIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'lockedUntilIso',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterWhereClause>
+      lockedUntilIsoEqualTo(String? lockedUntilIso) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'lockedUntilIso',
+        value: [lockedUntilIso],
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterWhereClause>
+      lockedUntilIsoNotEqualTo(String? lockedUntilIso) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'lockedUntilIso',
+              lower: [],
+              upper: [lockedUntilIso],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'lockedUntilIso',
+              lower: [lockedUntilIso],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'lockedUntilIso',
+              lower: [lockedUntilIso],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'lockedUntilIso',
+              lower: [],
+              upper: [lockedUntilIso],
               includeUpper: false,
             ));
       }
@@ -1513,6 +2001,144 @@ extension SyncOutboxEntryModelQueryFilter on QueryBuilder<SyncOutboxEntryModel,
   }
 
   QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> idempotencyKeyEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'idempotencyKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> idempotencyKeyGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'idempotencyKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> idempotencyKeyLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'idempotencyKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> idempotencyKeyBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'idempotencyKey',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> idempotencyKeyStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'idempotencyKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> idempotencyKeyEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'idempotencyKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+          QAfterFilterCondition>
+      idempotencyKeyContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'idempotencyKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+          QAfterFilterCondition>
+      idempotencyKeyMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'idempotencyKey',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> idempotencyKeyIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'idempotencyKey',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> idempotencyKeyIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'idempotencyKey',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
       QAfterFilterCondition> lastAttemptAtIsoIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1825,6 +2451,548 @@ extension SyncOutboxEntryModelQueryFilter on QueryBuilder<SyncOutboxEntryModel,
   }
 
   QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lastErrorCodeNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'lastErrorCodeName',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lastErrorCodeNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'lastErrorCodeName',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lastErrorCodeNameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastErrorCodeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lastErrorCodeNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lastErrorCodeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lastErrorCodeNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lastErrorCodeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lastErrorCodeNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lastErrorCodeName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lastErrorCodeNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'lastErrorCodeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lastErrorCodeNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'lastErrorCodeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+          QAfterFilterCondition>
+      lastErrorCodeNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'lastErrorCodeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+          QAfterFilterCondition>
+      lastErrorCodeNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'lastErrorCodeName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lastErrorCodeNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastErrorCodeName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lastErrorCodeNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'lastErrorCodeName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lastHttpStatusIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'lastHttpStatus',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lastHttpStatusIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'lastHttpStatus',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lastHttpStatusEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastHttpStatus',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lastHttpStatusGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lastHttpStatus',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lastHttpStatusLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lastHttpStatus',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lastHttpStatusBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lastHttpStatus',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockTokenIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'lockToken',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockTokenIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'lockToken',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockTokenEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lockToken',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockTokenGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lockToken',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockTokenLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lockToken',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockTokenBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lockToken',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockTokenStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'lockToken',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockTokenEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'lockToken',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+          QAfterFilterCondition>
+      lockTokenContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'lockToken',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+          QAfterFilterCondition>
+      lockTokenMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'lockToken',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockTokenIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lockToken',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockTokenIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'lockToken',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockedUntilIsoIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'lockedUntilIso',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockedUntilIsoIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'lockedUntilIso',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockedUntilIsoEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lockedUntilIso',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockedUntilIsoGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lockedUntilIso',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockedUntilIsoLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lockedUntilIso',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockedUntilIsoBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lockedUntilIso',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockedUntilIsoStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'lockedUntilIso',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockedUntilIsoEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'lockedUntilIso',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+          QAfterFilterCondition>
+      lockedUntilIsoContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'lockedUntilIso',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+          QAfterFilterCondition>
+      lockedUntilIsoMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'lockedUntilIso',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockedUntilIsoIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lockedUntilIso',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> lockedUntilIsoIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'lockedUntilIso',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
       QAfterFilterCondition> maxRetriesEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -2019,6 +3187,162 @@ extension SyncOutboxEntryModelQueryFilter on QueryBuilder<SyncOutboxEntryModel,
   }
 
   QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> nextAttemptAtIsoIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'nextAttemptAtIso',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> nextAttemptAtIsoIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'nextAttemptAtIso',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> nextAttemptAtIsoEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'nextAttemptAtIso',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> nextAttemptAtIsoGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'nextAttemptAtIso',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> nextAttemptAtIsoLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'nextAttemptAtIso',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> nextAttemptAtIsoBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'nextAttemptAtIso',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> nextAttemptAtIsoStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'nextAttemptAtIso',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> nextAttemptAtIsoEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'nextAttemptAtIso',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+          QAfterFilterCondition>
+      nextAttemptAtIsoContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'nextAttemptAtIso',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+          QAfterFilterCondition>
+      nextAttemptAtIsoMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'nextAttemptAtIso',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> nextAttemptAtIsoIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'nextAttemptAtIso',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> nextAttemptAtIsoIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'nextAttemptAtIso',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
       QAfterFilterCondition> operationTypeEqualTo(
     SyncOperationType value, {
     bool caseSensitive = true,
@@ -2151,6 +3475,144 @@ extension SyncOutboxEntryModelQueryFilter on QueryBuilder<SyncOutboxEntryModel,
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'operationType',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> partitionKeyEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'partitionKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> partitionKeyGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'partitionKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> partitionKeyLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'partitionKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> partitionKeyBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'partitionKey',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> partitionKeyStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'partitionKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> partitionKeyEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'partitionKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+          QAfterFilterCondition>
+      partitionKeyContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'partitionKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+          QAfterFilterCondition>
+      partitionKeyMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'partitionKey',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> partitionKeyIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'partitionKey',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> partitionKeyIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'partitionKey',
         value: '',
       ));
     });
@@ -2342,6 +3804,62 @@ extension SyncOutboxEntryModelQueryFilter on QueryBuilder<SyncOutboxEntryModel,
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'retryCount',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> schemaVersionEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'schemaVersion',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> schemaVersionGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'schemaVersion',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> schemaVersionLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'schemaVersion',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel,
+      QAfterFilterCondition> schemaVersionBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'schemaVersion',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -2582,6 +4100,20 @@ extension SyncOutboxEntryModelQuerySortBy
   }
 
   QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      sortByIdempotencyKey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'idempotencyKey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      sortByIdempotencyKeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'idempotencyKey', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
       sortByLastAttemptAtIso() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastAttemptAtIso', Sort.asc);
@@ -2606,6 +4138,62 @@ extension SyncOutboxEntryModelQuerySortBy
       sortByLastErrorDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastError', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      sortByLastErrorCodeName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastErrorCodeName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      sortByLastErrorCodeNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastErrorCodeName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      sortByLastHttpStatus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastHttpStatus', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      sortByLastHttpStatusDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastHttpStatus', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      sortByLockToken() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lockToken', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      sortByLockTokenDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lockToken', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      sortByLockedUntilIso() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lockedUntilIso', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      sortByLockedUntilIsoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lockedUntilIso', Sort.desc);
     });
   }
 
@@ -2638,6 +4226,20 @@ extension SyncOutboxEntryModelQuerySortBy
   }
 
   QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      sortByNextAttemptAtIso() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextAttemptAtIso', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      sortByNextAttemptAtIsoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextAttemptAtIso', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
       sortByOperationType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'operationType', Sort.asc);
@@ -2648,6 +4250,20 @@ extension SyncOutboxEntryModelQuerySortBy
       sortByOperationTypeDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'operationType', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      sortByPartitionKey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'partitionKey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      sortByPartitionKeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'partitionKey', Sort.desc);
     });
   }
 
@@ -2676,6 +4292,20 @@ extension SyncOutboxEntryModelQuerySortBy
       sortByRetryCountDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'retryCount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      sortBySchemaVersion() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'schemaVersion', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      sortBySchemaVersionDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'schemaVersion', Sort.desc);
     });
   }
 
@@ -2795,6 +4425,20 @@ extension SyncOutboxEntryModelQuerySortThenBy
   }
 
   QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      thenByIdempotencyKey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'idempotencyKey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      thenByIdempotencyKeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'idempotencyKey', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
       thenByLastAttemptAtIso() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastAttemptAtIso', Sort.asc);
@@ -2819,6 +4463,62 @@ extension SyncOutboxEntryModelQuerySortThenBy
       thenByLastErrorDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastError', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      thenByLastErrorCodeName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastErrorCodeName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      thenByLastErrorCodeNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastErrorCodeName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      thenByLastHttpStatus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastHttpStatus', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      thenByLastHttpStatusDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastHttpStatus', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      thenByLockToken() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lockToken', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      thenByLockTokenDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lockToken', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      thenByLockedUntilIso() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lockedUntilIso', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      thenByLockedUntilIsoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lockedUntilIso', Sort.desc);
     });
   }
 
@@ -2851,6 +4551,20 @@ extension SyncOutboxEntryModelQuerySortThenBy
   }
 
   QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      thenByNextAttemptAtIso() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextAttemptAtIso', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      thenByNextAttemptAtIsoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextAttemptAtIso', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
       thenByOperationType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'operationType', Sort.asc);
@@ -2861,6 +4575,20 @@ extension SyncOutboxEntryModelQuerySortThenBy
       thenByOperationTypeDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'operationType', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      thenByPartitionKey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'partitionKey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      thenByPartitionKeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'partitionKey', Sort.desc);
     });
   }
 
@@ -2889,6 +4617,20 @@ extension SyncOutboxEntryModelQuerySortThenBy
       thenByRetryCountDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'retryCount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      thenBySchemaVersion() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'schemaVersion', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QAfterSortBy>
+      thenBySchemaVersionDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'schemaVersion', Sort.desc);
     });
   }
 
@@ -2954,6 +4696,14 @@ extension SyncOutboxEntryModelQueryWhereDistinct
   }
 
   QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QDistinct>
+      distinctByIdempotencyKey({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'idempotencyKey',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QDistinct>
       distinctByLastAttemptAtIso({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'lastAttemptAtIso',
@@ -2965,6 +4715,36 @@ extension SyncOutboxEntryModelQueryWhereDistinct
       distinctByLastError({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'lastError', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QDistinct>
+      distinctByLastErrorCodeName({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastErrorCodeName',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QDistinct>
+      distinctByLastHttpStatus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastHttpStatus');
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QDistinct>
+      distinctByLockToken({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lockToken', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QDistinct>
+      distinctByLockedUntilIso({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lockedUntilIso',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -2983,10 +4763,25 @@ extension SyncOutboxEntryModelQueryWhereDistinct
   }
 
   QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QDistinct>
+      distinctByNextAttemptAtIso({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'nextAttemptAtIso',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QDistinct>
       distinctByOperationType({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'operationType',
           caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QDistinct>
+      distinctByPartitionKey({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'partitionKey', caseSensitive: caseSensitive);
     });
   }
 
@@ -3001,6 +4796,13 @@ extension SyncOutboxEntryModelQueryWhereDistinct
       distinctByRetryCount() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'retryCount');
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, SyncOutboxEntryModel, QDistinct>
+      distinctBySchemaVersion() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'schemaVersion');
     });
   }
 
@@ -3062,6 +4864,13 @@ extension SyncOutboxEntryModelQueryProperty on QueryBuilder<
     });
   }
 
+  QueryBuilder<SyncOutboxEntryModel, String, QQueryOperations>
+      idempotencyKeyProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'idempotencyKey');
+    });
+  }
+
   QueryBuilder<SyncOutboxEntryModel, String?, QQueryOperations>
       lastAttemptAtIsoProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -3073,6 +4882,34 @@ extension SyncOutboxEntryModelQueryProperty on QueryBuilder<
       lastErrorProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'lastError');
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, String?, QQueryOperations>
+      lastErrorCodeNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastErrorCodeName');
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, int?, QQueryOperations>
+      lastHttpStatusProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastHttpStatus');
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, String?, QQueryOperations>
+      lockTokenProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lockToken');
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, String?, QQueryOperations>
+      lockedUntilIsoProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lockedUntilIso');
     });
   }
 
@@ -3090,10 +4927,24 @@ extension SyncOutboxEntryModelQueryProperty on QueryBuilder<
     });
   }
 
+  QueryBuilder<SyncOutboxEntryModel, String?, QQueryOperations>
+      nextAttemptAtIsoProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'nextAttemptAtIso');
+    });
+  }
+
   QueryBuilder<SyncOutboxEntryModel, SyncOperationType, QQueryOperations>
       operationTypeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'operationType');
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, String, QQueryOperations>
+      partitionKeyProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'partitionKey');
     });
   }
 
@@ -3108,6 +4959,13 @@ extension SyncOutboxEntryModelQueryProperty on QueryBuilder<
       retryCountProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'retryCount');
+    });
+  }
+
+  QueryBuilder<SyncOutboxEntryModel, int, QQueryOperations>
+      schemaVersionProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'schemaVersion');
     });
   }
 

@@ -14,49 +14,108 @@ T _$identity<T>(T value) => value;
 
 /// @nodoc
 mixin _$SyncOutboxEntry {
-  /// ID único de la entrada (UUID v4)
+// ------------------------------------------------------------------------
+// Identity & Idempotency
+// ------------------------------------------------------------------------
+  /// ID único local de la entrada (UUID v4).
   String get id;
 
-  /// Tipo de operación
+  /// CRÍTICO: clave determinística para idempotencia en backend.
+  ///
+  /// REGLA:
+  /// - Debe ser única por "intención de negocio" (clientMutationId),
+  ///   NO por reintento.
+  ///
+  /// Formato recomendado:
+  /// "{deviceId}:{userId}:{entityType}:{entityId}:{operationType}:{clientMutationId}"
+  String get idempotencyKey;
+
+  /// Clave de partición para coalescing/fusión (operaciones redundantes).
+  ///
+  /// Recomendación:
+  /// "{entityType}:{entityId}"
+  String
+      get partitionKey; // ------------------------------------------------------------------------
+// Routing / Target
+// ------------------------------------------------------------------------
+  /// Tipo de operación.
   SyncOperationType get operationType;
 
-  /// Tipo de entidad a sincronizar
+  /// Tipo de entidad.
   SyncEntityType get entityType;
 
-  /// ID de la entidad afectada
+  /// ID de entidad afectada.
   String get entityId;
 
-  /// Ruta Firestore destino (ej: "assets/abc123")
-  String get firestorePath;
-
-  /// Payload JSON completo (incluye runtimeType para polimorfismo)
+  /// Ruta destino (ej: "assets/abc123").
+  ///
+  /// Nota: Aunque "suena infra", aquí ayuda a routing y simplicidad.
+  String
+      get firestorePath; // ------------------------------------------------------------------------
+// Payload
+// ------------------------------------------------------------------------
+  /// Payload JSON completo (incluye runtimeType para polimorfismo).
   Map<String, dynamic> get payload;
 
-  /// Estado actual de sincronización
+  /// Versión del esquema del payload (migraciones / compatibilidad).
+  int get schemaVersion; // ------------------------------------------------------------------------
+// Status & Scheduling
+// ------------------------------------------------------------------------
+  /// Estado actual.
   SyncStatus get status;
 
-  /// Número de intentos de sincronización
+  /// Conteo de fallos/intententos de retry (solo incrementa cuando falla un envío).
   int get retryCount;
 
-  /// Máximo de reintentos antes de dead letter
+  /// Máximo reintentos antes de dead letter.
+  ///
+  /// Default enterprise: 6 (con techo de 1h).
   int get maxRetries;
 
-  /// Último error (si falló)
+  /// Fuente de verdad del scheduling:
+  /// - Si status == failed, nextAttemptAt debe estar seteado (idealmente).
+  /// - Si status == pending, puede ser null.
+  /// - Si status es terminal, debe ser null.
+  @SafeDateTimeNullableConverter()
+  DateTime?
+      get nextAttemptAt; // ------------------------------------------------------------------------
+// Error Diagnostics (determinístico)
+// ------------------------------------------------------------------------
+  /// Último error registrado (corto).
   String? get lastError;
 
-  /// Fecha de creación (orden de procesamiento)
+  /// Código estructurado del último error.
+  SyncErrorCode? get lastErrorCode;
+
+  /// HTTP status del último intento (si aplica).
+  int?
+      get lastHttpStatus; // ------------------------------------------------------------------------
+// Lease Lock (anti doble worker)
+// ------------------------------------------------------------------------
+  /// Token del worker que tiene tomada la tarea.
+  String? get lockToken;
+
+  /// Expiración del lock (lease).
+  @SafeDateTimeNullableConverter()
+  DateTime?
+      get lockedUntil; // ------------------------------------------------------------------------
+// Timestamps
+// ------------------------------------------------------------------------
+  /// Fecha de creación (orden de procesamiento).
   @SafeDateTimeConverter()
   DateTime get createdAt;
 
-  /// Fecha de último intento
+  /// Fecha del último intento.
   @SafeDateTimeNullableConverter()
   DateTime? get lastAttemptAt;
 
-  /// Fecha de completado (si status == completed)
+  /// Fecha de completado (si completed).
   @SafeDateTimeNullableConverter()
-  DateTime? get completedAt;
-
-  /// Metadatos adicionales (userId, source, correlationId, etc.)
+  DateTime?
+      get completedAt; // ------------------------------------------------------------------------
+// Metadata (contexto adicional)
+// ------------------------------------------------------------------------
+  /// Metadatos adicionales (userId, deviceId, source, correlationId, etc.).
   Map<String, dynamic> get metadata;
 
   /// Create a copy of SyncOutboxEntry
@@ -76,6 +135,10 @@ mixin _$SyncOutboxEntry {
         (other.runtimeType == runtimeType &&
             other is SyncOutboxEntry &&
             (identical(other.id, id) || other.id == id) &&
+            (identical(other.idempotencyKey, idempotencyKey) ||
+                other.idempotencyKey == idempotencyKey) &&
+            (identical(other.partitionKey, partitionKey) ||
+                other.partitionKey == partitionKey) &&
             (identical(other.operationType, operationType) ||
                 other.operationType == operationType) &&
             (identical(other.entityType, entityType) ||
@@ -85,13 +148,25 @@ mixin _$SyncOutboxEntry {
             (identical(other.firestorePath, firestorePath) ||
                 other.firestorePath == firestorePath) &&
             const DeepCollectionEquality().equals(other.payload, payload) &&
+            (identical(other.schemaVersion, schemaVersion) ||
+                other.schemaVersion == schemaVersion) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.retryCount, retryCount) ||
                 other.retryCount == retryCount) &&
             (identical(other.maxRetries, maxRetries) ||
                 other.maxRetries == maxRetries) &&
+            (identical(other.nextAttemptAt, nextAttemptAt) ||
+                other.nextAttemptAt == nextAttemptAt) &&
             (identical(other.lastError, lastError) ||
                 other.lastError == lastError) &&
+            (identical(other.lastErrorCode, lastErrorCode) ||
+                other.lastErrorCode == lastErrorCode) &&
+            (identical(other.lastHttpStatus, lastHttpStatus) ||
+                other.lastHttpStatus == lastHttpStatus) &&
+            (identical(other.lockToken, lockToken) ||
+                other.lockToken == lockToken) &&
+            (identical(other.lockedUntil, lockedUntil) ||
+                other.lockedUntil == lockedUntil) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.lastAttemptAt, lastAttemptAt) ||
@@ -103,26 +178,35 @@ mixin _$SyncOutboxEntry {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      operationType,
-      entityType,
-      entityId,
-      firestorePath,
-      const DeepCollectionEquality().hash(payload),
-      status,
-      retryCount,
-      maxRetries,
-      lastError,
-      createdAt,
-      lastAttemptAt,
-      completedAt,
-      const DeepCollectionEquality().hash(metadata));
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        idempotencyKey,
+        partitionKey,
+        operationType,
+        entityType,
+        entityId,
+        firestorePath,
+        const DeepCollectionEquality().hash(payload),
+        schemaVersion,
+        status,
+        retryCount,
+        maxRetries,
+        nextAttemptAt,
+        lastError,
+        lastErrorCode,
+        lastHttpStatus,
+        lockToken,
+        lockedUntil,
+        createdAt,
+        lastAttemptAt,
+        completedAt,
+        const DeepCollectionEquality().hash(metadata)
+      ]);
 
   @override
   String toString() {
-    return 'SyncOutboxEntry(id: $id, operationType: $operationType, entityType: $entityType, entityId: $entityId, firestorePath: $firestorePath, payload: $payload, status: $status, retryCount: $retryCount, maxRetries: $maxRetries, lastError: $lastError, createdAt: $createdAt, lastAttemptAt: $lastAttemptAt, completedAt: $completedAt, metadata: $metadata)';
+    return 'SyncOutboxEntry(id: $id, idempotencyKey: $idempotencyKey, partitionKey: $partitionKey, operationType: $operationType, entityType: $entityType, entityId: $entityId, firestorePath: $firestorePath, payload: $payload, schemaVersion: $schemaVersion, status: $status, retryCount: $retryCount, maxRetries: $maxRetries, nextAttemptAt: $nextAttemptAt, lastError: $lastError, lastErrorCode: $lastErrorCode, lastHttpStatus: $lastHttpStatus, lockToken: $lockToken, lockedUntil: $lockedUntil, createdAt: $createdAt, lastAttemptAt: $lastAttemptAt, completedAt: $completedAt, metadata: $metadata)';
   }
 }
 
@@ -134,15 +218,23 @@ abstract mixin class $SyncOutboxEntryCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
+      String idempotencyKey,
+      String partitionKey,
       SyncOperationType operationType,
       SyncEntityType entityType,
       String entityId,
       String firestorePath,
       Map<String, dynamic> payload,
+      int schemaVersion,
       SyncStatus status,
       int retryCount,
       int maxRetries,
+      @SafeDateTimeNullableConverter() DateTime? nextAttemptAt,
       String? lastError,
+      SyncErrorCode? lastErrorCode,
+      int? lastHttpStatus,
+      String? lockToken,
+      @SafeDateTimeNullableConverter() DateTime? lockedUntil,
       @SafeDateTimeConverter() DateTime createdAt,
       @SafeDateTimeNullableConverter() DateTime? lastAttemptAt,
       @SafeDateTimeNullableConverter() DateTime? completedAt,
@@ -163,15 +255,23 @@ class _$SyncOutboxEntryCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
+    Object? idempotencyKey = null,
+    Object? partitionKey = null,
     Object? operationType = null,
     Object? entityType = null,
     Object? entityId = null,
     Object? firestorePath = null,
     Object? payload = null,
+    Object? schemaVersion = null,
     Object? status = null,
     Object? retryCount = null,
     Object? maxRetries = null,
+    Object? nextAttemptAt = freezed,
     Object? lastError = freezed,
+    Object? lastErrorCode = freezed,
+    Object? lastHttpStatus = freezed,
+    Object? lockToken = freezed,
+    Object? lockedUntil = freezed,
     Object? createdAt = null,
     Object? lastAttemptAt = freezed,
     Object? completedAt = freezed,
@@ -181,6 +281,14 @@ class _$SyncOutboxEntryCopyWithImpl<$Res>
       id: null == id
           ? _self.id
           : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      idempotencyKey: null == idempotencyKey
+          ? _self.idempotencyKey
+          : idempotencyKey // ignore: cast_nullable_to_non_nullable
+              as String,
+      partitionKey: null == partitionKey
+          ? _self.partitionKey
+          : partitionKey // ignore: cast_nullable_to_non_nullable
               as String,
       operationType: null == operationType
           ? _self.operationType
@@ -202,6 +310,10 @@ class _$SyncOutboxEntryCopyWithImpl<$Res>
           ? _self.payload
           : payload // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>,
+      schemaVersion: null == schemaVersion
+          ? _self.schemaVersion
+          : schemaVersion // ignore: cast_nullable_to_non_nullable
+              as int,
       status: null == status
           ? _self.status
           : status // ignore: cast_nullable_to_non_nullable
@@ -214,10 +326,30 @@ class _$SyncOutboxEntryCopyWithImpl<$Res>
           ? _self.maxRetries
           : maxRetries // ignore: cast_nullable_to_non_nullable
               as int,
+      nextAttemptAt: freezed == nextAttemptAt
+          ? _self.nextAttemptAt
+          : nextAttemptAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       lastError: freezed == lastError
           ? _self.lastError
           : lastError // ignore: cast_nullable_to_non_nullable
               as String?,
+      lastErrorCode: freezed == lastErrorCode
+          ? _self.lastErrorCode
+          : lastErrorCode // ignore: cast_nullable_to_non_nullable
+              as SyncErrorCode?,
+      lastHttpStatus: freezed == lastHttpStatus
+          ? _self.lastHttpStatus
+          : lastHttpStatus // ignore: cast_nullable_to_non_nullable
+              as int?,
+      lockToken: freezed == lockToken
+          ? _self.lockToken
+          : lockToken // ignore: cast_nullable_to_non_nullable
+              as String?,
+      lockedUntil: freezed == lockedUntil
+          ? _self.lockedUntil
+          : lockedUntil // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       createdAt: null == createdAt
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -333,15 +465,23 @@ extension SyncOutboxEntryPatterns on SyncOutboxEntry {
   TResult maybeWhen<TResult extends Object?>(
     TResult Function(
             String id,
+            String idempotencyKey,
+            String partitionKey,
             SyncOperationType operationType,
             SyncEntityType entityType,
             String entityId,
             String firestorePath,
             Map<String, dynamic> payload,
+            int schemaVersion,
             SyncStatus status,
             int retryCount,
             int maxRetries,
+            @SafeDateTimeNullableConverter() DateTime? nextAttemptAt,
             String? lastError,
+            SyncErrorCode? lastErrorCode,
+            int? lastHttpStatus,
+            String? lockToken,
+            @SafeDateTimeNullableConverter() DateTime? lockedUntil,
             @SafeDateTimeConverter() DateTime createdAt,
             @SafeDateTimeNullableConverter() DateTime? lastAttemptAt,
             @SafeDateTimeNullableConverter() DateTime? completedAt,
@@ -354,15 +494,23 @@ extension SyncOutboxEntryPatterns on SyncOutboxEntry {
       case _SyncOutboxEntry() when $default != null:
         return $default(
             _that.id,
+            _that.idempotencyKey,
+            _that.partitionKey,
             _that.operationType,
             _that.entityType,
             _that.entityId,
             _that.firestorePath,
             _that.payload,
+            _that.schemaVersion,
             _that.status,
             _that.retryCount,
             _that.maxRetries,
+            _that.nextAttemptAt,
             _that.lastError,
+            _that.lastErrorCode,
+            _that.lastHttpStatus,
+            _that.lockToken,
+            _that.lockedUntil,
             _that.createdAt,
             _that.lastAttemptAt,
             _that.completedAt,
@@ -389,15 +537,23 @@ extension SyncOutboxEntryPatterns on SyncOutboxEntry {
   TResult when<TResult extends Object?>(
     TResult Function(
             String id,
+            String idempotencyKey,
+            String partitionKey,
             SyncOperationType operationType,
             SyncEntityType entityType,
             String entityId,
             String firestorePath,
             Map<String, dynamic> payload,
+            int schemaVersion,
             SyncStatus status,
             int retryCount,
             int maxRetries,
+            @SafeDateTimeNullableConverter() DateTime? nextAttemptAt,
             String? lastError,
+            SyncErrorCode? lastErrorCode,
+            int? lastHttpStatus,
+            String? lockToken,
+            @SafeDateTimeNullableConverter() DateTime? lockedUntil,
             @SafeDateTimeConverter() DateTime createdAt,
             @SafeDateTimeNullableConverter() DateTime? lastAttemptAt,
             @SafeDateTimeNullableConverter() DateTime? completedAt,
@@ -409,15 +565,23 @@ extension SyncOutboxEntryPatterns on SyncOutboxEntry {
       case _SyncOutboxEntry():
         return $default(
             _that.id,
+            _that.idempotencyKey,
+            _that.partitionKey,
             _that.operationType,
             _that.entityType,
             _that.entityId,
             _that.firestorePath,
             _that.payload,
+            _that.schemaVersion,
             _that.status,
             _that.retryCount,
             _that.maxRetries,
+            _that.nextAttemptAt,
             _that.lastError,
+            _that.lastErrorCode,
+            _that.lastHttpStatus,
+            _that.lockToken,
+            _that.lockedUntil,
             _that.createdAt,
             _that.lastAttemptAt,
             _that.completedAt,
@@ -443,15 +607,23 @@ extension SyncOutboxEntryPatterns on SyncOutboxEntry {
   TResult? whenOrNull<TResult extends Object?>(
     TResult? Function(
             String id,
+            String idempotencyKey,
+            String partitionKey,
             SyncOperationType operationType,
             SyncEntityType entityType,
             String entityId,
             String firestorePath,
             Map<String, dynamic> payload,
+            int schemaVersion,
             SyncStatus status,
             int retryCount,
             int maxRetries,
+            @SafeDateTimeNullableConverter() DateTime? nextAttemptAt,
             String? lastError,
+            SyncErrorCode? lastErrorCode,
+            int? lastHttpStatus,
+            String? lockToken,
+            @SafeDateTimeNullableConverter() DateTime? lockedUntil,
             @SafeDateTimeConverter() DateTime createdAt,
             @SafeDateTimeNullableConverter() DateTime? lastAttemptAt,
             @SafeDateTimeNullableConverter() DateTime? completedAt,
@@ -463,15 +635,23 @@ extension SyncOutboxEntryPatterns on SyncOutboxEntry {
       case _SyncOutboxEntry() when $default != null:
         return $default(
             _that.id,
+            _that.idempotencyKey,
+            _that.partitionKey,
             _that.operationType,
             _that.entityType,
             _that.entityId,
             _that.firestorePath,
             _that.payload,
+            _that.schemaVersion,
             _that.status,
             _that.retryCount,
             _that.maxRetries,
+            _that.nextAttemptAt,
             _that.lastError,
+            _that.lastErrorCode,
+            _that.lastHttpStatus,
+            _that.lockToken,
+            _that.lockedUntil,
             _that.createdAt,
             _that.lastAttemptAt,
             _that.completedAt,
@@ -487,15 +667,23 @@ extension SyncOutboxEntryPatterns on SyncOutboxEntry {
 class _SyncOutboxEntry extends SyncOutboxEntry {
   const _SyncOutboxEntry(
       {required this.id,
+      required this.idempotencyKey,
+      required this.partitionKey,
       required this.operationType,
       required this.entityType,
       required this.entityId,
       required this.firestorePath,
       required final Map<String, dynamic> payload,
+      this.schemaVersion = 1,
       this.status = SyncStatus.pending,
       this.retryCount = 0,
-      this.maxRetries = 5,
+      this.maxRetries = 6,
+      @SafeDateTimeNullableConverter() this.nextAttemptAt,
       this.lastError,
+      this.lastErrorCode,
+      this.lastHttpStatus,
+      this.lockToken,
+      @SafeDateTimeNullableConverter() this.lockedUntil,
       @SafeDateTimeConverter() required this.createdAt,
       @SafeDateTimeNullableConverter() this.lastAttemptAt,
       @SafeDateTimeNullableConverter() this.completedAt,
@@ -506,30 +694,59 @@ class _SyncOutboxEntry extends SyncOutboxEntry {
   factory _SyncOutboxEntry.fromJson(Map<String, dynamic> json) =>
       _$SyncOutboxEntryFromJson(json);
 
-  /// ID único de la entrada (UUID v4)
+// ------------------------------------------------------------------------
+// Identity & Idempotency
+// ------------------------------------------------------------------------
+  /// ID único local de la entrada (UUID v4).
   @override
   final String id;
 
-  /// Tipo de operación
+  /// CRÍTICO: clave determinística para idempotencia en backend.
+  ///
+  /// REGLA:
+  /// - Debe ser única por "intención de negocio" (clientMutationId),
+  ///   NO por reintento.
+  ///
+  /// Formato recomendado:
+  /// "{deviceId}:{userId}:{entityType}:{entityId}:{operationType}:{clientMutationId}"
+  @override
+  final String idempotencyKey;
+
+  /// Clave de partición para coalescing/fusión (operaciones redundantes).
+  ///
+  /// Recomendación:
+  /// "{entityType}:{entityId}"
+  @override
+  final String partitionKey;
+// ------------------------------------------------------------------------
+// Routing / Target
+// ------------------------------------------------------------------------
+  /// Tipo de operación.
   @override
   final SyncOperationType operationType;
 
-  /// Tipo de entidad a sincronizar
+  /// Tipo de entidad.
   @override
   final SyncEntityType entityType;
 
-  /// ID de la entidad afectada
+  /// ID de entidad afectada.
   @override
   final String entityId;
 
-  /// Ruta Firestore destino (ej: "assets/abc123")
+  /// Ruta destino (ej: "assets/abc123").
+  ///
+  /// Nota: Aunque "suena infra", aquí ayuda a routing y simplicidad.
   @override
   final String firestorePath;
-
-  /// Payload JSON completo (incluye runtimeType para polimorfismo)
+// ------------------------------------------------------------------------
+// Payload
+// ------------------------------------------------------------------------
+  /// Payload JSON completo (incluye runtimeType para polimorfismo).
   final Map<String, dynamic> _payload;
-
-  /// Payload JSON completo (incluye runtimeType para polimorfismo)
+// ------------------------------------------------------------------------
+// Payload
+// ------------------------------------------------------------------------
+  /// Payload JSON completo (incluye runtimeType para polimorfismo).
   @override
   Map<String, dynamic> get payload {
     if (_payload is EqualUnmodifiableMapView) return _payload;
@@ -537,44 +754,88 @@ class _SyncOutboxEntry extends SyncOutboxEntry {
     return EqualUnmodifiableMapView(_payload);
   }
 
-  /// Estado actual de sincronización
+  /// Versión del esquema del payload (migraciones / compatibilidad).
+  @override
+  @JsonKey()
+  final int schemaVersion;
+// ------------------------------------------------------------------------
+// Status & Scheduling
+// ------------------------------------------------------------------------
+  /// Estado actual.
   @override
   @JsonKey()
   final SyncStatus status;
 
-  /// Número de intentos de sincronización
+  /// Conteo de fallos/intententos de retry (solo incrementa cuando falla un envío).
   @override
   @JsonKey()
   final int retryCount;
 
-  /// Máximo de reintentos antes de dead letter
+  /// Máximo reintentos antes de dead letter.
+  ///
+  /// Default enterprise: 6 (con techo de 1h).
   @override
   @JsonKey()
   final int maxRetries;
 
-  /// Último error (si falló)
+  /// Fuente de verdad del scheduling:
+  /// - Si status == failed, nextAttemptAt debe estar seteado (idealmente).
+  /// - Si status == pending, puede ser null.
+  /// - Si status es terminal, debe ser null.
+  @override
+  @SafeDateTimeNullableConverter()
+  final DateTime? nextAttemptAt;
+// ------------------------------------------------------------------------
+// Error Diagnostics (determinístico)
+// ------------------------------------------------------------------------
+  /// Último error registrado (corto).
   @override
   final String? lastError;
 
-  /// Fecha de creación (orden de procesamiento)
+  /// Código estructurado del último error.
+  @override
+  final SyncErrorCode? lastErrorCode;
+
+  /// HTTP status del último intento (si aplica).
+  @override
+  final int? lastHttpStatus;
+// ------------------------------------------------------------------------
+// Lease Lock (anti doble worker)
+// ------------------------------------------------------------------------
+  /// Token del worker que tiene tomada la tarea.
+  @override
+  final String? lockToken;
+
+  /// Expiración del lock (lease).
+  @override
+  @SafeDateTimeNullableConverter()
+  final DateTime? lockedUntil;
+// ------------------------------------------------------------------------
+// Timestamps
+// ------------------------------------------------------------------------
+  /// Fecha de creación (orden de procesamiento).
   @override
   @SafeDateTimeConverter()
   final DateTime createdAt;
 
-  /// Fecha de último intento
+  /// Fecha del último intento.
   @override
   @SafeDateTimeNullableConverter()
   final DateTime? lastAttemptAt;
 
-  /// Fecha de completado (si status == completed)
+  /// Fecha de completado (si completed).
   @override
   @SafeDateTimeNullableConverter()
   final DateTime? completedAt;
-
-  /// Metadatos adicionales (userId, source, correlationId, etc.)
+// ------------------------------------------------------------------------
+// Metadata (contexto adicional)
+// ------------------------------------------------------------------------
+  /// Metadatos adicionales (userId, deviceId, source, correlationId, etc.).
   final Map<String, dynamic> _metadata;
-
-  /// Metadatos adicionales (userId, source, correlationId, etc.)
+// ------------------------------------------------------------------------
+// Metadata (contexto adicional)
+// ------------------------------------------------------------------------
+  /// Metadatos adicionales (userId, deviceId, source, correlationId, etc.).
   @override
   @JsonKey()
   Map<String, dynamic> get metadata {
@@ -604,6 +865,10 @@ class _SyncOutboxEntry extends SyncOutboxEntry {
         (other.runtimeType == runtimeType &&
             other is _SyncOutboxEntry &&
             (identical(other.id, id) || other.id == id) &&
+            (identical(other.idempotencyKey, idempotencyKey) ||
+                other.idempotencyKey == idempotencyKey) &&
+            (identical(other.partitionKey, partitionKey) ||
+                other.partitionKey == partitionKey) &&
             (identical(other.operationType, operationType) ||
                 other.operationType == operationType) &&
             (identical(other.entityType, entityType) ||
@@ -613,13 +878,25 @@ class _SyncOutboxEntry extends SyncOutboxEntry {
             (identical(other.firestorePath, firestorePath) ||
                 other.firestorePath == firestorePath) &&
             const DeepCollectionEquality().equals(other._payload, _payload) &&
+            (identical(other.schemaVersion, schemaVersion) ||
+                other.schemaVersion == schemaVersion) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.retryCount, retryCount) ||
                 other.retryCount == retryCount) &&
             (identical(other.maxRetries, maxRetries) ||
                 other.maxRetries == maxRetries) &&
+            (identical(other.nextAttemptAt, nextAttemptAt) ||
+                other.nextAttemptAt == nextAttemptAt) &&
             (identical(other.lastError, lastError) ||
                 other.lastError == lastError) &&
+            (identical(other.lastErrorCode, lastErrorCode) ||
+                other.lastErrorCode == lastErrorCode) &&
+            (identical(other.lastHttpStatus, lastHttpStatus) ||
+                other.lastHttpStatus == lastHttpStatus) &&
+            (identical(other.lockToken, lockToken) ||
+                other.lockToken == lockToken) &&
+            (identical(other.lockedUntil, lockedUntil) ||
+                other.lockedUntil == lockedUntil) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.lastAttemptAt, lastAttemptAt) ||
@@ -631,26 +908,35 @@ class _SyncOutboxEntry extends SyncOutboxEntry {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      operationType,
-      entityType,
-      entityId,
-      firestorePath,
-      const DeepCollectionEquality().hash(_payload),
-      status,
-      retryCount,
-      maxRetries,
-      lastError,
-      createdAt,
-      lastAttemptAt,
-      completedAt,
-      const DeepCollectionEquality().hash(_metadata));
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        idempotencyKey,
+        partitionKey,
+        operationType,
+        entityType,
+        entityId,
+        firestorePath,
+        const DeepCollectionEquality().hash(_payload),
+        schemaVersion,
+        status,
+        retryCount,
+        maxRetries,
+        nextAttemptAt,
+        lastError,
+        lastErrorCode,
+        lastHttpStatus,
+        lockToken,
+        lockedUntil,
+        createdAt,
+        lastAttemptAt,
+        completedAt,
+        const DeepCollectionEquality().hash(_metadata)
+      ]);
 
   @override
   String toString() {
-    return 'SyncOutboxEntry(id: $id, operationType: $operationType, entityType: $entityType, entityId: $entityId, firestorePath: $firestorePath, payload: $payload, status: $status, retryCount: $retryCount, maxRetries: $maxRetries, lastError: $lastError, createdAt: $createdAt, lastAttemptAt: $lastAttemptAt, completedAt: $completedAt, metadata: $metadata)';
+    return 'SyncOutboxEntry(id: $id, idempotencyKey: $idempotencyKey, partitionKey: $partitionKey, operationType: $operationType, entityType: $entityType, entityId: $entityId, firestorePath: $firestorePath, payload: $payload, schemaVersion: $schemaVersion, status: $status, retryCount: $retryCount, maxRetries: $maxRetries, nextAttemptAt: $nextAttemptAt, lastError: $lastError, lastErrorCode: $lastErrorCode, lastHttpStatus: $lastHttpStatus, lockToken: $lockToken, lockedUntil: $lockedUntil, createdAt: $createdAt, lastAttemptAt: $lastAttemptAt, completedAt: $completedAt, metadata: $metadata)';
   }
 }
 
@@ -664,15 +950,23 @@ abstract mixin class _$SyncOutboxEntryCopyWith<$Res>
   @useResult
   $Res call(
       {String id,
+      String idempotencyKey,
+      String partitionKey,
       SyncOperationType operationType,
       SyncEntityType entityType,
       String entityId,
       String firestorePath,
       Map<String, dynamic> payload,
+      int schemaVersion,
       SyncStatus status,
       int retryCount,
       int maxRetries,
+      @SafeDateTimeNullableConverter() DateTime? nextAttemptAt,
       String? lastError,
+      SyncErrorCode? lastErrorCode,
+      int? lastHttpStatus,
+      String? lockToken,
+      @SafeDateTimeNullableConverter() DateTime? lockedUntil,
       @SafeDateTimeConverter() DateTime createdAt,
       @SafeDateTimeNullableConverter() DateTime? lastAttemptAt,
       @SafeDateTimeNullableConverter() DateTime? completedAt,
@@ -693,15 +987,23 @@ class __$SyncOutboxEntryCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   $Res call({
     Object? id = null,
+    Object? idempotencyKey = null,
+    Object? partitionKey = null,
     Object? operationType = null,
     Object? entityType = null,
     Object? entityId = null,
     Object? firestorePath = null,
     Object? payload = null,
+    Object? schemaVersion = null,
     Object? status = null,
     Object? retryCount = null,
     Object? maxRetries = null,
+    Object? nextAttemptAt = freezed,
     Object? lastError = freezed,
+    Object? lastErrorCode = freezed,
+    Object? lastHttpStatus = freezed,
+    Object? lockToken = freezed,
+    Object? lockedUntil = freezed,
     Object? createdAt = null,
     Object? lastAttemptAt = freezed,
     Object? completedAt = freezed,
@@ -711,6 +1013,14 @@ class __$SyncOutboxEntryCopyWithImpl<$Res>
       id: null == id
           ? _self.id
           : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      idempotencyKey: null == idempotencyKey
+          ? _self.idempotencyKey
+          : idempotencyKey // ignore: cast_nullable_to_non_nullable
+              as String,
+      partitionKey: null == partitionKey
+          ? _self.partitionKey
+          : partitionKey // ignore: cast_nullable_to_non_nullable
               as String,
       operationType: null == operationType
           ? _self.operationType
@@ -732,6 +1042,10 @@ class __$SyncOutboxEntryCopyWithImpl<$Res>
           ? _self._payload
           : payload // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>,
+      schemaVersion: null == schemaVersion
+          ? _self.schemaVersion
+          : schemaVersion // ignore: cast_nullable_to_non_nullable
+              as int,
       status: null == status
           ? _self.status
           : status // ignore: cast_nullable_to_non_nullable
@@ -744,10 +1058,30 @@ class __$SyncOutboxEntryCopyWithImpl<$Res>
           ? _self.maxRetries
           : maxRetries // ignore: cast_nullable_to_non_nullable
               as int,
+      nextAttemptAt: freezed == nextAttemptAt
+          ? _self.nextAttemptAt
+          : nextAttemptAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       lastError: freezed == lastError
           ? _self.lastError
           : lastError // ignore: cast_nullable_to_non_nullable
               as String?,
+      lastErrorCode: freezed == lastErrorCode
+          ? _self.lastErrorCode
+          : lastErrorCode // ignore: cast_nullable_to_non_nullable
+              as SyncErrorCode?,
+      lastHttpStatus: freezed == lastHttpStatus
+          ? _self.lastHttpStatus
+          : lastHttpStatus // ignore: cast_nullable_to_non_nullable
+              as int?,
+      lockToken: freezed == lockToken
+          ? _self.lockToken
+          : lockToken // ignore: cast_nullable_to_non_nullable
+              as String?,
+      lockedUntil: freezed == lockedUntil
+          ? _self.lockedUntil
+          : lockedUntil // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       createdAt: null == createdAt
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
