@@ -14,7 +14,7 @@ class AdminShellBinding extends Bindings {
     // Session context
     if (!Get.isRegistered<SessionContextController>()) {
       final di = DIContainer();
-      Get.put(SessionContextController(userRepository: di.userRepository), permanent: true);
+      Get.put(SessionContextController(userRepository: di.userRepository, connectivity: di.connectivityService), permanent: true);
     }
 
     // Secciones

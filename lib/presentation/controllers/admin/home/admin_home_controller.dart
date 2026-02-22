@@ -8,6 +8,7 @@
 // - Regla dura: “Activo primero” (bloquea acciones operativas sin activos)
 // ============================================================================
 
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/di/container.dart';
@@ -137,6 +138,9 @@ class AdminHomeController extends GetxController {
   final events = <AdminEventVM>[].obs;
   final alerts = <AdminAiAlertVM>[].obs;
 
+  /// Single source of truth para cantidad de activos registrados.
+  final RxInt assetsCount = 0.obs;
+
   /// Canal de eventos de UI (la vista ejecuta side-effects)
   final Rxn<AdminUiEvent> uiEvent = Rxn<AdminUiEvent>();
 
@@ -149,64 +153,21 @@ class AdminHomeController extends GetxController {
   // ──────────────────────────────────────────────────────────────────────────
   // ASSETS GETTER (sync, data-only)
   // ──────────────────────────────────────────────────────────────────────────
-  /// Retorna true si el KPI "Activos" indica > 0 activos registrados.
-  bool get hasAssets {
-    for (final kpi in kpis) {
-      if (kpi.label == 'Activos') {
-        return kpi.value.toInt() > 0;
-      }
-    }
-    return false;
-  }
+  /// Retorna true si hay al menos 1 activo registrado.
+  bool get hasAssets => assetsCount.value > 0;
 
   // ──────────────────────────────────────────────────────────────────────────
-  // GETTERS
+  // REACTIVE SESSION STATE (sincronizado via _userWorker)
   // ──────────────────────────────────────────────────────────────────────────
+  final RxString _userName = 'Usuario'.obs;
+  final RxString _activeWorkspace = 'Workspace'.obs;
+  final RxList<String> _availableRoles = <String>[].obs;
+
   bool get hasActiveOrg => _orgId != null;
-
-  String get userName {
-    try {
-      final session = Get.find<SessionContextController>();
-      final fullName = session.user?.name ?? '';
-      if (fullName.isEmpty) return 'Usuario';
-
-      final firstName =
-          fullName.trim().replaceAll(RegExp(r'\s+'), ' ').split(' ').first;
-      if (firstName.isEmpty) return 'Usuario';
-
-      return firstName[0].toUpperCase() + firstName.substring(1).toLowerCase();
-    } catch (_) {
-      return 'Usuario';
-    }
-  }
-
-  String get activeWorkspace {
-    try {
-      final session = Get.find<SessionContextController>();
-      return session.user?.activeContext?.rol ?? 'Workspace';
-    } catch (_) {
-      return 'Workspace';
-    }
-  }
-
-  List<String> get availableRoles {
-    try {
-      final session = Get.find<SessionContextController>();
-      final roles = session.memberships
-          .where((m) => m.estatus == 'activo')
-          .expand((m) => m.roles)
-          .toSet()
-          .toList();
-
-      // Orden determinista: ascendente case-insensitive
-      roles.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-      return roles;
-    } catch (_) {
-      return [];
-    }
-  }
-
-  bool get hasMultipleWorkspaces => availableRoles.length > 1;
+  String get userName => _userName.value;
+  String get activeWorkspace => _activeWorkspace.value;
+  List<String> get availableRoles => _availableRoles;
+  bool get hasMultipleWorkspaces => _availableRoles.length > 1;
 
   String get greeting {
     final hour = DateTime.now().hour;
@@ -253,6 +214,10 @@ class AdminHomeController extends GetxController {
   late final AccountingRepository _accRepo;
   late final PurchaseRepository _purRepo;
 
+  /// Workers reactivos que observan SessionContextController
+  Worker? _userWorker;
+  Worker? _membershipsWorker;
+
   // ──────────────────────────────────────────────────────────────────────────
   // LIFECYCLE
   // ──────────────────────────────────────────────────────────────────────────
@@ -269,13 +234,103 @@ class AdminHomeController extends GetxController {
     _resolveOrg();
     _loadLocal();
 
+    // Workers reactivos: cuando userRx o membershipsRx cambian,
+    // re-resolver orgId, sincronizar estado de sesión, y recargar datos.
+    final session = Get.find<SessionContextController>();
+    _userWorker = ever(session.userRx, _onUserChanged);
+    _membershipsWorker = ever(session.membershipsRx, _onMembershipsChanged);
+
     // Mantener compatibilidad con el flujo actual de la app (no es UI side-effect)
     _di.syncService.sync();
   }
 
+  @override
+  void onClose() {
+    _userWorker?.dispose();
+    _membershipsWorker?.dispose();
+    super.onClose();
+  }
+
   void _resolveOrg() {
+    try {
+      final session = Get.find<SessionContextController>();
+      final newOrgId = session.user?.activeContext?.orgId;
+      _debugLog('_resolveOrg', 'orgId: $_orgId → $newOrgId');
+      _orgId = newOrgId;
+      _syncSessionState(session);
+    } catch (e) {
+      _debugLog('_resolveOrg', 'ERROR: $e');
+    }
+  }
+
+  /// Sincroniza estado reactivo desde SessionContextController.
+  /// Garantiza que Obx en la vista siempre tenga datos actualizados.
+  /// Lee desde .userRx.value y .membershipsRx para consistencia Rx.
+  void _syncSessionState(SessionContextController session) {
+    final user = session.userRx.value;
+    final memberships = session.membershipsRx.toList();
+
+    // userName
+    final fullName = user?.name ?? '';
+    if (fullName.isNotEmpty) {
+      final firstName =
+          fullName.trim().replaceAll(RegExp(r'\s+'), ' ').split(' ').first;
+      _userName.value = firstName.isNotEmpty
+          ? firstName[0].toUpperCase() + firstName.substring(1).toLowerCase()
+          : 'Usuario';
+    } else {
+      _userName.value = 'Usuario';
+    }
+
+    // activeWorkspace
+    final rol = user?.activeContext?.rol;
+    _activeWorkspace.value =
+        (rol != null && rol.isNotEmpty) ? rol : 'Workspace';
+
+    // availableRoles (estatus normalizado: trim + lowercase)
+    final roles = memberships
+        .where((m) => (m.estatus).trim().toLowerCase() == 'activo')
+        .expand((m) => m.roles)
+        .toSet()
+        .toList();
+    roles.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    _availableRoles.assignAll(roles);
+
+    _debugLog('_syncSessionState',
+        'user=${_userName.value} workspace=${_activeWorkspace.value} roles=${_availableRoles.length} memberships=${memberships.length}');
+  }
+
+  /// Callback reactivo: se ejecuta cuando membershipsRx cambia.
+  void _onMembershipsChanged(dynamic _) {
+    try {
+      final session = Get.find<SessionContextController>();
+      _syncSessionState(session);
+    } catch (e) {
+      _debugLog('_onMembershipsChanged', 'ERROR: $e');
+    }
+  }
+
+  /// Callback reactivo: se ejecuta cada vez que userRx cambia.
+  void _onUserChanged(dynamic _) {
     final session = Get.find<SessionContextController>();
-    _orgId = session.user?.activeContext?.orgId;
+    final newOrgId = session.user?.activeContext?.orgId;
+
+    // Siempre sincronizar estado de sesión (nombre, workspace, roles)
+    _syncSessionState(session);
+
+    // Solo recargar datos si orgId realmente cambió (evita loops)
+    if (newOrgId != _orgId) {
+      _debugLog('_onUserChanged', 'orgId cambió: $_orgId → $newOrgId');
+      _orgId = newOrgId;
+      _loadLocal();
+    }
+  }
+
+  /// Log controlado solo en debug mode
+  void _debugLog(String tag, String message) {
+    if (kDebugMode) {
+      debugPrint('[AdminHomeCtrl][$tag] $message');
+    }
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -287,12 +342,18 @@ class AdminHomeController extends GetxController {
   }
 
   Future<void> _loadLocal() async {
+    _debugLog('_loadLocal', 'ENTER orgId=$_orgId');
     try {
       loading.value = true;
       error.value = null;
 
       if (_orgId == null) {
-        kpis.clear();
+        _debugLog('_loadLocal', 'orgId=null → fail-safe con ceros');
+        assetsCount.value = 0;
+        kpis.value = [
+          const AdminKpiVM(label: 'Activos', value: 0),
+          const AdminKpiVM(label: 'Egresos del mes', value: 0, suffix: '\$'),
+        ];
         events.clear();
         alerts.clear();
         return;
@@ -301,6 +362,8 @@ class AdminHomeController extends GetxController {
       final orgId = _orgId!;
 
       final assets = await _assetRepo.fetchAssetsByOrg(orgId);
+      assetsCount.value = assets.length;
+
       final incidencias = await _mntRepo.fetchIncidencias(orgId);
       final programaciones = await _mntRepo.fetchProgramaciones(orgId);
       final compras = await _purRepo.fetchRequestsByOrg(orgId);
@@ -313,8 +376,11 @@ class AdminHomeController extends GetxController {
           .where((e) => e.tipo != 'ingreso' && e.fecha.isAfter(inicioMes))
           .fold<double>(0.0, (s, e) => s + e.monto);
 
+      _debugLog('_loadLocal',
+          'assets=${assets.length} inc=${incidencias.length} prog=${programaciones.length} compras=${compras.length} entries=${entries.length} egresos=$egresosMes');
+
       kpis.value = [
-        AdminKpiVM(label: 'Activos', value: assets.length),
+        AdminKpiVM(label: 'Activos', value: assetsCount.value),
         AdminKpiVM(label: 'Incidencias', value: incidencias.length),
         AdminKpiVM(label: 'Programaciones', value: programaciones.length),
         AdminKpiVM(
@@ -323,6 +389,9 @@ class AdminHomeController extends GetxController {
         ),
         AdminKpiVM(label: 'Egresos del mes', value: egresosMes, suffix: '\$'),
       ];
+
+      _debugLog('_loadLocal',
+          'kpis.length=${kpis.length} assetsCount=${assetsCount.value}');
 
       final respuestasCount =
           compras.fold<int>(0, (s, r) => s + r.respuestasCount);
@@ -344,7 +413,8 @@ class AdminHomeController extends GetxController {
       // ────────────────────────────────────────────────────────────────────────
       final newAlerts = <AdminAiAlertVM>[];
 
-      final comprasAbiertas = compras.where((c) => c.estado == 'abierta').length;
+      final comprasAbiertas =
+          compras.where((c) => c.estado == 'abierta').length;
 
       if (incidencias.isNotEmpty) {
         newAlerts.add(AdminAiAlertVM(
@@ -376,9 +446,11 @@ class AdminHomeController extends GetxController {
       // Ordenar por prioridad ascendente (1 = más urgente)
       newAlerts.sort((a, b) => a.priority.compareTo(b.priority));
       alerts.value = newAlerts;
-    } catch (_) {
+    } catch (e) {
+      _debugLog('_loadLocal', 'ERROR: $e');
       error.value = 'Error cargando datos locales';
     } finally {
+      _debugLog('_loadLocal', 'EXIT loading=false kpis=${kpis.length}');
       loading.value = false;
     }
   }
@@ -396,23 +468,8 @@ class AdminHomeController extends GetxController {
       return false;
     }
 
-    // 1) Intentar inferir desde KPI "Activos"
-    int assetsCount = -1;
-    for (final k in kpis) {
-      if (k.label == 'Activos') {
-        assetsCount = k.value.toInt();
-        break;
-      }
-    }
-
-    // 2) Fallback a repo local si KPI no está disponible
-    if (assetsCount < 0) {
-      final assets = await _assetRepo.fetchAssetsByOrg(_orgId!);
-      assetsCount = assets.length;
-    }
-
-    // 3) Bloqueo duro
-    if (assetsCount == 0) {
+    // Usa assetsCount (single source of truth)
+    if (assetsCount.value == 0) {
       uiEvent.value = const AdminUiEvent.snackbarAndRedirect(
         title: 'Primero registra un activo',
         message: 'Debes registrar al menos un activo para continuar',

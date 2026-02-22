@@ -1,3 +1,5 @@
+// lib\presentation\controllers\session_context_controller.dart
+
 import 'dart:async';
 
 import 'package:collection/collection.dart';
@@ -5,8 +7,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
+import '../../application/factories/product_access_context_factory.dart';
 import '../../core/di/container.dart';
+import '../../core/network/connectivity_service.dart';
 import '../../core/utils/workspace_normalizer.dart';
+import '../../domain/value/product_access_context.dart';
 import '../../data/datasources/local/isar_session_ds.dart';
 import '../../data/models/user_session_model.dart';
 import '../../domain/entities/user/active_context.dart';
@@ -23,8 +28,12 @@ import 'workspace_controller.dart';
 /// - Uses UserRepository which implements offline-first policies
 class SessionContextController extends GetxController {
   final UserRepository userRepository;
+  final ConnectivityService? _connectivity;
 
-  SessionContextController({required this.userRepository});
+  SessionContextController({
+    required this.userRepository,
+    ConnectivityService? connectivity,
+  }) : _connectivity = connectivity;
 
   final Rxn<UserEntity> _user = Rxn<UserEntity>();
   UserEntity? get user => _user.value;
@@ -38,12 +47,18 @@ class SessionContextController extends GetxController {
   // Anti-race lock para eliminación de workspace
   bool _isRemovingWorkspace = false;
 
+  /// Snapshot de acceso a producto para la sesión activa.
+  /// null = sin sesión autenticada (deslogueado o userId aún no disponible).
+  /// Reconstruido por [_rebuildAccessContext] ante cualquier cambio relevante.
+  final Rx<ProductAccessContext?> accessContext = Rx<ProductAccessContext?>(null);
+
   // Exponer Rx para reactividad en otros controladores
   Rxn<UserEntity> get userRx => _user;
   RxList<MembershipEntity> get membershipsRx => _memberships;
 
   StreamSubscription<UserEntity?>? _userSub;
   StreamSubscription<List<MembershipEntity>>? _mbrSub;
+  StreamSubscription<bool>? _connectivitySub;
 
   Future<void> init(String uid) async {
     debugPrint('[SessionContext] Inicializando con uid: $uid');
@@ -53,9 +68,8 @@ class SessionContextController extends GetxController {
 
     // OFFLINE-FIRST: Cargar sesión desde cache local primero (respuesta inmediata)
     try {
-      final isarSession = DIContainer().isar.isOpen
-          ? IsarSessionDS(DIContainer().isar)
-          : null;
+      final isarSession =
+          DIContainer().isar.isOpen ? IsarSessionDS(DIContainer().isar) : null;
 
       if (isarSession != null) {
         final cachedSession = await isarSession.getSession(uid);
@@ -71,7 +85,7 @@ class SessionContextController extends GetxController {
     // Iniciar streams para observar cambios en tiempo real
     _userSub = userRepository.watchUser(uid).listen((u) {
       _user.value = u;
-
+      _rebuildAccessContext();
       // PERSISTIR: Guardar sesión actualizada en cache local
       _persistSession(uid);
     });
@@ -79,8 +93,14 @@ class SessionContextController extends GetxController {
     _mbrSub = userRepository.watchMemberships(uid).listen((list) {
       _memberships.assignAll(list);
       membershipsVersion.value++; // fuerza re-render dependientes
+      _rebuildAccessContext();
       // Sync workspaces to WorkspaceController
       _syncWorkspacesToController();
+    });
+
+    // Suscribir a cambios de conectividad para invalidar el snapshot.
+    _connectivitySub = _connectivity?.online$.listen((_) {
+      _rebuildAccessContext();
     });
 
     debugPrint('[SessionContext] Streams iniciados correctamente');
@@ -110,9 +130,9 @@ class SessionContextController extends GetxController {
     try {
       final workspaceController = Get.find<WorkspaceController>();
 
-      // Extract all active roles from memberships
+      // Extract all active roles from memberships (estatus normalizado)
       final roles = _memberships
-          .where((m) => m.estatus == 'activo')
+          .where((m) => m.estatus.trim().toLowerCase() == 'activo')
           .expand((m) => m.roles)
           .toList();
 
@@ -209,8 +229,11 @@ class SessionContextController extends GetxController {
       await userRepository.updateMembershipRoles(u.uid, m.orgId, mergedRoles);
 
       // Si es proveedor, actualizar perfil con arrayUnion
-      if (_isProveedor(role) && providerType != null && providerType.isNotEmpty) {
-        await userRepository.updateProviderProfile(u.uid, m.orgId, providerType);
+      if (_isProveedor(role) &&
+          providerType != null &&
+          providerType.isNotEmpty) {
+        await userRepository.updateProviderProfile(
+            u.uid, m.orgId, providerType);
       }
 
       // MERGE: recargar memberships para reflejar cambios
@@ -322,7 +345,7 @@ class SessionContextController extends GetxController {
           } else {
             // Buscar en otras orgs
             final otherOrgRoles = memberships
-                .where((m) => m.orgId != ctx.orgId && m.estatus == 'activo')
+                .where((m) => m.orgId != ctx.orgId && m.estatus.trim().toLowerCase() == 'activo')
                 .expand((m) => m.roles)
                 .toList();
 
@@ -339,7 +362,8 @@ class SessionContextController extends GetxController {
         if (newActiveRole != null && newActiveRole.isNotEmpty) {
           // Encontrar la org del nuevo rol
           final newOrgMembership = memberships.firstWhereOrNull(
-            (m) => m.roles.any((r) => WorkspaceNormalizer.areEqual(r, newActiveRole!)),
+            (m) => m.roles
+                .any((r) => WorkspaceNormalizer.areEqual(r, newActiveRole!)),
           );
 
           if (newOrgMembership != null) {
@@ -405,10 +429,47 @@ class SessionContextController extends GetxController {
     }
   }
 
+  /// Reconstruye [accessContext] con el estado actual de sesión y conectividad.
+  ///
+  /// Reglas:
+  /// - Si [user?.uid] es null → [accessContext] = null (sin sesión).
+  /// - membershipScope: del membership activo (por orgId). Fallback: [MembershipScope()].
+  /// - organizationContract: no cargado en este controller → fallback via factory.
+  /// - isOnline: del [_connectivity] real. Fallback: false (offline-safe).
+  void _rebuildAccessContext() {
+    final uid = user?.uid;
+
+    if (uid == null || uid.isEmpty) {
+      accessContext.value = null;
+      return;
+    }
+
+    final orgId = user?.activeContext?.orgId ?? '';
+
+    final roles = _memberships
+        .where((m) => m.estatus.trim().toLowerCase() == 'activo')
+        .expand((m) => m.roles)
+        .toSet();
+
+    final activeMembership = _memberships.firstWhereOrNull(
+      (m) => m.orgId == orgId,
+    );
+
+    accessContext.value = ProductAccessContextFactory.build(
+      userId: uid,
+      orgId: orgId,
+      roles: roles,
+      scope: activeMembership?.scope,
+      contract: null, // No org contract in this controller — factory uses defaultRestricted()
+      isOnline: _connectivity?.isOnline ?? false,
+    );
+  }
+
   @override
   void onClose() {
     _userSub?.cancel();
     _mbrSub?.cancel();
+    _connectivitySub?.cancel();
     super.onClose();
   }
 }

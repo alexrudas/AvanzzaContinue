@@ -1,3 +1,5 @@
+//lib\presentation\auth\pages\select_country_city_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -117,26 +119,44 @@ class _SelectCountryCityPageState extends State<SelectCountryCityPage> {
     final canContinue = _currentSelection.isComplete;
 
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 80),
-            const Text(
-              "Dinos dónde se encuentra tu negocio o actividad",
-              style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 20),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 24),
+                      const Text(
+                        "Dinos dónde se encuentra tu negocio o actividad",
+                        style: TextStyle(
+                            fontSize: 30, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 20),
 
-            // Widget orquestador de localización
-            LocationSelector(
-              initialCountryId: _currentSelection.countryId,
-              initialRegionId: _currentSelection.regionId,
-              initialCityId: _currentSelection.cityId,
-              onChanged: _handleLocationChange,
-            ),
-          ],
+                      // Selector
+                      LocationSelector(
+                      initialCountryId: _currentSelection.countryId,
+                        initialRegionId: _currentSelection.regionId,
+                        initialCityId: _currentSelection.cityId,
+                        onChanged: _handleLocationChange,
+                      ),
+
+                      const Spacer(), // empuja el contenido hacia arriba si sobra espacio
+                      SizedBox(
+                          height: MediaQuery.of(context)
+                              .viewInsets
+                              .bottom), // teclado
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
       bottomNavigationBar: WizardBottomBar(

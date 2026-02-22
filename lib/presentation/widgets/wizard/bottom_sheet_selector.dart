@@ -53,6 +53,16 @@ class _BottomSheetSelectorState<T> extends State<BottomSheetSelector<T>> {
   }
 
   @override
+  void didUpdateWidget(covariant BottomSheetSelector<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Si items cambió (ej: Obx reconstruye con datos de Firestore),
+    // refrescar _data con el query actual del search.
+    if (widget.items != oldWidget.items) {
+      _load(_searchCtrl.text);
+    }
+  }
+
+  @override
   void dispose() {
     _debounce?.cancel();
     _searchCtrl.dispose();
@@ -60,16 +70,24 @@ class _BottomSheetSelectorState<T> extends State<BottomSheetSelector<T>> {
   }
 
   Future<void> _load(String q) async {
+    if (!mounted) return;
     setState(() => _loading = true);
-    List<SelectorItem<T>> result = widget.items ?? [];
+
+    List<SelectorItem<T>> result;
     if (widget.asyncLoader != null) {
       result = await widget.asyncLoader!(q);
-    } else if (q.isNotEmpty && widget.onSearch != null) {
-      widget.onSearch!(q);
-      result = (widget.items ?? [])
-          .where((e) => e.label.toLowerCase().contains(q.toLowerCase()))
-          .toList();
+    } else {
+      // Siempre leer widget.items al momento de _load (no cachear stale)
+      result = widget.items ?? [];
+      if (q.isNotEmpty) {
+        final query = q.toLowerCase();
+        result = result
+            .where((e) => e.label.toLowerCase().contains(query))
+            .toList();
+      }
     }
+
+    if (!mounted) return;
     setState(() {
       _data = result;
       _loading = false;

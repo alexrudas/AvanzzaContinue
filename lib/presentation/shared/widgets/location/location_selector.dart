@@ -1,3 +1,5 @@
+// lib\presentation\shared\widgets\location\location_selector.dart
+
 import 'package:flutter/material.dart';
 
 import '../../../../domain/entities/location/location_selection.dart';

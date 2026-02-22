@@ -374,6 +374,8 @@ class WorkspaceDrawer extends StatelessWidget {
 
     if (reg != null) {
       await _persistExploreSelection(ws, reg);
+      debugPrint(
+          '[REG] selectedRole=${reg.progress.value?.selectedRole} resolved=${reg.progress.value?.resolvedWorkspaces}');
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {

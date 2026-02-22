@@ -191,23 +191,21 @@ class _AdminHomePageState extends State<AdminHomePage> {
         _buildOperationalStatusCard(),
         const SizedBox(height: 24),
 
-        // KPIs Section (solo Activos y Egresos)
-        if (_getVisibleKpis().isNotEmpty) ...[
-          const AdminSectionTitle(title: 'Resumen'),
-          const SizedBox(height: 14),
-          ..._getVisibleKpis().map((kpi) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: AdminAssetCategoryCard(
-                  title: kpi.label,
-                  subtitle: _getKpiSubtitle(kpi.label),
-                  value: _formatKpiValue(kpi),
-                  icon: _getKpiIcon(kpi.label),
-                  color: _getKpiColor(kpi.label, cs),
-                  onTap: () => _handleKpiTap(kpi.label),
-                ),
-              )),
-          const SizedBox(height: 14),
-        ],
+        // KPIs Section — SIEMPRE VISIBLE (Activos + Egresos del mes)
+        const AdminSectionTitle(title: 'Resumen'),
+        const SizedBox(height: 14),
+        ..._getVisibleKpis().map((kpi) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: AdminAssetCategoryCard(
+                title: kpi.label,
+                subtitle: _getKpiSubtitle(kpi.label),
+                value: _formatKpiValue(kpi),
+                icon: _getKpiIcon(kpi.label),
+                color: _getKpiColor(kpi.label, cs),
+                onTap: () => _handleKpiTap(kpi.label),
+              ),
+            )),
+        const SizedBox(height: 14),
 
         // Red Operativa Section
         const AdminSectionTitle(title: 'Mi red operativa'),
@@ -305,12 +303,19 @@ class _AdminHomePageState extends State<AdminHomePage> {
     }
   }
 
-  /// Filtra KPIs visibles (solo Activos y Egresos del mes)
+  /// Filtra KPIs visibles (solo Activos y Egresos del mes).
+  /// Fallback: si kpis está vacío, retorna ceros para garantizar visibilidad.
   List<AdminKpiVM> _getVisibleKpis() {
     const visibleLabels = {'Activos', 'Egresos del mes'};
-    return controller.kpis
+    final filtered = controller.kpis
         .where((kpi) => visibleLabels.contains(kpi.label))
         .toList();
+    if (filtered.isNotEmpty) return filtered;
+    // Fallback determinista: siempre 2 tarjetas con ceros
+    return const [
+      AdminKpiVM(label: 'Activos', value: 0),
+      AdminKpiVM(label: 'Egresos del mes', value: 0, suffix: '\$'),
+    ];
   }
 
   String _getKpiSubtitle(String label) {
@@ -383,15 +388,10 @@ class _AdminHomePageState extends State<AdminHomePage> {
   void _handleKpiTap(String label) {
     HapticFeedback.lightImpact();
 
-    // Caso especial: "Activos"
+    // Caso especial: "Activos" → siempre muestra bottom sheet
+    // (el sheet adapta título y botón secundario según hasAssets)
     if (label == 'Activos') {
-      if (controller.hasAssets) {
-        // SÍ hay activos → navegar a página de activos
-        controller.goToAssetsPage();
-      } else {
-        // NO hay activos → mostrar empty state
-        _showEmptyAssetsSheet(context);
-      }
+      _showEmptyAssetsSheet(context);
       return;
     }
 
@@ -411,21 +411,33 @@ class _AdminHomePageState extends State<AdminHomePage> {
     }
   }
 
-  /// Muestra bottom sheet de empty state para activos
+  /// Muestra bottom sheet de empty state para activos.
+  /// Botón secundario dinámico:
+  /// - assetsCount == 0 → "Ahora no" (dismiss)
+  /// - assetsCount > 0  → "Ver activos" (navega a lista)
   void _showEmptyAssetsSheet(BuildContext context) {
+    final hasAssets = controller.hasAssets;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      isDismissible: true, // Tap fuera para cerrar
-      enableDrag: true, // Swipe/drag down para cerrar
+      isDismissible: true,
+      enableDrag: true,
       builder: (ctx) => AdminEmptyStateActionSheetContent(
-        title: 'Aún no tienes activos',
-        subtitle: 'Registra tu primer activo para comenzar a operar',
+        title: hasAssets ? 'Registrar nuevo activo' : 'Aún no tienes activos',
+        subtitle: hasAssets
+            ? 'Elige el tipo de activo que deseas registrar'
+            : 'Registra tu primer activo para comenzar a operar',
         primaryCta: 'Registrar activo',
-        secondaryCta: 'Ahora no',
+        secondaryCta: hasAssets ? 'Ver activos' : 'Ahora no',
         icon: Icons.inventory_2_outlined,
         onClose: () => Navigator.of(ctx).pop(),
-        onSecondary: () => Navigator.of(ctx).pop(),
+        onSecondary: () {
+          Navigator.of(ctx).pop();
+          if (hasAssets) {
+            controller.goToAssetsPage();
+          }
+        },
         onPrimary: () {
           Navigator.of(ctx).pop();
           _showAssetTypeSelectorSheet(context);

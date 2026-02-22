@@ -1,3 +1,5 @@
+//lib\presentation\shared\widgets\location\country_selector_field.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -47,7 +49,8 @@ class CountrySelectorField extends StatefulWidget {
     this.enabled = true,
     this.onChanged,
     this.labelText = 'País',
-    this.contentPadding = const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+    this.contentPadding =
+        const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
   });
 
   @override
@@ -75,9 +78,8 @@ class _CountrySelectorFieldState extends State<CountrySelectorField> {
   }
 
   void _updateSelectedLabel(String countryId) {
-    final country = _controller.countries
-        .where((c) => c.id == countryId)
-        .firstOrNull;
+    final country =
+        _controller.countries.where((c) => c.id == countryId).firstOrNull;
     if (country != null) {
       setState(() {
         _selectedLabel = country.name;
@@ -145,7 +147,8 @@ class _CountrySelectorFieldState extends State<CountrySelectorField> {
             enabled: widget.enabled,
             title: Text(widget.labelText ?? 'País'),
             subtitle: Text(
-              _selectedLabel ?? 'Selecciona un ${widget.labelText?.toLowerCase() ?? 'país'}',
+              _selectedLabel ??
+                  'Selecciona un ${widget.labelText?.toLowerCase() ?? 'país'}',
               style: TextStyle(
                 color: widget.enabled
                     ? Theme.of(context).hintColor
