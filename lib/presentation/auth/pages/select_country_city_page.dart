@@ -105,7 +105,18 @@ class _SelectCountryCityPageState extends State<SelectCountryCityPage> {
         'regionId': _currentSelection.regionId,
         'cityId': _currentSelection.cityId,
       });
-      Get.toNamed(Routes.profile);
+
+      // Si se llegó desde SummaryPage con arguments: {'returnTo': route},
+      // retornar allí en lugar de avanzar al paso siguiente del wizard.
+      final args = Get.arguments;
+      final returnTo =
+          (args is Map<String, dynamic>) ? args['returnTo'] as String? : null;
+
+      if (returnTo != null) {
+        Get.offAllNamed(returnTo);
+      } else {
+        Get.toNamed(Routes.profile);
+      }
     }
   }
 

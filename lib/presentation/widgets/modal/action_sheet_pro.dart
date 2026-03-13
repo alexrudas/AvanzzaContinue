@@ -121,7 +121,7 @@ class ActionSheetPro {
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      barrierColor: barrierColor ?? Colors.black.withOpacity(0.28),
+      barrierColor: barrierColor ?? Colors.black.withValues(alpha: 0.28),
       elevation: 0,
       transitionAnimationController: AnimationController(
         vsync: Navigator.of(context),
@@ -198,7 +198,7 @@ class _SheetScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = theme.background.withOpacity(theme.opacity);
+    final bg = theme.background.withValues(alpha: theme.opacity);
     final border = _darker(bg, 0.14);
 
     return Material(
@@ -208,7 +208,7 @@ class _SheetScaffold extends StatelessWidget {
           borderRadius: BorderRadius.circular(theme.cornerRadius),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.13),
+              color: Colors.black.withValues(alpha: 0.13),
               blurRadius: theme.elevation,
               offset: const Offset(0, 10),
             ),
@@ -223,7 +223,7 @@ class _SheetScaffold extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [bg, bg.withOpacity((theme.opacity - 0.08).clamp(0, 1))],
+              colors: [bg, bg.withValues(alpha: (theme.opacity - 0.08).clamp(0, 1))],
             ),
           ),
           child: Padding(
@@ -277,7 +277,7 @@ class _SheetScaffold extends StatelessWidget {
     return hsl
         .withLightness((hsl.lightness - amount).clamp(0.0, 1.0))
         .toColor()
-        .withOpacity(base.opacity);
+        .withValues(alpha: base.opacity);
   }
 }
 
@@ -492,7 +492,7 @@ class _Badge extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.06),
+        color: Colors.black.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: Colors.black26, width: 0.5),
       ),

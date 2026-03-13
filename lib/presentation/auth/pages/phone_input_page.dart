@@ -1,8 +1,22 @@
+// ============================================================================
+// lib/presentation/auth/pages/phone_input_page.dart
+// PHONE INPUT PAGE — Enterprise Ultra Pro (Presentation / Auth / Pages)
+//
+// QUÉ HACE:
+// - Captura el número de teléfono y dispara onSendOtp via AuthController.
+// - Escucha AuthState: navega a OtpVerifyPage cuando status == 'sent'.
+// - Muestra error inline cuando status == 'error'.
+//
+// QUÉ NO HACE:
+// - No accede a verificationId (implementación privada en AuthController).
+// - No navega directamente; delega a AuthController.
+// ============================================================================
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/registration_controller.dart';
-import 'otp_verify_page.dart'; // importa tu ruta/página
+import 'otp_verify_page.dart';
 
 class PhoneInputPage extends StatefulWidget {
   const PhoneInputPage({super.key});
@@ -21,7 +35,7 @@ class _PhoneInputPageState extends State<PhoneInputPage> {
     controller = Get.find<AuthController>();
     reg = Get.find<RegistrationController>();
     ever<AuthState>(controller.state, (s) {
-      if (s.status == 'sent' && s.verificationId != null) {
+      if (s.status == 'sent') {
         reg.setPhone(textCtrl.text.trim());
         Get.to(() => const OtpVerifyPage());
       }

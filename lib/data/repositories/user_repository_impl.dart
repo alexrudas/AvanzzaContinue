@@ -438,7 +438,7 @@ class UserRepositoryImpl implements UserRepository {
     }
 
     // Local: remover el rol y persistir en cache local
-    final currentRoles = List<String>.from(membership.roles ?? const []);
+    final currentRoles = List<String>.from(membership.roles);
     currentRoles
         .removeWhere((r) => r.trim().toLowerCase() == canonical.toLowerCase());
     final updated = MembershipModel(

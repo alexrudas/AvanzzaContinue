@@ -218,7 +218,7 @@ class _AIBannerState extends State<AIBanner> {
     final cs = theme.colorScheme;
 
     // Asumo que .withValues es un método de extensión de tu proyecto.
-    // Si no, reemplázalo por .withOpacity(0.18)
+    // Si no, reemplázalo por .withValues(alpha: 0.18)
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -483,7 +483,7 @@ class _VerticalTicker extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           // Asumo que .withValues es un método de extensión de tu proyecto.
-                          // Si no, reemplázalo por .withOpacity(0.90)
+                          // Si no, reemplázalo por .withValues(alpha: 0.90)
                           color: Colors.black.withValues(alpha: 0.90),
                           fontWeight: FontWeight.w800,
                           height: 1.15,
@@ -497,7 +497,7 @@ class _VerticalTicker extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(
                             // Asumo que .withValues es un método de extensión de tu proyecto.
-                            // Si no, reemplázalo por .withOpacity(0.70)
+                            // Si no, reemplázalo por .withValues(alpha: 0.70)
                             color: cs.onSurface.withValues(alpha: 0.70),
                             fontWeight: FontWeight.w500,
                             height: 1.15,
@@ -509,7 +509,7 @@ class _VerticalTicker extends StatelessWidget {
                 const SizedBox(width: 8),
                 Icon(Icons.unfold_more_rounded,
                     // Asumo que .withValues es un método de extensión de tu proyecto.
-                    // Si no, reemplázalo por .withOpacity(0.45)
+                    // Si no, reemplázalo por .withValues(alpha: 0.45)
                     color: Colors.black.withValues(alpha: 0.45),
                     size: 20),
               ],

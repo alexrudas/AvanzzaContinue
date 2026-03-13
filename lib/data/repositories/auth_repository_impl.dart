@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../../domain/errors/auth_failure.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth/firebase_auth_ds.dart';
 import '../datasources/firestore/user_firestore_ds.dart';
@@ -75,12 +76,34 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> signOut() => authDS.signOut();
 
-  // NUEVO: disponibilidad de username
+  // NUEVO: disponibilidad de username (legacy — solo bool)
   @override
   Future<bool> checkUsernameAvailable(String username) async {
     final col = userFS.db.collection('usernames');
     final doc = await col.doc(username.toLowerCase()).get();
     return !doc.exists;
+  }
+
+  // NUEVO: verificación idempotente — distingue propio/libre/ajeno
+  @override
+  Future<UsernameCheckResult> checkUsernameAvailability(
+      String username, String currentUid) async {
+    final doc = await userFS.db
+        .collection('usernames')
+        .doc(username.toLowerCase())
+        .get();
+    if (!doc.exists) return UsernameCheckResult.available;
+    if (doc.data()?['uid'] == currentUid) {
+      return UsernameCheckResult.ownedByCurrentUser;
+    }
+    return UsernameCheckResult.takenByOtherUser;
+  }
+
+  // NUEVO: fetch one-shot del username registrado en Firestore para un uid
+  @override
+  Future<String?> fetchUsernameForUid(String uid) async {
+    final profile = await userFS.getProfile(uid);
+    return profile?.username;
   }
 
   // NUEVO: signUp username+password
@@ -143,8 +166,27 @@ class AuthRepositoryImpl implements AuthRepository {
           aliasEmail: alias, password: password);
       return SignInResult(uid: cred.user?.uid);
     } on FirebaseAuthMultiFactorException catch (e) {
-      // Exponer un resolver simple (wrapper minimalista)
+      // MFA requerida — exponer resolver (wrapper minimalista)
       return SignInResult(mfaResolver: _FirebaseMfaResolver(e.resolver));
+    } on FirebaseAuthException catch (e) {
+      // Credenciales inválidas u otro error de Firebase → error de dominio.
+      // NUNCA propagar FirebaseAuthException sin manejar.
+      throw AuthFailure(e.code, _mapFirebaseMessage(e.code));
+    }
+  }
+
+  static String _mapFirebaseMessage(String code) {
+    switch (code) {
+      case 'invalid-credential':
+      case 'wrong-password':
+      case 'user-not-found':
+        return 'Usuario o contraseña incorrectos.';
+      case 'too-many-requests':
+        return 'Demasiados intentos. Intenta más tarde.';
+      case 'network-request-failed':
+        return 'Sin conexión a internet.';
+      default:
+        return 'No se pudo iniciar sesión.';
     }
   }
 

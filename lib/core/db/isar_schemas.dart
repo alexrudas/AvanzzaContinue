@@ -1,3 +1,4 @@
+import 'package:avanzza/data/local/integrations_local_datasource.dart';
 import 'package:avanzza/data/models/accounting/accounting_entry_model.dart';
 import 'package:avanzza/data/models/accounting/adjustment_model.dart';
 import 'package:avanzza/data/models/ai/ai_advisor_model.dart';
@@ -5,6 +6,7 @@ import 'package:avanzza/data/models/ai/ai_audit_log_model.dart';
 import 'package:avanzza/data/models/ai/ai_prediction_model.dart';
 import 'package:avanzza/data/models/asset/asset_document_model.dart';
 import 'package:avanzza/data/models/asset/asset_model.dart';
+import 'package:avanzza/data/models/asset/asset_registration_draft_model.dart';
 import 'package:avanzza/data/models/asset/special/asset_inmueble_model.dart';
 import 'package:avanzza/data/models/asset/special/asset_maquinaria_model.dart';
 import 'package:avanzza/data/models/asset/special/asset_vehiculo_model.dart';
@@ -34,7 +36,20 @@ import 'package:avanzza/data/models/user_session_model.dart';
 import 'package:avanzza/data/models/workspace/workspace_lite_model.dart';
 import 'package:avanzza/data/models/workspace/workspace_state_model.dart';
 
+import '../../infrastructure/isar/entities/account_receivable_projection_entity.dart';
+import '../../infrastructure/isar/entities/accounting_event_entity.dart';
+import '../../infrastructure/isar/entities/outbox_event_entity.dart';
+
 final allIsarSchemas = [
+  // Integrations — RUNT Persona + SIMIT cache (generados por build_runner)
+  IntegrationsRuntPersonCacheModelSchema,
+  IntegrationsSimitCacheModelSchema,
+
+  // Audit Trail — P2-D
+  AccountingEventEntitySchema,
+  AccountReceivableProjectionEntitySchema,
+  OutboxEventEntitySchema,
+
   AccountingEntryModelSchema,
   AdjustmentModelSchema,
   AIAdvisorModelSchema,
@@ -42,6 +57,7 @@ final allIsarSchemas = [
   AIPredictionModelSchema,
   AssetDocumentModelSchema,
   AssetInmuebleModelSchema,
+  AssetRegistrationDraftModelSchema,
   AssetMaquinariaModelSchema,
   AssetModelSchema,
   AssetVehiculoModelSchema,

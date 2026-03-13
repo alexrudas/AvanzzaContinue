@@ -94,7 +94,7 @@ const AssetVehiculoModelSchema = CollectionSchema(
     r'placa': IndexSchema(
       id: 3507459132299045558,
       name: r'placa',
-      unique: false,
+      unique: true,
       replace: false,
       properties: [
         IndexPropertySchema(
@@ -258,6 +258,59 @@ extension AssetVehiculoModelByIndex on IsarCollection<AssetVehiculoModel> {
   List<Id> putAllByAssetIdSync(List<AssetVehiculoModel> objects,
       {bool saveLinks = true}) {
     return putAllByIndexSync(r'assetId', objects, saveLinks: saveLinks);
+  }
+
+  Future<AssetVehiculoModel?> getByPlaca(String placa) {
+    return getByIndex(r'placa', [placa]);
+  }
+
+  AssetVehiculoModel? getByPlacaSync(String placa) {
+    return getByIndexSync(r'placa', [placa]);
+  }
+
+  Future<bool> deleteByPlaca(String placa) {
+    return deleteByIndex(r'placa', [placa]);
+  }
+
+  bool deleteByPlacaSync(String placa) {
+    return deleteByIndexSync(r'placa', [placa]);
+  }
+
+  Future<List<AssetVehiculoModel?>> getAllByPlaca(List<String> placaValues) {
+    final values = placaValues.map((e) => [e]).toList();
+    return getAllByIndex(r'placa', values);
+  }
+
+  List<AssetVehiculoModel?> getAllByPlacaSync(List<String> placaValues) {
+    final values = placaValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'placa', values);
+  }
+
+  Future<int> deleteAllByPlaca(List<String> placaValues) {
+    final values = placaValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'placa', values);
+  }
+
+  int deleteAllByPlacaSync(List<String> placaValues) {
+    final values = placaValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'placa', values);
+  }
+
+  Future<Id> putByPlaca(AssetVehiculoModel object) {
+    return putByIndex(r'placa', object);
+  }
+
+  Id putByPlacaSync(AssetVehiculoModel object, {bool saveLinks = true}) {
+    return putByIndexSync(r'placa', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByPlaca(List<AssetVehiculoModel> objects) {
+    return putAllByIndex(r'placa', objects);
+  }
+
+  List<Id> putAllByPlacaSync(List<AssetVehiculoModel> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'placa', objects, saveLinks: saveLinks);
   }
 }
 

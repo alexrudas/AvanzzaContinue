@@ -75,8 +75,8 @@ class QuickActionsTheme {
 
     return QuickActionsTheme(
       surfaceGlass: colorScheme.surface
-          .withOpacity(brightness == Brightness.dark ? 0.80 : 0.90),
-      borderColor: colorScheme.outlineVariant.withOpacity(0.55),
+          .withValues(alpha: brightness == Brightness.dark ? 0.80 : 0.90),
+      borderColor: colorScheme.outlineVariant.withValues(alpha: 0.55),
     );
   }
 
@@ -284,13 +284,13 @@ class _QuickActionsContainer extends StatelessWidget {
           borderRadius: borderRadius,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: QuickActionsTokens.elevationMedium,
               offset: const Offset(0, 8),
               spreadRadius: 0,
             ),
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: QuickActionsTokens.elevationLow,
               offset: const Offset(0, 4),
               spreadRadius: 0,
@@ -487,21 +487,21 @@ class _PrimaryQuickActionState extends State<PrimaryQuickAction>
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      widget.color.withOpacity(0.95),
+                      widget.color.withValues(alpha: 0.95),
                       widget.color,
-                      widget.color.withOpacity(0.85),
+                      widget.color.withValues(alpha: 0.85),
                     ],
                     stops: const [0.0, 0.5, 1.0],
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: widget.color.withOpacity(0.35),
+                      color: widget.color.withValues(alpha: 0.35),
                       blurRadius: QuickActionsTokens.elevationHigh,
                       offset: const Offset(0, 12),
                       spreadRadius: 0,
                     ),
                     BoxShadow(
-                      color: widget.color.withOpacity(0.20),
+                      color: widget.color.withValues(alpha: 0.20),
                       blurRadius: QuickActionsTokens.elevationMedium,
                       offset: const Offset(0, 6),
                       spreadRadius: 0,
@@ -671,7 +671,7 @@ class _QuickActionState extends State<QuickAction>
     // Determinar si el color es transparente (para navegación)
     final bool isTransparent = widget.color.alpha == 0;
     final Color iconColor =
-        isTransparent ? colorScheme.onSurface.withOpacity(0.85) : Colors.white;
+        isTransparent ? colorScheme.onSurface.withValues(alpha: 0.85) : Colors.white;
 
     return Semantics(
       button: true,
@@ -725,7 +725,7 @@ class _QuickActionState extends State<QuickAction>
                         fontSize: scaledLabelSize,
                         fontWeight: FontWeight.w600,
                         height: 1.1,
-                        color: colorScheme.onSurface.withOpacity(0.90),
+                        color: colorScheme.onSurface.withValues(alpha: 0.90),
                         letterSpacing: 0.0, // Reducido de 0.1 a 0.0
                       ),
                     ),
@@ -789,9 +789,9 @@ class _ActionCapsule extends StatelessWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      color.withOpacity(0.92),
+                      color.withValues(alpha: 0.92),
                       color,
-                      color.withOpacity(0.78),
+                      color.withValues(alpha: 0.78),
                     ],
                     stops: const [0.0, 0.5, 1.0],
                   ),
@@ -800,13 +800,13 @@ class _ActionCapsule extends StatelessWidget {
                 : [
                     if (isPrimary)
                       BoxShadow(
-                        color: color.withOpacity(0.28),
+                        color: color.withValues(alpha: 0.28),
                         blurRadius: 22,
                         offset: const Offset(0, 10),
                         spreadRadius: 0,
                       ),
                     BoxShadow(
-                      color: color.withOpacity(0.18),
+                      color: color.withValues(alpha: 0.18),
                       blurRadius: 14,
                       offset: const Offset(0, 6),
                       spreadRadius: 0,
@@ -825,8 +825,8 @@ class _ActionCapsule extends StatelessWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.center,
                         colors: [
-                          Colors.white.withOpacity(0.15),
-                          Colors.white.withOpacity(0.05),
+                          Colors.white.withValues(alpha: 0.15),
+                          Colors.white.withValues(alpha: 0.05),
                           Colors.transparent,
                         ],
                       ),
@@ -907,7 +907,7 @@ class _AnimatedBadge extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.4),
+              color: color.withValues(alpha: 0.4),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),

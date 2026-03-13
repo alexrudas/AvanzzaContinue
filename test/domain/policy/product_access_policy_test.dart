@@ -27,6 +27,22 @@ ProductAccessContext _ctx({
 
 const _policy = ProductAccessPolicy();
 
+// ── Fake evaluator — solo para tests de registry mode ────────────────────────
+
+/// Evaluator stub que siempre retorna allow.
+/// Usado exclusivamente para verificar que el registry mode delega correctamente.
+final class _NoopAllowEvaluator implements FeatureEvaluator {
+  const _NoopAllowEvaluator();
+
+  @override
+  AccessDecision evaluate({
+    required FeatureKey feature,
+    required ProductAccessContext context,
+    String? assetId,
+  }) =>
+      AccessDecision.allow(feature);
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 void main() {
@@ -393,6 +409,55 @@ void main() {
         AccessDecision.allow(const CollaborateUsers()),
       );
     });
+  });
+
+  // ── Fase 2 transición — registry mode ──────────────────────────────────────
+
+  group('Fase 2 transición — registry mode', () {
+    test(
+      'strict=false + feature sin evaluator → fallback Fase 1 (NO evaluatorMissing)',
+      () {
+        const policy = ProductAccessPolicy(
+          evaluators: {SyncData: _NoopAllowEvaluator()},
+          // strictEvaluators: false por default
+        );
+        // CreateAccountingEntry no está en el registry → debe caer al switch.
+        // Con rol 'member' (no privilegiado), Fase 1 retorna roleInsufficient.
+        final decision = policy.evaluate(
+          feature: const CreateAccountingEntry(),
+          context: _ctx(roles: {'member'}),
+        );
+        expect(
+          decision,
+          AccessDecision.deny(
+            const CreateAccountingEntry(),
+            AccessReasonCodes.roleInsufficient,
+          ),
+        );
+        // Garantía explícita: no retornó evaluatorMissing.
+        expect(decision.reasonCode, isNot(AccessReasonCodes.evaluatorMissing));
+      },
+    );
+
+    test(
+      'strict=true + feature sin evaluator → deny(evaluatorMissing)',
+      () {
+        const policy = ProductAccessPolicy(
+          evaluators: {SyncData: _NoopAllowEvaluator()},
+          strictEvaluators: true,
+        );
+        expect(
+          policy.evaluate(
+            feature: const CreateAccountingEntry(),
+            context: _ctx(roles: {'owner'}),
+          ),
+          AccessDecision.deny(
+            const CreateAccountingEntry(),
+            AccessReasonCodes.evaluatorMissing,
+          ),
+        );
+      },
+    );
   });
 
   // ── AccessDecision — igualdad estructural ───────────────────────────────────

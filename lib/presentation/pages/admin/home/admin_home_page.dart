@@ -12,11 +12,20 @@ import 'dart:ui';
 
 import 'package:avanzza/domain/shared/enums/asset_type.dart';
 import 'package:avanzza/presentation/widgets/modal/action_sheet_pro.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../../../application/services/accounting/accounting_outbox_sync_service.dart';
+import '../../../../core/auth/auth_state_observer.dart';
+import '../../../../domain/entities/accounting/accounting_event.dart';
+import '../../../../infrastructure/isar/repositories/isar_accounting_event_repository.dart';
+import '../../../config/empty_state_config.dart';
+import '../../../controllers/activation/activation_gate_controller.dart';
 import '../../../controllers/admin/home/admin_home_controller.dart';
+import '../../../widgets/activation/activation_gate_overlay.dart';
+import '../../../widgets/common/empty_state_card.dart';
 import 'admin_home_widgets.dart';
 
 // ============================================================================
@@ -32,20 +41,172 @@ class AdminHomePage extends StatefulWidget {
 
 class _AdminHomePageState extends State<AdminHomePage> {
   late final AdminHomeController controller;
+  late final ActivationGateController _gateCtrl;
   Worker? _uiEventWorker;
 
   @override
   void initState() {
     super.initState();
 
-    // Obtener controller (ya registrado por binding)
+    // Obtener controllers (ya registrados por AdminHomeBinding)
     controller = Get.find<AdminHomeController>();
+    _gateCtrl = Get.find<ActivationGateController>();
 
     // UI Event Listener — registrado una sola vez
     _uiEventWorker = ever<AdminUiEvent?>(controller.uiEvent, _handleUiEvent);
 
     // NOTA: NO usar SystemChrome.setSystemUIOverlayStyle aquí.
     // El Theme global maneja status bar para soportar Dark Mode.
+  }
+
+  // ============================================================================
+  // SMOKE TEST — DEBUG ONLY
+  // ============================================================================
+
+  /// Prueba end-to-end del pipeline Outbox:
+  /// 1. Crea un AccountingEvent único (entityId con timestamp → sin prevHash).
+  /// 2. appendAtomic → queda en Outbox como pending.
+  /// 3. Espera máximo 15 s a que el worker lo marque synced/error.
+  /// 4. Muestra snackbar con resultado.
+  ///
+  /// Solo activo en kDebugMode. Requiere que el worker esté corriendo
+  /// (AccountingOutboxSyncService registrado en GetX).
+  Future<void> _runOutboxSmokeTest() async {
+    if (!kDebugMode) return;
+
+    final repo = Get.find<IsarAccountingEventRepository>();
+    final ts = DateTime.now().microsecondsSinceEpoch;
+    final eventId = 'smoke_evt_$ts';
+    final entityId = 'ar_debug_smoke_$ts';
+    final now = DateTime.now();
+
+    // Diagnóstico: estado del DI antes de insertar el evento.
+    final workerReg = Get.isRegistered<AccountingOutboxSyncService>(
+        tag: 'accounting_outbox_sync');
+    final observerReg = Get.isRegistered<AuthStateObserver>();
+    debugPrint(
+      '[P2D][Outbox][Smoke][Start] eventId=$eventId entityId=$entityId '
+      'workerReg=$workerReg observerReg=$observerReg',
+    );
+
+    // Si el worker está registrado: confirmar identidad y vitalidad del loop.
+    if (workerReg) {
+      final worker =
+          Get.find<AccountingOutboxSyncService>(tag: 'accounting_outbox_sync');
+      debugPrint(
+        '[P2D][Outbox][Smoke][Diag] '
+        'workerHash=${worker.hashCode} '
+        'tickCount=${worker.debugTickCount()}',
+      );
+    }
+
+    Get.snackbar(
+      'Smoke Test',
+      'Enviando evento $eventId…',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 2),
+      margin: const EdgeInsets.all(16),
+    );
+
+    try {
+      final event = AccountingEvent(
+        id: eventId,
+        entityType: 'account_receivable',
+        entityId: entityId,
+        eventType: 'ar_collection_recorded',
+        occurredAt: now,
+        recordedAt: now,
+        actorId: 'debug_worker',
+        // saldoInicialCop → _initProjection fija saldoActualCop = 10000
+        // totalIngresadoCop = 3000, saldoFinalCop = 10000 - 3000 = 7000
+        // sumSplits (3000) == totalIngresadoCop (3000) ✓
+        payload: const {
+          'saldoInicialCop': 10000,
+          'splits': [
+            {'montoCop': 3000}
+          ],
+          'totalIngresadoCop': 3000,
+          'saldoFinalCop': 7000,
+        },
+      );
+      await repo.appendAtomic(event);
+    } catch (e, st) {
+      debugPrint('[P2D][Outbox][Smoke][FAIL] appendAtomic error: $e');
+      debugPrint('StackTrace: $st');
+      final msg = e.toString();
+      final preview = msg.length > 150 ? '${msg.substring(0, 150)}…' : msg;
+      Get.snackbar(
+        'Smoke Test — Error',
+        preview,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade900,
+        duration: const Duration(seconds: 8),
+        margin: const EdgeInsets.all(16),
+      );
+      return;
+    }
+
+    debugPrint(
+        '[P2D][Outbox][Smoke][Inserted] eventId=$eventId status=pending');
+
+    // Polling: hasta 15 intentos × 1 s.
+    for (var i = 0; i < 15; i++) {
+      await Future.delayed(const Duration(seconds: 1));
+      final snap = await repo.getDebugOutboxSnapshot(eventId);
+      final status = snap?['status'] as String?;
+
+      debugPrint(
+        '[P2D][Outbox][Smoke][Poll] t=${i + 1} '
+        'status=${snap?['status'] ?? 'null'} '
+        'lockBy=${snap?['lockedBy'] ?? 'null'} '
+        'retry=${snap?['retryCount'] ?? 'null'} '
+        'err=${snap?['lastError'] ?? 'null'}',
+      );
+
+      if (status == 'synced') {
+        debugPrint(
+          '[P2D][Outbox][Smoke][DONE][OK] eventId=$eventId t=${i + 1}',
+        );
+        Get.snackbar(
+          'Smoke Test — OK ✓',
+          'Evento sincronizado en ${i + 1}s',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.shade100,
+          colorText: Colors.green.shade900,
+          duration: const Duration(seconds: 5),
+          margin: const EdgeInsets.all(16),
+        );
+        return;
+      }
+
+      if (status == 'error') {
+        debugPrint(
+          '[P2D][Outbox][Smoke][DONE][NACK] eventId=$eventId t=${i + 1}',
+        );
+        Get.snackbar(
+          'Smoke Test — NACK',
+          'Evento en estado error tras ${i + 1}s',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.orange.shade100,
+          colorText: Colors.orange.shade900,
+          duration: const Duration(seconds: 5),
+          margin: const EdgeInsets.all(16),
+        );
+        return;
+      }
+    }
+
+    debugPrint('[P2D][Outbox][Smoke][DONE][TIMEOUT] eventId=$eventId');
+    Get.snackbar(
+      'Smoke Test — Timeout',
+      'Evento $eventId no sincronizado tras 15s',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.amber.shade100,
+      colorText: Colors.amber.shade900,
+      duration: const Duration(seconds: 5),
+      margin: const EdgeInsets.all(16),
+    );
   }
 
   @override
@@ -101,6 +262,20 @@ class _AdminHomePageState extends State<AdminHomePage> {
             },
           ),
         ),
+
+        // --- ACTIVATION GATE OVERLAY ---
+        // Capa topmost: bloquea acceso al Home hasta que el usuario registre
+        // su primer activo. Controlado reactivamente por ActivationGateController.
+        Obx(() {
+          if (!_gateCtrl.showGate.value) return const SizedBox.shrink();
+          return Positioned.fill(
+            child: ActivationGateOverlay(
+              config: _gateCtrl.config.value,
+              onPrimaryAction: _gateCtrl.onCtaPressed,
+              onDismiss: _gateCtrl.dismissForSession,
+            ),
+          );
+        }),
       ],
     );
   }
@@ -140,6 +315,23 @@ class _AdminHomePageState extends State<AdminHomePage> {
               ),
             ],
           ),
+        ),
+      );
+    }
+
+    // Empty State: el gate fue descartado y el usuario aún no tiene activos.
+    // El gate (Tarea 1) cubre el caso de primer acceso; este cubre el re-ingreso
+    // cuando showGate == false pero assetsCount sigue siendo 0.
+    if (controller.assetsCount.value == 0 && !_gateCtrl.showGate.value) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 32,
+        ),
+        child: EmptyStateCard(
+          config: EmptyStateConfig.home,
+          onCtaPressed: controller.goToAssetsPage,
+          scrollSafe: false,
         ),
       );
     }
@@ -223,6 +415,16 @@ class _AdminHomePageState extends State<AdminHomePage> {
           onArrendatariosTap: () => _handlePersonaTap('Arrendatarios'),
           onDirectorioTap: () => _showDirectorioSheet(context),
         ),
+
+        // DEBUG ONLY — smoke test del pipeline Outbox
+        if (kDebugMode) ...[
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () => _runOutboxSmokeTest(),
+            icon: const Icon(Icons.science_outlined, size: 18),
+            label: const Text('Run Outbox Smoke Test'),
+          ),
+        ],
 
         const SizedBox(height: 80), // Espacio para el FAB
       ],

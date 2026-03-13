@@ -1,23 +1,47 @@
-import 'package:avanzza/data/runt/models/runt_vehicle_models.dart';
+// ============================================================================
+// lib/presentation/pages/portfolio/wizard/create_portfolio_step2_page.dart
+//
+// WIZARD PASO 2 — FORMULARIO DE CONSULTA RUNT (Enterprise-grade Ultra Pro)
+//
+// PROPÓSITO
+// Recoger los datos mínimos para consultar el RUNT dentro del wizard de
+// registro de activos y redirigir al flujo:
+//
+//   Step2 (form)
+//     → RuntQueryProgressPage
+//     → RuntQueryResultPage
+//
+// RESPONSABILIDAD
+// - Renderizar el formulario de entrada.
+// - Restaurar valores previos del draft del wizard.
+// - Detectar si ya existe un job activo/finalizado y redirigir.
+// - Lanzar la consulta RUNT asíncrona.
+// - Mantener UX consistente con el design system del flujo.
+//
+// NO RESPONSABILIDAD
+// - No hace polling.
+// - No muestra resultados del RUNT.
+// - No persiste directamente en infraestructura.
+// - No decide reglas de negocio del registro del activo.
+//
+// DECISIONES DE DISEÑO
+// - El campo "Tipo de documento" usa BottomSheet en lugar de dropdown clásico.
+// - La navegación automática usa `offNamed` para evitar apilar pantallas
+//   duplicadas cuando el draft ya tiene estado activo o finalizado.
+// - El botón principal reacciona al formulario en tiempo real.
+// - La redirección automática ocurre una sola vez por montaje para evitar
+//   loops o dobles navegaciones.
+// ============================================================================
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
-import '../../../../domain/entities/vehicle/vehicle_document_status.dart';
-import '../../../../domain/entities/vehicle/vehicle_documents_snapshot.dart';
 import '../../../../domain/shared/enums/asset_type.dart';
-import '../../../controllers/runt/runt_controller.dart';
+import '../../../../routes/app_routes.dart';
+import '../../../controllers/runt/runt_query_controller.dart';
 import '../controllers/create_portfolio_controller.dart';
-import 'recurring_expenses_setup_page.dart';
 
-/// Wizard Paso 2: Agregar activo al portafolio
-///
-/// Este paso se adapta según el tipo de activo seleccionado en Step1:
-/// - Vehículo: Muestra formulario RUNT para consultar y registrar
-/// - Otros tipos: Muestra placeholder "Próximamente"
-///
-/// IMPORTANTE: El assetType se lee del CreatePortfolioController compartido.
-/// Si selectedAssetType es null, se muestra un fallback seguro.
 class CreatePortfolioStep2Page extends StatefulWidget {
   const CreatePortfolioStep2Page({super.key});
 
@@ -29,111 +53,187 @@ class CreatePortfolioStep2Page extends StatefulWidget {
 class _CreatePortfolioStep2PageState extends State<CreatePortfolioStep2Page> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controller compartido del wizard (creado en Step1)
-  late final CreatePortfolioController _portfolioController;
+  late final CreatePortfolioController _portfolioCtrl;
+  late final RuntQueryController _runtQueryCtrl;
 
-  // Controller RUNT (solo para vehículos, inyectado via binding)
-  RuntController? _runtController;
-
-  // Estado local del formulario
   final _plateController = TextEditingController();
-  String? _selectedDocType;
   final _docNumberController = TextEditingController();
 
-  // Tipo de activo (leído del controller compartido)
+  String? _selectedDocType;
   AssetType? _assetType;
+
+  bool _isBootstrapping = true;
+  bool _didAutoRedirect = false;
+
+  static const List<_DocTypeOption> _docTypeOptions = [
+    _DocTypeOption(
+      value: 'CC',
+      title: 'Cédula de ciudadanía',
+      icon: Icons.badge_outlined,
+    ),
+    _DocTypeOption(
+      value: 'CE',
+      title: 'Cédula de extranjería',
+      icon: Icons.badge_outlined,
+    ),
+    _DocTypeOption(
+      value: 'NIT',
+      title: 'NIT (empresa)',
+      icon: Icons.business_outlined,
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
 
-    debugPrint('[Step2][INIT] initState START');
+    _portfolioCtrl = Get.find<CreatePortfolioController>();
+    _runtQueryCtrl = Get.find<RuntQueryController>();
 
-    // Obtener controller compartido del wizard
-    _portfolioController = Get.find<CreatePortfolioController>();
-    debugPrint('[Step2][INIT] CreatePortfolioController FOUND');
+    _assetType = _portfolioCtrl.selectedAssetType.value;
 
-    // Leer assetType del controller (persistido en Step1)
-    _assetType = _portfolioController.selectedAssetType.value;
-    debugPrint('[Step2][INIT] assetType leído: $_assetType');
-
-    // Si es vehículo, obtener RuntController (debe estar registrado via binding)
-    if (_assetType == AssetType.vehiculo) {
-      debugPrint(
-          '[Step2][INIT] assetType=vehiculo → verificando RuntController');
-      final isReg = Get.isRegistered<RuntController>();
-      debugPrint('[Step2][INIT] Get.isRegistered<RuntController>() = $isReg');
-
-      if (isReg) {
-        _runtController = Get.find<RuntController>();
-        debugPrint('[Step2][INIT] RuntController FOUND: $_runtController');
-      } else {
-        debugPrint(
-          '[Step2][INIT][WARNING] RuntController NO registrado. La consulta RUNT no funcionará.',
-        );
-      }
-    }
-
-    // Log de debugging
-    debugPrint('[Step2] assetType: $_assetType');
-    debugPrint('[Step2] portfolioId: ${_portfolioController.portfolioId}');
-    debugPrint('[Step2][INIT] initState END');
+    _restoreLocalDraftFields();
+    _wireFormListeners();
+    _bootstrapDraftState();
   }
 
   @override
   void dispose() {
-    debugPrint('[Step2][DISPOSE] dispose START');
     _plateController.dispose();
     _docNumberController.dispose();
-    debugPrint('[Step2][DISPOSE] dispose END');
     super.dispose();
   }
 
-  void _handleEdit() {
-    // Limpia solo el resultado de la consulta
-    _runtController?.clearVehicleData();
+  // ───────────────────────────────────────────────────────────────────────────
+  // Bootstrap / restauración
+  // ───────────────────────────────────────────────────────────────────────────
 
-    // Fuerza rebuild para volver al formulario
-    setState(() {});
+  void _restoreLocalDraftFields() {
+    _plateController.text = _portfolioCtrl.draftPlate.value;
+    _selectedDocType = _portfolioCtrl.draftDocType.value;
+    _docNumberController.text = _portfolioCtrl.draftDocNumber.value;
   }
 
-  bool get _canConsult =>
-      _plateController.text.isNotEmpty &&
-      _selectedDocType != null &&
-      _docNumberController.text.isNotEmpty;
+  void _wireFormListeners() {
+    _plateController.addListener(() {
+      _portfolioCtrl.draftPlate.value = _plateController.text;
+      if (mounted) setState(() {});
+    });
 
-  /// Mapea tipo de documento UI a código RUNT
-  String _mapDocTypeToRunt(String uiDocType) {
-    debugPrint('[Step2][MAP] uiDocType=$uiDocType');
-    switch (uiDocType) {
-      case 'CC':
-        return 'C';
-      case 'CE':
-        return 'E';
-      case 'NIT':
-        return 'C'; // NIT usa código C en RUNT
-      default:
-        return 'C';
+    _docNumberController.addListener(() {
+      _portfolioCtrl.draftDocNumber.value = _docNumberController.text;
+      if (mounted) setState(() {});
+    });
+  }
+
+  Future<void> _bootstrapDraftState() async {
+    final draftId = _portfolioCtrl.portfolioId;
+    if (draftId != null && draftId.trim().isNotEmpty) {
+      await _runtQueryCtrl.loadDraft(draftId);
+
+      if (!mounted) return;
+
+      final state = _runtQueryCtrl.viewState.value;
+      _redirectIfNeeded(state);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _isBootstrapping = false;
+    });
+  }
+
+  void _redirectIfNeeded(RuntViewState state) {
+    if (_didAutoRedirect || !mounted) return;
+
+    switch (state) {
+      case RuntViewState.pending:
+      case RuntViewState.running:
+        _didAutoRedirect = true;
+        Get.offNamed(Routes.runtQueryProgress);
+        return;
+
+      case RuntViewState.completed:
+        _didAutoRedirect = true;
+        Get.offNamed(Routes.runtQueryResult);
+        return;
+
+      case RuntViewState.idle:
+      case RuntViewState.failed:
+        return;
     }
   }
 
-  /// Consultar RUNT usando el RuntController existente
-  Future<void> _handleConsultRunt() async {
-    debugPrint('[RUNT][UI] Tap Consultar RUNT');
-    debugPrint(
-      '[RUNT][UI] _canConsult=$_canConsult plate="${_plateController.text}" docType="$_selectedDocType" doc="${_docNumberController.text}"',
+  // ───────────────────────────────────────────────────────────────────────────
+  // Form state
+  // ───────────────────────────────────────────────────────────────────────────
+
+  bool get _canConsult {
+    return _plateController.text.trim().isNotEmpty &&
+        (_selectedDocType?.trim().isNotEmpty ?? false) &&
+        _docNumberController.text.trim().isNotEmpty;
+  }
+
+  Future<void> _openDocTypeBottomSheet() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      useSafeArea: true,
+      builder: (context) {
+        final colors = Theme.of(context).colorScheme;
+        final textTheme = Theme.of(context).textTheme;
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Selecciona el tipo de documento',
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ..._docTypeOptions.map(
+                  (option) => ListTile(
+                    leading: Icon(option.icon, color: colors.primary),
+                    title: Text(option.title),
+                    trailing: _selectedDocType == option.value
+                        ? Icon(Icons.check, color: colors.primary)
+                        : null,
+                    onTap: () => Navigator.of(context).pop(option.value),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
 
-    if (!_formKey.currentState!.validate()) {
-      debugPrint('[RUNT][UI] Form INVALID → cancelando consulta');
-      return;
-    }
+    if (selected == null || !mounted) return;
 
-    if (_runtController == null) {
-      debugPrint('[RUNT][UI] ERROR: _runtController == null');
+    setState(() {
+      _selectedDocType = selected;
+      _portfolioCtrl.draftDocType.value = selected;
+    });
+  }
+
+  Future<void> _handleConsult() async {
+    FocusScope.of(context).unfocus();
+
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    final portfolioId = _portfolioCtrl.portfolioId;
+    if (portfolioId == null || portfolioId.trim().isEmpty) {
       Get.snackbar(
-        'Error de configuración',
-        'El servicio RUNT no está disponible.',
+        'Error de flujo',
+        'No hay portafolio activo. Regresa al paso 1.',
         snackPosition: SnackPosition.BOTTOM,
       );
       return;
@@ -141,781 +241,365 @@ class _CreatePortfolioStep2PageState extends State<CreatePortfolioStep2Page> {
 
     HapticFeedback.lightImpact();
 
-    // Preparar datos
-    final plate = _plateController.text.trim().toUpperCase();
-    final ownerDocument = _docNumberController.text.trim();
-    final ownerDocumentType = _mapDocTypeToRunt(_selectedDocType!);
-
-    debugPrint(
-      '[RUNT][UI] Params → portal=GOV plate=$plate ownerDocument=$ownerDocument ownerDocumentType=$ownerDocumentType',
+    await _runtQueryCtrl.startQuery(
+      draftId: portfolioId,
+      plate: _plateController.text.trim().toUpperCase(),
+      documentType: _selectedDocType!,
+      documentNumber: _docNumberController.text.trim(),
     );
 
-    // Ejecutar consulta real via RuntController
-    try {
-      debugPrint('[RUNT][UI] llamando _runtController.consultarVehiculo...');
-      await _runtController!.consultarVehiculo(
-        portalType: 'GOV', // Portal gubernamental
-        plate: plate,
-        ownerDocument: ownerDocument,
-        ownerDocumentType: ownerDocumentType,
-      );
-      debugPrint('[RUNT][UI] _runtController.consultarVehiculo FINALIZÓ OK');
-    } catch (e) {
-      // Nota: el controller ya maneja errores, esto es solo para detectar crashes no controlados.
-      debugPrint('[RUNT][UI] EXCEPTION no controlada en consultarVehiculo: $e');
-    }
+    if (!mounted) return;
 
-    // Forzar rebuild para mostrar datos
-    if (mounted) {
-      debugPrint('[RUNT][UI] mounted=true → setState() para refrescar UI');
-      setState(() {});
-    } else {
-      debugPrint('[RUNT][UI] mounted=false → NO setState()');
-    }
+    final state = _runtQueryCtrl.viewState.value;
+    if (state == RuntViewState.failed) return;
+
+    Get.toNamed(Routes.runtQueryProgress);
   }
 
-  /// Confirmar y crear vehículo vinculado al portfolio
-  Future<void> _handleConfirm() async {
-    debugPrint('[Step2][CONFIRM] Tap Confirmar');
-    final vehicleData = _runtController?.vehicleData;
+  // ───────────────────────────────────────────────────────────────────────────
+  // Build
+  // ───────────────────────────────────────────────────────────────────────────
 
-    debugPrint('[Step2][CONFIRM] vehicleData is null? ${vehicleData == null}');
-
-    if (vehicleData == null) return;
-
-    HapticFeedback.lightImpact();
-
-    // Validar que exista portfolioId del Paso 1
-    if (_portfolioController.portfolioId == null) {
-      debugPrint('[Step2][CONFIRM] ERROR: portfolioId == null');
-      if (mounted) {
-        Get.snackbar(
-          'Error de flujo',
-          'No hay portafolio creado. Vuelve al Paso 1.',
-          snackPosition: SnackPosition.BOTTOM,
-        );
-      }
-      return;
-    }
-
-    try {
-      // Vincular vehículo al portfolio usando datos del RUNT
-      final basicInfo = vehicleData.basicInfo;
-      final generalInfo = vehicleData.generalInfo;
-
-      debugPrint(
-        '[Step2][CONFIRM] linkFirstAssetToPortfolio → plate=${basicInfo.plate} marca=${generalInfo?.marca} line=${generalInfo?.line} modelo=${generalInfo?.modelo}',
-      );
-
-      await _portfolioController.linkFirstAssetToPortfolio(
-        plate: basicInfo.plate,
-        marca: generalInfo?.marca ?? 'Sin marca',
-        modelo: generalInfo?.line ?? basicInfo.vehicleClass,
-        anio: generalInfo?.modelo ?? DateTime.now().year,
-        countryId: 'CO', // Colombia (RUNT solo aplica a Colombia)
-        cityId: 'BOG', // TODO: Obtener del portfolio
-      );
-
-      // Hook: Mostrar pantalla sugerida de gastos recurrentes
-      if (mounted) {
-        debugPrint('[Step2][CONFIRM] Navegando a RecurringExpensesSetupPage');
-        Get.off(() => RecurringExpensesSetupPage(
-              portfolioId: _portfolioController.portfolioId!,
-            ));
-      }
-    } on UnimplementedError {
-      debugPrint(
-          '[Step2][CONFIRM] UnimplementedError: linkFirstAssetToPortfolio');
-      // PENDIENTE: linkFirstAssetToPortfolio aún no implementado
-      if (mounted) {
-        Get.snackbar(
-          'Registro pendiente',
-          'El vínculo del vehículo al portafolio está en construcción.',
-          snackPosition: SnackPosition.BOTTOM,
-          duration: const Duration(seconds: 3),
-        );
-      }
-    } catch (e) {
-      debugPrint('[Step2][CONFIRM] ERROR creando vehículo: $e');
-      if (mounted) {
-        Get.snackbar(
-          'Error',
-          'No se pudo crear el vehículo: $e',
-          snackPosition: SnackPosition.BOTTOM,
-        );
-      }
-    }
-  }
-
-  // ==================== UI HELPERS – SECCIONES RUNT (PRIVATE) ====================
-
-  Widget _buildSectionCard({
-    required ThemeData theme,
-    required ColorScheme cs,
-    required String title,
-    required Widget child,
-    IconData icon = Icons.list_alt_outlined,
-  }) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          // ✅ Compatibilidad: usa withOpacity en lugar de withValues
-          color: cs.outlineVariant.withOpacity(0.5),
+  @override
+  Widget build(BuildContext context) {
+    if (_isBootstrapping) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
         ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Agregar activo'),
+        centerTitle: true,
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+      body: _assetType == AssetType.vehiculo
+          ? _VehicleFormBody(
+              formKey: _formKey,
+              plateController: _plateController,
+              docNumberController: _docNumberController,
+              selectedDocType: _selectedDocType,
+              canConsult: _canConsult,
+              onOpenDocTypeSelector: _openDocTypeBottomSheet,
+              onConsult: _handleConsult,
+              runtQueryCtrl: _runtQueryCtrl,
+            )
+          : const _PlaceholderBody(),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FORMULARIO VEHÍCULO
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _VehicleFormBody extends StatelessWidget {
+  final GlobalKey<FormState> formKey;
+  final TextEditingController plateController;
+  final TextEditingController docNumberController;
+  final String? selectedDocType;
+  final bool canConsult;
+  final VoidCallback onOpenDocTypeSelector;
+  final VoidCallback onConsult;
+
+  final RuntQueryController runtQueryCtrl;
+
+  const _VehicleFormBody({
+    required this.formKey,
+    required this.plateController,
+    required this.docNumberController,
+    required this.selectedDocType,
+    required this.canConsult,
+    required this.onOpenDocTypeSelector,
+    required this.onConsult,
+    required this.runtQueryCtrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colors = Theme.of(context).colorScheme;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+      child: Form(
+        key: formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(
+              'Consulta RUNT',
+              style: textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Ingresa la placa y los datos del propietario para verificar la información del vehículo antes de registrarlo en Avanzza.',
+              style: textTheme.bodyMedium?.copyWith(
+                color: colors.onSurfaceVariant,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            const _SectionLabel(label: 'Placa del vehículo'),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: plateController,
+              textCapitalization: TextCapitalization.characters,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+                LengthLimitingTextInputFormatter(7),
+                _UpperCaseFormatter(),
+              ],
+              decoration: const InputDecoration(
+                hintText: 'ABC123',
+                prefixIcon: Icon(Icons.directions_car_outlined),
+              ),
+              validator: (val) {
+                if (val == null || val.trim().isEmpty) {
+                  return 'Ingresa la placa del vehículo';
+                }
+                if (val.trim().length < 5) {
+                  return 'La placa debe tener al menos 5 caracteres';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 24),
+            const _SectionLabel(label: 'Tipo de documento del propietario'),
+            const SizedBox(height: 8),
+            _BottomSheetSelectorField(
+              label: _docTypeLabel(selectedDocType),
+              isEmpty: selectedDocType == null,
+              icon: Icons.badge_outlined,
+              onTap: onOpenDocTypeSelector,
+              validator: () {
+                if (selectedDocType == null ||
+                    selectedDocType!.trim().isEmpty) {
+                  return 'Selecciona el tipo de documento';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 24),
+            const _SectionLabel(label: 'Número de documento'),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: docNumberController,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(15),
+              ],
+              decoration: const InputDecoration(
+                hintText: '1234567890',
+                prefixIcon: Icon(Icons.numbers_outlined),
+              ),
+              validator: (val) {
+                if (val == null || val.trim().isEmpty) {
+                  return 'Ingresa el número de documento';
+                }
+                if (val.trim().length < 5) {
+                  return 'El número de documento es muy corto';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 36),
+            Obx(() {
+              final state = runtQueryCtrl.viewState.value;
+              if (state != RuntViewState.failed) {
+                return const SizedBox.shrink();
+              }
+
+              return _ErrorBanner(
+                message: runtQueryCtrl.errorMessage.value,
+              );
+            }),
+            Obx(() {
+              final state = runtQueryCtrl.viewState.value;
+              final isLoading = state == RuntViewState.pending ||
+                  state == RuntViewState.running;
+
+              return SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: FilledButton.icon(
+                  onPressed: (!canConsult || isLoading) ? null : onConsult,
+                  icon: isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.search_rounded),
+                  label: Text(
+                    isLoading ? 'Consultando...' : 'CONSULTAR RUNT',
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 16),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, size: 18, color: cs.primary),
+                Icon(
+                  Icons.shield_outlined,
+                  size: 16,
+                  color: colors.outline,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                    'Consulta oficial al sistema RUNT. La información se usa únicamente para validar el registro del activo.',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: colors.outline,
+                      height: 1.45,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            child,
           ],
         ),
       ),
     );
   }
 
-  Widget _emptyState(String text, ThemeData theme, ColorScheme cs) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Text(
-        text,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: cs.onSurfaceVariant,
-          fontStyle: FontStyle.italic,
-        ),
-      ),
-    );
+  String _docTypeLabel(String? value) {
+    switch (value) {
+      case 'CC':
+        return 'Cédula de ciudadanía';
+      case 'CE':
+        return 'Cédula de extranjería';
+      case 'NIT':
+        return 'NIT (empresa)';
+      default:
+        return 'Selecciona un tipo';
+    }
   }
+}
 
-  Widget _dividerSoft(ColorScheme cs) => Divider(
-        height: 24,
-        thickness: 1,
-        color: cs.outlineVariant.withOpacity(0.5),
-      );
+// ─────────────────────────────────────────────────────────────────────────────
+// PLACEHOLDER NO VEHÍCULO
+// ─────────────────────────────────────────────────────────────────────────────
 
-  /// Construye TODA la UI de secciones en el orden visual requerido.
-  /// Se llama desde el Obx cuando vehicleData != null.
-  Widget _buildRuntVehicleSections({
-    required ThemeData theme,
-    required ColorScheme cs,
-    required RuntVehicleData vehicleData,
-  }) {
-    final basicInfo = vehicleData.basicInfo;
-    final generalInfo = vehicleData.generalInfo;
-
-    // Crear snapshot UNA sola vez para secciones documentales
-    final snapshot = VehicleDocumentsSnapshot.fromRuntData(runtData: vehicleData);
-
-    return Column(
-      children: [
-        const SizedBox(height: 28),
-        _dividerSoft(cs),
-        const SizedBox(height: 12),
-        Text(
-          'Ficha RUNT del vehículo',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // 1) Información Básica
-        _buildSectionCard(
-          theme: theme,
-          cs: cs,
-          title: 'Información Básica',
-          icon: Icons.verified_outlined,
-          child: Column(
-            children: [
-              _InfoTile(label: 'Placa', value: basicInfo.plate),
-              _InfoTile(label: 'Estado', value: basicInfo.vehicleStatus),
-              _InfoTile(label: 'Servicio', value: basicInfo.serviceType),
-              _InfoTile(label: 'Clase', value: basicInfo.vehicleClass),
-              _InfoTile(
-                label: 'Licencia tránsito',
-                value: basicInfo.transitLicenseNumber?.toString() ?? 'N/A',
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // 2) Información General
-        _buildSectionCard(
-          theme: theme,
-          cs: cs,
-          title: 'Información General',
-          icon: Icons.directions_car_filled_outlined,
-          child: (generalInfo == null)
-              ? _emptyState('No hay información general disponible.', theme, cs)
-              : Column(
-                  children: [
-                    _InfoTile(
-                        label: 'Marca', value: generalInfo.marca ?? 'N/A'),
-                    _InfoTile(label: 'Línea', value: generalInfo.line ?? 'N/A'),
-                    _InfoTile(
-                      label: 'Modelo (año)',
-                      value: generalInfo.modelo?.toString() ?? 'N/A',
-                    ),
-                    _InfoTile(
-                        label: 'Color', value: generalInfo.color ?? 'N/A'),
-                    _InfoTile(
-                        label: 'Motor',
-                        value: generalInfo.engineNumber ?? 'N/A'),
-                    _InfoTile(
-                        label: 'Chasis',
-                        value: generalInfo.chassisNumber ?? 'N/A'),
-                    _InfoTile(label: 'VIN', value: generalInfo.vin ?? 'N/A'),
-                    _InfoTile(
-                      label: 'Cilindraje',
-                      value: generalInfo.cilindraje?.toString() ?? 'N/A',
-                    ),
-                    _InfoTile(
-                        label: 'Carrocería',
-                        value: generalInfo.bodyType ?? 'N/A'),
-                    _InfoTile(
-                        label: 'Combustible',
-                        value: generalInfo.fuelType ?? 'N/A'),
-                    _InfoTile(
-                      label: 'Matrícula inicial',
-                      value: generalInfo.initialRegistrationDate ?? 'N/A',
-                    ),
-                    _InfoTile(
-                      label: 'Autoridad tránsito',
-                      value: generalInfo.transitAuthority ?? 'N/A',
-                    ),
-                    _InfoTile(
-                      label: 'Gravámenes',
-                      value: generalInfo.propertyLiens ?? 'N/A',
-                    ),
-                    _InfoTile(
-                      label: 'Clásico/Antiguo',
-                      value: generalInfo.isClassicOrAntique ?? 'N/A',
-                    ),
-                    _InfoTile(
-                        label: 'Repotenciado',
-                        value: generalInfo.repotenciado ?? 'N/A'),
-                    _InfoTile(
-                        label: 'Puertas',
-                        value: generalInfo.puertas?.toString() ?? 'N/A'),
-                  ],
-                ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // 3) Datos técnicos
-        _buildSectionCard(
-          theme: theme,
-          cs: cs,
-          title: 'Datos técnicos',
-          icon: Icons.settings_outlined,
-          child: (vehicleData.technicalData == null)
-              ? _emptyState('No hay datos técnicos disponibles.', theme, cs)
-              : Column(
-                  children: [
-                    _InfoTile(
-                      label: 'Carga (kg)',
-                      value: vehicleData.technicalData?.loadCapacityKg
-                              ?.toString() ??
-                          'N/A',
-                    ),
-                    _InfoTile(
-                      label: 'Peso bruto (kg)',
-                      value: vehicleData.technicalData?.grossWeightKg
-                              ?.toString() ??
-                          'N/A',
-                    ),
-                    _InfoTile(
-                      label: 'Pasajeros',
-                      value: vehicleData.technicalData?.passengersCapacityRaw ??
-                          'N/A',
-                    ),
-                    _InfoTile(
-                      label: 'Sentados',
-                      value: vehicleData.technicalData?.seatedPassengers
-                              ?.toString() ??
-                          'N/A',
-                    ),
-                    _InfoTile(
-                      label: 'Ejes',
-                      value:
-                          vehicleData.technicalData?.axles?.toString() ?? 'N/A',
-                    ),
-                  ],
-                ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // ============================================================
-        // SECCIONES DOCUMENTALES (usando VehicleDocumentsSnapshot)
-        // ============================================================
-
-        // 4) SOAT
-        _DocumentStatusCard(
-          title: 'SOAT',
-          status: snapshot.soat,
-          icon: Icons.shield_outlined,
-        ),
-
-        const SizedBox(height: 12),
-
-        // 5) RTM
-        _DocumentStatusCard(
-          title: 'Revisión Técnico Mecánica',
-          status: snapshot.rtm,
-          icon: Icons.fact_check_outlined,
-        ),
-
-        const SizedBox(height: 12),
-
-        // 6) RC - Responsabilidad Civil
-        _buildSectionCard(
-          theme: theme,
-          cs: cs,
-          title: 'Responsabilidad Civil',
-          icon: Icons.policy_outlined,
-          child: (snapshot.rcContractual == null &&
-                  snapshot.rcExtraContractual == null)
-              ? _emptyState(
-                  'Sin pólizas de Responsabilidad Civil registradas.',
-                  theme,
-                  cs,
-                )
-              : Column(
-                  children: [
-                    if (snapshot.rcContractual != null)
-                      _DocumentStatusCard(
-                        title: 'RC Contractual',
-                        status: snapshot.rcContractual,
-                        compact: true,
-                      ),
-                    if (snapshot.rcContractual != null &&
-                        snapshot.rcExtraContractual != null)
-                      const SizedBox(height: 8),
-                    if (snapshot.rcExtraContractual != null)
-                      _DocumentStatusCard(
-                        title: 'RC Extracontractual',
-                        status: snapshot.rcExtraContractual,
-                        compact: true,
-                      ),
-                  ],
-                ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // 7) Limitaciones
-        _buildSectionCard(
-          theme: theme,
-          cs: cs,
-          title: 'Limitaciones',
-          icon: Icons.gavel_outlined,
-          child: (vehicleData.ownershipLimitations.isEmpty)
-              ? _emptyState('No hay limitaciones registradas.', theme, cs)
-              : Column(
-                  children: vehicleData.ownershipLimitations.map((r) {
-                    final title = r.limitationType ?? 'Limitación';
-                    final subtitle =
-                        'Oficio: ${r.officeNumber?.toString() ?? 'N/A'} | ${r.municipality ?? 'N/A'}, ${r.department ?? 'N/A'}';
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                      title: Text(
-                        title,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      subtitle: Text(
-                        '$subtitle\nEntidad: ${r.legalEntity ?? 'N/A'}\nExpedición: ${r.officeIssueDate ?? 'N/A'} | Registro: ${r.systemRegistrationDate ?? 'N/A'}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // 8) Garantías
-        _buildSectionCard(
-          theme: theme,
-          cs: cs,
-          title: 'Garantías',
-          icon: Icons.account_balance_outlined,
-          child: (vehicleData.warranties.isEmpty)
-              ? _emptyState('No hay garantías registradas.', theme, cs)
-              : Column(
-                  children: vehicleData.warranties.map((r) {
-                    final title = r.creditorName ?? 'Acreedor';
-                    final subtitle =
-                        'ID: ${r.creditorId ?? 'N/A'} | Inscripción: ${r.registrationDate ?? 'N/A'}';
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                      title: Text(
-                        title,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      subtitle: Text(
-                        '$subtitle\nPatrimonio autónomo: ${r.autonomousPatrimony ?? 'N/A'} | Confecámaras: ${r.confecamaras ?? 'N/A'}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-        ),
-
-        const SizedBox(height: 24),
-
-        // Botón Confirmar (único)
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            OutlinedButton(
-              onPressed: _handleEdit,
-              child: const Text('Volver'),
-            ),
-            FilledButton(
-              onPressed: _handleConfirm,
-              child: const Text('Registrar vehículo'),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 40),
-      ],
-    );
-  }
+class _PlaceholderBody extends StatelessWidget {
+  const _PlaceholderBody();
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
-    // Fallback si assetType no está disponible
-    if (_assetType == null) {
-      debugPrint('[Step2][BUILD] assetType == null → fallback');
-      return _buildErrorFallback(theme, cs);
-    }
-
-    // Decidir qué UI mostrar según el tipo de activo
-    if (_assetType == AssetType.vehiculo) {
-      debugPrint('[Step2][BUILD] assetType=vehiculo → form RUNT');
-      return _buildVehicleRuntForm(theme, cs);
-    } else {
-      debugPrint('[Step2][BUILD] assetType=$_assetType → placeholder');
-      return _buildOtherAssetPlaceholder(theme, cs);
-    }
-  }
-
-  /// UI de error cuando assetType es null
-  Widget _buildErrorFallback(ThemeData theme, ColorScheme cs) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Error'),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 64, color: cs.error),
-              const SizedBox(height: 16),
-              Text(
-                'Error de flujo',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'No se pudo determinar el tipo de activo.\nVuelve al paso anterior.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: () => Get.back(),
-                child: const Text('Volver'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// UI para vehículos: Formulario RUNT completo
-  Widget _buildVehicleRuntForm(ThemeData theme, ColorScheme cs) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('Agregar Vehículo'),
-            Text(
-              'Paso 2 de 2',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            // Título
-            Text(
-              'Consulta RUNT',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Ingresa la placa y los datos del propietario para consultar el vehículo en RUNT.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Placa
-            TextFormField(
-              controller: _plateController,
-              decoration: const InputDecoration(
-                labelText: 'Placa *',
-                hintText: 'ABC123',
-                border: OutlineInputBorder(),
-              ),
-              textCapitalization: TextCapitalization.characters,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'La placa es obligatoria';
-                }
-                return null;
-              },
-              onChanged: (_) => setState(() {}),
+            Icon(
+              Icons.construction_rounded,
+              size: 72,
+              color: colors.outline,
             ),
             const SizedBox(height: 20),
-
-            // Tipo de Documento
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: 'Tipo de documento del propietario *',
-                border: OutlineInputBorder(),
-              ),
-              value: _selectedDocType,
-              items: const [
-                DropdownMenuItem(
-                    value: 'CC', child: Text('Cédula de Ciudadanía')),
-                DropdownMenuItem(
-                    value: 'CE', child: Text('Cédula de Extranjería')),
-                DropdownMenuItem(value: 'NIT', child: Text('NIT')),
-              ],
-              onChanged: (value) => setState(() => _selectedDocType = value),
-              validator: (value) {
-                if (value == null) return 'Selecciona un tipo de documento';
-                return null;
-              },
-            ),
-            const SizedBox(height: 20),
-
-            // Número de Documento
-            TextFormField(
-              controller: _docNumberController,
-              decoration: const InputDecoration(
-                labelText: 'Número de documento *',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'El número de documento es obligatorio';
-                }
-                return null;
-              },
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: 24),
-
-            // Botón Consultar RUNT
-            Obx(() {
-              final isLoading = _runtController?.isLoadingVehicle ?? false;
-              debugPrint('[RUNT][UI][OBX] isLoadingVehicle=$isLoading');
-              return FilledButton(
-                onPressed:
-                    _canConsult && !isLoading ? _handleConsultRunt : null,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Consultar RUNT'),
-              );
-            }),
-            const SizedBox(height: 8),
-
-            // Mensaje de error (solo error, NO sections)
-            Obx(() {
-              final msg = _runtController?.errorMessageRx.value; // ✅ Rx público
-              debugPrint('[RUNT][UI][OBX] errorMessageRx="${msg ?? ""}"');
-              if (msg == null || msg.isEmpty) return const SizedBox.shrink();
-
-              return Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  msg,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              );
-            }),
-
-            // Secciones completas (solo si hay vehicleData)
-            Obx(() {
-              final vehicleData = _runtController?.vehicleData;
-              debugPrint(
-                  '[RUNT][UI][OBX] vehicleData is null? ${vehicleData == null}');
-              if (vehicleData == null) return const SizedBox.shrink();
-
-              return _buildRuntVehicleSections(
-                theme: theme,
-                cs: cs,
-                vehicleData: vehicleData,
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// UI placeholder para otros tipos de activo (no vehículo)
-  Widget _buildOtherAssetPlaceholder(ThemeData theme, ColorScheme cs) {
-    final assetTypeName = _assetType?.displayName ?? 'activo';
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Agregar $assetTypeName'),
             Text(
-              'Paso 2 de 2',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: cs.onSurfaceVariant,
+              'Próximamente',
+              style: textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: colors.onSurfaceVariant,
               ),
             ),
+            const SizedBox(height: 10),
+            Text(
+              'El registro de este tipo de activo estará disponible en una próxima versión.',
+              style: textTheme.bodyMedium?.copyWith(
+                color: colors.outline,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            OutlinedButton.icon(
+              onPressed: () => Get.back(),
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('VOLVER'),
+            ),
           ],
-        ),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                _assetType?.icon ?? Icons.widgets_outlined,
-                size: 80,
-                // ✅ Compatibilidad: withOpacity
-                color: cs.primary.withOpacity(0.5),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Próximamente',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'El registro de $assetTypeName estará disponible en una próxima actualización.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 32),
-              OutlinedButton(
-                onPressed: () => Get.back(),
-                child: const Text('Volver'),
-              ),
-            ],
-          ),
         ),
       ),
     );
   }
 }
 
-/// Widget auxiliar para mostrar info del vehículo
-class _InfoTile extends StatelessWidget {
-  final String label;
-  final String value;
+// ─────────────────────────────────────────────────────────────────────────────
+// APOYO UI
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const _InfoTile({required this.label, required this.value});
+class _SectionLabel extends StatelessWidget {
+  final String label;
+
+  const _SectionLabel({
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+    return Text(
+      label,
+      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  final String? message;
+
+  const _ErrorBanner({
+    this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: colors.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colors.error.withOpacity(0.3),
+        ),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-            ),
+          Icon(
+            Icons.warning_amber_rounded,
+            color: colors.error,
+            size: 20,
           ),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              message ??
+                  'La consulta anterior no pudo completarse. Verifica los datos e intenta nuevamente.',
+              style: TextStyle(
+                color: colors.onErrorContainer,
+                fontSize: 13,
+                height: 1.4,
+              ),
             ),
           ),
         ],
@@ -924,306 +608,113 @@ class _InfoTile extends StatelessWidget {
   }
 }
 
-// ============================================================================
-// WIDGET: _DocumentStatusCard
-// Renderiza UNA tarjeta de documento basada en VehicleDocumentStatus.
-// ============================================================================
+class _BottomSheetSelectorField extends StatelessWidget {
+  final String label;
+  final bool isEmpty;
+  final IconData icon;
+  final VoidCallback onTap;
+  final String? Function() validator;
 
-class _DocumentStatusCard extends StatelessWidget {
-  final String title;
-  final VehicleDocumentStatus? status;
-  final IconData? icon;
-  final bool compact;
-
-  const _DocumentStatusCard({
-    required this.title,
-    required this.status,
-    this.icon,
-    this.compact = false,
+  const _BottomSheetSelectorField({
+    required this.label,
+    required this.isEmpty,
+    required this.icon,
+    required this.onTap,
+    required this.validator,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    final colors = Theme.of(context).colorScheme;
 
-    // Si status es null → estado vacío
-    if (status == null) {
-      return _buildEmptyCard(theme, cs);
-    }
+    return FormField<void>(
+      validator: (_) => validator(),
+      builder: (state) {
+        final borderColor = state.hasError
+            ? colors.error
+            : Theme.of(context)
+                .inputDecorationTheme
+                .enabledBorder
+                ?.borderSide
+                .color;
 
-    // Determinar visuales según status
-    final statusConfig = _getStatusConfig(status!.status, cs);
-
-    if (compact) {
-      return _buildCompactCard(theme, cs, statusConfig);
-    }
-
-    return _buildFullCard(theme, cs, statusConfig);
-  }
-
-  Widget _buildEmptyCard(ThemeData theme, ColorScheme cs) {
-    return Card(
-      elevation: 0,
-      color: cs.surfaceContainerHighest.withOpacity(0.3),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: cs.outlineVariant.withOpacity(0.5)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(
-              icon ?? Icons.help_outline,
-              size: 24,
-              color: cs.onSurfaceVariant,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'No registrado',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFullCard(
-    ThemeData theme,
-    ColorScheme cs,
-    _StatusConfig config,
-  ) {
-    return Card(
-      elevation: 0,
-      color: config.backgroundColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: config.borderColor),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+        return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              icon ?? config.icon,
-              size: 28,
-              color: config.iconColor,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      _buildStatusChip(theme, config),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _buildDateInfo(theme, cs),
-                  if (status!.provider != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      status!.provider!,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCompactCard(
-    ThemeData theme,
-    ColorScheme cs,
-    _StatusConfig config,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: config.backgroundColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: config.borderColor),
-      ),
-      child: Row(
-        children: [
-          Icon(config.icon, size: 20, color: config.iconColor),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+            InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: onTap,
+              child: Container(
+                height: 56,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: borderColor ?? colors.outlineVariant,
                   ),
                 ),
-                const SizedBox(height: 2),
-                _buildDateInfo(theme, cs, small: true),
-              ],
+                child: Row(
+                  children: [
+                    Icon(icon, color: colors.onSurfaceVariant),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          color: isEmpty
+                              ? colors.onSurfaceVariant
+                              : colors.onSurface,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-          _buildStatusChip(theme, config, small: true),
-        ],
-      ),
+            if (state.hasError) ...[
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: Text(
+                  state.errorText!,
+                  style: TextStyle(
+                    color: colors.error,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        );
+      },
     );
-  }
-
-  Widget _buildStatusChip(ThemeData theme, _StatusConfig config,
-      {bool small = false}) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: small ? 6 : 8,
-        vertical: small ? 2 : 4,
-      ),
-      decoration: BoxDecoration(
-        color: config.chipColor,
-        borderRadius: BorderRadius.circular(small ? 4 : 6),
-      ),
-      child: Text(
-        config.chipText,
-        style: (small ? theme.textTheme.labelSmall : theme.textTheme.labelSmall)
-            ?.copyWith(
-          color: config.chipTextColor,
-          fontWeight: FontWeight.w600,
-          fontSize: small ? 10 : 11,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDateInfo(ThemeData theme, ColorScheme cs, {bool small = false}) {
-    final dateStr = _formatDate(status!.endDate);
-    final isExpired = status!.isExpired;
-
-    final prefix = isExpired ? 'Venció:' : 'Vence:';
-    final textStyle = small
-        ? theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)
-        : theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant);
-
-    return Text('$prefix $dateStr', style: textStyle);
-  }
-
-  _StatusConfig _getStatusConfig(DocumentValidityStatus docStatus, ColorScheme cs) {
-    switch (docStatus) {
-      case DocumentValidityStatus.vigente:
-        final daysText = status!.daysToExpire != null
-            ? ' (${status!.daysToExpire} días)'
-            : '';
-        return _StatusConfig(
-          backgroundColor: Colors.green.shade50,
-          borderColor: Colors.green.shade200,
-          iconColor: Colors.green.shade700,
-          icon: Icons.check_circle_outline,
-          chipColor: Colors.green.shade100,
-          chipTextColor: Colors.green.shade800,
-          chipText: 'VIGENTE$daysText',
-        );
-
-      case DocumentValidityStatus.porVencer:
-        final daysText = status!.daysToExpire != null
-            ? ' (${status!.daysToExpire} días)'
-            : '';
-        return _StatusConfig(
-          backgroundColor: Colors.orange.shade50,
-          borderColor: Colors.orange.shade200,
-          iconColor: Colors.orange.shade700,
-          icon: Icons.warning_amber_outlined,
-          chipColor: Colors.orange.shade100,
-          chipTextColor: Colors.orange.shade800,
-          chipText: 'POR VENCER$daysText',
-        );
-
-      case DocumentValidityStatus.vencido:
-        final daysText = status!.daysToExpire != null
-            ? ' (${status!.daysToExpire!.abs()} días)'
-            : '';
-        return _StatusConfig(
-          backgroundColor: Colors.red.shade50,
-          borderColor: Colors.red.shade200,
-          iconColor: Colors.red.shade700,
-          icon: Icons.error_outline,
-          chipColor: Colors.red.shade100,
-          chipTextColor: Colors.red.shade800,
-          chipText: 'VENCIDO$daysText',
-        );
-
-      case DocumentValidityStatus.desconocido:
-        return _StatusConfig(
-          backgroundColor: cs.surfaceContainerHighest.withOpacity(0.5),
-          borderColor: cs.outlineVariant,
-          iconColor: cs.onSurfaceVariant,
-          icon: Icons.help_outline,
-          chipColor: cs.surfaceContainerHighest,
-          chipTextColor: cs.onSurfaceVariant,
-          chipText: 'SIN DATOS',
-        );
-    }
   }
 }
 
-/// Configuración visual para cada estado de documento.
-class _StatusConfig {
-  final Color backgroundColor;
-  final Color borderColor;
-  final Color iconColor;
+class _DocTypeOption {
+  final String value;
+  final String title;
   final IconData icon;
-  final Color chipColor;
-  final Color chipTextColor;
-  final String chipText;
 
-  const _StatusConfig({
-    required this.backgroundColor,
-    required this.borderColor,
-    required this.iconColor,
+  const _DocTypeOption({
+    required this.value,
+    required this.title,
     required this.icon,
-    required this.chipColor,
-    required this.chipTextColor,
-    required this.chipText,
   });
 }
 
-/// Helper para formatear fechas. Formato: dd/MM/yyyy
-/// Retorna "N/A" si la fecha es null.
-String _formatDate(DateTime? date) {
-  if (date == null) return 'N/A';
-  final day = date.day.toString().padLeft(2, '0');
-  final month = date.month.toString().padLeft(2, '0');
-  final year = date.year.toString();
-  return '$day/$month/$year';
+class _UpperCaseFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(
+      text: newValue.text.toUpperCase(),
+    );
+  }
 }

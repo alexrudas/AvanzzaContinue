@@ -366,8 +366,6 @@ class _CameraViewState extends State<CameraBarcodeDetecter> {
     if (rotation == null) return null;
     // print('final rotation: $rotation');
 
-    // get image format
-    final format = InputImageFormatValue.fromRawValue(image.format.raw);
     // validate format depending on platform
     // only supported formats:
     // * nv21 for Android

@@ -91,7 +91,7 @@ class ExpandingTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     final brand = t.colorScheme.primary;
-    final idle = t.colorScheme.onSurface.withOpacity(0.7);
+    final idle = t.colorScheme.onSurface.withValues(alpha: 0.7);
     final bg = isActive ? brand : Colors.transparent;
     final fg = isActive ? Colors.white : idle;
     return ClipRRect(
@@ -104,7 +104,7 @@ class ExpandingTab extends StatelessWidget {
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isActive ? brand : idle.withOpacity(0.3), width: 1.1),
+            border: Border.all(color: isActive ? brand : idle.withValues(alpha: 0.3), width: 1.1),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

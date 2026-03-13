@@ -1,148 +1,161 @@
-// lib/presentation/accounting/income_form_page.dart
 // ============================================================================
-// NUEVO INGRESO — Avanzza 2.0 (UI PRO 2025 + lógica optimizada para ingresos)
-// REEMPLAZADO: 'revenue' por 'income' en todo el archivo.
+// lib/presentation/pages/admin/accounting/income_form_page.dart
+// NUEVO INGRESO — Enterprise Ultra Pro (Presentation / Pages)
+//
+// QUÉ HACE:
+// - Formulario de registro de ingresos con items, recaudos y cliente.
+// - Usa ReactiveTextField para campos de texto con binding GetX (RxString).
+//
+// QUÉ NO HACE:
+// - NO persiste datos (solo UI de captura).
+// - NO define su propio widget de texto (usa ReactiveTextField compartido).
+//
+// NOTAS (CONTRATO UI):
+// - uuid.v4() para IDs estables en IncomeItem y CollectionSplit.
+// - Cards dinámicas como StatefulWidget con FocusNode + TextEditingController lifecycle.
+// - Sin update() — solo items.refresh() / recaudos.refresh().
+// - Detalles de arriendo: campos planos en controller (sin RentalDetails).
+// - initState() usa fallback seguro (sin operador !).
+// - Recaudos: al cambiar método, se limpian campos no aplicables (evita “basura” oculta).
+// - VALIDACIÓN: si el método exige últimos 4, se exige NO vacío + exactamente 4 dígitos.
 // ============================================================================
 
 import 'package:avanzza/domain/shared/enums/asset_type.dart';
+import 'package:avanzza/presentation/widgets/forms/reactive_text_field.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Para TextInputFormatter
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
+
+const _uuid = Uuid();
 
 // ------------------------- Utilidades formato --------------------------------
 final _money =
     NumberFormat.currency(locale: 'es_CO', symbol: r'$ ', decimalDigits: 0);
 
+double _parseMoney(String input) {
+  final digits = input.replaceAll(RegExp(r'[^\d]'), '');
+  return digits.isEmpty ? 0 : (double.tryParse(digits) ?? 0);
+}
+
+// Dropdown styling reutilizable
+final _kDropdownStyle = DropdownStyleData(
+  decoration: BoxDecoration(
+    color: const Color(0xFFF3F4F6),
+    borderRadius: BorderRadius.circular(12),
+    border: Border.all(color: const Color(0xFFE5E7EB)),
+  ),
+);
+const _kButtonStyle = ButtonStyleData(padding: EdgeInsets.zero);
+
 // ------------------------------- MODELOS -------------------------------------
 
-// Actualizado: Tipos de Ingreso (Income Type)
 enum IncomeType {
   arriendoTiempo,
   arriendoTrayecto,
-  ventaServicio, // Puede ser un servicio relacionado al arriendo (ej. entrega)
+  ventaServicio,
   otrosIngresos
 }
 
-// Nuevo: Modalidad de Arriendo por Tiempo
 enum RentalTimeType { dia, semana, mes, anio, rango }
 
-// Nuevo: Modalidad de Pago Recibido (similar a PaymentMethod pero para Income)
 enum CollectionMethod { efectivo, transferencia, debito, credito, cheque, otro }
 
-// Actualizado: Item de Ingreso (Income Item)
 class IncomeItem {
   IncomeItem({
+    String? id,
     this.concepto = '',
     this.vrUnit = 0,
     this.cantidad = 1,
-    this.gravaIVA = true, // Nuevo: Si el ingreso aplica IVA
-  });
+    this.gravaIVA = true,
+  }) : id = id ?? _uuid.v4();
+
+  final String id;
   String concepto;
   double vrUnit;
   int cantidad;
   bool gravaIVA;
+
   double get total => (vrUnit * cantidad).toDouble();
 }
 
-// Nuevo: Desglose de Recaudo (Collection Split)
 class CollectionSplit {
   CollectionSplit({
+    String? id,
     this.method = CollectionMethod.transferencia,
     this.monto = 0,
     this.banco,
     this.accountLast4,
     this.referencia,
     this.nota,
-  });
+  }) : id = id ?? _uuid.v4();
+
+  final String id;
   CollectionMethod method;
   double monto;
+
   String? banco;
-  String? accountLast4;
+  String? accountLast4; // Últimos 4 dígitos tarjeta/cuenta
   String? referencia;
   String? nota;
 }
 
-// Nuevo: Detalles Específicos del Arriendo
-class RentalDetails {
-  RentalDetails({
-    this.rentalTimeType = RentalTimeType.dia,
-    this.timeStart,
-    this.timeEnd,
-    this.origin,
-    this.destination,
-  });
-  // Para arriendos por tiempo
-  RentalTimeType rentalTimeType;
-  DateTime? timeStart; // Para "Rango" o el inicio de Día/Semana/Mes/Año
-  DateTime? timeEnd; // Para "Rango"
-
-  // Para arriendos por trayecto
-  String? origin;
-  String? destination;
-}
-
 // ------------------------------ CONTROLLER -----------------------------------
-// Actualizado: Nombre del Controller
+
 class IncomeFormController extends GetxController {
   // Identificación
   final fecha = DateTime.now().obs;
   final consecutivo = 'ING-${DateTime.now().year}-00001'.obs;
-  final assetType = AssetType.vehiculo.obs; // Tipo de activo arrendado
-  final centroCosto = ''.obs; // Centro de Ingreso
-  final incomeType =
-      IncomeType.arriendoTiempo.obs; // Actualizado: revenueType -> incomeType
+  final assetType = AssetType.vehiculo.obs;
+  final centroCosto = ''.obs;
+  final incomeType = IncomeType.arriendoTiempo.obs;
 
   // Cliente
   final cliente = ''.obs;
   final nit = ''.obs;
   final direccion = ''.obs;
-  final contacto = ''.obs; // Nuevo: Persona de contacto del cliente
+  final contacto = ''.obs;
 
-  // Detalles de Arriendo (Aplica solo para arriendoTiempo/Trayecto)
-  final rentalDetails = RentalDetails().obs;
+  // Detalles de Arriendo — campos planos (sin RentalDetails.obs)
+  final rentalTimeType = RentalTimeType.dia.obs;
+  final rentalTimeStart = Rxn<DateTime>();
+  final rentalTimeEnd = Rxn<DateTime>();
+  final rentalOrigin = ''.obs;
+  final rentalDestination = ''.obs;
 
   // Ítems de Ingreso
-  // Actualizado: RevenueItem -> IncomeItem
   final items = <IncomeItem>[IncomeItem()].obs;
-  void addItem() {
-    items.add(IncomeItem());
-    update();
-  }
+
+  void addItem() => items.add(IncomeItem());
 
   void removeItem(int index) {
     if (items.length > 1) items.removeAt(index);
-    update();
   }
 
   double get totalItems =>
       items.fold<double>(0, (s, e) => s + (e.total.isFinite ? e.total : 0));
 
-  double get totalIVA => items.fold<double>(
-      0, (s, e) => s + (e.gravaIVA ? e.total * 0.19 : 0)); // Suponemos 19%
+  double get totalIVA =>
+      items.fold<double>(0, (s, e) => s + (e.gravaIVA ? e.total * 0.19 : 0));
 
-  // Actualizado: totalRevenue -> totalIncome
   double get totalIncome => totalItems + totalIVA;
 
   // Recaudos
   final recaudos = <CollectionSplit>[CollectionSplit()].obs;
-  void addRecaudo() {
-    recaudos.add(CollectionSplit());
-    update();
-  }
+
+  void addRecaudo() => recaudos.add(CollectionSplit());
 
   void removeRecaudo(int index) {
     if (recaudos.length > 1) recaudos.removeAt(index);
-    update();
   }
 
   double get totalRecaudos =>
       recaudos.fold<double>(0, (s, p) => s + (p.monto.isFinite ? p.monto : 0));
 
-  // Actualizado: totalRevenue -> totalIncome
   double get diferencia => (totalIncome - totalRecaudos);
-  final marcarComoCxC = false.obs; // Nuevo: Cuenta por Cobrar (CxC)
+  final marcarComoCxC = false.obs;
 
   String? validate() {
     if (cliente.value.trim().isEmpty) return 'Falta el nombre del cliente.';
@@ -153,38 +166,60 @@ class IncomeFormController extends GetxController {
     if (items.any((e) => e.vrUnit <= 0 || e.cantidad <= 0)) {
       return 'Ítems con valores/cantidades inválidos.';
     }
-    // Actualizado: totalRevenue -> totalIncome
     if (totalIncome <= 0) {
       return 'El total del ingreso (incl. IVA) debe ser mayor a 0.';
     }
-    if (diferencia != 0 && !marcarComoCxC.value) {
+
+    // comparación segura con tolerancia de float
+    if (diferencia.abs() >= 0.01 && !marcarComoCxC.value) {
       return 'El total de recaudos no coincide. Marca diferencia como CxC o ajusta montos.';
     }
+
     for (final p in recaudos) {
-      if ((p.method == CollectionMethod.transferencia ||
-              p.method == CollectionMethod.debito ||
-              p.method == CollectionMethod.credito) &&
-          (p.banco == null || p.banco!.trim().isEmpty)) {
+      final needsBanco = p.method != CollectionMethod.efectivo &&
+          p.method != CollectionMethod.otro;
+
+      if (needsBanco && (p.banco == null || p.banco!.trim().isEmpty)) {
         return 'Falta banco en un recaudo no en efectivo.';
       }
+
+      final needsLast4 = p.method == CollectionMethod.debito ||
+          p.method == CollectionMethod.credito ||
+          p.method == CollectionMethod.transferencia;
+
+      // FIX: Si exige last4 -> NO vacío + exactamente 4 dígitos
+      if (needsLast4) {
+        final v = (p.accountLast4 ?? '').trim();
+        if (v.isEmpty || v.length != 4) {
+          return 'Faltan los últimos 4 dígitos en un recaudo (debe tener 4 números).';
+        }
+        if (!RegExp(r'^\d{4}$').hasMatch(v)) {
+          return 'Los últimos 4 dígitos deben ser numéricos (4 números).';
+        }
+      }
+
+      final needsRef = p.method != CollectionMethod.efectivo;
+      if (needsRef && (p.referencia == null || p.referencia!.trim().isEmpty)) {
+        return 'Falta referencia / No. transacción en un recaudo no en efectivo.';
+      }
+
+      final needsNota = p.method == CollectionMethod.otro;
+      if (needsNota && (p.nota == null || p.nota!.trim().isEmpty)) {
+        return 'Falta nota para el recaudo con método "Otro".';
+      }
     }
-    // Validación específica para arriendos por rango
-    // Actualizado: revenueType -> incomeType
+
     if (incomeType.value == IncomeType.arriendoTiempo &&
-        rentalDetails.value.rentalTimeType == RentalTimeType.rango &&
-        (rentalDetails.value.timeStart == null ||
-            rentalDetails.value.timeEnd == null ||
-            rentalDetails.value.timeStart!
-                .isAfter(rentalDetails.value.timeEnd!))) {
+        rentalTimeType.value == RentalTimeType.rango &&
+        (rentalTimeStart.value == null ||
+            rentalTimeEnd.value == null ||
+            rentalTimeStart.value!.isAfter(rentalTimeEnd.value!))) {
       return 'Rango de tiempo de arriendo inválido.';
     }
-    // Validación específica para arriendos por trayecto
-    // Actualizado: revenueType -> incomeType
+
     if (incomeType.value == IncomeType.arriendoTrayecto &&
-        (rentalDetails.value.origin == null ||
-            rentalDetails.value.origin!.trim().isEmpty ||
-            rentalDetails.value.destination == null ||
-            rentalDetails.value.destination!.trim().isEmpty)) {
+        (rentalOrigin.value.trim().isEmpty ||
+            rentalDestination.value.trim().isEmpty)) {
       return 'Ruta (Origen/Destino) requerida para arriendo por trayecto.';
     }
 
@@ -198,19 +233,22 @@ class IncomeFormController extends GetxController {
         'Validación',
         error,
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFFEF4444), // Rojo
+        backgroundColor: const Color(0xFFEF4444),
         colorText: Colors.white,
         borderRadius: 12,
         margin: const EdgeInsets.all(16),
       );
       return;
     }
+
+    // SIMULACIÓN (UI only). Persistencia se hace en capa de aplicación.
     await Future.delayed(const Duration(milliseconds: 300));
+
     Get.snackbar(
       '✓ Éxito',
       'Ingreso guardado correctamente',
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: const Color(0xFF10B981), // Verde
+      backgroundColor: const Color(0xFF10B981),
       colorText: Colors.white,
       borderRadius: 12,
       margin: const EdgeInsets.all(16),
@@ -219,13 +257,12 @@ class IncomeFormController extends GetxController {
 }
 
 // --------------------------------- PAGE --------------------------------------
-// Actualizado: Nombre de la Clase
+
 class IncomeFormPage extends StatelessWidget {
   const IncomeFormPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Actualizado: RevenueFormController -> IncomeFormController
     final c = Get.put(IncomeFormController(), permanent: false);
 
     return Scaffold(
@@ -250,7 +287,7 @@ class IncomeFormPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -268,7 +305,7 @@ class IncomeFormPage extends StatelessWidget {
       ),
       body: Stack(
         children: [
-          // Fondo gradiente
+          // Gradient Background
           Container(
             height: 250,
             decoration: BoxDecoration(
@@ -276,13 +313,13 @@ class IncomeFormPage extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFF10B981).withOpacity(0.1), // Verde tenue
-                  const Color(0xFF059669).withOpacity(0.1), // Verde más oscuro
+                  const Color(0xFF10B981).withValues(alpha: 0.1),
+                  const Color(0xFF059669).withValues(alpha: 0.1),
                 ],
               ),
             ),
           ),
-          // Contenido
+          // Content
           SafeArea(
             child: Column(
               children: [
@@ -303,38 +340,40 @@ class IncomeFormPage extends StatelessWidget {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 120),
                     children: [
-                      // 1. Identificación y Tipo de Ingreso
+                      // 1. Consecutivo & Tipo
                       _ModernSection(
                         title: '📋 Consecutivo & Tipo',
-                        headerExtra: Obx(() => Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF10B981), // Verde
-                                    Color(0xFF059669)
-                                  ], // Verde oscuro
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF10B981)
-                                        .withOpacity(0.3),
-                                    blurRadius: 15,
-                                    offset: const Offset(0, 5),
-                                  ),
+                        headerExtra: Obx(
+                          () => Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFF10B981),
+                                  Color(0xFF059669),
                                 ],
                               ),
-                              child: Text(
-                                '#${c.consecutivo.value}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      const Color(0xFF10B981).withValues(alpha: 0.3),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 5),
                                 ),
+                              ],
+                            ),
+                            child: Text(
+                              '#${c.consecutivo.value}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
                               ),
-                            )),
+                            ),
+                          ),
+                        ),
                         child: Column(
                           children: [
                             Row(
@@ -345,34 +384,32 @@ class IncomeFormPage extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 16),
-                            // Actualizado: _ModernSelectRevenueType -> _ModernSelectIncomeType
                             _ModernSelectIncomeType(c: c),
                             const SizedBox(height: 16),
                             _ModernCentroCostoField(c: c),
-                            // Actualizado: revenueType -> incomeType y RevenueType -> IncomeType
-                            Obx(() => (c.incomeType.value ==
-                                        IncomeType.arriendoTiempo ||
-                                    c.incomeType.value ==
-                                        IncomeType.arriendoTrayecto)
-                                ? Column(
-                                    children: [
-                                      const SizedBox(height: 16),
-                                      _RentalSpecificFields(c: c),
-                                    ],
-                                  )
-                                : const SizedBox.shrink()),
+                            Obx(
+                              () => (c.incomeType.value ==
+                                          IncomeType.arriendoTiempo ||
+                                      c.incomeType.value ==
+                                          IncomeType.arriendoTrayecto)
+                                  ? Column(
+                                      children: [
+                                        const SizedBox(height: 16),
+                                        _RentalSpecificFields(c: c),
+                                      ],
+                                    )
+                                  : const SizedBox.shrink(),
+                            ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 16),
 
-                      // 2. Detalle de Ingreso y Totales
-                      // Actualizado: Título
+                      // 2. Valor Recibido
                       _ModernSection(
                         title: '💰 Valor Recibido',
-                        trailing: Obx(() {
-                          final touch = c.items.length;
-                          return Container(
+                        trailing: Obx(
+                          () => Container(
                             alignment: Alignment.centerLeft,
                             height: 50,
                             width: MediaQuery.of(context).size.width * 0.4,
@@ -381,20 +418,19 @@ class IncomeFormPage extends StatelessWidget {
                               gradient: const LinearGradient(
                                 colors: [
                                   Color(0xFF10B981),
-                                  Color(0xFF059669)
-                                ], // Verde
+                                  Color(0xFF059669),
+                                ],
                               ),
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
                                   color:
-                                      const Color(0xFF10B981).withOpacity(0.3),
+                                      const Color(0xFF10B981).withValues(alpha: 0.3),
                                   blurRadius: 15,
                                   offset: const Offset(0, 5),
                                 ),
                               ],
                             ),
-                            // Actualizado: c.totalRevenue -> c.totalIncome
                             child: Text(
                               _money.format(c.totalIncome),
                               style: const TextStyle(
@@ -403,50 +439,52 @@ class IncomeFormPage extends StatelessWidget {
                                 fontSize: 18,
                               ),
                             ),
-                          );
-                        }),
+                          ),
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text('Detalle del Ingreso'),
                             const SizedBox(height: 16),
-                            Obx(() {
-                              final touch = c.items.length;
-                              return Column(
+                            Obx(
+                              () => Column(
                                 children: [
-                                  // Actualizado: _ModernRevenueItemCard -> _ModernIncomeItemCard
                                   for (int i = 0; i < c.items.length; i++)
-                                    _ModernIncomeItemCard(index: i, c: c),
+                                    _ModernIncomeItemCard(
+                                      key: ValueKey(c.items[i].id),
+                                      itemId: c.items[i].id,
+                                      visualIndex: i,
+                                      c: c,
+                                    ),
                                 ],
-                              );
-                            }),
+                              ),
+                            ),
                             const SizedBox(height: 12),
-                            _ModernAddButton(
+                            _IncomeAddButton(
                               label: 'Agregar Ítem de Ingreso',
                               icon: Icons.add_circle_outline,
                               onPressed: c.addItem,
                             ),
                             const SizedBox(height: 16),
-                            // Actualizado: _RevenueSummary -> _IncomeSummary
                             _IncomeSummary(c: c),
                           ],
                         ),
                       ),
                       const SizedBox(height: 16),
 
-                      // 3. Cliente (Receptor del servicio/bien)
+                      // 3. Cliente
                       _ModernSection(
                         title: '👤 Cliente',
                         child: Column(
                           children: [
-                            _ModernTextField(
+                            ReactiveTextField(
                               label: 'Persona / Organización (Cliente)',
-                              hint: 'Ej. Constructora XZY',
+                              hint: 'Ej. Constructora XYZ',
                               value: c.cliente,
                               icon: Icons.business_outlined,
                             ),
                             const SizedBox(height: 16),
-                            _ModernTextField(
+                            ReactiveTextField(
                               label: 'NIT / CC',
                               hint: '123456789-0',
                               value: c.nit,
@@ -454,14 +492,14 @@ class IncomeFormPage extends StatelessWidget {
                               keyboardType: TextInputType.number,
                             ),
                             const SizedBox(height: 16),
-                            _ModernTextField(
+                            ReactiveTextField(
                               label: 'Dirección',
                               hint: 'Calle 123 #45-67',
                               value: c.direccion,
                               icon: Icons.location_on_outlined,
                             ),
                             const SizedBox(height: 16),
-                            _ModernTextField(
+                            ReactiveTextField(
                               label: 'Contacto',
                               hint: 'Ej. Juan Pérez (Gerente)',
                               value: c.contacto,
@@ -472,20 +510,19 @@ class IncomeFormPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
 
-                      // 4. Recaudo (Métodos de Pago Recibidos)
+                      // 4. Métodos de Recaudo
                       _ModernSection(
                         title: '💳 Métodos de Recaudo',
-                        trailing: Obx(() {
-                          final touch = c.recaudos.length;
-                          return Container(
+                        trailing: Obx(
+                          () => Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
                                 colors: [
                                   Color(0xFF10B981),
-                                  Color(0xFF059669)
-                                ], // Verde
+                                  Color(0xFF059669),
+                                ],
                               ),
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -497,21 +534,25 @@ class IncomeFormPage extends StatelessWidget {
                                 fontSize: 14,
                               ),
                             ),
-                          );
-                        }),
+                          ),
+                        ),
                         child: Column(
                           children: [
-                            Obx(() {
-                              final touch = c.recaudos.length;
-                              return Column(
+                            Obx(
+                              () => Column(
                                 children: [
                                   for (int i = 0; i < c.recaudos.length; i++)
-                                    _ModernRecaudoCard(index: i, c: c),
+                                    _ModernRecaudoCard(
+                                      key: ValueKey(c.recaudos[i].id),
+                                      recaudoId: c.recaudos[i].id,
+                                      visualIndex: i,
+                                      c: c,
+                                    ),
                                 ],
-                              );
-                            }),
+                              ),
+                            ),
                             const SizedBox(height: 12),
-                            _ModernAddButton(
+                            _IncomeAddButton(
                               label: 'Agregar Recaudo',
                               icon: Icons.account_balance_wallet_outlined,
                               onPressed: c.addRecaudo,
@@ -520,7 +561,7 @@ class IncomeFormPage extends StatelessWidget {
                             Obx(() {
                               final diff = c.diferencia;
                               if (diff.abs() < 0.01) {
-                                return const _BalanceCard(
+                                return const _IncomeBalanceCard(
                                   label: '✓ Balanceado',
                                   amount: 0,
                                   isBalanced: true,
@@ -528,21 +569,17 @@ class IncomeFormPage extends StatelessWidget {
                               }
                               return Column(
                                 children: [
-                                  _BalanceCard(
+                                  _IncomeBalanceCard(
                                     label: diff > 0
                                         ? 'Por Cobrar (CxC)'
                                         : 'Excedente (Error)',
                                     amount: diff.abs(),
                                     isBalanced: false,
-                                    isRevenue:
-                                        true, // Color para Ingreso (Azul)
                                   ),
                                   const SizedBox(height: 12),
-                                  _ModernCheckbox(
+                                  _IncomeCheckbox(
                                     label: 'Marcar diferencia como CxC',
                                     value: c.marcarComoCxC,
-                                    // Cambiamos el color para ser más acorde al ingreso
-                                    activeColor: const Color(0xFF10B981),
                                   ),
                                 ],
                               );
@@ -556,15 +593,12 @@ class IncomeFormPage extends StatelessWidget {
               ],
             ),
           ),
-          // Botón de Guardar
+          // Floating Submit Button
           Positioned(
             bottom: 24,
             left: 24,
             right: 24,
-            child: _ModernSubmitButton(
-              onPressed: c.save,
-              color: const Color(0xFF10B981),
-            ),
+            child: _IncomeSubmitButton(onPressed: c.save),
           ),
         ],
       ),
@@ -572,9 +606,8 @@ class IncomeFormPage extends StatelessWidget {
   }
 }
 
-// ========================= MODERN WIDGETS ADAPTADOS ====================================
+// ========================= PRIVATE WIDGETS ====================================
 
-// Adaptación de _ModernSection
 class _ModernSection extends StatelessWidget {
   const _ModernSection({
     required this.title,
@@ -590,15 +623,13 @@ class _ModernSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Código de _ModernSection del formulario de gastos (se mantiene igual)
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -640,76 +671,6 @@ class _ModernSection extends StatelessWidget {
   }
 }
 
-// Reutilizamos _ModernTextField
-class _ModernTextField extends StatelessWidget {
-  const _ModernTextField({
-    super.key,
-    required this.label,
-    required this.hint,
-    required this.value,
-    required this.icon,
-    this.keyboardType,
-    this.initialValue, // ✅ FIX
-  });
-
-  final String label;
-  final String hint;
-  final RxString value;
-  final IconData icon;
-  final TextInputType? keyboardType;
-  final String? initialValue;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF374151),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF3F4F6),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
-          ),
-          child: Row(
-            children: [
-              const SizedBox(width: 16),
-              Icon(icon, color: const Color(0xFF9CA3AF), size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextFormField(
-                  initialValue: initialValue ?? value.value,
-                  keyboardType: keyboardType,
-                  onChanged: (v) => value.value = v,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: hint,
-                    hintStyle: const TextStyle(color: Color(0xFFD1D5DB)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// Reutilizamos _ModernFechaField
-// Actualizado: RevenueFormController -> IncomeFormController
 class _ModernFechaField extends StatelessWidget {
   const _ModernFechaField({required this.c});
   final IncomeFormController c;
@@ -728,57 +689,57 @@ class _ModernFechaField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Obx(() => GestureDetector(
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: c.fecha.value,
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2030),
-                  builder: (context, child) {
-                    return Theme(
-                      data: Theme.of(context).copyWith(
-                        colorScheme: const ColorScheme.light(
-                          primary: Color(0xFF10B981), // Color de Ingreso
-                        ),
-                      ),
-                      child: child!,
-                    );
-                  },
-                );
-                if (picked != null) c.fecha.value = picked;
-              },
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3F4F6),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.calendar_today,
-                        color: Color(0xFF9CA3AF), size: 18),
-                    const SizedBox(width: 12),
-                    Text(
-                      DateFormat('dd/MM/yyyy').format(c.fecha.value),
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF1F2937),
+        Obx(
+          () => GestureDetector(
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: c.fecha.value,
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2030),
+                builder: (context, child) {
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      colorScheme: const ColorScheme.light(
+                        primary: Color(0xFF10B981),
                       ),
                     ),
-                  ],
-                ),
+                    child: child!,
+                  );
+                },
+              );
+              if (picked != null) c.fecha.value = picked;
+            },
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
               ),
-            )),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today,
+                      color: Color(0xFF9CA3AF), size: 18),
+                  const SizedBox(width: 12),
+                  Text(
+                    DateFormat('dd/MM/yyyy').format(c.fecha.value),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
 }
 
-// Reutilizamos _ModernSelectAssetType
-// Actualizado: RevenueFormController -> IncomeFormController
 class _ModernSelectAssetType extends StatelessWidget {
   const _ModernSelectAssetType({required this.c});
   final IncomeFormController c;
@@ -797,36 +758,40 @@ class _ModernSelectAssetType extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Obx(() => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<AssetType>(
-                  value: c.assetType.value,
-                  isExpanded: true,
-                  icon: const Icon(Icons.arrow_drop_down,
-                      color: Color(0xFF9CA3AF)),
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF1F2937),
-                  ),
-                  items: AssetType.values
-                      .map((t) => DropdownMenuItem(
-                            value: t,
-                            child: Text(_assetTypeLabel(t)),
-                          ))
-                      .toList(),
-                  onChanged: (v) {
-                    if (v != null) c.assetType.value = v;
-                  },
+        Obx(
+          () => Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F4F6),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<AssetType>(
+                value: c.assetType.value,
+                isExpanded: true,
+                icon:
+                    const Icon(Icons.arrow_drop_down, color: Color(0xFF9CA3AF)),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF1F2937),
                 ),
+                items: AssetType.values
+                    .map(
+                      (t) => DropdownMenuItem(
+                        value: t,
+                        child: Text(_assetTypeLabel(t)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) c.assetType.value = v;
+                },
               ),
-            )),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -847,11 +812,9 @@ class _ModernSelectAssetType extends StatelessWidget {
   }
 }
 
-// Actualizado: Selector de Tipo de Ingreso
 class _ModernSelectIncomeType extends StatelessWidget {
   const _ModernSelectIncomeType({required this.c});
-  final IncomeFormController
-      c; // Actualizado: RevenueFormController -> IncomeFormController
+  final IncomeFormController c;
 
   @override
   Widget build(BuildContext context) {
@@ -867,47 +830,47 @@ class _ModernSelectIncomeType extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Obx(() => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
-              child: DropdownButtonHideUnderline(
-                // Actualizado: RevenueType -> IncomeType
-                child: DropdownButton2<IncomeType>(
-                  value: c.incomeType
-                      .value, // Actualizado: revenueType -> incomeType
-                  isExpanded: true,
-                  iconStyleData: const IconStyleData(
-                    icon: Icon(Icons.arrow_drop_down, color: Color(0xFF9CA3AF)),
-                  ),
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF1F2937),
-                  ),
-                  // Actualizado: RevenueType -> IncomeType
-                  items: IncomeType.values
-                      .map((t) => DropdownMenuItem<IncomeType>(
-                            value: t,
-                            child: Text(_incomeTypeLabel(
-                                t)), // Actualizado: _revenueTypeLabel -> _incomeTypeLabel
-                          ))
-                      .toList(),
-                  onChanged: (v) {
-                    // Actualizado: incomeType -> incomeType
-                    if (v != null) c.incomeType.value = v;
-                  },
+        Obx(
+          () => Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F4F6),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton2<IncomeType>(
+                value: c.incomeType.value,
+                isExpanded: true,
+                iconStyleData: const IconStyleData(
+                  icon: Icon(Icons.arrow_drop_down, color: Color(0xFF9CA3AF)),
                 ),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF1F2937),
+                ),
+                dropdownStyleData: _kDropdownStyle,
+                buttonStyleData: _kButtonStyle,
+                items: IncomeType.values
+                    .map(
+                      (t) => DropdownMenuItem<IncomeType>(
+                        value: t,
+                        child: Text(_incomeTypeLabel(t)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) c.incomeType.value = v;
+                },
               ),
-            )),
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  // Actualizado: _revenueTypeLabel -> _incomeTypeLabel
   static String _incomeTypeLabel(IncomeType t) {
     switch (t) {
       case IncomeType.arriendoTiempo:
@@ -922,15 +885,13 @@ class _ModernSelectIncomeType extends StatelessWidget {
   }
 }
 
-// Reutilizamos _ModernCentroCostoField
-// Actualizado: RevenueFormController -> IncomeFormController
 class _ModernCentroCostoField extends StatelessWidget {
   const _ModernCentroCostoField({required this.c});
   final IncomeFormController c;
 
   @override
   Widget build(BuildContext context) {
-    return _ModernTextField(
+    return ReactiveTextField(
       label: 'Centro de Ingreso/Costo',
       hint: 'Ej. Proyecto Norte / Obra 5',
       value: c.centroCosto,
@@ -939,51 +900,13 @@ class _ModernCentroCostoField extends StatelessWidget {
   }
 }
 
-// Reutilizamos _ModernAddButton
-class _ModernAddButton extends StatelessWidget {
-  const _ModernAddButton({
-    required this.label,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: const Color(0xFF10B981),
-        side: const BorderSide(color: Color(0xFF10B981), width: 1.5),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 14),
-      ),
-      icon: Icon(icon, size: 20),
-      label: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
-// Nuevo: Campos Específicos para Arriendo
-// Actualizado: RevenueFormController -> IncomeFormController
+// Campos específicos para arriendo — usa campos planos del controller.
 class _RentalSpecificFields extends StatelessWidget {
   const _RentalSpecificFields({required this.c});
   final IncomeFormController c;
 
   @override
   Widget build(BuildContext context) {
-    // Actualizado: revenueType -> incomeType, RevenueType -> IncomeType
     if (c.incomeType.value == IncomeType.arriendoTiempo) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -997,86 +920,87 @@ class _RentalSpecificFields extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          // Selector de modalidad
-          Obx(() => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3F4F6),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton2<RentalTimeType>(
-                    value: c.rentalDetails.value.rentalTimeType,
-                    isExpanded: true,
-                    iconStyleData: const IconStyleData(
-                      icon:
-                          Icon(Icons.arrow_drop_down, color: Color(0xFF9CA3AF)),
-                    ),
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF1F2937),
-                    ),
-                    items: RentalTimeType.values
-                        .map((t) => DropdownMenuItem<RentalTimeType>(
-                              value: t,
-                              child: Text(_rentalTimeLabel(t)),
-                            ))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        c.rentalDetails.update((val) {
-                          val!.rentalTimeType = v;
-                          // Reseteamos las fechas si cambiamos de 'rango'
-                          if (v != RentalTimeType.rango) {
-                            val.timeStart = null;
-                            val.timeEnd = null;
-                          }
-                        });
-                      }
-                    },
+          Obx(
+            () => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton2<RentalTimeType>(
+                  value: c.rentalTimeType.value,
+                  isExpanded: true,
+                  iconStyleData: const IconStyleData(
+                    icon: Icon(Icons.arrow_drop_down, color: Color(0xFF9CA3AF)),
                   ),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF1F2937),
+                  ),
+                  dropdownStyleData: _kDropdownStyle,
+                  buttonStyleData: _kButtonStyle,
+                  items: RentalTimeType.values
+                      .map(
+                        (t) => DropdownMenuItem<RentalTimeType>(
+                          value: t,
+                          child: Text(_rentalTimeLabel(t)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) {
+                      c.rentalTimeType.value = v;
+                      if (v != RentalTimeType.rango) {
+                        c.rentalTimeStart.value = null;
+                        c.rentalTimeEnd.value = null;
+                      }
+                    }
+                  },
                 ),
-              )),
-          // Campos de fecha si es "Rango"
-          Obx(() => c.rentalDetails.value.rentalTimeType == RentalTimeType.rango
-              ? Column(
-                  children: [
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                            child: _ModernDateField(
-                          label: 'Fecha Inicio',
-                          initialDate: c.rentalDetails.value.timeStart,
-                          onDateSelected: (date) {
-                            c.rentalDetails.update((val) {
-                              val!.timeStart = date;
-                            });
-                          },
-                          color: const Color(0xFF10B981),
-                        )),
-                        const SizedBox(width: 12),
-                        Expanded(
-                            child: _ModernDateField(
-                          label: 'Fecha Fin',
-                          initialDate: c.rentalDetails.value.timeEnd,
-                          onDateSelected: (date) {
-                            c.rentalDetails.update((val) {
-                              val!.timeEnd = date;
-                            });
-                          },
-                          color: const Color(0xFF10B981),
-                        )),
-                      ],
-                    ),
-                  ],
-                )
-              : const SizedBox.shrink()),
+              ),
+            ),
+          ),
+          Obx(
+            () => c.rentalTimeType.value == RentalTimeType.rango
+                ? Column(
+                    children: [
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Obx(
+                              () => _ModernDateField(
+                                label: 'Fecha Inicio',
+                                initialDate: c.rentalTimeStart.value,
+                                onDateSelected: (date) =>
+                                    c.rentalTimeStart.value = date,
+                                color: const Color(0xFF10B981),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Obx(
+                              () => _ModernDateField(
+                                label: 'Fecha Fin',
+                                initialDate: c.rentalTimeEnd.value,
+                                onDateSelected: (date) =>
+                                    c.rentalTimeEnd.value = date,
+                                color: const Color(0xFF10B981),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
+          ),
         ],
       );
-      // Actualizado: RevenueType -> IncomeType
     } else if (c.incomeType.value == IncomeType.arriendoTrayecto) {
       return Column(
         children: [
@@ -1089,26 +1013,23 @@ class _RentalSpecificFields extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          _ModernTextField(
+          ReactiveTextField(
             label: 'Origen',
             hint: 'Ej. Bodega Central',
-            value: c.rentalDetails.value.origin != null
-                ? c.rentalDetails.value.origin!.obs
-                : ''.obs,
+            value: c.rentalOrigin,
             icon: Icons.location_on_outlined,
           ),
           const SizedBox(height: 16),
-          _ModernTextField(
+          ReactiveTextField(
             label: 'Destino',
             hint: 'Ej. Obra El Nogal',
-            value: c.rentalDetails.value.destination != null
-                ? c.rentalDetails.value.destination!.obs
-                : ''.obs,
+            value: c.rentalDestination,
             icon: Icons.assistant_direction_outlined,
           ),
         ],
       );
     }
+
     return const SizedBox.shrink();
   }
 
@@ -1128,7 +1049,6 @@ class _RentalSpecificFields extends StatelessWidget {
   }
 }
 
-// Widget de fecha genérico (reutilizado)
 class _ModernDateField extends StatelessWidget {
   const _ModernDateField({
     required this.label,
@@ -1144,7 +1064,6 @@ class _ModernDateField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Implementación del DateField (se mantiene igual, solo usa la función de callback)
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1167,9 +1086,7 @@ class _ModernDateField extends StatelessWidget {
               builder: (context, child) {
                 return Theme(
                   data: Theme.of(context).copyWith(
-                    colorScheme: ColorScheme.light(
-                      primary: color,
-                    ),
+                    colorScheme: ColorScheme.light(primary: color),
                   ),
                   child: child!,
                 );
@@ -1208,141 +1125,291 @@ class _ModernDateField extends StatelessWidget {
   }
 }
 
-// Actualizado: Card para cada ítem de Ingreso
-class _ModernIncomeItemCard extends StatelessWidget {
-  const _ModernIncomeItemCard({required this.index, required this.c});
-  final int index;
-  final IncomeFormController
-      c; // Actualizado: RevenueFormController -> IncomeFormController
+// ==================== _ModernIncomeItemCard ====================
+
+class _ModernIncomeItemCard extends StatefulWidget {
+  const _ModernIncomeItemCard({
+    super.key,
+    required this.itemId,
+    required this.visualIndex,
+    required this.c,
+  });
+
+  final String itemId;
+  final int visualIndex;
+  final IncomeFormController c;
+
+  @override
+  State<_ModernIncomeItemCard> createState() => _ModernIncomeItemCardState();
+}
+
+class _ModernIncomeItemCardState extends State<_ModernIncomeItemCard> {
+  late TextEditingController conceptCtrl;
+  late TextEditingController vrCtrl;
+  late TextEditingController qtyCtrl;
+
+  late final FocusNode conceptFocus;
+  late final FocusNode vrFocus;
+  late final FocusNode qtyFocus;
+
+  IncomeItem? get _itemOrNull {
+    final i = widget.c.items.indexWhere((e) => e.id == widget.itemId);
+    return i >= 0 ? widget.c.items[i] : null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final item = _itemOrNull;
+    conceptCtrl = TextEditingController(text: item?.concepto ?? '');
+    vrCtrl = TextEditingController(
+        text: (item != null && item.vrUnit > 0)
+            ? item.vrUnit.toStringAsFixed(0)
+            : '');
+    qtyCtrl = TextEditingController(text: (item?.cantidad ?? 1).toString());
+
+    conceptFocus = FocusNode();
+    vrFocus = FocusNode();
+    qtyFocus = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(_ModernIncomeItemCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final item = _itemOrNull;
+    if (item == null) return;
+
+    if (oldWidget.itemId != widget.itemId) {
+      if (!conceptFocus.hasFocus) conceptCtrl.text = item.concepto;
+      if (!vrFocus.hasFocus) {
+        vrCtrl.text = item.vrUnit > 0 ? item.vrUnit.toStringAsFixed(0) : '';
+      }
+      if (!qtyFocus.hasFocus) qtyCtrl.text = item.cantidad.toString();
+      return;
+    }
+
+    final newConcepto = item.concepto;
+    if (!conceptFocus.hasFocus && conceptCtrl.text != newConcepto) {
+      conceptCtrl.text = newConcepto;
+    }
+
+    final newVr = item.vrUnit > 0 ? item.vrUnit.toStringAsFixed(0) : '';
+    if (!vrFocus.hasFocus && vrCtrl.text != newVr) vrCtrl.text = newVr;
+
+    final newQty = item.cantidad.toString();
+    if (!qtyFocus.hasFocus && qtyCtrl.text != newQty) qtyCtrl.text = newQty;
+  }
+
+  @override
+  void dispose() {
+    conceptCtrl.dispose();
+    vrCtrl.dispose();
+    qtyCtrl.dispose();
+
+    conceptFocus.dispose();
+    vrFocus.dispose();
+    qtyFocus.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Reemplazamos c.items.elementAt(index) para evitar la copia y permitir la modificación
-    final item = c.items[index];
+    final item = _itemOrNull;
+    if (item == null) return const SizedBox.shrink();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF10B981).withValues(alpha: 0.05),
+            const Color(0xFF059669).withValues(alpha: 0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Ítem ${index + 1}',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1F2937),
-                ),
-              ),
-              if (c.items.length > 1)
-                IconButton(
-                  icon: const Icon(Icons.close,
-                      color: Color(0xFFEF4444), size: 20),
-                  onPressed: () => c.removeItem(index),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          // Campo Concepto
-          TextFormField(
-            initialValue: item.concepto,
-            onChanged: (v) {
-              item.concepto = v;
-              c.update(); // Notificar cambio para forzar la actualización del total
-            },
-            decoration: InputDecoration(
-              labelText: 'Concepto (Ej. Arriendo Retroexcavadora)',
-              labelStyle: const TextStyle(fontSize: 14),
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              isDense: true,
-            ),
-          ),
-          const SizedBox(height: 12),
+          // Header
           Row(
             children: [
-              // Campo Valor Unitario
-              Expanded(
-                child: TextFormField(
-                  initialValue: item.vrUnit > 0 ? item.vrUnit.toString() : '',
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                        RegExp(r'^\d+\.?\d{0,2}')),
-                  ],
-                  onChanged: (v) {
-                    item.vrUnit = double.tryParse(v) ?? 0;
-                    c.update();
-                  },
-                  decoration: InputDecoration(
-                    labelText: 'Valor Unitario (\$)',
-                    labelStyle: const TextStyle(fontSize: 14),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    isDense: true,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF10B981), Color(0xFF059669)],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${widget.visualIndex + 1}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
                   ),
                 ),
               ),
               const SizedBox(width: 12),
-              // Campo Cantidad
+              Expanded(
+                child: Text(
+                  'Ítem ${widget.visualIndex + 1}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: Color(0xFF1F2937),
+                  ),
+                ),
+              ),
+              if (widget.c.items.length > 1)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline,
+                      color: Color(0xFFEF4444)),
+                  onPressed: () {
+                    final idx =
+                        widget.c.items.indexWhere((e) => e.id == widget.itemId);
+                    if (idx >= 0) widget.c.removeItem(idx);
+                  },
+                  tooltip: 'Eliminar',
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Concepto
+          TextFormField(
+            controller: conceptCtrl,
+            focusNode: conceptFocus,
+            onChanged: (v) {
+              item.concepto = v;
+              widget.c.items.refresh();
+            },
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+            maxLines: null,
+            minLines: 1,
+            keyboardType: TextInputType.multiline,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              labelText: 'Concepto',
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Vr. Unitario | Cantidad | Sub-Total
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  controller: vrCtrl,
+                  focusNode: vrFocus,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  onChanged: (v) {
+                    item.vrUnit = _parseMoney(v);
+                    widget.c.items.refresh();
+                  },
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w500),
+                  decoration: InputDecoration(
+                    labelText: 'Vr. Unitario',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: TextFormField(
-                  initialValue: item.cantidad.toString(),
+                  controller: qtyCtrl,
+                  focusNode: qtyFocus,
                   keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onChanged: (v) {
                     item.cantidad = int.tryParse(v) ?? 1;
-                    c.update();
+                    widget.c.items.refresh();
                   },
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w500),
                   decoration: InputDecoration(
-                    labelText: 'Cantidad',
-                    labelStyle: const TextStyle(fontSize: 14),
+                    labelText: 'Cant.',
+                    filled: true,
+                    fillColor: Colors.white,
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    isDense: true,
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
                   ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  children: [
+                    Text(
+                      'Sub - Total',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.black.withValues(alpha: 0.8),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF10B981), Color(0xFF059669)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _money.format(item.total),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          // Checkbox y Total
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Obx(() => Checkbox(
-                        value: c.items[index].gravaIVA,
-                        onChanged: (v) {
-                          c.items[index].gravaIVA = v ?? false;
-                          c.update();
-                        },
-                        activeColor: const Color(0xFF10B981),
-                      )),
-                  const Text('Aplica IVA (19%)',
-                      style: TextStyle(fontSize: 14, color: Color(0xFF374151))),
-                ],
-              ),
-              Text(
-                _money.format(item.total),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF059669),
-                ),
-              ),
-            ],
+
+          _IVAPillToggle(
+            value: item.gravaIVA,
+            onToggle: () {
+              item.gravaIVA = !item.gravaIVA;
+              widget.c.items.refresh();
+            },
           ),
         ],
       ),
@@ -1350,46 +1417,47 @@ class _ModernIncomeItemCard extends StatelessWidget {
   }
 }
 
-// Actualizado: Resumen de Ingreso
+// ==================== _IncomeSummary ====================
+
 class _IncomeSummary extends StatelessWidget {
   const _IncomeSummary({required this.c});
-  final IncomeFormController
-      c; // Actualizado: RevenueFormController -> IncomeFormController
+  final IncomeFormController c;
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() => Column(
-          children: [
-            _SummaryRow(
-              label: 'Subtotal Items',
-              amount: c.totalItems,
-              isTotal: false,
-            ),
-            const SizedBox(height: 8),
-            _SummaryRow(
-              label: 'IVA (19%)',
-              amount: c.totalIVA,
-              isTotal: false,
-            ),
-            const Divider(height: 20, thickness: 1, color: Color(0xFFE5E7EB)),
-            _SummaryRow(
-              // Actualizado: Total Ingreso -> Valor Total
-              label: 'Valor Total',
-              amount: c.totalIncome, // Actualizado: totalRevenue -> totalIncome
-              isTotal: true,
-            ),
-          ],
-        ));
+    return Obx(
+      () => Column(
+        children: [
+          _SummaryRow(
+            label: 'Subtotal Items',
+            amount: c.totalItems,
+            isTotal: false,
+          ),
+          const SizedBox(height: 8),
+          _SummaryRow(
+            label: 'IVA (19%)',
+            amount: c.totalIVA,
+            isTotal: false,
+          ),
+          const Divider(height: 20, thickness: 1, color: Color(0xFFE5E7EB)),
+          _SummaryRow(
+            label: 'Valor Total',
+            amount: c.totalIncome,
+            isTotal: true,
+          ),
+        ],
+      ),
+    );
   }
 }
 
-// Widget de fila de resumen
 class _SummaryRow extends StatelessWidget {
   const _SummaryRow({
     required this.label,
     required this.amount,
     required this.isTotal,
   });
+
   final String label;
   final double amount;
   final bool isTotal;
@@ -1420,135 +1488,422 @@ class _SummaryRow extends StatelessWidget {
   }
 }
 
-// Reutilizamos _ModernRecaudoCard
-// Actualizado: RevenueFormController -> IncomeFormController
-class _ModernRecaudoCard extends StatelessWidget {
-  const _ModernRecaudoCard({required this.index, required this.c});
-  final int index;
+// ==================== _ModernRecaudoCard ====================
+
+class _ModernRecaudoCard extends StatefulWidget {
+  const _ModernRecaudoCard({
+    super.key,
+    required this.recaudoId,
+    required this.visualIndex,
+    required this.c,
+  });
+
+  final String recaudoId;
+  final int visualIndex;
   final IncomeFormController c;
 
   @override
-  Widget build(BuildContext context) {
-    // ... Código de _ModernRecaudoCard (se mantiene igual, solo usa el nuevo controlador)
-    final recaudo = c.recaudos[index];
+  State<_ModernRecaudoCard> createState() => _ModernRecaudoCardState();
+}
 
-    // El resto del widget de recaudo se mantiene igual usando el objeto `recaudo`
+class _ModernRecaudoCardState extends State<_ModernRecaudoCard> {
+  late TextEditingController montoCtrl;
+  late TextEditingController bancoCtrl;
+  late TextEditingController refCtrl;
+  late TextEditingController notaCtrl;
+  late TextEditingController last4Ctrl;
+
+  late final FocusNode montoFocus;
+  late final FocusNode bancoFocus;
+  late final FocusNode refFocus;
+  late final FocusNode notaFocus;
+  late final FocusNode last4Focus;
+
+  CollectionSplit? get _recaudoOrNull {
+    final i = widget.c.recaudos.indexWhere((e) => e.id == widget.recaudoId);
+    return i >= 0 ? widget.c.recaudos[i] : null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final r = _recaudoOrNull;
+
+    montoCtrl = TextEditingController(
+        text: (r != null && r.monto > 0) ? r.monto.toStringAsFixed(0) : '');
+    bancoCtrl = TextEditingController(text: r?.banco ?? '');
+    refCtrl = TextEditingController(text: r?.referencia ?? '');
+    notaCtrl = TextEditingController(text: r?.nota ?? '');
+    last4Ctrl = TextEditingController(text: r?.accountLast4 ?? '');
+
+    montoFocus = FocusNode();
+    bancoFocus = FocusNode();
+    refFocus = FocusNode();
+    notaFocus = FocusNode();
+    last4Focus = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(_ModernRecaudoCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final r = _recaudoOrNull;
+    if (r == null) return;
+
+    if (oldWidget.recaudoId != widget.recaudoId) {
+      if (!montoFocus.hasFocus) {
+        montoCtrl.text = r.monto > 0 ? r.monto.toStringAsFixed(0) : '';
+      }
+      if (!bancoFocus.hasFocus) bancoCtrl.text = r.banco ?? '';
+      if (!refFocus.hasFocus) refCtrl.text = r.referencia ?? '';
+      if (!notaFocus.hasFocus) notaCtrl.text = r.nota ?? '';
+      if (!last4Focus.hasFocus) last4Ctrl.text = r.accountLast4 ?? '';
+      return;
+    }
+
+    final newMonto = r.monto > 0 ? r.monto.toStringAsFixed(0) : '';
+    if (!montoFocus.hasFocus && montoCtrl.text != newMonto) {
+      montoCtrl.text = newMonto;
+    }
+
+    final newBanco = r.banco ?? '';
+    if (!bancoFocus.hasFocus && bancoCtrl.text != newBanco) {
+      bancoCtrl.text = newBanco;
+    }
+
+    final newRef = r.referencia ?? '';
+    if (!refFocus.hasFocus && refCtrl.text != newRef) refCtrl.text = newRef;
+
+    final newNota = r.nota ?? '';
+    if (!notaFocus.hasFocus && notaCtrl.text != newNota) {
+      notaCtrl.text = newNota;
+    }
+
+    final newLast4 = r.accountLast4 ?? '';
+    if (!last4Focus.hasFocus && last4Ctrl.text != newLast4) {
+      last4Ctrl.text = newLast4;
+    }
+  }
+
+  @override
+  void dispose() {
+    montoCtrl.dispose();
+    bancoCtrl.dispose();
+    refCtrl.dispose();
+    notaCtrl.dispose();
+    last4Ctrl.dispose();
+
+    montoFocus.dispose();
+    bancoFocus.dispose();
+    refFocus.dispose();
+    notaFocus.dispose();
+    last4Focus.dispose();
+    super.dispose();
+  }
+
+  bool _needsBanco(CollectionMethod m) =>
+      m != CollectionMethod.efectivo && m != CollectionMethod.otro;
+
+  bool _needsLast4(CollectionMethod m) =>
+      m == CollectionMethod.debito ||
+      m == CollectionMethod.credito ||
+      m == CollectionMethod.transferencia;
+
+  bool _needsRef(CollectionMethod m) => m != CollectionMethod.efectivo;
+
+  bool _needsNota(CollectionMethod m) => m == CollectionMethod.otro;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = _recaudoOrNull;
+    if (r == null) return const SizedBox.shrink();
+
+    final needsBanco = _needsBanco(r.method);
+    final needsLast4 = _needsLast4(r.method);
+    final needsRef = _needsRef(r.method);
+    final needsNota = _needsNota(r.method);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF10B981).withValues(alpha: 0.05),
+            const Color(0xFF059669).withValues(alpha: 0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Column(
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Recaudo ${index + 1}',
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF10B981), Color(0xFF059669)],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.account_balance_wallet,
+                    color: Colors.white, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Recaudo ${widget.visualIndex + 1}',
                   style: const TextStyle(
-                      fontWeight: FontWeight.w700, color: Color(0xFF1F2937))),
-              if (c.recaudos.length > 1)
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: Color(0xFF1F2937),
+                  ),
+                ),
+              ),
+              if (widget.c.recaudos.length > 1)
                 IconButton(
-                  icon: const Icon(Icons.close,
-                      color: Color(0xFFEF4444), size: 20),
-                  onPressed: () => c.removeRecaudo(index),
+                  icon: const Icon(Icons.delete_outline,
+                      color: Color(0xFFEF4444)),
+                  onPressed: () {
+                    final idx = widget.c.recaudos
+                        .indexWhere((e) => e.id == widget.recaudoId);
+                    if (idx >= 0) widget.c.removeRecaudo(idx);
+                  },
+                  tooltip: 'Eliminar',
                 ),
             ],
           ),
-          const SizedBox(height: 8),
-          // Selector de Método de Pago
-          DropdownButtonHideUnderline(
-            child: DropdownButton2<CollectionMethod>(
-              value: recaudo.method,
-              isExpanded: true,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF1F2937)),
-              items: CollectionMethod.values
-                  .map((m) => DropdownMenuItem<CollectionMethod>(
+          const SizedBox(height: 12),
+
+          // Método
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton2<CollectionMethod>(
+                value: r.method,
+                isExpanded: true,
+                iconStyleData: const IconStyleData(
+                  icon: Icon(Icons.arrow_drop_down, color: Color(0xFF9CA3AF)),
+                ),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF1F2937),
+                ),
+                dropdownStyleData: _kDropdownStyle,
+                buttonStyleData: _kButtonStyle,
+                items: CollectionMethod.values
+                    .map(
+                      (m) => DropdownMenuItem<CollectionMethod>(
                         value: m,
                         child: Text(_collectionMethodLabel(m)),
-                      ))
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) {
-                  recaudo.method = v;
-                  c.update();
-                }
-              },
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+
+                  final old = r.method;
+                  r.method = v;
+
+                  if (!_needsBanco(v)) {
+                    r.banco = null;
+                    if (!bancoFocus.hasFocus) bancoCtrl.text = '';
+                  }
+
+                  if (!_needsLast4(v)) {
+                    r.accountLast4 = null;
+                    if (!last4Focus.hasFocus) last4Ctrl.text = '';
+                  }
+
+                  if (!_needsRef(v)) {
+                    r.referencia = null;
+                    if (!refFocus.hasFocus) refCtrl.text = '';
+                  }
+
+                  if (!_needsNota(v)) {
+                    r.nota = null;
+                    if (!notaFocus.hasFocus) notaCtrl.text = '';
+                  }
+
+                  if (old == CollectionMethod.cheque && _needsLast4(v)) {
+                    r.accountLast4 = null;
+                    if (!last4Focus.hasFocus) last4Ctrl.text = '';
+                  }
+
+                  widget.c.recaudos.refresh();
+                },
+              ),
             ),
           ),
           const SizedBox(height: 12),
-          // Campo Monto
-          TextFormField(
-            initialValue: recaudo.monto > 0 ? recaudo.monto.toString() : '',
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+
+          // Monto + Banco
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: montoCtrl,
+                  focusNode: montoFocus,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  onChanged: (v) {
+                    r.monto = _parseMoney(v);
+                    widget.c.recaudos.refresh();
+                  },
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w500),
+                  decoration: InputDecoration(
+                    labelText: 'Monto Recibido',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                  ),
+                ),
+              ),
+              if (needsBanco) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextFormField(
+                    controller: bancoCtrl,
+                    focusNode: bancoFocus,
+                    onChanged: (v) {
+                      r.banco = v.trim().isEmpty ? null : v.trim();
+                      widget.c.recaudos.refresh();
+                    },
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w500),
+                    decoration: InputDecoration(
+                      labelText: 'Banco',
+                      hintText: 'Ej. Bancolombia',
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
-            onChanged: (v) {
-              recaudo.monto = double.tryParse(v) ?? 0;
-              c.update(); // Notificar cambio para actualizar el totalRecaudos y la diferencia
-            },
-            decoration: InputDecoration(
-              labelText: 'Monto Recibido (\$)',
-              prefixText: '\$',
-              labelStyle: const TextStyle(fontSize: 14),
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              isDense: true,
-            ),
           ),
-          // Campos Condicionales
-          if (recaudo.method != CollectionMethod.efectivo &&
-              recaudo.method != CollectionMethod.otro)
-            Column(
-              children: [
-                const SizedBox(height: 12),
-                TextFormField(
-                  initialValue: recaudo.banco,
-                  onChanged: (v) => recaudo.banco = v,
-                  decoration: InputDecoration(
-                    labelText: 'Banco',
-                    hintText: 'Ej. Bancolombia',
-                    labelStyle: const TextStyle(fontSize: 14),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    isDense: true,
+
+          // Últimos 4 dígitos
+          if (needsLast4) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 160,
+                    child: TextFormField(
+                      controller: last4Ctrl,
+                      focusNode: last4Focus,
+                      keyboardType: TextInputType.number,
+                      maxLength: 4,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onChanged: (v) {
+                        r.accountLast4 = v.isEmpty ? null : v;
+                        widget.c.recaudos.refresh();
+                      },
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w500),
+                      decoration: InputDecoration(
+                        labelText: 'Últimos 4 dígitos',
+                        counterText: '',
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE5E7EB)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE5E7EB)),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  initialValue: recaudo.referencia,
-                  onChanged: (v) => recaudo.referencia = v,
-                  decoration: InputDecoration(
-                    labelText: 'Referencia / No. Transacción',
-                    labelStyle: const TextStyle(fontSize: 14),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    isDense: true,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          if (recaudo.method == CollectionMethod.otro)
-            Column(
-              children: [
-                const SizedBox(height: 12),
-                TextFormField(
-                  initialValue: recaudo.nota,
-                  onChanged: (v) => recaudo.nota = v,
-                  decoration: InputDecoration(
-                    labelText: 'Nota del Otro Recaudo',
-                    hintText: 'Ej. Criptomoneda, Activo canjeado',
-                    labelStyle: const TextStyle(fontSize: 14),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    isDense: true,
-                  ),
+          ],
+
+          // Referencia (si no es efectivo)
+          if (needsRef) ...[
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: refCtrl,
+              focusNode: refFocus,
+              onChanged: (v) {
+                r.referencia = v.trim().isEmpty ? null : v.trim();
+                widget.c.recaudos.refresh();
+              },
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+              decoration: InputDecoration(
+                labelText: 'Referencia / No. Transacción',
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                 ),
-              ],
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                ),
+              ),
             ),
+          ],
+
+          // Nota (solo para "otro")
+          if (needsNota) ...[
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: notaCtrl,
+              focusNode: notaFocus,
+              onChanged: (v) {
+                r.nota = v.trim().isEmpty ? null : v.trim();
+                widget.c.recaudos.refresh();
+              },
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+              decoration: InputDecoration(
+                labelText: 'Nota del Otro Recaudo',
+                hintText: 'Ej. Criptomoneda, Activo canjeado',
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1572,101 +1927,63 @@ class _ModernRecaudoCard extends StatelessWidget {
   }
 }
 
-// Reutilizamos _BalanceCard
-class _BalanceCard extends StatelessWidget {
-  const _BalanceCard({
-    required this.label,
-    required this.amount,
-    required this.isBalanced,
-    this.isRevenue = false, // Ahora usado como color de Ingreso (Verde)
-  });
+// ==================== Enterprise Buttons, Toggles & Cards ====================
 
-  final String label;
-  final double amount;
-  final bool isBalanced;
-  final bool isRevenue; // Indica que es Ingreso (Verde)
-
-  @override
-  Widget build(BuildContext context) {
-    // Código de _BalanceCard (se mantiene igual, adaptando el color al Ingreso)
-    final color = isBalanced
-        ? const Color(0xFF10B981) // Verde para Balanceado
-        : (isRevenue
-            ? const Color(0xFF3B82F6) // Azul para CxC (Ingreso)
-            : const Color(0xFFEF4444)); // Rojo para Diferencia (Excedente)
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color, width: 1.5),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
-          Text(
-            _money.format(amount),
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Reutilizamos _ModernCheckbox
-class _ModernCheckbox extends StatelessWidget {
-  const _ModernCheckbox({
-    required this.label,
+class _IVAPillToggle extends StatelessWidget {
+  const _IVAPillToggle({
     required this.value,
-    this.activeColor,
+    required this.onToggle,
   });
 
-  final String label;
-  final RxBool value;
-  final Color? activeColor;
+  final bool value;
+  final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => value.toggle(),
+      onTap: onToggle,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color:
+              value ? const Color(0xFF10B981).withValues(alpha: 0.08) : Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          border: Border.all(
+            color: value ? const Color(0xFF10B981) : const Color(0xFFE5E7EB),
+            width: 2,
+          ),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Obx(() => Checkbox(
-                  value: value.value,
-                  onChanged: (v) => value.value = v ?? false,
-                  activeColor: activeColor,
-                  checkColor: Colors.white,
-                  side: const BorderSide(color: Color(0xFFD1D5DB)),
-                )),
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF374151),
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                gradient: value
+                    ? const LinearGradient(
+                        colors: [Color(0xFF10B981), Color(0xFF059669)],
+                      )
+                    : null,
+                color: value ? null : Colors.white,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: value ? Colors.transparent : const Color(0xFFD1D5DB),
+                  width: 2,
                 ),
+              ),
+              child: value
+                  ? const Icon(Icons.check, color: Colors.white, size: 14)
+                  : null,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Aplica IVA (19%)',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color:
+                    value ? const Color(0xFF10B981) : const Color(0xFF6B7280),
               ),
             ),
           ],
@@ -1676,37 +1993,231 @@ class _ModernCheckbox extends StatelessWidget {
   }
 }
 
-// Reutilizamos _ModernSubmitButton
-// Actualizado: RevenueFormController -> IncomeFormController
-class _ModernSubmitButton extends StatelessWidget {
-  const _ModernSubmitButton({
+class _IncomeAddButton extends StatelessWidget {
+  const _IncomeAddButton({
+    required this.label,
+    required this.icon,
     required this.onPressed,
-    required this.color,
   });
 
+  final String label;
+  final IconData icon;
   final VoidCallback onPressed;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        minimumSize: const Size(double.infinity, 60),
-        backgroundColor: color,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFF10B981), width: 2),
+          borderRadius: BorderRadius.circular(12),
         ),
-        elevation: 10,
-        shadowColor: color.withOpacity(0.3),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: const Color(0xFF10B981), size: 20),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF10B981),
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
+            ),
+          ],
+        ),
       ),
-      child: const Text(
-        'GUARDAR INGRESO',
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w800,
-          color: Colors.white,
-          letterSpacing: 1,
+    );
+  }
+}
+
+class _IncomeCheckbox extends StatelessWidget {
+  const _IncomeCheckbox({required this.label, required this.value});
+
+  final String label;
+  final RxBool value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(
+      () => InkWell(
+        onTap: () => value.value = !value.value,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: value.value
+                ? const Color(0xFF10B981).withValues(alpha: 0.1)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: value.value
+                  ? const Color(0xFF10B981)
+                  : const Color(0xFFE5E7EB),
+              width: 2,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  gradient: value.value
+                      ? const LinearGradient(
+                          colors: [Color(0xFF10B981), Color(0xFF059669)],
+                        )
+                      : null,
+                  color: value.value ? null : Colors.white,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: value.value
+                        ? Colors.transparent
+                        : const Color(0xFFD1D5DB),
+                    width: 2,
+                  ),
+                ),
+                child: value.value
+                    ? const Icon(Icons.check, color: Colors.white, size: 16)
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: value.value
+                        ? const Color(0xFF10B981)
+                        : const Color(0xFF6B7280),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _IncomeBalanceCard extends StatelessWidget {
+  const _IncomeBalanceCard({
+    required this.label,
+    required this.amount,
+    required this.isBalanced,
+  });
+
+  final String label;
+  final double amount;
+  final bool isBalanced;
+
+  @override
+  Widget build(BuildContext context) {
+    final gradientColors = isBalanced
+        ? [const Color(0xFF10B981), const Color(0xFF059669)]
+        : [const Color(0xFF3B82F6), const Color(0xFF2563EB)];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: gradientColors),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: gradientColors.first.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isBalanced ? Icons.check_circle : Icons.info,
+            color: Colors.white,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (!isBalanced)
+                  Text(
+                    _money.format(amount),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IncomeSubmitButton extends StatelessWidget {
+  const _IncomeSubmitButton({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF10B981), Color(0xFF059669)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF10B981).withValues(alpha: 0.5),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.save_rounded, color: Colors.white, size: 24),
+                SizedBox(width: 12),
+                Text(
+                  'Guardar Ingreso',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

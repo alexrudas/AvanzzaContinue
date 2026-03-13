@@ -200,7 +200,7 @@ class AdminAccountingPage extends GetView<AdminAccountingController> {
                             icon: Icons.mic_none_rounded,
                             onAsyncTap: () async {
                               await Get.to(
-                                  () => const APDetailPage(apId: '123'));
+                                  () => const AccountPayableDetailPage(apId: '123'));
                             },
                           ),
                           ActionItem(
@@ -559,80 +559,6 @@ class _GaugePainterPro extends CustomPainter {
   }
 }
 
-class _BarsChart extends StatelessWidget {
-  final double ingresos;
-  final double egresos;
-  final String footerTitle;
-  final double footerValueAbs;
-
-  const _BarsChart({
-    required this.ingresos,
-    required this.egresos,
-    required this.footerTitle,
-    required this.footerValueAbs,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context);
-    final maxVal = ingresos > egresos ? ingresos : egresos;
-    final ingPct = (ingresos / (maxVal == 0 ? 1 : maxVal)).clamp(0.1, 1.0);
-    final egrPct = (egresos / (maxVal == 0 ? 1 : maxVal)).clamp(0.1, 1.0);
-    final marginPct =
-        ingresos == 0 ? 0 : ((ingresos - egresos) / ingresos * 100);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Utilidad  •  ${marginPct.toStringAsFixed(1)} %',
-            style: const TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
-        SizedBox(
-          height: 76,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: FractionallySizedBox(
-                  heightFactor: ingPct,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: FractionallySizedBox(
-                  heightFactor: egrPct,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(footerTitle, style: t.textTheme.labelMedium),
-            Text('€ ${_formatMoney(footerValueAbs)}',
-                style: t.textTheme.labelMedium
-                    ?.copyWith(fontWeight: FontWeight.w700)),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
 class _QuickFab extends StatefulWidget {
   final VoidCallback onAddIncome;
   final VoidCallback onAddExpense;
@@ -741,11 +667,11 @@ class _QuickFabState extends State<_QuickFab>
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  color: _arcaBlue.withOpacity(0.85),
+                  color: _arcaBlue.withValues(alpha: 0.85),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: _arcaBlue.withOpacity(0.35),
+                      color: _arcaBlue.withValues(alpha: 0.35),
                       blurRadius: 12,
                       offset: const Offset(0, 6),
                     ),
@@ -781,7 +707,7 @@ class _FabAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withOpacity(0.95),
+      color: Colors.white.withValues(alpha: 0.95),
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,

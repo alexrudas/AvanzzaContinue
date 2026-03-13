@@ -1,3 +1,5 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -84,8 +86,23 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       activeRole = reg.progress.value?.selectedRole;
     }
 
-    // Si no hay rol activo o está vacío, navegar a Home
+    // Si no hay rol activo o está vacío, evaluar si es estado transitorio.
+    // REGLA: si FirebaseAuth.instance.currentUser != null, el rol vacío es
+    // un estado TRANSITORIO (session.init() en curso, race condition en OTP).
+    // El SessionContextController ya maneja la navegación cuando el workspace
+    // es eliminado intencionalmente (llama Get.offAllNamed(Routes.home) él mismo).
     if (activeRole == null || activeRole.isEmpty) {
+      if (FirebaseAuth.instance.currentUser != null) {
+        // Firebase user activo → rol vacío es transitorio. No navegar.
+        if (kDebugMode) {
+          debugPrint(
+            '[NAV][WORKSPACE] activeRole vacío pero Firebase user activo — '
+            'estado transitorio, ignorando.',
+          );
+        }
+        return;
+      }
+      // Firebase user null → sesión cerrada. Navegar a home para re-bootstrap.
       _navigateToHome();
       return;
     }
@@ -107,6 +124,14 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     _isNavigating = true;
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (kDebugMode) {
+        final fbUid = FirebaseAuth.instance.currentUser?.uid;
+        debugPrint(
+          '[NAV][HOME] WorkspaceShell → Routes.home '
+          'firebaseUser=${fbUid != null ? '${fbUid.substring(0, fbUid.length.clamp(0, 4))}***' : 'null'} '
+          'currentRoute=${Get.currentRoute}',
+        );
+      }
       if (Get.currentRoute != Routes.home) {
         Get.offAllNamed(Routes.home);
       }

@@ -1,4 +1,11 @@
 // domain/repositories/auth_repository.dart
+
+/// Resultado idempotente de verificación de username.
+/// available          → username libre, puede crearse.
+/// ownedByCurrentUser → el doc ya existe con el uid del usuario actual, continuar.
+/// takenByOtherUser   → tomado por otro uid, mostrar error.
+enum UsernameCheckResult { available, ownedByCurrentUser, takenByOtherUser }
+
 abstract class AuthRepository {
   // OTP (existente)
   Future<SendOtpResult> sendOtp(String phoneNumber);
@@ -8,6 +15,14 @@ abstract class AuthRepository {
 
   // Username + Password + MFA (nuevo)
   Future<bool> checkUsernameAvailable(String username);
+
+  /// Verificación idempotente: distingue username libre / propio / ajeno.
+  Future<UsernameCheckResult> checkUsernameAvailability(
+      String username, String currentUid);
+
+  /// Obtiene el username ya registrado en Firestore para [uid] (one-shot).
+  /// Usado para detectar registros incompletos y reanudar el flujo.
+  Future<String?> fetchUsernameForUid(String uid);
   Future<String> signUpUsernamePassword({
     required String username,
     required String password,

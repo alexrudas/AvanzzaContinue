@@ -549,8 +549,6 @@ extension SyncOutboxEntryTransitions on SyncOutboxEntry {
     DateTime? nextAttemptAtUtc,
     DateTime? nowUtc,
   }) {
-    final now = (nowUtc ?? DateTime.now().toUtc());
-
     if (status != SyncStatus.inProgress) {
       throw StateError('markFailed solo válido desde IN_PROGRESS');
     }
