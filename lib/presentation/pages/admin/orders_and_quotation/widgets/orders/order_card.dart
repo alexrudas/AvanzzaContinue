@@ -88,7 +88,7 @@ class OrderCard extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: t.colorScheme.surfaceContainerHighest.withOpacity(0.25),
+            color: t.colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -200,13 +200,6 @@ class OrderCard extends StatelessWidget {
         OrderStatus.shipped => const Color(0xFF2F5AFF),
         OrderStatus.delivered => const Color(0xFF1E8E3E),
         OrderStatus.returned => const Color(0xFFD32F2F),
-      };
-
-  IconData _orderStatusIcon(OrderStatus s) => switch (s) {
-        OrderStatus.processing => Icons.hourglass_top_outlined,
-        OrderStatus.shipped => Icons.local_shipping_outlined,
-        OrderStatus.delivered => Icons.check_circle_outline,
-        OrderStatus.returned => Icons.replay_outlined,
       };
 }
 

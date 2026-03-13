@@ -27,7 +27,7 @@ class App extends StatelessWidget {
       return GetMaterialApp(
         title: 'Avanzza 2.0',
         debugShowCheckedModeBanner: false,
-        initialRoute: Routes.home,
+        initialRoute: Routes.splash,
         getPages: AppPages.pages,
         theme: light,
         darkTheme: dark,

@@ -88,7 +88,7 @@ class QuoteRequestCard extends StatelessWidget {
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
               color:
-                  theme.colorScheme.surfaceContainerHighest.withOpacity(0.25),
+                  theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(12)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

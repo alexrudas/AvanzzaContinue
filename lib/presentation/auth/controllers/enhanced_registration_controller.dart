@@ -252,6 +252,14 @@ class EnhancedRegistrationController extends GetxController {
   // ============================================================================
 
   /// Registrar con email y password
+  ///
+  /// @Deprecated — No se llama desde el flujo principal.
+  /// Email/password fue eliminado de AuthWelcomePage y AuthMethodSelectionStep.
+  /// Conservado para compatibilidad hacia atrás; no invocar en código nuevo.
+  @Deprecated(
+    'Email/password eliminado del flujo principal. '
+    'Usar OTP (Routes.phone) o Google (signInWithGoogle) en su lugar.',
+  )
   Future<void> signUpWithEmailPassword() async {
     if (email.value.trim().isEmpty || password.value.trim().isEmpty) {
       errorMessage.value = 'Email y contraseña son obligatorios';

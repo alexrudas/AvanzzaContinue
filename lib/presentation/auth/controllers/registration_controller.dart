@@ -1,27 +1,59 @@
+// ============================================================================
+// lib/presentation/auth/controllers/registration_controller.dart
+//
+// QUÉ HACE:
+// Controla el flujo de registro de usuario incluyendo verificación de username,
+// creación de credenciales, progreso de registro y finalización del perfil.
+//
+// QUÉ NO HACE:
+// No maneja autenticación OTP ni bootstrap de sesión.
+// No decide rutas de navegación global.
+//
+// PRINCIPIOS:
+// - Registro progresivo y reanudable
+// - Idempotencia en verificación de username
+// - Separación de responsabilidades (UseCases)
+//
+// ENTERPRISE NOTES:
+// checkUsernameIdempotent es NOT nullable para mantener compatibilidad con DI de GetX.
+// detectExistingUsername: Isar progress → Firestore one-shot (evita doble-verdad).
+// resumeRegistration(): progress.step como única fuente de verdad del wizard.
+// finalizeRegistration(): orden garantizado: finalizeUC → session.init → clear → navigate.
+// ============================================================================
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
+import '../../../core/di/container.dart';
 import '../../../core/utils/workspace_normalizer.dart';
 import '../../../data/datasources/local/registration_progress_ds.dart';
 import '../../../data/models/auth/registration_progress_model.dart';
+import '../../../domain/entities/org/organization_entity.dart';
+import '../../../domain/entities/user/active_context.dart';
+import '../../../domain/entities/user/membership_entity.dart';
+import '../../../domain/entities/user/user_entity.dart';
 import '../../../domain/entities/user_profile_entity.dart';
+import '../../../domain/repositories/auth_repository.dart';
 import '../../../domain/usecases/check_username_available_uc.dart';
 import '../../../domain/usecases/finalize_registration_uc.dart';
 import '../../../domain/usecases/sign_up_username_password_uc.dart';
 import '../../../routes/app_pages.dart';
 import '../../../services/telemetry/telemetry_service.dart';
+import '../../controllers/session_context_controller.dart';
 import '../../controllers/workspace_controller.dart';
 
 class RegistrationController extends GetxController {
   final CheckUsernameAvailableUC checkUsername;
+  final CheckUsernameAvailabilityUC checkUsernameIdempotent;
   final SignUpUsernamePasswordUC signUp;
   final RegistrationProgressDS progressDS;
   final FinalizeRegistrationUC finalizeUC;
 
   RegistrationController({
     required this.checkUsername,
+    required this.checkUsernameIdempotent,
     required this.signUp,
     required this.progressDS,
     required this.finalizeUC,
@@ -160,10 +192,45 @@ class RegistrationController extends GetxController {
     progress.value = await progressDS.upsert(p);
   }
 
+  /// Verificación idempotente de username.
+  /// ownedByCurrentUser → permitir continuar (sin error).
+  /// takenByOtherUser   → mostrar error.
   Future<bool> isUsernameAvailable(String username) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      final result = await checkUsernameIdempotent(username, uid);
+      switch (result) {
+        case UsernameCheckResult.available:
+        case UsernameCheckResult.ownedByCurrentUser:
+          return true;
+        case UsernameCheckResult.takenByOtherUser:
+          message.value = 'El usuario no está disponible';
+          return false;
+      }
+    }
+    // Fallback legacy (uid null, e.g. estado transitorio)
     final ok = await checkUsername(username);
     if (!ok) message.value = 'El usuario no está disponible';
     return ok;
+  }
+
+  /// Detecta si el usuario ya completó el paso de username en una sesión anterior.
+  /// Prioridad: (1) progreso Isar → (2) Firestore one-shot (evita doble-verdad).
+  /// Retorna el username encontrado, o null si el paso no se ha completado.
+  Future<String?> detectExistingUsername(String uid) async {
+    // 1) Progreso local (Isar)
+    final prog = progress.value ?? await progressDS.get('current');
+    if (prog?.username != null && prog!.username!.isNotEmpty) {
+      return prog.username;
+    }
+    // 2) Firestore one-shot: usuarios/{uid}.username
+    try {
+      final authRepo = Get.find<AuthRepository>();
+      return await authRepo.fetchUsernameForUid(uid);
+    } catch (e) {
+      debugPrint('[RegistrationController] detectExistingUsername error: $e');
+      return null;
+    }
   }
 
   Future<String> createAccount({
@@ -407,10 +474,12 @@ class RegistrationController extends GetxController {
   /// - Actualiza selectedRole si era el activo (policy alfabético)
   /// - Sincroniza con WorkspaceController con source:'guest'
   /// - Anti-race lock con finally
-  Future<void> removeWorkspaceFromProgress(String workspace, {String id = 'current'}) async {
+  Future<void> removeWorkspaceFromProgress(String workspace,
+      {String id = 'current'}) async {
     // Anti-race: si ya hay una eliminación en curso, salir
     if (_isRemovingWorkspace) {
-      debugPrint('[RegistrationController] Remove already in progress, skipping');
+      debugPrint(
+          '[RegistrationController] Remove already in progress, skipping');
       return;
     }
 
@@ -525,18 +594,63 @@ class RegistrationController extends GetxController {
     }
   }
 
+  /// Reanuda el wizard de registro navegando al paso correcto según progress.step.
+  /// step=0 → registerUsername, step=1 → registerEmail, etc.
+  Future<void> resumeRegistration() async {
+    final step = progress.value?.step ?? 0;
+    debugPrint('[RegistrationController] resumeRegistration: step=$step');
+    switch (step) {
+      case 1:
+        Get.offAllNamed(Routes.registerEmail);
+        break;
+      case 2:
+        Get.offAllNamed(Routes.registerIdScan);
+        break;
+      case 3:
+        Get.offAllNamed(Routes.countryCity);
+        break;
+      case 4:
+        Get.offAllNamed(Routes.profile);
+        break;
+      case 5:
+        Get.offAllNamed(Routes.registerTerms);
+        break;
+      case 6:
+        Get.offAllNamed(Routes.registerSummary);
+        break;
+      default:
+        Get.offAllNamed(Routes.registerUsername);
+    }
+  }
+
+  /// Finaliza el registro del usuario.
+  ///
+  /// Orden garantizado:
+  /// 1. Escribe UserProfileEntity legacy (Firestore userProfiles — backward compat).
+  /// 2. Crea Organization + UserEntity (con activeContext) + Membership en
+  ///    isar.userModels y isar.membershipModels.
+  ///    → Esto es lo que SessionContextController._getLocalUserOnly() leerá.
+  /// 3. Re-hidrata sesión: session.init() → hydrationState = authOkProfileReady.
+  /// 4. Limpia progress de Isar.
+  ///
+  /// Sin esta secuencia bootstrap veía userModels vacío → authOkProfileEmpty → loop.
   Future<void> finalizeRegistration({String id = 'current'}) async {
     final p = progress.value ?? await progressDS.get(id);
     if (p == null) throw StateError('No hay progreso de registro');
-    final auth = Get.find<FirebaseAuth>();
-    final uid = auth.currentUser?.uid;
-    if (uid == null) throw StateError('Usuario no autenticado');
-    final phone = p.phone ?? auth.currentUser?.phoneNumber ?? '';
-    final roles = <String>[];
-    if (p.selectedRole != null && p.selectedRole!.isNotEmpty) {
-      roles.add(p.selectedRole!);
-    }
 
+    final auth = Get.find<FirebaseAuth>();
+    final currentUser = auth.currentUser;
+    if (currentUser == null) throw StateError('Usuario no autenticado');
+
+    final uid = currentUser.uid;
+    final phone = p.phone ?? currentUser.phoneNumber ?? '';
+    final selectedRole = (p.selectedRole?.isNotEmpty == true)
+        ? p.selectedRole!
+        : 'admin_activos_ind';
+    final now = DateTime.now().toUtc();
+
+    // ── 1. Perfil legacy (UserProfileEntity → Firestore userProfiles) ──────
+    // Conservado para compatibilidad con lecturas que usan IsarSessionDS.
     final profile = UserProfileEntity(
       uid: uid,
       phone: phone,
@@ -545,19 +659,101 @@ class RegistrationController extends GetxController {
       countryId: p.countryId,
       regionId: p.regionId,
       cityId: p.cityId,
-      roles: roles,
+      roles: [selectedRole],
       orgIds: const [],
       docType: p.docType,
       docNumber: p.docNumber,
       identityRaw: p.barcodeRaw,
       termsVersion: 'v1',
-      termsAcceptedAt: p.termsAccepted ? DateTime.now().toUtc() : null,
+      termsAcceptedAt: p.termsAccepted ? now : null,
       status: 'active',
-      createdAt: DateTime.now().toUtc(),
-      updatedAt: DateTime.now().toUtc(),
+      createdAt: now,
+      updatedAt: now,
     );
-
     await finalizeUC(profile);
+
+    // ── 2. Organización ────────────────────────────────────────────────────
+    // Genera un orgId determinístico pero único para este usuario.
+    final orgId = 'org_${uid.hashCode.abs()}_${now.millisecondsSinceEpoch}';
+    final isEmpresa = (p.titularType ?? '').toLowerCase() == 'empresa';
+
+    // Nombre de display: display name de Firebase (Google/Apple) o teléfono.
+    final displayName = currentUser.displayName ??
+        (phone.isNotEmpty ? phone : currentUser.email ?? 'Usuario');
+
+    final orgName = isEmpresa
+        ? (p.companyName?.trim().isNotEmpty == true
+            ? p.companyName!.trim()
+            : displayName)
+        : displayName;
+
+    final organization = OrganizationEntity(
+      id: orgId,
+      nombre: orgName,
+      tipo: isEmpresa ? 'empresa' : 'personal',
+      countryId: p.countryId ?? 'CO',
+      regionId: (p.regionId?.isNotEmpty == true) ? p.regionId : null,
+      cityId: p.cityId,
+      ownerUid: uid,
+      createdAt: now,
+      updatedAt: now,
+    );
+    await DIContainer().orgRepository.upsertOrg(organization);
+
+    // ── 3. UserEntity (con activeContext) → isar.userModels ───────────────
+    // CRÍTICO: SessionContextController._getLocalUserOnly() lee isar.userModels.
+    // Sin este upsert, hydrationState queda en authOkProfileEmpty y bootstrap loopea.
+    final activeCtx = ActiveContext(
+      orgId: orgId,
+      orgName: orgName,
+      rol: selectedRole,
+      providerType: p.providerType,
+    );
+    final userEntity = UserEntity(
+      uid: uid,
+      name: displayName,
+      email: currentUser.email ?? p.email ?? '',
+      phone: phone.isNotEmpty ? phone : null,
+      countryId: p.countryId,
+      activeContext: activeCtx,
+      createdAt: now,
+      updatedAt: now,
+    );
+    await DIContainer().userRepository.upsertUser(userEntity);
+
+    // ── 4. Membership (roles + org) → isar.membershipModels ───────────────
+    final membership = MembershipEntity(
+      userId: uid,
+      orgId: orgId,
+      orgName: orgName,
+      roles: [selectedRole],
+      estatus: 'activo',
+      primaryLocation: {
+        'countryId': p.countryId ?? 'CO',
+        if (p.regionId?.isNotEmpty == true) 'regionId': p.regionId!,
+        if (p.cityId?.isNotEmpty == true) 'cityId': p.cityId!,
+      },
+      createdAt: now,
+      updatedAt: now,
+    );
+    await DIContainer().userRepository.upsertMembership(membership);
+
+    // ── 5. Re-hidratar sesión ─────────────────────────────────────────────
+    // resetForLogout() limpia el single-flight guard → _doInit() corre fresco.
+    // Ahora _getLocalUserOnly() encontrará el UserModel recién creado →
+    // hydrationState = authOkProfileReady → bootstrap pasa Gate 2 y Gate 3.
+    if (Get.isRegistered<SessionContextController>()) {
+      try {
+        final session = Get.find<SessionContextController>();
+        session.resetForLogout();
+        await session.init(uid);
+      } catch (e) {
+        debugPrint(
+            '[RegistrationController] session rehydration error (non-fatal): $e');
+      }
+    }
+
+    // ── 6. Limpiar progreso (después de re-hidratar, no antes) ────────────
     await clear(id);
   }
 

@@ -34,10 +34,6 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Obx(() {
-      final hasOrg = controller.hasActiveOrg;
-      final isLoading = controller.loading.value;
-      final hasError = controller.error.value != null;
-
       return Column(
         children: [
           // HEADER

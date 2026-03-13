@@ -1,4 +1,29 @@
+// ============================================================================
+// lib/data/sources/local/portfolio_local_ds.dart
+// PORTFOLIO LOCAL DATA SOURCE — Enterprise Ultra Pro (Data / Sources / Local)
+//
+// QUÉ HACE:
+// - Acceso a PortfolioModel en Isar (CRUD + contadores).
+// - incrementAssetsCountTx(): método COMPOSABLE que asume que el llamador ya
+//   está dentro de un writeTxn; NO abre su propio writeTxn.
+// - incrementAssetsCount(): operación standalone que envuelve incrementAssetsCountTx
+//   en su propio writeTxn (uso fuera de transacciones atómicas compuestas).
+//
+// QUÉ NO HACE:
+// - No contiene lógica de negocio.
+// - No conoce el dominio de activos más allá de AssetCreationException
+//   (usado para señalizar portafolio no encontrado en contexto transaccional).
+//
+// NOTAS:
+// - incrementAssetsCountTx(Isar, String) resuelve el deadlock que causaba
+//   llamar incrementAssetsCount() (con writeTxn propio) desde dentro de otra
+//   transacción Isar (Isar no soporta transacciones reentrantes en el mismo
+//   isolate).
+// ============================================================================
+
 import 'package:isar_community/isar.dart';
+
+import '../../../domain/errors/asset_creation_exception.dart';
 import '../../models/portfolio/portfolio_model.dart';
 
 class PortfolioLocalDataSource {
@@ -105,53 +130,78 @@ class PortfolioLocalDataSource {
         .findAll();
   }
 
-  /// Incrementar assetsCount (transacción atómica)
+  /// Contar portfolios ACTIVE del usuario sin deserializar objetos — O(log n).
+  ///
+  /// Usar en el gate S2 de SplashBootstrapController: solo interesa saber si
+  /// count > 0. Isar ejecuta `.count()` con un full-table-scan filtrado por
+  /// índice, sin construir objetos Dart.
+  Future<int> countActiveByUser(String userId) {
+    return _isar.portfolioModels
+        .filter()
+        .createdByEqualTo(userId)
+        .statusEqualTo('ACTIVE')
+        .count();
+  }
+
+  /// Incrementa assetsCount de forma COMPOSABLE.
+  ///
+  /// PREREQUISITO: el llamador DEBE estar ya dentro de un [Isar.writeTxn].
+  /// Este método NO abre su propia transacción; permite ser incluido en
+  /// transacciones atómicas más grandes (ej. asset + vehículo + portafolio).
+  ///
+  /// Lanza [AssetCreationException.portfolioUpdateFailed()] si el portafolio
+  /// no existe; el error aborta la transacción exterior automáticamente.
+  Future<void> incrementAssetsCountTx(Isar isar, String portfolioId) async {
+    final existing = await isar.portfolioModels
+        .filter()
+        .idEqualTo(portfolioId)
+        .findFirst();
+
+    if (existing == null) {
+      throw AssetCreationException.portfolioUpdateFailed();
+    }
+
+    final newCount = existing.assetsCount + 1;
+
+    // Auto-transición DRAFT → ACTIVE cuando se vincula el primer activo.
+    final newStatus =
+        (existing.status == 'DRAFT' && existing.assetsCount == 0 && newCount == 1)
+            ? 'ACTIVE'
+            : existing.status;
+
+    await isar.portfolioModels.put(PortfolioModel(
+      isarId: existing.isarId, // Preservar isarId
+      id: existing.id,
+      portfolioType: existing.portfolioType,
+      portfolioName: existing.portfolioName,
+      countryId: existing.countryId,
+      cityId: existing.cityId,
+      status: newStatus,
+      assetsCount: newCount,
+      createdBy: existing.createdBy,
+      createdAt: existing.createdAt, // Inmutable
+      updatedAt: DateTime.now().toUtc(),
+    ));
+  }
+
+  /// Incrementa assetsCount en transacción standalone.
+  ///
+  /// Usar cuando el incremento NO forma parte de una transacción mayor.
+  /// Para uso dentro de [Isar.writeTxn] existente, usar [incrementAssetsCountTx].
   Future<PortfolioModel> incrementAssetsCount(String id) async {
-    return await _isar.writeTxn(() async {
-      final existing = await _isar.portfolioModels
-          .filter()
-          .idEqualTo(id)
-          .findFirst();
+    await _isar.writeTxn(() => incrementAssetsCountTx(_isar, id));
 
-      if (existing == null) {
-        throw Exception('Portfolio not found for increment: id=$id');
-      }
+    final saved = await _isar.portfolioModels
+        .filter()
+        .idEqualTo(id)
+        .findFirst();
 
-      final newCount = existing.assetsCount + 1;
+    if (saved == null) {
+      throw Exception(
+          'Portfolio increment failed: cannot retrieve updated record id=$id');
+    }
 
-      // Auto-transición DRAFT → ACTIVE cuando pasa de 0 → 1
-      final newStatus = (existing.status == 'DRAFT' && existing.assetsCount == 0 && newCount == 1)
-          ? 'ACTIVE'
-          : existing.status;
-
-      final updated = PortfolioModel(
-        isarId: existing.isarId, // Preservar isarId
-        id: existing.id,
-        portfolioType: existing.portfolioType,
-        portfolioName: existing.portfolioName,
-        countryId: existing.countryId,
-        cityId: existing.cityId,
-        status: newStatus,
-        assetsCount: newCount,
-        createdBy: existing.createdBy,
-        createdAt: existing.createdAt, // Inmutable
-        updatedAt: DateTime.now().toUtc(),
-      );
-
-      await _isar.portfolioModels.put(updated);
-
-      // Re-leer para confirmar
-      final saved = await _isar.portfolioModels
-          .filter()
-          .idEqualTo(id)
-          .findFirst();
-
-      if (saved == null) {
-        throw Exception('Portfolio increment failed: could not retrieve updated record for id=$id');
-      }
-
-      return saved;
-    });
+    return saved;
   }
 
   /// Decrementar assetsCount (transacción atómica)

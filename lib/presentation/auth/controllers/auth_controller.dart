@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 
+import '../../../domain/errors/auth_failure.dart';
 import '../../../domain/usecases/bootstrap_first_login_uc.dart';
 import '../../../domain/usecases/load_initial_cache_uc.dart';
 import '../../../domain/usecases/send_otp_uc.dart';
@@ -12,11 +13,10 @@ import '../../../routes/app_pages.dart';
 import '../../../services/telemetry/telemetry_service.dart';
 
 class AuthState {
-  final String
-      status; // idle, sending, sent, verifying, needsProfile, selectingRole, authenticated, error
-  final String? verificationId;
+  // statuses: idle, sending, sent, verifying, authenticated, error
+  final String status;
   final String? message;
-  const AuthState(this.status, {this.verificationId, this.message});
+  const AuthState(this.status, {this.message});
 }
 
 class AuthController extends GetxController {
@@ -51,15 +51,31 @@ class AuthController extends GetxController {
     super.onClose();
   }
 
+  /// Normaliza un número a formato E.164 (e.g., +573001234567).
+  /// Acepta: "3001234567", "573001234567", "+573001234567", con espacios/guiones.
+  /// Para otros países, el usuario debe incluir el código (+XX).
+  String _normalizePhone(String raw) {
+    final s = raw.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+    if (s.startsWith('+')) return s; // ya tiene código de país
+    if (s.startsWith('57') && s.length == 12) return '+$s'; // 57 + 10 dígitos
+    if (s.length == 10) return '+57$s'; // número colombiano sin código de país
+    return s; // devolver como está; Firebase reportará invalid-phone-number
+  }
+
   Future<void> onSendOtp(String phone) async {
-    _lastPhone = phone; // << guardar para reenvío
+    final normalized = _normalizePhone(phone);
+    _lastPhone = normalized; // guardar normalizado para reenvío
     state.value = const AuthState('sending');
     try {
-      final res = await sendOtpUC(phone);
+      final res = await sendOtpUC(normalized);
       if (res.autoVerified && res.uid != null) {
         telemetry.log('auth_otp_auto_verify_success', {'uid': res.uid});
         await loadInitialCacheUC(res.uid!);
-        Get.offAllNamed(Routes.registerUsername);
+        // Delegar routing a SplashBootstrapController via Routes.home:
+        // S1 (nuevo usuario, sin perfil) → countryCity → profile → home
+        // S3 (usuario existente) → workspace directo.
+        // NO navegar a registerUsername (flujo email/password eliminado).
+        Get.offAllNamed(Routes.home);
         state.value = const AuthState('authenticated');
         return;
       }
@@ -67,10 +83,10 @@ class AuthController extends GetxController {
       telemetry.log(
           'auth_otp_send_success', {'phone': phone, 'timeout': res.timeout});
       _startResendTimer();
-      state.value = AuthState('sent', verificationId: _verificationId);
-    } on FirebaseAuthException catch (e) {
+      state.value = const AuthState('sent');
+    } on AuthFailure catch (e) {
       telemetry.log('auth_otp_send_fail', {'code': e.code});
-      state.value = AuthState('error', message: _mapError(e.code));
+      state.value = AuthState('error', message: e.message);
     } catch (_) {
       state.value = const AuthState('error', message: 'Error inesperado');
     }
@@ -92,7 +108,9 @@ class AuthController extends GetxController {
       final uid = await verifyOtpUC(verificationId: vid, smsCode: smsCode);
       telemetry.log('auth_otp_verify_success', {'uid': uid});
       await loadInitialCacheUC(uid);
-      Get.offAllNamed(Routes.registerUsername);
+      // Delegar routing a SplashBootstrapController via Routes.home.
+      // NO navegar a registerUsername (flujo email/password eliminado).
+      Get.offAllNamed(Routes.home);
       state.value = const AuthState('authenticated');
     } on FirebaseAuthException catch (e) {
       telemetry.log('auth_otp_verify_fail', {'code': e.code});

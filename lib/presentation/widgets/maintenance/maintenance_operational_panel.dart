@@ -66,12 +66,12 @@ class MaintenanceOperationalPanel extends GetView<AdminMaintenanceController> {
                 decoration: InputDecoration(
                   hintText: 'Buscar vehículo o incidencia...',
                   hintStyle: TextStyle(
-                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     fontSize: 14,
                   ),
                   prefixIcon: Icon(
                     Icons.search,
-                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     size: 20,
                   ),
                   border: InputBorder.none,

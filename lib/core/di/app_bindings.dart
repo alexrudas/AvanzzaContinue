@@ -1,3 +1,7 @@
+import '../../application/gateways/accounting/accounting_event_remote_gateway.dart';
+import '../../core/auth/auth_state_observer.dart';
+import '../../infrastructure/isar/repositories/isar_accounting_event_repository.dart';
+import 'package:flutter/foundation.dart';
 import 'package:avanzza/data/sources/local/user_local_ds.dart';
 import 'package:avanzza/data/sources/remote/user_remote_ds.dart';
 import 'package:avanzza/domain/usecases/bootstrap_first_login_uc.dart'
@@ -51,6 +55,16 @@ class AppBindings extends Bindings {
     // Base de datos local
     Get.put<Isar>(bootstrap.isar, permanent: true);
 
+    // Contabilidad — Audit Trail / Outbox Sync
+    Get.put<IsarAccountingEventRepository>(
+      IsarAccountingEventRepository(bootstrap.isar),
+      permanent: true,
+    );
+    Get.put<AccountingEventRemoteGateway>(
+      FakeAccountingEventRemoteGateway(),
+      permanent: true,
+    );
+
     // Cliente HTTP único para toda la aplicación
     // Este Dio será reutilizado por todos los services (RuntService, SimitService, etc.)
     // mediante Get.find<Dio>()
@@ -100,6 +114,9 @@ class AppBindings extends Bindings {
     Get.put<SendOtpUC>(SendOtpUC(Get.find()), permanent: true);
     Get.put<CheckUsernameAvailableUC>(CheckUsernameAvailableUC(Get.find()),
         permanent: true);
+    Get.put<CheckUsernameAvailabilityUC>(
+        CheckUsernameAvailabilityUC(Get.find()),
+        permanent: true);
     Get.put<SignUpUsernamePasswordUC>(SignUpUsernamePasswordUC(Get.find()),
         permanent: true);
     Get.put<SignInUsernamePasswordUC>(SignInUsernamePasswordUC(Get.find()),
@@ -129,6 +146,7 @@ class AppBindings extends Bindings {
     Get.put<RegistrationController>(
       RegistrationController(
         checkUsername: Get.find(),
+        checkUsernameIdempotent: Get.find(),
         signUp: Get.find(),
         progressDS: Get.find(),
         finalizeUC: Get.find(),
@@ -158,5 +176,16 @@ class AppBindings extends Bindings {
       ScannerController(),
       permanent: true,
     );
+
+    // ==================== AUTH STATE OBSERVER ====================
+    // DEBE ser lo ÚLTIMO en registrarse: requiere que IsarAccountingEventRepository
+    // y AccountingEventRemoteGateway ya estén en GetX.
+    // start() dispara la suscripción a Firebase → _onAuthStateChanged puede
+    // ejecutarse de inmediato (si hay sesión activa).
+    Get.put<AuthStateObserver>(bootstrap.authStateObserver, permanent: true);
+    Get.find<AuthStateObserver>().start();
+    if (kDebugMode) {
+      debugPrint('[P2D][Auth][Bindings] AuthStateObserver.start() called');
+    }
   }
 }

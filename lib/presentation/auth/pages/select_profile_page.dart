@@ -392,18 +392,15 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
       });
 
       // 4) Navegación basada en workspaces resueltos (flujo original)
+      // Proveedores van a providerProfile primero; todos los demás deben
+      // pasar por registerTerms → registerSummary → finalizeRegistration.
+      // NUNCA saltar a Routes.home desde aquí en el flujo de registro.
       String routeForWorkspaces(List<String> wss) {
         final low = wss.map((w) => w.toLowerCase()).toList();
         if (low.any((w) => w.contains('proveedor'))) {
           return Routes.providerProfile;
         }
-        if (low.any((w) => w.contains('administrador'))) return Routes.home;
-        if (low.any((w) => w.contains('propietario'))) return Routes.home;
-        if (low.any((w) => w.contains('arrendatario'))) return Routes.home;
-        if (low.any((w) => w.contains('aseguradora'))) return Routes.home;
-        if (low.any((w) => w.contains('asesor'))) return Routes.home;
-        if (low.any((w) => w.contains('abogado'))) return Routes.home;
-        return Routes.home;
+        return Routes.registerTerms;
       }
 
       final passedNext = (Get.parameters['next'] ??
@@ -747,15 +744,16 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
             _RadioTile<AdminFU>(
               groupValue: _adminFollowUp,
               value: AdminFU.third,
-              title: 'Los de terceros',
-              subtitle: 'Gestionarás activos de otros propietarios',
+              title: 'Solo los de terceros (Otros propietarios)',
+              subtitle:
+                  'Gestionarás activos de otros propietarios (Personas o empresas)',
               onChanged: (v) => setState(() => _adminFollowUp = v),
             ),
             _RadioTile<AdminFU>(
               groupValue: _adminFollowUp,
               value: AdminFU.both,
-              title: 'Los míos y los de terceros',
-              subtitle: 'Administración mixta',
+              title: 'Los míos y los de terceros (otros propietarios)',
+              subtitle: 'Administración mixta de activos',
               onChanged: (v) => setState(() => _adminFollowUp = v),
             ),
             const SizedBox(height: 8),

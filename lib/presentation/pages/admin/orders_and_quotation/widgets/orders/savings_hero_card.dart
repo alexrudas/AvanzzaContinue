@@ -15,12 +15,12 @@ class SavingsHeroCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            t.colorScheme.primary.withOpacity(0.16),
-            t.colorScheme.secondary.withOpacity(0.10),
+            t.colorScheme.primary.withValues(alpha: 0.16),
+            t.colorScheme.secondary.withValues(alpha: 0.10),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: t.colorScheme.primary.withOpacity(0.22)),
+        border: Border.all(color: t.colorScheme.primary.withValues(alpha: 0.22)),
       ),
       child: Row(children: [
         Icon(Icons.trending_down, color: t.colorScheme.primary),

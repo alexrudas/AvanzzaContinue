@@ -1,5 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+
+import '../../../domain/errors/auth_failure.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
@@ -15,33 +18,76 @@ class FirebaseAuthDS {
 
   FirebaseAuthDS(this._auth);
 
-  // OTP por teléfono (existente)
+  // OTP por teléfono
+  // onFailed recibe AuthFailure (dominio) en lugar de FirebaseAuthException.
+  // FirebaseAuthException NUNCA sale de esta clase.
   Future<void> sendOtp({
     required String phoneNumber,
     required void Function(String verificationId) onCodeSent,
     required void Function(String verificationId) onCodeTimeout,
     required void Function(String uid) onAutoVerified,
-    required void Function(FirebaseAuthException e) onFailed,
+    required void Function(AuthFailure failure) onFailed,
   }) async {
+    final masked = phoneNumber.length > 4
+        ? '*' * (phoneNumber.length - 4) +
+            phoneNumber.substring(phoneNumber.length - 4)
+        : '****';
+    if (kDebugMode) debugPrint('[PhoneAuth] verifyPhoneNumber → $masked');
+
     await _auth.verifyPhoneNumber(
       phoneNumber: phoneNumber,
       verificationCompleted: (PhoneAuthCredential credential) async {
+        if (kDebugMode) debugPrint('[PhoneAuth] verificationCompleted (auto-verify)');
         try {
           final result = await _auth.signInWithCredential(credential);
           final uid = result.user?.uid;
           if (uid != null) onAutoVerified(uid);
         } on FirebaseAuthException catch (e) {
-          onFailed(e);
+          if (kDebugMode) {
+            debugPrint('[PhoneAuth] autoVerify signIn failed: ${e.code}');
+          }
+          onFailed(AuthFailure(e.code, _mapPhoneError(e.code)));
         }
       },
-      verificationFailed: (FirebaseAuthException e) => onFailed(e),
-      codeSent: (String verificationId, int? forceResendingToken) =>
-          onCodeSent(verificationId),
-      codeAutoRetrievalTimeout: (String verificationId) =>
-          onCodeTimeout(verificationId),
+      verificationFailed: (FirebaseAuthException e) {
+        if (kDebugMode) {
+          debugPrint('[PhoneAuth] verificationFailed: code=${e.code}');
+        }
+        // Mapear a error de dominio; NUNCA propagar FirebaseAuthException.
+        onFailed(AuthFailure(e.code, _mapPhoneError(e.code)));
+      },
+      codeSent: (String verificationId, int? forceResendingToken) {
+        if (kDebugMode) debugPrint('[PhoneAuth] codeSent — SMS dispatched');
+        onCodeSent(verificationId);
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {
+        if (kDebugMode) debugPrint('[PhoneAuth] codeAutoRetrievalTimeout');
+        onCodeTimeout(verificationId);
+      },
       timeout: const Duration(seconds: 60),
       forceResendingToken: null,
     );
+  }
+
+  static String _mapPhoneError(String code) {
+    switch (code) {
+      case 'invalid-phone-number':
+        return 'Número inválido. Revisa el formato.';
+      case 'app-not-authorized':
+      case 'missing-client-identifier':
+      case 'captcha-check-failed':
+        return 'La app no está autorizada para OTP (revisar SHA en Firebase).';
+      case 'too-many-requests':
+        return 'Demasiados intentos. Intenta más tarde.';
+      case 'quota-exceeded':
+        return 'Límite de SMS alcanzado. Intenta luego.';
+      case 'network-request-failed':
+        return 'Sin conexión. Verifica internet.';
+      case 'operation-not-allowed':
+        return 'Proveedor Teléfono deshabilitado en Firebase.';
+      default:
+        return 'No se pudo enviar el código. Intenta de nuevo.';
+    }
   }
 
   Future<String> verifyOtp({

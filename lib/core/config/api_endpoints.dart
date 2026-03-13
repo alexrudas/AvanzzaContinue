@@ -64,7 +64,7 @@ class ApiEndpoints {
       'AVANZZA_API_URL',
       // Por defecto apunta a localhost del host desde emulador Android
       // Para web/iOS, usar localhost:3000 con --dart-define
-      defaultValue: "http://192.168.1.57:3000",
+      defaultValue: "http://178.156.227.90",
     );
   }
 

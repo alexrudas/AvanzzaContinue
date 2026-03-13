@@ -145,8 +145,11 @@ class Bootstrap {
 
     syncObserver.start();
 
+    // AuthStateObserver se crea aquí pero start() se llama desde AppBindings,
+    // DESPUÉS de que todos los deps (IsarAccountingEventRepository, gateway)
+    // estén registrados en GetX. Esto evita la race condition donde el worker
+    // no arranca porque sus deps aún no existen.
     final authStateObserver = AuthStateObserver();
-    authStateObserver.start();
 
     final syncLifecycleObserver = SyncLifecycleObserver(
       engine: DIContainer().syncEngineService,

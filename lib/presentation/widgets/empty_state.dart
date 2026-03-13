@@ -23,18 +23,18 @@ class EmptyState extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Icon(icon, size: 28, color: cs.onSurface.withOpacity(0.5)),
+        Icon(icon, size: 28, color: cs.onSurface.withValues(alpha: 0.5)),
         const SizedBox(height: 8),
         Text(
           title,
-          style: t.textTheme.bodyMedium?.copyWith(color: cs.onSurface.withOpacity(0.75)),
+          style: t.textTheme.bodyMedium?.copyWith(color: cs.onSurface.withValues(alpha: 0.75)),
           textAlign: TextAlign.center,
         ),
         if (subtitle != null) ...[
           const SizedBox(height: 4),
           Text(
             subtitle!,
-            style: t.textTheme.bodySmall?.copyWith(color: cs.onSurface.withOpacity(0.6)),
+            style: t.textTheme.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.6)),
             textAlign: TextAlign.center,
           ),
         ],

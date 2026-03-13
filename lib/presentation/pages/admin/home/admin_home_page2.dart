@@ -165,7 +165,7 @@
 //                 width: 44,
 //                 height: 44,
 //                 decoration: BoxDecoration(
-//                   color: _DesignSystem.colors.surfaceVariant.withOpacity(0.5),
+//                   color: _DesignSystem.colors.surfaceVariant.withValues(alpha: 0.5),
 //                   borderRadius: BorderRadius.circular(12),
 //                 ),
 //                 child: Icon(
@@ -239,7 +239,7 @@
 //                   end: Alignment.bottomCenter,
 //                   colors: [
 //                     _DesignSystem.colors.background,
-//                     _DesignSystem.colors.background.withOpacity(0),
+//                     _DesignSystem.colors.background.withValues(alpha: 0),
 //                   ],
 //                 ),
 //               ),
@@ -637,7 +637,7 @@
 //                 borderRadius: BorderRadius.circular(16),
 //                 boxShadow: [
 //                   BoxShadow(
-//                     color: gradient.colors.first.withOpacity(0.3),
+//                     color: gradient.colors.first.withValues(alpha: 0.3),
 //                     blurRadius: 12,
 //                     offset: const Offset(0, 4),
 //                   ),
@@ -650,7 +650,7 @@
 //                   Container(
 //                     padding: const EdgeInsets.all(8),
 //                     decoration: BoxDecoration(
-//                       color: Colors.white.withOpacity(0.2),
+//                       color: Colors.white.withValues(alpha: 0.2),
 //                       borderRadius: BorderRadius.circular(10),
 //                     ),
 //                     child: Icon(
@@ -686,7 +686,7 @@
 //               borderRadius: BorderRadius.circular(12),
 //               boxShadow: [
 //                 BoxShadow(
-//                   color: Colors.black.withOpacity(0.1),
+//                   color: Colors.black.withValues(alpha: 0.1),
 //                   blurRadius: 8,
 //                   offset: const Offset(0, 2),
 //                 ),
@@ -747,7 +747,7 @@
 //             borderRadius: BorderRadius.circular(16),
 //             boxShadow: [
 //               BoxShadow(
-//                 color: gradient.colors.first.withOpacity(0.3),
+//                 color: gradient.colors.first.withValues(alpha: 0.3),
 //                 blurRadius: 12,
 //                 offset: const Offset(0, 4),
 //               ),
@@ -760,7 +760,7 @@
 //               Container(
 //                 padding: const EdgeInsets.all(8),
 //                 decoration: BoxDecoration(
-//                   color: Colors.white.withOpacity(0.2),
+//                   color: Colors.white.withValues(alpha: 0.2),
 //                   borderRadius: BorderRadius.circular(10),
 //                 ),
 //                 child: Icon(
@@ -981,10 +981,10 @@
 // //         child: Container(
 // //           padding: const EdgeInsets.all(16),
 // //           decoration: BoxDecoration(
-// //             color: data.color.withOpacity(0.1),
+// //             color: data.color.withValues(alpha: 0.1),
 // //             borderRadius: BorderRadius.circular(16),
 // //             border: Border.all(
-// //               color: data.color.withOpacity(0.3),
+// //               color: data.color.withValues(alpha: 0.3),
 // //               width: 1.5,
 // //             ),
 // //           ),
@@ -997,7 +997,7 @@
 // //                   Container(
 // //                     padding: const EdgeInsets.all(8),
 // //                     decoration: BoxDecoration(
-// //                       color: data.color.withOpacity(0.15),
+// //                       color: data.color.withValues(alpha: 0.15),
 // //                       borderRadius: BorderRadius.circular(10),
 // //                     ),
 // //                     child: Icon(
@@ -1011,8 +1011,8 @@
 // //                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
 // //                     decoration: BoxDecoration(
 // //                       color: isPositiveTrend
-// //                           ? _DesignSystem.colors.success.withOpacity(0.15)
-// //                           : _DesignSystem.colors.error.withOpacity(0.15),
+// //                           ? _DesignSystem.colors.success.withValues(alpha: 0.15)
+// //                           : _DesignSystem.colors.error.withValues(alpha: 0.15),
 // //                       borderRadius: BorderRadius.circular(8),
 // //                     ),
 // //                     child: Row(
@@ -1100,7 +1100,7 @@
 //                     borderRadius: BorderRadius.circular(14),
 //                     boxShadow: [
 //                       BoxShadow(
-//                         color: _DesignSystem.colors.primary.withOpacity(0.3),
+//                         color: _DesignSystem.colors.primary.withValues(alpha: 0.3),
 //                         blurRadius: 12,
 //                         offset: const Offset(0, 4),
 //                       ),
@@ -1200,13 +1200,13 @@
 //           decoration: BoxDecoration(
 //             gradient: LinearGradient(
 //               colors: [
-//                 _DesignSystem.colors.info.withOpacity(0.1),
-//                 _DesignSystem.colors.info.withOpacity(0.05),
+//                 _DesignSystem.colors.info.withValues(alpha: 0.1),
+//                 _DesignSystem.colors.info.withValues(alpha: 0.05),
 //               ],
 //             ),
 //             borderRadius: BorderRadius.circular(16),
 //             border: Border.all(
-//               color: _DesignSystem.colors.info.withOpacity(0.3),
+//               color: _DesignSystem.colors.info.withValues(alpha: 0.3),
 //               width: 1.5,
 //             ),
 //           ),

@@ -1,29 +1,28 @@
-// lib\presentation\pages\portfolio\wizard\create_portfolio_step1_page.dart
+// lib/presentation/pages/portfolio/wizard/create_portfolio_step1_page.dart
+//
+// Wizard Paso 1: Registrar Activo (crea portafolio internamente)
+//
+// DISEÑO DE ESTADO:
+// Todo el estado del formulario se persiste en CreatePortfolioController.draft*.
+// Esto garantiza que al navegar al Paso 2 y volver, los campos no se reseteen.
+// El widget solo lee el draft en initState y escribe de vuelta en cada cambio.
+//
+// Campos:
+// - assetType (null hasta que el usuario elige; readonly si viene preseleccionado)
+// - portfolioName (opcional: se auto-genera si está vacío)
+// - country
+// - city
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
-import '../../../../domain/entities/portfolio/portfolio_entity.dart';
+import '../../../../core/theme/spacing.dart';
 import '../../../../domain/shared/enums/asset_type.dart';
 import '../../../../routes/app_routes.dart';
+import '../../../widgets/selectors/asset_type_selector.dart';
 import '../controllers/create_portfolio_controller.dart';
 
-/// Wizard Paso 1: Registrar Activo (crea portafolio internamente)
-///
-/// Recibe obligatoriamente `preselectedAssetType` desde ActionSheet.
-/// El tipo de activo determina automáticamente el PortfolioType.
-/// El usuario NO debe sentir que "crea un portafolio".
-///
-/// Campos:
-/// - assetType (readonly, viene preseleccionado)
-/// - portfolioName (sugerido automáticamente)
-/// - country
-/// - city
-///
-/// Al guardar:
-/// - Controller crea portafolio con status = DRAFT y assetsCount = 0
-/// - Navega a Paso 2 (agregar primer activo)
 class CreatePortfolioStep1Page extends StatefulWidget {
   final AssetType? preselectedAssetType;
 
@@ -39,30 +38,36 @@ class CreatePortfolioStep1Page extends StatefulWidget {
 
 class _CreatePortfolioStep1PageState extends State<CreatePortfolioStep1Page> {
   final _formKey = GlobalKey<FormState>();
-  final _controller = Get.put(CreatePortfolioController());
 
-  late AssetType _assetType;
-  late PortfolioType _portfolioType;
+  // Controller compartido del wizard; persistido en GetX durante todo el flujo.
+  late final CreatePortfolioController _ctrl;
+
+  // TextEditingController sincronizado con ctrl.draftPortfolioName.
   final _nameController = TextEditingController();
-  String? _selectedCountryId;
-  String? _selectedCityId;
 
-  /// True si el tipo viene preseleccionado (readonly)
   bool get _isTypePreselected => widget.preselectedAssetType != null;
 
   @override
   void initState() {
     super.initState();
 
-    // Usar tipo preseleccionado o default a vehículo
-    _assetType = widget.preselectedAssetType ?? AssetType.vehiculo;
-    _portfolioType = _assetType.portfolioType;
+    // Crear o recuperar el controller compartido del wizard.
+    _ctrl = Get.put(CreatePortfolioController());
 
-    // CRÍTICO: Persistir assetType en controller para Step2
-    _controller.selectedAssetType.value = _assetType;
+    // Si viene tipo preseleccionado, persistirlo en el draft.
+    if (_isTypePreselected) {
+      _ctrl.selectedAssetType.value = widget.preselectedAssetType;
+    }
+    // Si NO hay preselección Y el draft ya tiene un tipo (usuario regresó
+    // desde Step2), conservar el valor del draft sin sobreescribir.
 
-    // Pre-rellenar nombre sugerido
-    _nameController.text = _assetType.suggestedPortfolioName;
+    // Inicializar campo de nombre desde el draft del controller.
+    _nameController.text = _ctrl.draftPortfolioName.value;
+
+    // Sincronizar cambios del campo → draft del controller.
+    _nameController.addListener(() {
+      _ctrl.draftPortfolioName.value = _nameController.text;
+    });
   }
 
   @override
@@ -71,10 +76,14 @@ class _CreatePortfolioStep1PageState extends State<CreatePortfolioStep1Page> {
     super.dispose();
   }
 
-  bool get _canContinue =>
-      _nameController.text.isNotEmpty &&
-      _selectedCountryId != null &&
-      _selectedCityId != null;
+  /// País y ciudad son obligatorios; el nombre se auto-genera si está vacío.
+  /// El tipo de activo es obligatorio solo cuando no hay preselección.
+  bool get _canContinue {
+    final hasType = _ctrl.selectedAssetType.value != null;
+    final hasLocation = _ctrl.draftCountryId.value != null &&
+        _ctrl.draftCityId.value != null;
+    return hasType && hasLocation;
+  }
 
   Future<void> _handleContinue() async {
     if (!_formKey.currentState!.validate()) return;
@@ -82,17 +91,21 @@ class _CreatePortfolioStep1PageState extends State<CreatePortfolioStep1Page> {
 
     HapticFeedback.lightImpact();
 
+    final assetType = _ctrl.selectedAssetType.value!;
+
+    // Si el usuario no escribió un nombre, usar el sugerido del tipo.
+    final portfolioName = _nameController.text.trim().isNotEmpty
+        ? _nameController.text.trim()
+        : assetType.suggestedPortfolioName;
+
     try {
-      // UI solo envía params al controller
-      // Controller crea PortfolioEntity y maneja repo
-      await _controller.createPortfolioStep1(
-        portfolioType: _portfolioType,
-        portfolioName: _nameController.text.trim(),
-        countryId: _selectedCountryId!,
-        cityId: _selectedCityId!,
+      await _ctrl.createPortfolioStep1(
+        portfolioType: assetType.portfolioType,
+        portfolioName: portfolioName,
+        countryId: _ctrl.draftCountryId.value!,
+        cityId: _ctrl.draftCityId.value!,
       );
 
-      // Navegar a Step 2 (controller ya tiene portfolioId)
       if (mounted) {
         Get.toNamed(Routes.createPortfolioStep2);
       }
@@ -107,217 +120,205 @@ class _CreatePortfolioStep1PageState extends State<CreatePortfolioStep1Page> {
     }
   }
 
+  /// Actualiza el tipo en el draft y fuerza rebuild (canContinue depende de él).
+  void _onAssetTypeChanged(AssetType type) {
+    _ctrl.selectedAssetType.value = type;
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
+    // Leer del draft para inicializar los dropdowns localmente.
+    // Los dropdowns de Material requieren estado local para funcionar.
+    final countryId = _ctrl.draftCountryId.value;
+    final cityId = _ctrl.draftCityId.value;
+
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Registrar activo'),
-            Text(
-              'Paso 1 de 2',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            MediaQuery.of(context).padding.bottom + AppSpacing.xl,
+          ),
           children: [
-            // Título
+            // ── Encabezado ─────────────────────────────────────────────
+            Text(
+              'Registrar activo',
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Paso 1 de 2',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: cs.onSurfaceVariant,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // ── Sección: Información básica ────────────────────────────
             Text(
               'Información básica',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               'Se creará un portafolio para organizar tus activos.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: cs.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
 
-            // Tipo de Activo (readonly si viene preseleccionado)
+            // ── Tipo de activo ─────────────────────────────────────────
             Text(
               'Tipo de activo',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 12),
-            _buildAssetTypeDisplay(theme, cs),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Selecciona el tipo de activo que deseas registrar.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
 
-            // Nombre del Portafolio
+            // Usa el widget existente del proyecto (selectors/).
+            // selected: null → muestra placeholder hasta que el usuario elige.
+            // enabled: false cuando hay preselección (no debe poder cambiarlo).
+            AssetTypeSelector(
+              selected: _ctrl.selectedAssetType.value,
+              onChanged: _onAssetTypeChanged,
+              enabled: !_isTypePreselected,
+              subtitle: 'Categoría del activo a registrar',
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // ── Nombre del portafolio ──────────────────────────────────
             TextFormField(
               controller: _nameController,
               decoration: InputDecoration(
-                labelText: 'Nombre del portafolio *',
-                hintText: _assetType.suggestedPortfolioName,
+                labelText: 'Nombre del portafolio',
+                // Sugerencia dinámica: cambia con el tipo de activo.
+                hintText: _ctrl.selectedAssetType.value?.suggestedPortfolioName
+                    ?? 'Nombre del portafolio',
                 border: const OutlineInputBorder(),
-                helperText: 'Puedes personalizarlo como desees',
+                helperText: 'Puedes personalizarlo si lo deseas.',
+                constraints: const BoxConstraints(minHeight: 56),
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'El nombre es obligatorio';
-                }
-                return null;
-              },
-              onChanged: (_) => setState(() {}),
+              // onChange se maneja via listener en initState.
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.md),
 
-            // País
+            // ── País ───────────────────────────────────────────────────
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(
                 labelText: 'País *',
                 border: OutlineInputBorder(),
+                constraints: BoxConstraints(minHeight: 56),
               ),
-              value: _selectedCountryId,
+              value: countryId,
               items: const [
                 DropdownMenuItem(value: 'CO', child: Text('Colombia')),
                 DropdownMenuItem(value: 'MX', child: Text('México')),
               ],
               onChanged: (value) {
-                setState(() {
-                  _selectedCountryId = value;
-                  _selectedCityId = null; // reset city
-                });
+                _ctrl.draftCountryId.value = value;
+                _ctrl.draftCityId.value = null; // reset ciudad al cambiar país
+                setState(() {});
               },
               validator: (value) {
                 if (value == null) return 'Selecciona un país';
                 return null;
               },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.md),
 
-            // Ciudad
+            // ── Ciudad ─────────────────────────────────────────────────
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(
                 labelText: 'Ciudad *',
                 border: OutlineInputBorder(),
+                constraints: BoxConstraints(minHeight: 56),
               ),
-              value: _selectedCityId,
-              items: _selectedCountryId == 'CO'
+              value: cityId,
+              items: countryId == 'CO'
                   ? const [
                       DropdownMenuItem(value: 'BOG', child: Text('Bogotá')),
                       DropdownMenuItem(value: 'MED', child: Text('Medellín')),
                     ]
-                  : _selectedCountryId == 'MX'
+                  : countryId == 'MX'
                       ? const [
-                          DropdownMenuItem(value: 'CDMX', child: Text('CDMX')),
+                          DropdownMenuItem(
+                              value: 'CDMX', child: Text('CDMX')),
                           DropdownMenuItem(
                               value: 'GDL', child: Text('Guadalajara')),
                         ]
                       : null,
-              onChanged: (value) {
-                setState(() => _selectedCityId = value);
-              },
+              onChanged: countryId == null
+                  ? null
+                  : (value) {
+                      _ctrl.draftCityId.value = value;
+                      setState(() {});
+                    },
               validator: (value) {
                 if (value == null) return 'Selecciona una ciudad';
                 return null;
               },
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.xl),
 
-            // Botón Continuar
-            Obx(() => FilledButton(
-                  onPressed: _canContinue && !_controller.isLoading.value
-                      ? _handleContinue
-                      : null,
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+            // ── Botón Continuar ────────────────────────────────────────
+            Obx(() {
+              final canGo = _ctrl.selectedAssetType.value != null &&
+                  _ctrl.draftCountryId.value != null &&
+                  _ctrl.draftCityId.value != null &&
+                  !_ctrl.isLoading.value;
+
+              return FilledButton(
+                onPressed: canGo ? _handleContinue : null,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 52),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  child: _controller.isLoading.value
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Continuar'),
-                )),
+                ),
+                child: _ctrl.isLoading.value
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text(
+                        'Continuar',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+              );
+            }),
           ],
         ),
       ),
-    );
-  }
-
-  /// Muestra el tipo de activo seleccionado.
-  /// Si viene preseleccionado: chip único readonly (disabled).
-  /// Si NO viene preseleccionado: selector interactivo.
-  Widget _buildAssetTypeDisplay(ThemeData theme, ColorScheme cs) {
-    if (_isTypePreselected) {
-      // READONLY: Chip único, no interactivo
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: cs.outline.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              _assetType.icon,
-              color: cs.primary,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              _assetType.displayName,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: cs.onSurface,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.lock_outline,
-              color: cs.onSurfaceVariant,
-              size: 16,
-            ),
-          ],
-        ),
-      );
-    }
-
-    // INTERACTIVO: Permite selección (caso raro, no debería ocurrir)
-    return Wrap(
-      spacing: 12,
-      children: AssetType.values.map((type) {
-        final isSelected = _assetType == type;
-        return ChoiceChip(
-          label: Text(type.displayName),
-          avatar: Icon(type.icon, size: 18),
-          selected: isSelected,
-          onSelected: (selected) {
-            if (selected) {
-              setState(() {
-                _assetType = type;
-                _portfolioType = type.portfolioType;
-                // Actualizar nombre sugerido si no fue modificado
-                if (_nameController.text == _assetType.suggestedPortfolioName ||
-                    _nameController.text.isEmpty) {
-                  _nameController.text = type.suggestedPortfolioName;
-                }
-              });
-              HapticFeedback.selectionClick();
-            }
-          },
-        );
-      }).toList(),
     );
   }
 }

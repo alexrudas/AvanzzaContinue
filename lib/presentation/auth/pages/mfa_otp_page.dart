@@ -43,7 +43,7 @@ class _MfaOtpPageState extends State<MfaOtpPage> {
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: () async {
-                final uid = await _ctrl.verifyMfa(_codeCtrl.text.trim());
+                await _ctrl.verifyMfa(_codeCtrl.text.trim());
                 if (mounted) Get.offAllNamed('/home');
               },
               child: const Text('Verificar'),

@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-import '../../../../core/di/container.dart';
+import 'package:avanzza/core/platform/offline_sync_service.dart';
 import '../../session_context_controller.dart' as scc;
 
 class OwnerContractsController extends GetxController {
@@ -12,7 +12,7 @@ class OwnerContractsController extends GetxController {
     final session = Get.find<scc.SessionContextController>();
     final orgId = session.user?.activeContext?.orgId;
     _loadLocal(orgId);
-    DIContainer().syncService.sync();
+    Get.find<OfflineSyncService>().sync();
   }
 
   Future<void> _loadLocal(String? orgId) async {

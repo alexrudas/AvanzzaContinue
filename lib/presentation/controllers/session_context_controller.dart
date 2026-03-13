@@ -1,4 +1,21 @@
-// lib\presentation\controllers\session_context_controller.dart
+// ============================================================================
+// lib/presentation/controllers/session_context_controller.dart
+// QUÉ HACE:
+// - Gestiona el estado de sesión del usuario autenticado (UserEntity + memberships).
+// - Expone HydrationState como fuente de verdad para routing en bootstrap.
+// - Hidratación atómica Isar-only (< 200ms, cero red) antes de iniciar streams.
+// - Single-flight init: previene doble-init de Bootstrap + AuthStateObserver.
+// QUÉ NO HACE:
+// - No navega ni decide rutas (eso es responsabilidad de SplashBootstrapController).
+// - No toca RuntService, RuntRepository, ni lógica de registro.
+// PRINCIPIOS:
+// - A2: emit null del watcher NO sobrescribe perfil hidratado desde Isar.
+// - Isar falla → hydrationState=authOkProfileUnknown (nunca Empty por error).
+// - authOkProfileEmpty SOLO si Isar respondió OK y UserModel no existe.
+// ENTERPRISE NOTES:
+// - _initUid / _initializedUid / _initFuture: guards del single-flight.
+// - _streamsActive: true solo tras _doInit() completado exitosamente.
+// ============================================================================
 
 import 'dart:async';
 
@@ -21,6 +38,8 @@ import '../../domain/repositories/user_repository.dart';
 import '../../routes/app_pages.dart';
 import '../../services/telemetry/telemetry_service.dart';
 import 'workspace_controller.dart';
+
+enum HydrationState { authNone, authOkProfileUnknown, authOkProfileEmpty, authOkProfileReady }
 
 /// SessionContextController
 /// - Loads and observes the current user and memberships
@@ -60,31 +79,72 @@ class SessionContextController extends GetxController {
   StreamSubscription<List<MembershipEntity>>? _mbrSub;
   StreamSubscription<bool>? _connectivitySub;
 
-  Future<void> init(String uid) async {
-    debugPrint('[SessionContext] Inicializando con uid: $uid');
+  // Hydration state: source of truth for bootstrap routing
+  final Rx<HydrationState> hydrationState = Rx<HydrationState>(HydrationState.authNone);
 
+  // Single-flight init guards (prevents double-init race from Bootstrap + AuthStateObserver)
+  String? _initUid;
+  String? _initializedUid;
+  Future<void>? _initFuture;
+  bool _streamsActive = false;
+
+  Future<void> init(String uid) async {
+    // Single-flight: si ya estamos inicializando este uid, esperar mismo future
+    if (_initUid == uid && _initFuture != null) {
+      debugPrint('[SessionContext] init($uid) single-flight: awaiting in-progress future');
+      return _initFuture!;
+    }
+    // Si ya está completamente inicializado para este uid, no hacer nada
+    if (_initializedUid == uid && _streamsActive) {
+      debugPrint('[SessionContext] init($uid) ya inicializado, skipping');
+      return;
+    }
+    _initUid = uid;
+    _initFuture = _doInit(uid);
+    try {
+      await _initFuture!;
+    } finally {
+      _initFuture = null;
+    }
+  }
+
+  Future<void> _doInit(String uid) async {
+    debugPrint('[SessionContext] _doInit uid=$uid');
     _userSub?.cancel();
     _mbrSub?.cancel();
+    _connectivitySub?.cancel();
+    _connectivitySub = null;
+    _streamsActive = false;
 
-    // OFFLINE-FIRST: Cargar sesión desde cache local primero (respuesta inmediata)
+    // Marcar perfil como desconocido hasta completar hidratación
+    hydrationState.value = HydrationState.authOkProfileUnknown;
+
+    // ATOMIC HYDRATION: Isar-only, zero network, < 200ms
+    // T2: Isar error → queda Unknown; Empty SOLO si Isar OK y modelo no existe.
     try {
-      final isarSession =
-          DIContainer().isar.isOpen ? IsarSessionDS(DIContainer().isar) : null;
-
-      if (isarSession != null) {
-        final cachedSession = await isarSession.getSession(uid);
-        if (cachedSession != null) {
-          debugPrint('[SessionContext] Sesión cargada desde cache local');
-          // La sesión básica está cargada, los datos completos vendrán del stream
-        }
+      final localUser = await _getLocalUserOnly(uid);
+      if (localUser != null) {
+        _user.value = localUser;
+        hydrationState.value = HydrationState.authOkProfileReady;
+        debugPrint('[SessionContext] Hydration: perfil local encontrado → authOkProfileReady');
+      } else {
+        hydrationState.value = HydrationState.authOkProfileEmpty;
+        debugPrint('[SessionContext] Hydration: sin perfil local → authOkProfileEmpty');
       }
     } catch (e) {
-      debugPrint('[SessionContext] Error al cargar sesión desde cache: $e');
+      // Isar inaccesible: mantener Unknown; bootstrap rutea S1 conservador.
+      debugPrint('[SessionContext] Hydration: Isar error → authOkProfileUnknown ($e)');
     }
 
     // Iniciar streams para observar cambios en tiempo real
     _userSub = userRepository.watchUser(uid).listen((u) {
+      // T1/A2: null emit NO sobrescribe perfil ya hidratado desde Isar.
+      if (u == null) {
+        debugPrint('[SessionContext] watchUser: null emit ignorado (hydrationState=${hydrationState.value})');
+        return;
+      }
       _user.value = u;
+      hydrationState.value = HydrationState.authOkProfileReady;
       _rebuildAccessContext();
       // PERSISTIR: Guardar sesión actualizada en cache local
       _persistSession(uid);
@@ -103,7 +163,16 @@ class SessionContextController extends GetxController {
       _rebuildAccessContext();
     });
 
+    _initializedUid = uid;
+    _streamsActive = true;
     debugPrint('[SessionContext] Streams iniciados correctamente');
+  }
+
+  // T2: NO atrapa excepción — lanza para que _doInit distinga Empty vs Unknown.
+  Future<UserEntity?> _getLocalUserOnly(String uid) async {
+    if (!DIContainer().isar.isOpen) throw StateError('Isar not open');
+    final model = await DIContainer().userLocal.getUser(uid);
+    return model?.toEntity();
   }
 
   /// Persistir sesión actual en Isar para acceso offline
@@ -463,6 +532,27 @@ class SessionContextController extends GetxController {
       contract: null, // No org contract in this controller — factory uses defaultRestricted()
       isOnline: _connectivity?.isOnline ?? false,
     );
+  }
+
+  /// Limpia el estado de sesión al hacer logout sin remover el controller del DI.
+  /// Usar en lugar de onClose() cuando el controller es permanent: true.
+  void resetForLogout() {
+    _userSub?.cancel();
+    _mbrSub?.cancel();
+    _connectivitySub?.cancel();
+    _userSub = null;
+    _mbrSub = null;
+    _connectivitySub = null;
+    _user.value = null;
+    _memberships.clear();
+    accessContext.value = null;
+    membershipsVersion.value = 0;
+    _isRemovingWorkspace = false;
+    hydrationState.value = HydrationState.authNone;
+    _initUid = null;
+    _initializedUid = null;
+    _initFuture = null;
+    _streamsActive = false;
   }
 
   @override

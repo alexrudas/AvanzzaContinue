@@ -6,26 +6,13 @@ import 'auth_method_button.dart';
 
 /// FederatedAuthButtons - Grupo de botones para auth federada
 ///
-/// Incluye botones para:
-/// - Google Sign-In
-/// - Apple Sign-In
-/// - Facebook Sign-In
-/// - Email/Password (opcional)
+/// Métodos disponibles:
+/// - Google Sign-In (funcional)
+/// - Apple / Facebook: placeholder "Próximamente"
 ///
-/// Características UI PRO 2025:
-/// - Layout vertical con spacing consistente
-/// - Logos oficiales de cada proveedor
-/// - Animaciones fluidas
-/// - Feedback visual claro
+/// Email/password eliminado del flujo principal (ver AuthWelcomePage → Routes.phone).
 class FederatedAuthButtons extends StatelessWidget {
-  final bool showEmailPassword;
-  final VoidCallback? onEmailPasswordTap;
-
-  const FederatedAuthButtons({
-    super.key,
-    this.showEmailPassword = true,
-    this.onEmailPasswordTap,
-  });
+  const FederatedAuthButtons({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +22,7 @@ class FederatedAuthButtons extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Google Sign-In
+        // Google Sign-In (funcional)
         Obx(() => AuthMethodButton(
               label: 'Continuar con Google',
               icon: const Icon(
@@ -50,81 +37,84 @@ class FederatedAuthButtons extends StatelessWidget {
 
         const SizedBox(height: 12),
 
-        // Apple Sign-In
-        Obx(() => AuthMethodButton(
-              label: 'Continuar con Apple',
-              icon: const Icon(
-                Icons.apple,
-                color: Colors.black,
-                size: 24,
-              ),
-              onPressed: controller.signInWithApple,
-              isLoading: controller.isLoading.value &&
-                  controller.selectedAuthMethod.value == 'apple',
-            )),
+        // Apple Sign-In (próximamente)
+        _ComingSoonMethodButton(
+          label: 'Continuar con Apple',
+          icon: const Icon(Icons.apple, color: Colors.black, size: 24),
+          theme: theme,
+        ),
 
         const SizedBox(height: 12),
 
-        // Facebook Sign-In
-        Obx(() => AuthMethodButton(
-              label: 'Continuar con Facebook',
-              icon: const Icon(
-                Icons.facebook,
-                color: Color(0xFF1877F2), // Facebook blue
-                size: 24,
-              ),
-              onPressed: controller.signInWithFacebook,
-              isLoading: controller.isLoading.value &&
-                  controller.selectedAuthMethod.value == 'facebook',
-            )),
-
-        // Divider "O"
-        if (showEmailPassword) ...[
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: Divider(
-                  color: theme.colorScheme.outlineVariant,
-                  thickness: 1,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'O',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Divider(
-                  color: theme.colorScheme.outlineVariant,
-                  thickness: 1,
-                ),
-              ),
-            ],
+        // Facebook Sign-In (próximamente)
+        _ComingSoonMethodButton(
+          label: 'Continuar con Facebook',
+          icon: const Icon(
+            Icons.facebook,
+            color: Color(0xFF1877F2), // Facebook blue
+            size: 24,
           ),
-          const SizedBox(height: 24),
-
-          // Email/Password
-          Obx(() => AuthMethodButton(
-                label: 'Continuar con Email',
-                icon: Icon(
-                  Icons.email_outlined,
-                  color: theme.colorScheme.primary,
-                  size: 24,
-                ),
-                onPressed: onEmailPasswordTap ?? () {},
-                isLoading: controller.isLoading.value &&
-                    controller.selectedAuthMethod.value == 'email-password',
-                isOutlined: false,
-                backgroundColor: theme.colorScheme.primaryContainer,
-                textColor: theme.colorScheme.onPrimaryContainer,
-              )),
-        ],
+          theme: theme,
+        ),
       ],
+    );
+  }
+}
+
+/// Botón de método de auth no disponible aún.
+/// Muestra badge "Próximamente" y SnackBar informativo al presionar.
+class _ComingSoonMethodButton extends StatelessWidget {
+  final String label;
+  final Widget icon;
+  final ThemeData theme;
+
+  const _ComingSoonMethodButton({
+    required this.label,
+    required this.icon,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = theme.colorScheme;
+
+    return OutlinedButton.icon(
+      onPressed: () {
+        Get.snackbar(
+          'Próximamente',
+          'Este método de acceso estará disponible pronto.',
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+          borderRadius: 12,
+          duration: const Duration(seconds: 2),
+        );
+      },
+      icon: icon,
+      label: Row(
+        children: [
+          Expanded(child: Text(label)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              'Próximamente',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: cs.onSurfaceVariant,
+                fontSize: 10,
+              ),
+            ),
+          ),
+        ],
+      ),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(double.infinity, 52),
+        foregroundColor: cs.onSurface.withValues(alpha: 0.5),
+        side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 }

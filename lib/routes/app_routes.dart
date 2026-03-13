@@ -39,6 +39,12 @@ abstract class Routes {
   // ══════════════════════════════════════════════════════════════════════════
   // CORE / HOME
   // ══════════════════════════════════════════════════════════════════════════
+
+  /// Ruta inicial de la app. SplashBootstrapController decide el destino real.
+  /// S0→welcome | S1→registerUsername | S2→createPortfolioStep1 | S3→WorkspaceShell
+  static const splash = _Paths.splash;
+
+  /// Re-routing post-workspace-delete (usado por SessionContextController).
   static const home = _Paths.home;
   static const orgSelect = _Paths.orgSelect;
 
@@ -70,6 +76,8 @@ abstract class Routes {
   // ══════════════════════════════════════════════════════════════════════════
   static const createPortfolioStep1 = _Paths.createPortfolioStep1;
   static const createPortfolioStep2 = _Paths.createPortfolioStep2;
+  static const runtQueryProgress = _Paths.runtQueryProgress;
+  static const runtQueryResult = _Paths.runtQueryResult;
 
   // ══════════════════════════════════════════════════════════════════════════
   // DEMO / DESARROLLO
@@ -102,6 +110,7 @@ abstract class _Paths {
   static const providerCoverage = '/auth/provider/coverage';
 
   // Core
+  static const splash = '/splash';
   static const home = '/home';
   static const orgSelect = '/org_select';
 
@@ -125,6 +134,8 @@ abstract class _Paths {
   // Portfolio / Wizard
   static const createPortfolioStep1 = '/portfolio/create/step1';
   static const createPortfolioStep2 = '/portfolio/create/step2';
+  static const runtQueryProgress = '/portfolio/create/runt/progress';
+  static const runtQueryResult = '/portfolio/create/runt/result';
 
   // Demo
   static const bottomNavDemo = '/demo/bottom-nav';

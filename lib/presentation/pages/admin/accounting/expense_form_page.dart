@@ -1,17 +1,37 @@
-// lib/presentation/accounting/expense_form_page.dart
 // ============================================================================
-// NUEVO GASTO — Avanzza 2.0 (UI PRO 2025 + lógica optimizada)
+// lib/presentation/pages/admin/accounting/expense_form_page.dart
+// NUEVO GASTO — Enterprise Ultra Pro (Presentation / Pages)
+//
+// QUÉ HACE:
+// - Formulario de registro de gastos con items, métodos de pago y destinatario.
+// - Usa ReactiveTextField para campos de texto con binding GetX (RxString).
+//
+// QUÉ NO HACE:
+// - NO persiste datos (solo UI de captura).
+// - NO define su propio widget de texto (usa ReactiveTextField compartido).
+//
+// NOTAS:
+// - _ModernTextField eliminado: reemplazado por ReactiveTextField público.
 // ============================================================================
 
 import 'package:avanzza/domain/shared/enums/asset_type.dart';
+import 'package:avanzza/presentation/widgets/forms/reactive_text_field.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
+
+const _uuid = Uuid();
 
 // ------------------------- Utilidades formato --------------------------------
 final _money =
     NumberFormat.currency(locale: 'es_CO', symbol: r'$ ', decimalDigits: 0);
+
+double _parseMoney(String input) {
+  final digits = input.replaceAll(RegExp(r'[^\d]'), '');
+  return digits.isEmpty ? 0 : (double.tryParse(digits) ?? 0);
+}
 
 // ------------------------------- MODELOS -------------------------------------
 enum ExpenseType {
@@ -29,12 +49,15 @@ enum PaymentMethod { efectivo, transferencia, debito, credito, cheque, otro }
 
 class ExpenseItem {
   ExpenseItem({
+    String? id, // <- NUEVO
     this.concepto = '',
     this.vrUnit = 0,
     this.cantidad = 1,
     this.deducible = true,
     this.capitalizable = false,
-  });
+  }) : id = id ?? _uuid.v4();
+
+  final String id;
   String concepto;
   double vrUnit;
   int cantidad;
@@ -45,6 +68,7 @@ class ExpenseItem {
 
 class PaymentSplit {
   PaymentSplit({
+    String? id, // <- NUEVO
     this.method = PaymentMethod.efectivo,
     this.monto = 0,
     this.banco,
@@ -54,7 +78,9 @@ class PaymentSplit {
     this.costoFinanciero,
     this.primerVencimiento,
     this.nota,
-  });
+  }) : id = id ?? _uuid.v4();
+
+  final String id;
   PaymentMethod method;
   double monto;
   String? banco;
@@ -84,12 +110,10 @@ class ExpenseFormController extends GetxController {
   final items = <ExpenseItem>[ExpenseItem()].obs;
   void addItem() {
     items.add(ExpenseItem());
-    update();
   }
 
   void removeItem(int index) {
     if (items.length > 1) items.removeAt(index);
-    update();
   }
 
   double get totalItems =>
@@ -99,12 +123,10 @@ class ExpenseFormController extends GetxController {
   final pagos = <PaymentSplit>[PaymentSplit()].obs;
   void addPago() {
     pagos.add(PaymentSplit());
-    update();
   }
 
   void removePago(int index) {
     if (pagos.length > 1) pagos.removeAt(index);
-    update();
   }
 
   double get totalPagos =>
@@ -198,7 +220,7 @@ class ExpenseFormPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -224,8 +246,8 @@ class ExpenseFormPage extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFF667eea).withOpacity(0.1),
-                  const Color(0xFF764ba2).withOpacity(0.1),
+                  const Color(0xFF667eea).withValues(alpha: 0.1),
+                  const Color(0xFF764ba2).withValues(alpha: 0.1),
                 ],
               ),
             ),
@@ -268,7 +290,7 @@ class ExpenseFormPage extends StatelessWidget {
                                 boxShadow: [
                                   BoxShadow(
                                     color: const Color(0xFF667eea)
-                                        .withOpacity(0.3),
+                                        .withValues(alpha: 0.3),
                                     blurRadius: 15,
                                     offset: const Offset(0, 5),
                                   ),
@@ -303,7 +325,6 @@ class ExpenseFormPage extends StatelessWidget {
                       ModernSection(
                         title: '💰 Gasto Total',
                         trailing: Obx(() {
-                          final touch = c.items.length;
                           return Container(
                             alignment: Alignment.centerLeft,
                             height: 50,
@@ -317,7 +338,7 @@ class ExpenseFormPage extends StatelessWidget {
                               boxShadow: [
                                 BoxShadow(
                                   color:
-                                      const Color(0xFF667eea).withOpacity(0.3),
+                                      const Color(0xFF667eea).withValues(alpha: 0.3),
                                   blurRadius: 15,
                                   offset: const Offset(0, 5),
                                 ),
@@ -339,11 +360,14 @@ class ExpenseFormPage extends StatelessWidget {
                             const Text('Detalle del Gasto'),
                             const SizedBox(height: 16),
                             Obx(() {
-                              final touch = c.items.length;
                               return Column(
                                 children: [
                                   for (int i = 0; i < c.items.length; i++)
-                                    _ModernItemCard(index: i, c: c),
+                                    _ModernItemCard(
+                                        key: ValueKey(c.items[i].id),
+                                        itemId: c.items[i].id,
+                                        visualIndex: i,
+                                        c: c),
                                 ],
                               );
                             }),
@@ -361,14 +385,14 @@ class ExpenseFormPage extends StatelessWidget {
                         title: '👤 Destinatario',
                         child: Column(
                           children: [
-                            _ModernTextField(
+                            ReactiveTextField(
                               label: 'Persona / Organización',
                               hint: 'Ej. Transporte López',
                               value: c.destinatario,
                               icon: Icons.business_outlined,
                             ),
                             const SizedBox(height: 16),
-                            _ModernTextField(
+                            ReactiveTextField(
                               label: 'NIT / CC',
                               hint: '123456789-0',
                               value: c.nit,
@@ -376,7 +400,7 @@ class ExpenseFormPage extends StatelessWidget {
                               keyboardType: TextInputType.number,
                             ),
                             const SizedBox(width: 12),
-                            _ModernTextField(
+                            ReactiveTextField(
                               label: 'Dirección',
                               hint: 'Calle 123 #45-67',
                               value: c.direccion,
@@ -389,7 +413,6 @@ class ExpenseFormPage extends StatelessWidget {
                       ModernSection(
                         title: '💳 Métodos de Pago',
                         trailing: Obx(() {
-                          final touch = c.pagos.length;
                           return Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
@@ -412,11 +435,14 @@ class ExpenseFormPage extends StatelessWidget {
                         child: Column(
                           children: [
                             Obx(() {
-                              final touch = c.pagos.length;
                               return Column(
                                 children: [
                                   for (int i = 0; i < c.pagos.length; i++)
-                                    _ModernPagoCard(index: i, c: c),
+                                    _ModernPagoCard(
+                                        key: ValueKey(c.pagos[i].id),
+                                        pagoId: c.pagos[i].id,
+                                        visualIndex: i,
+                                        c: c),
                                 ],
                               );
                             }),
@@ -476,7 +502,8 @@ class ExpenseFormPage extends StatelessWidget {
 // ========================= MODERN WIDGETS ====================================
 
 class ModernSection extends StatelessWidget {
-  const ModernSection({super.key, 
+  const ModernSection({
+    super.key,
     required this.title,
     required this.child,
     this.trailing,
@@ -496,7 +523,7 @@ class ModernSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -534,68 +561,6 @@ class ModernSection extends StatelessWidget {
           child,
         ],
       ),
-    );
-  }
-}
-
-class _ModernTextField extends StatelessWidget {
-  const _ModernTextField({
-    required this.label,
-    required this.hint,
-    required this.value,
-    required this.icon,
-    this.keyboardType,
-  });
-
-  final String label;
-  final String hint;
-  final RxString value;
-  final IconData icon;
-  final TextInputType? keyboardType;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF374151),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF3F4F6),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
-          ),
-          child: Row(
-            children: [
-              const SizedBox(width: 16),
-              Icon(icon, color: const Color(0xFF9CA3AF), size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextFormField(
-                  initialValue: value.value,
-                  keyboardType: keyboardType,
-                  onChanged: (v) => value.value = v,
-                  style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w500),
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: hint,
-                    hintStyle: const TextStyle(color: Color(0xFFD1D5DB)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
@@ -826,7 +791,7 @@ class _ModernCentroCostoField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() => _ModernTextField(
+    return Obx(() => ReactiveTextField(
           label: 'Centro de Costo',
           hint: 'Ej. Operaciones',
           value: c.centroCosto,
@@ -835,18 +800,90 @@ class _ModernCentroCostoField extends StatelessWidget {
   }
 }
 
-class _ModernItemCard extends StatelessWidget {
-  const _ModernItemCard({required this.index, required this.c});
-  final int index;
+class _ModernItemCard extends StatefulWidget {
+  const _ModernItemCard({
+    super.key,
+    required this.itemId,
+    required this.visualIndex,
+    required this.c,
+  });
+  final String itemId;
+  final int visualIndex;
   final ExpenseFormController c;
 
   @override
-  Widget build(BuildContext context) {
-    final item = c.items[index];
-    final conceptCtrl = TextEditingController(text: item.concepto);
-    final vrCtrl = TextEditingController(
+  State<_ModernItemCard> createState() => _ModernItemCardState();
+}
+
+class _ModernItemCardState extends State<_ModernItemCard> {
+  late TextEditingController conceptCtrl;
+  late TextEditingController vrCtrl;
+  late TextEditingController qtyCtrl;
+  late final FocusNode conceptFocus;
+  late final FocusNode vrFocus;
+  late final FocusNode qtyFocus;
+
+  ExpenseItem? get _itemOrNull {
+    final i = widget.c.items.indexWhere((e) => e.id == widget.itemId);
+    return i >= 0 ? widget.c.items[i] : null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final item = _itemOrNull!; // seguro: widget creado con itemId válido
+    conceptCtrl = TextEditingController(text: item.concepto);
+    vrCtrl = TextEditingController(
         text: item.vrUnit > 0 ? item.vrUnit.toStringAsFixed(0) : '');
-    final qtyCtrl = TextEditingController(text: item.cantidad.toString());
+    qtyCtrl = TextEditingController(text: item.cantidad.toString());
+    conceptFocus = FocusNode();
+    vrFocus = FocusNode();
+    qtyFocus = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(_ModernItemCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final item = _itemOrNull;
+    if (item == null) return;
+
+    // ID cambió: el item referenciado es otro → reinicializa sin pisar foco.
+    if (oldWidget.itemId != widget.itemId) {
+      if (!conceptFocus.hasFocus) conceptCtrl.text = item.concepto;
+      if (!vrFocus.hasFocus)
+        vrCtrl.text = item.vrUnit > 0 ? item.vrUnit.toStringAsFixed(0) : '';
+      if (!qtyFocus.hasFocus) qtyCtrl.text = item.cantidad.toString();
+      return;
+    }
+
+    // Sync conservador: solo actualiza si el campo NO tiene foco.
+    // Evita pisar cursor/selección mientras el usuario escribe.
+    final newConcepto = item.concepto;
+    if (!conceptFocus.hasFocus && conceptCtrl.text != newConcepto)
+      conceptCtrl.text = newConcepto;
+
+    final newVr = item.vrUnit > 0 ? item.vrUnit.toStringAsFixed(0) : '';
+    if (!vrFocus.hasFocus && vrCtrl.text != newVr) vrCtrl.text = newVr;
+
+    final newQty = item.cantidad.toString();
+    if (!qtyFocus.hasFocus && qtyCtrl.text != newQty) qtyCtrl.text = newQty;
+  }
+
+  @override
+  void dispose() {
+    conceptCtrl.dispose();
+    vrCtrl.dispose();
+    qtyCtrl.dispose();
+    conceptFocus.dispose();
+    vrFocus.dispose();
+    qtyFocus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final item = _itemOrNull;
+    if (item == null) return const SizedBox.shrink();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -854,8 +891,8 @@ class _ModernItemCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFF667eea).withOpacity(0.05),
-            const Color(0xFF764ba2).withOpacity(0.05),
+            const Color(0xFF667eea).withValues(alpha: 0.05),
+            const Color(0xFF764ba2).withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
@@ -874,7 +911,7 @@ class _ModernItemCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  '${index + 1}',
+                  '${widget.visualIndex + 1}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -885,7 +922,7 @@ class _ModernItemCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Ítem ${index + 1}',
+                  'Ítem ${widget.visualIndex + 1}',
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
@@ -893,11 +930,15 @@ class _ModernItemCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (c.items.length > 1)
+              if (widget.c.items.length > 1)
                 IconButton(
                   icon: const Icon(Icons.delete_outline,
                       color: Color(0xFFEF4444)),
-                  onPressed: () => c.removeItem(index),
+                  onPressed: () {
+                    final idx =
+                        widget.c.items.indexWhere((e) => e.id == widget.itemId);
+                    if (idx >= 0) widget.c.removeItem(idx);
+                  },
                   tooltip: 'Eliminar',
                 ),
             ],
@@ -905,15 +946,16 @@ class _ModernItemCard extends StatelessWidget {
           const SizedBox(height: 12),
           TextFormField(
             controller: conceptCtrl,
+            focusNode: conceptFocus,
             onChanged: (v) {
               item.concepto = v;
-              c.update();
+              widget.c.items.refresh();
             },
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
             maxLines: null,
             minLines: 1,
             keyboardType: TextInputType.multiline,
-            textCapitalization: TextCapitalization.sentences, // <- clave
+            textCapitalization: TextCapitalization.sentences,
             decoration: InputDecoration(
               labelText: 'Concepto',
               filled: true,
@@ -935,12 +977,11 @@ class _ModernItemCard extends StatelessWidget {
                 flex: 2,
                 child: TextFormField(
                   controller: vrCtrl,
+                  focusNode: vrFocus,
                   keyboardType: TextInputType.number,
                   onChanged: (v) {
-                    item.vrUnit = double.tryParse(
-                            v.replaceAll('.', '').replaceAll(',', '')) ??
-                        0;
-                    c.update();
+                    item.vrUnit = _parseMoney(v);
+                    widget.c.items.refresh();
                   },
                   style: const TextStyle(
                       fontSize: 15, fontWeight: FontWeight.w500),
@@ -963,10 +1004,11 @@ class _ModernItemCard extends StatelessWidget {
               Expanded(
                 child: TextFormField(
                   controller: qtyCtrl,
+                  focusNode: qtyFocus,
                   keyboardType: TextInputType.number,
                   onChanged: (v) {
                     item.cantidad = int.tryParse(v) ?? 1;
-                    c.update();
+                    widget.c.items.refresh();
                   },
                   style: const TextStyle(
                       fontSize: 15, fontWeight: FontWeight.w500),
@@ -994,7 +1036,7 @@ class _ModernItemCard extends StatelessWidget {
                       'Sub - Total',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Colors.black.withOpacity(0.8),
+                        color: Colors.black.withValues(alpha: 0.8),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1032,20 +1074,106 @@ class _ModernItemCard extends StatelessWidget {
   }
 }
 
-class _ModernPagoCard extends StatelessWidget {
-  const _ModernPagoCard({required this.index, required this.c});
-  final int index;
+class _ModernPagoCard extends StatefulWidget {
+  const _ModernPagoCard({
+    super.key,
+    required this.pagoId,
+    required this.visualIndex,
+    required this.c,
+  });
+  final String pagoId;
+  final int visualIndex;
   final ExpenseFormController c;
 
   @override
-  Widget build(BuildContext context) {
-    final p = c.pagos[index];
-    final montoCtrl = TextEditingController(
+  State<_ModernPagoCard> createState() => _ModernPagoCardState();
+}
+
+class _ModernPagoCardState extends State<_ModernPagoCard> {
+  late TextEditingController montoCtrl;
+  late TextEditingController bancoCtrl;
+  late TextEditingController refCtrl;
+  late TextEditingController cuotasCtrl;
+  late final FocusNode montoFocus;
+  late final FocusNode bancoFocus;
+  late final FocusNode refFocus;
+  late final FocusNode cuotasFocus;
+
+  PaymentSplit? get _pOrNull {
+    final i = widget.c.pagos.indexWhere((e) => e.id == widget.pagoId);
+    return i >= 0 ? widget.c.pagos[i] : null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final p = _pOrNull!; // seguro: widget creado con pagoId válido
+    montoCtrl = TextEditingController(
         text: p.monto > 0 ? p.monto.toStringAsFixed(0) : '');
-    final bancoCtrl = TextEditingController(text: p.banco ?? '');
-    final refCtrl = TextEditingController(text: p.referencia ?? '');
-    final last4Ctrl = TextEditingController(text: p.accountLast4 ?? '');
-    final cuotasCtrl = TextEditingController(text: p.cuotas?.toString() ?? '');
+    bancoCtrl = TextEditingController(text: p.banco ?? '');
+    refCtrl = TextEditingController(text: p.referencia ?? '');
+    cuotasCtrl = TextEditingController(text: p.cuotas?.toString() ?? '');
+    montoFocus = FocusNode();
+    bancoFocus = FocusNode();
+    refFocus = FocusNode();
+    cuotasFocus = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(_ModernPagoCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final p = _pOrNull;
+    if (p == null) return;
+
+    if (oldWidget.pagoId != widget.pagoId) {
+      if (!montoFocus.hasFocus) {
+        montoCtrl.text = p.monto > 0 ? p.monto.toStringAsFixed(0) : '';
+      }
+      if (!bancoFocus.hasFocus) {
+        bancoCtrl.text = p.banco ?? '';
+      }
+      if (!refFocus.hasFocus) {
+        refCtrl.text = p.referencia ?? '';
+      }
+      if (!cuotasFocus.hasFocus) {
+        cuotasCtrl.text = p.cuotas?.toString() ?? '';
+      }
+      return;
+    }
+
+    final newMonto = p.monto > 0 ? p.monto.toStringAsFixed(0) : '';
+    if (!montoFocus.hasFocus && montoCtrl.text != newMonto)
+      montoCtrl.text = newMonto;
+
+    final newBanco = p.banco ?? '';
+    if (!bancoFocus.hasFocus && bancoCtrl.text != newBanco)
+      bancoCtrl.text = newBanco;
+
+    final newRef = p.referencia ?? '';
+    if (!refFocus.hasFocus && refCtrl.text != newRef) refCtrl.text = newRef;
+
+    final newCuotas = p.cuotas?.toString() ?? '';
+    if (!cuotasFocus.hasFocus && cuotasCtrl.text != newCuotas)
+      cuotasCtrl.text = newCuotas;
+  }
+
+  @override
+  void dispose() {
+    montoCtrl.dispose();
+    bancoCtrl.dispose();
+    refCtrl.dispose();
+    cuotasCtrl.dispose();
+    montoFocus.dispose();
+    bancoFocus.dispose();
+    refFocus.dispose();
+    cuotasFocus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = _pOrNull;
+    if (p == null) return const SizedBox.shrink();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1053,8 +1181,8 @@ class _ModernPagoCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFF667eea).withOpacity(0.05),
-            const Color(0xFF764ba2).withOpacity(0.05),
+            const Color(0xFF667eea).withValues(alpha: 0.05),
+            const Color(0xFF764ba2).withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
@@ -1077,7 +1205,7 @@ class _ModernPagoCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Pago ${index + 1}',
+                  'Pago ${widget.visualIndex + 1}',
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
@@ -1085,11 +1213,15 @@ class _ModernPagoCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (c.pagos.length > 1)
+              if (widget.c.pagos.length > 1)
                 IconButton(
                   icon: const Icon(Icons.delete_outline,
                       color: Color(0xFFEF4444)),
-                  onPressed: () => c.removePago(index),
+                  onPressed: () {
+                    final idx =
+                        widget.c.pagos.indexWhere((e) => e.id == widget.pagoId);
+                    if (idx >= 0) widget.c.removePago(idx);
+                  },
                   tooltip: 'Eliminar',
                 ),
             ],
@@ -1122,7 +1254,7 @@ class _ModernPagoCard extends StatelessWidget {
                 onChanged: (v) {
                   if (v != null) {
                     p.method = v;
-                    c.update();
+                    widget.c.pagos.refresh();
                   }
                 },
               ),
@@ -1134,12 +1266,11 @@ class _ModernPagoCard extends StatelessWidget {
               Expanded(
                 child: TextFormField(
                   controller: montoCtrl,
+                  focusNode: montoFocus,
                   keyboardType: TextInputType.number,
                   onChanged: (v) {
-                    p.monto = double.tryParse(
-                            v.replaceAll('.', '').replaceAll(',', '')) ??
-                        0;
-                    c.update();
+                    p.monto = _parseMoney(v);
+                    widget.c.pagos.refresh();
                   },
                   style: const TextStyle(
                       fontSize: 15, fontWeight: FontWeight.w500),
@@ -1163,9 +1294,10 @@ class _ModernPagoCard extends StatelessWidget {
                 Expanded(
                   child: TextFormField(
                     controller: bancoCtrl,
+                    focusNode: bancoFocus,
                     onChanged: (v) {
                       p.banco = v;
-                      c.update();
+                      widget.c.pagos.refresh();
                     },
                     style: const TextStyle(
                         fontSize: 15, fontWeight: FontWeight.w500),
@@ -1193,9 +1325,10 @@ class _ModernPagoCard extends StatelessWidget {
               Expanded(
                 child: TextFormField(
                   controller: refCtrl,
+                  focusNode: refFocus,
                   onChanged: (v) {
                     p.referencia = v;
-                    c.update();
+                    widget.c.pagos.refresh();
                   },
                   style: const TextStyle(
                       fontSize: 15, fontWeight: FontWeight.w500),
@@ -1219,10 +1352,11 @@ class _ModernPagoCard extends StatelessWidget {
                 Expanded(
                   child: TextFormField(
                     controller: cuotasCtrl,
+                    focusNode: cuotasFocus,
                     keyboardType: TextInputType.number,
                     onChanged: (v) {
                       p.cuotas = int.tryParse(v);
-                      c.update();
+                      widget.c.pagos.refresh();
                     },
                     style: const TextStyle(
                         fontSize: 15, fontWeight: FontWeight.w500),
@@ -1268,7 +1402,8 @@ class _ModernPagoCard extends StatelessWidget {
 }
 
 class ModernAddButton extends StatelessWidget {
-  const ModernAddButton({super.key, 
+  const ModernAddButton({
+    super.key,
     required this.label,
     required this.icon,
     required this.onPressed,
@@ -1309,52 +1444,6 @@ class ModernAddButton extends StatelessWidget {
   }
 }
 
-class _ModernSwitch extends StatelessWidget {
-  const _ModernSwitch({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: value ? const Color(0xFF667eea).withOpacity(0.1) : Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: value ? const Color(0xFF667eea) : const Color(0xFFE5E7EB),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color:
-                    value ? const Color(0xFF667eea) : const Color(0xFF6B7280),
-              ),
-            ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: const Color(0xFF667eea),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class ModernCheckbox extends StatelessWidget {
   const ModernCheckbox({super.key, required this.label, required this.value});
 
@@ -1370,7 +1459,7 @@ class ModernCheckbox extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: value.value
-                  ? const Color(0xFF667eea).withOpacity(0.1)
+                  ? const Color(0xFF667eea).withValues(alpha: 0.1)
                   : Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
@@ -1425,7 +1514,8 @@ class ModernCheckbox extends StatelessWidget {
 }
 
 class BalanceCard extends StatelessWidget {
-  const BalanceCard({super.key, 
+  const BalanceCard({
+    super.key,
     required this.label,
     required this.amount,
     required this.isBalanced,
@@ -1450,7 +1540,7 @@ class BalanceCard extends StatelessWidget {
           BoxShadow(
             color:
                 (isBalanced ? const Color(0xFF10B981) : const Color(0xFFF59E0B))
-                    .withOpacity(0.3),
+                    .withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -1471,7 +1561,7 @@ class BalanceCard extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -1508,7 +1598,7 @@ class ModernSubmitButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF667eea).withOpacity(0.5),
+            color: const Color(0xFF667eea).withValues(alpha: 0.5),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),

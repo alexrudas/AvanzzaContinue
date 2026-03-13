@@ -1,23 +1,15 @@
 import 'package:get/get.dart';
-import '../../../../../core/di/container.dart';
-import '../../../../controllers/session_context_controller.dart';
+import 'package:avanzza/core/platform/offline_sync_service.dart';
 
 class ProviderServicesHomeController extends GetxController {
   final loading = true.obs;
   final RxnString error = RxnString();
 
-  String? _orgId;
-  String? _providerType;
-
   @override
   void onInit() {
     super.onInit();
-    final session = Get.find<SessionContextController>();
-    _orgId = session.user?.activeContext?.orgId;
-    _providerType = session.user?.activeContext?.providerType;
-
     _loadLocal();
-    DIContainer().syncService.sync();
+    Get.find<OfflineSyncService>().sync();
   }
 
   Future<void> _loadLocal() async {

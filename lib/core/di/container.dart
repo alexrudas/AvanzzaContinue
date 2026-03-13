@@ -1,12 +1,15 @@
 //lib\core\di\container.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/repositories/accounting_repository_impl.dart';
 import '../../data/repositories/ai_repository_impl.dart';
+import '../../data/repositories/asset_registration_draft_repository_impl.dart';
 import '../../data/repositories/asset_repository_impl.dart';
+
 import '../../data/repositories/catalog_repository_impl.dart';
 import '../../data/repositories/chat_repository_impl.dart';
 import '../../data/repositories/geo_repository_impl.dart';
@@ -22,6 +25,7 @@ import '../../data/repositories/workspace_repository_impl.dart';
 import '../../data/sources/local/accounting_local_ds.dart';
 import '../../data/sources/local/ai_local_ds.dart';
 import '../../data/sources/local/asset_local_ds.dart';
+import '../../data/sources/local/asset_registration_draft_local_ds.dart';
 import '../../data/sources/local/chat_local_ds.dart';
 import '../../data/sources/local/geo_local_ds.dart';
 import '../../data/sources/local/insurance_local_ds.dart';
@@ -50,6 +54,7 @@ import '../../domain/policies/payout_policy.dart';
 import '../../domain/policies/policy_context_factory.dart';
 import '../../domain/policies/policy_engine.dart';
 import '../../domain/repositories/accounting_repository.dart';
+import '../../domain/repositories/asset_registration_draft_repository.dart';
 import '../../domain/repositories/ai_repository.dart';
 import '../../domain/repositories/asset_repository.dart';
 import '../../domain/repositories/catalog_repository.dart';
@@ -102,6 +107,7 @@ class DIContainer {
   late final AILocalDataSource aiLocal;
   late final AIRemoteDataSource aiRemote;
   late final PortfolioLocalDataSource portfolioLocal;
+  late final AssetRegistrationDraftLocalDataSource assetRegistrationDraftLocal;
 
   // Repositories
   late final GeoRepository geoRepository;
@@ -118,6 +124,7 @@ class DIContainer {
   late final CatalogRepository catalogRepository;
   late final WorkspaceRepository workspaceRepository;
   late final PortfolioRepository portfolioRepository;
+  late final AssetRegistrationDraftRepository assetRegistrationDraftRepository;
 
   // Sync Engine V2
   late final SyncOutboxRepository syncOutboxRepository;
@@ -148,6 +155,9 @@ Future<void> initDI({
   c._isar = isar;
   c._firestore = firestore;
   c._syncService = OfflineSyncService();
+  if (!Get.isRegistered<OfflineSyncService>()) {
+    Get.put<OfflineSyncService>(c.syncService, permanent: true);
+  }
   c.connectivityService = connectivity;
 
   // Instantiate data sources
@@ -172,14 +182,19 @@ Future<void> initDI({
   c.aiLocal = AILocalDataSource(isar);
   c.aiRemote = AIRemoteDataSource(firestore);
   c.portfolioLocal = PortfolioLocalDataSource(isar);
+  c.assetRegistrationDraftLocal = AssetRegistrationDraftLocalDataSource(isar);
 
   // Instantiate repositories
   c.geoRepository = GeoRepositoryImpl(local: c.geoLocal, remote: c.geoRemote);
   c.orgRepository = OrgRepositoryImpl(local: c.orgLocal, remote: c.orgRemote);
   c.userRepository =
       UserRepositoryImpl(local: c.userLocal, remote: c.userRemote);
-  c.assetRepository =
-      AssetRepositoryImpl(local: c.assetLocal, remote: c.assetRemote);
+  c.assetRepository = AssetRepositoryImpl(
+    local: c.assetLocal,
+    remote: c.assetRemote,
+    enqueueSync: c.syncService.enqueue,
+    portfolioLocalDS: c.portfolioLocal,
+  );
   c.maintenanceRepository = MaintenanceRepositoryImpl(
       local: c.maintenanceLocal, remote: c.maintenanceRemote);
   c.purchaseRepository =
@@ -197,6 +212,9 @@ Future<void> initDI({
     prefsProvider: SharedPreferences.getInstance,
   );
   c.portfolioRepository = PortfolioRepositoryImpl(local: c.portfolioLocal);
+  c.assetRegistrationDraftRepository = AssetRegistrationDraftRepositoryImpl(
+    c.assetRegistrationDraftLocal,
+  );
 
   // Policy Layer (singletons)
   c.policyContextFactory = const DefaultPolicyContextFactory();

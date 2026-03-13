@@ -96,7 +96,7 @@ abstract class InteractionStates {
   InteractionStates._();
 
   /// Opacidad para estado hover (mouse sobre elemento interactivo).
-  /// Aplicar tinte sobre surface: Color.alphaBlend(tint.withOpacity(hoverOpacity), surface).
+  /// Aplicar tinte sobre surface: Color.alphaBlend(tint.withValues(alpha: hoverOpacity), surface).
   static const double hoverOpacity = 0.08;
 
   /// Opacidad para estado pressed (tap activo).
@@ -106,7 +106,7 @@ abstract class InteractionStates {
   static const double focusedOpacity = 0.12;
 
   /// Opacidad para estado disabled (elemento no interactivo).
-  /// Aplicar onSurface sobre surface: Color.alphaBlend(onSurface.withOpacity(disabledOpacity), surface).
+  /// Aplicar onSurface sobre surface: Color.alphaBlend(onSurface.withValues(alpha: disabledOpacity), surface).
   static const double disabledOpacity = 0.38;
 
   /// Opacidad para dividers y bordes sutiles.

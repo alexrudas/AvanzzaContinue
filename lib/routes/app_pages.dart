@@ -35,7 +35,10 @@ import '../presentation/auth/pages/summary_page.dart';
 import '../presentation/auth/pages/terms_page.dart';
 import '../presentation/auth/pages/username_password_page.dart';
 import '../presentation/bindings/home_binding.dart';
+import '../presentation/bindings/splash_binding.dart';
+import '../presentation/pages/splash/splash_bootstrap_page.dart';
 import '../presentation/bindings/runt/runt_binding.dart';
+import '../presentation/bindings/runt/runt_query_binding.dart';
 import '../presentation/bindings/simit/simit_binding.dart';
 import '../presentation/bindings/tenant_home_binding.dart';
 import '../presentation/home/pages/home_router.dart';
@@ -46,6 +49,8 @@ import '../presentation/pages/runt/runt_person_consult_page.dart';
 import '../presentation/pages/runt/runt_vehicle_consult_page.dart';
 import '../presentation/pages/portfolio/wizard/create_portfolio_step1_page.dart';
 import '../presentation/pages/portfolio/wizard/create_portfolio_step2_page.dart';
+import '../presentation/pages/portfolio/wizard/runt_query_progress_page.dart';
+import '../presentation/pages/portfolio/wizard/runt_query_result_page.dart';
 import '../presentation/pages/simit/simit_consult_page.dart';
 import '../presentation/pages/tenant/home/tenant_home_page.dart';
 import 'app_routes.dart';
@@ -57,9 +62,18 @@ export 'app_routes.dart';
 class AppPages {
   AppPages._();
 
-  static const initial = Routes.welcome;
+  static const initial = Routes.splash;
 
   static final pages = <GetPage<dynamic>>[
+    // ════════════════════════════════════════════════════════════════════════
+    // SPLASH — initialRoute: SplashBootstrapController decide el destino real
+    // ════════════════════════════════════════════════════════════════════════
+    GetPage(
+      name: Routes.splash,
+      page: () => const SplashBootstrapPage(),
+      binding: SplashBinding(),
+    ),
+
     // ════════════════════════════════════════════════════════════════════════
     // AUTH
     // ════════════════════════════════════════════════════════════════════════
@@ -170,10 +184,22 @@ class AppPages {
       name: Routes.createPortfolioStep1,
       page: () => _buildCreatePortfolioStep1Page(),
     ),
+    // CONTRACT: RuntQueryBinding inyecta RuntQueryController (con fenix=true)
+    // para que el controller sobreviva la navegación Step2 → Progress → Result.
     GetPage(
       name: Routes.createPortfolioStep2,
       page: () => const CreatePortfolioStep2Page(),
-      binding: RuntBinding(), // Inyecta RuntController para consulta de vehículos
+      binding: RuntQueryBinding(),
+    ),
+    GetPage(
+      name: Routes.runtQueryProgress,
+      page: () => const RuntQueryProgressPage(),
+      binding: RuntQueryBinding(),
+    ),
+    GetPage(
+      name: Routes.runtQueryResult,
+      page: () => const RuntQueryResultPage(),
+      binding: RuntQueryBinding(),
     ),
 
     // ════════════════════════════════════════════════════════════════════════

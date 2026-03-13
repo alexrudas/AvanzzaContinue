@@ -8,8 +8,6 @@ import '../../../controllers/admin/maintenance/admin_maintenance_controller.dart
 import '../../../controllers/admin/maintenance/maintenance_item.dart' as model;
 import '../../../controllers/admin/maintenance/maintenance_stats_controller.dart';
 import '../../../controllers/admin/maintenance/types/kpi_filter.dart';
-import '../../../themes/tokens/primitives.dart';
-import '../../../themes/tokens/semantic.dart';
 import '../../../widgets/campaign/campaign_launcher.dart';
 import '../../../widgets/maintenance/maintenance_card.dart';
 import '../../../widgets/maintenance/maintenance_kpi_row.dart';
@@ -188,38 +186,6 @@ class AdminMaintenancePage extends GetView<AdminMaintenanceController> {
         ),
       ),
     );
-  }
-
-  List<QuickAction> _buildQuickActions() {
-    return [
-      QuickAction(
-        icon: Icons.apartment_rounded,
-        label: 'Activos',
-        color: SemanticColors.success,
-        showBadge: true,
-        badgeCount: 6,
-        badgeColor: SemanticColors.info,
-        onTap: () {},
-      ),
-      QuickAction(
-        icon: Icons.key_rounded,
-        label: 'Propietarios',
-        color: ColorPrimitives.primary,
-        onTap: () {},
-      ),
-      QuickAction(
-        icon: Icons.receipt_long_rounded,
-        label: 'Arrendatarios',
-        color: SemanticColors.info,
-        onTap: () {},
-      ),
-      QuickAction(
-        icon: Icons.groups_2_rounded,
-        label: 'Contactos',
-        color: SemanticColors.warning,
-        onTap: () {},
-      ),
-    ];
   }
 
   // Header
