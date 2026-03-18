@@ -28,13 +28,15 @@ import '../../application/factories/product_access_context_factory.dart';
 import '../../core/di/container.dart';
 import '../../core/network/connectivity_service.dart';
 import '../../core/utils/workspace_normalizer.dart';
-import '../../domain/value/product_access_context.dart';
-import '../../data/datasources/local/isar_session_ds.dart';
-import '../../data/models/user_session_model.dart';
+import '../../domain/adapters/workspace_context_adapter.dart';
 import '../../domain/entities/user/active_context.dart';
 import '../../domain/entities/user/membership_entity.dart';
 import '../../domain/entities/user/user_entity.dart';
+import '../../domain/entities/workspace/workspace_context.dart';
 import '../../domain/repositories/user_repository.dart';
+import '../../domain/value/product_access_context.dart';
+import '../../data/datasources/local/isar_session_ds.dart';
+import '../../data/models/user_session_model.dart';
 import '../../routes/app_pages.dart';
 import '../../services/telemetry/telemetry_service.dart';
 import 'workspace_controller.dart';
@@ -62,6 +64,21 @@ class SessionContextController extends GetxController {
 
   // MERGE: version bump para invalidar Drawer cuando lista es mutada internamente
   final RxInt membershipsVersion = 0.obs;
+
+  // ─── Fase 1: Workspace context canónico ─────────────────────────────────────
+
+  /// Contexto de workspace activo en la sesión UX.
+  /// Reconstruido en cada hidratación desde user.activeContext + memberships.
+  /// null = sin sesión autenticada o contexto aún no resuelto.
+  final Rxn<WorkspaceContext> activeWorkspaceContext = Rxn<WorkspaceContext>();
+
+  /// Lista de todos los WorkspaceContexts disponibles para el usuario.
+  /// Reconstruida desde memberships activas en cada hidratación.
+  final RxList<WorkspaceContext> availableWorkspaceContexts =
+      <WorkspaceContext>[].obs;
+
+  /// Alias para activeWorkspaceContext.value (shorthand para ContextSwitchService).
+  WorkspaceContext? get current => activeWorkspaceContext.value;
 
   // Anti-race lock para eliminación de workspace
   bool _isRemovingWorkspace = false;
@@ -192,8 +209,12 @@ class SessionContextController extends GetxController {
     }
   }
 
-  /// Syncs current memberships/roles to WorkspaceController
+  /// Syncs current memberships/roles to WorkspaceController (legacy)
+  /// y reconstruye los WorkspaceContext canónicos (Fase 1).
   Future<void> _syncWorkspacesToController() async {
+    // Reconstruir contextos canónicos (Fase 1)
+    _rebuildWorkspaceContexts();
+
     if (!Get.isRegistered<WorkspaceController>()) return;
 
     try {
@@ -218,6 +239,46 @@ class SessionContextController extends GetxController {
       }
     } catch (e) {
       debugPrint('[SessionContext] Error syncing workspaces: $e');
+    }
+  }
+
+  /// Reconstruye [availableWorkspaceContexts] y [activeWorkspaceContext]
+  /// desde las memberships activas y el activeContext legacy.
+  ///
+  /// Llamado en cada cambio de memberships o de user.activeContext.
+  /// No navega ni persiste — solo actualiza el estado reactivo en memoria.
+  void _rebuildWorkspaceContexts() {
+    final u = user;
+    if (u == null) {
+      availableWorkspaceContexts.clear();
+      activeWorkspaceContext.value = null;
+      return;
+    }
+
+    // Reconstruir lista completa desde memberships activas
+    final ctx = u.activeContext;
+    final providerType = ctx?.providerType;
+
+    final all = WorkspaceContextAdapter.fromMemberships(
+      memberships: _memberships,
+      providerType: providerType,
+    );
+    availableWorkspaceContexts.assignAll(all);
+
+    // Resolver el activo desde activeContext legacy
+    if (ctx != null && ctx.orgId.isNotEmpty && ctx.rol.isNotEmpty) {
+      final membershipId = '${u.uid}_${ctx.orgId}';
+      final active = WorkspaceContextAdapter.fromLegacy(
+        orgId: ctx.orgId,
+        orgName: ctx.orgName,
+        roleCode: ctx.rol,
+        membershipId: membershipId,
+        providerType: ctx.providerType,
+        source: WorkspaceContextSource.derivedFromLegacy,
+      );
+      activeWorkspaceContext.value = active;
+    } else {
+      activeWorkspaceContext.value = null;
     }
   }
 
@@ -547,6 +608,8 @@ class SessionContextController extends GetxController {
     _memberships.clear();
     accessContext.value = null;
     membershipsVersion.value = 0;
+    activeWorkspaceContext.value = null;
+    availableWorkspaceContexts.clear();
     _isRemovingWorkspace = false;
     hydrationState.value = HydrationState.authNone;
     _initUid = null;

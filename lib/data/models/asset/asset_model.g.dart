@@ -92,18 +92,23 @@ const AssetModelSchema = CollectionSchema(
       name: r'ownerType',
       type: IsarType.string,
     ),
-    r'regionId': PropertySchema(
+    r'portfolioId': PropertySchema(
       id: 15,
+      name: r'portfolioId',
+      type: IsarType.string,
+    ),
+    r'regionId': PropertySchema(
+      id: 16,
       name: r'regionId',
       type: IsarType.string,
     ),
     r'regionRefPath': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'regionRefPath',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -161,6 +166,19 @@ const AssetModelSchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'estado',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'portfolioId': IndexSchema(
+      id: -6900497767901535889,
+      name: r'portfolioId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'portfolioId',
           type: IndexType.hash,
           caseSensitive: true,
         )
@@ -233,6 +251,12 @@ int _assetModelEstimateSize(
   }
   bytesCount += 3 + object.ownerType.length * 3;
   {
+    final value = object.portfolioId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.regionId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -268,9 +292,10 @@ void _assetModelSerialize(
   writer.writeString(offsets[12], object.ownerId);
   writer.writeString(offsets[13], object.ownerRefPath);
   writer.writeString(offsets[14], object.ownerType);
-  writer.writeString(offsets[15], object.regionId);
-  writer.writeString(offsets[16], object.regionRefPath);
-  writer.writeDateTime(offsets[17], object.updatedAt);
+  writer.writeString(offsets[15], object.portfolioId);
+  writer.writeString(offsets[16], object.regionId);
+  writer.writeString(offsets[17], object.regionRefPath);
+  writer.writeDateTime(offsets[18], object.updatedAt);
 }
 
 AssetModel _assetModelDeserialize(
@@ -296,9 +321,10 @@ AssetModel _assetModelDeserialize(
     ownerId: reader.readString(offsets[12]),
     ownerRefPath: reader.readStringOrNull(offsets[13]),
     ownerType: reader.readString(offsets[14]),
-    regionId: reader.readStringOrNull(offsets[15]),
-    regionRefPath: reader.readStringOrNull(offsets[16]),
-    updatedAt: reader.readDateTimeOrNull(offsets[17]),
+    portfolioId: reader.readStringOrNull(offsets[15]),
+    regionId: reader.readStringOrNull(offsets[16]),
+    regionRefPath: reader.readStringOrNull(offsets[17]),
+    updatedAt: reader.readDateTimeOrNull(offsets[18]),
   );
   return object;
 }
@@ -345,6 +371,8 @@ P _assetModelDeserializeProp<P>(
     case 16:
       return (reader.readStringOrNull(offset)) as P;
     case 17:
+      return (reader.readStringOrNull(offset)) as P;
+    case 18:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -690,6 +718,72 @@ extension AssetModelQueryWhere
               indexName: r'estado',
               lower: [],
               upper: [estado],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> portfolioIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'portfolioId',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause>
+      portfolioIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'portfolioId',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> portfolioIdEqualTo(
+      String? portfolioId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'portfolioId',
+        value: [portfolioId],
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterWhereClause> portfolioIdNotEqualTo(
+      String? portfolioId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'portfolioId',
+              lower: [],
+              upper: [portfolioId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'portfolioId',
+              lower: [portfolioId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'portfolioId',
+              lower: [portfolioId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'portfolioId',
+              lower: [],
+              upper: [portfolioId],
               includeUpper: false,
             ));
       }
@@ -2980,6 +3074,160 @@ extension AssetModelQueryFilter
     });
   }
 
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      portfolioIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'portfolioId',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      portfolioIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'portfolioId',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      portfolioIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'portfolioId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      portfolioIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'portfolioId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      portfolioIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'portfolioId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      portfolioIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'portfolioId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      portfolioIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'portfolioId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      portfolioIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'portfolioId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      portfolioIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'portfolioId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      portfolioIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'portfolioId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      portfolioIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'portfolioId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition>
+      portfolioIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'portfolioId',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<AssetModel, AssetModel, QAfterFilterCondition> regionIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -3523,6 +3771,18 @@ extension AssetModelQuerySortBy
     });
   }
 
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByPortfolioId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'portfolioId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByPortfolioIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'portfolioId', Sort.desc);
+    });
+  }
+
   QueryBuilder<AssetModel, AssetModel, QAfterSortBy> sortByRegionId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionId', Sort.asc);
@@ -3731,6 +3991,18 @@ extension AssetModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByPortfolioId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'portfolioId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByPortfolioIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'portfolioId', Sort.desc);
+    });
+  }
+
   QueryBuilder<AssetModel, AssetModel, QAfterSortBy> thenByRegionId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'regionId', Sort.asc);
@@ -3873,6 +4145,13 @@ extension AssetModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByPortfolioId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'portfolioId', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<AssetModel, AssetModel, QDistinct> distinctByRegionId(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -3993,6 +4272,12 @@ extension AssetModelQueryProperty
     });
   }
 
+  QueryBuilder<AssetModel, String?, QQueryOperations> portfolioIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'portfolioId');
+    });
+  }
+
   QueryBuilder<AssetModel, String?, QQueryOperations> regionIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'regionId');
@@ -4046,6 +4331,7 @@ AssetModel _$AssetModelFromJson(Map<String, dynamic> json) => AssetModel(
       updatedAt: json['updatedAt'] == null
           ? null
           : DateTime.parse(json['updatedAt'] as String),
+      portfolioId: json['portfolioId'] as String?,
     );
 
 Map<String, dynamic> _$AssetModelToJson(AssetModel instance) =>
@@ -4069,4 +4355,5 @@ Map<String, dynamic> _$AssetModelToJson(AssetModel instance) =>
       'cityRefPath': instance.cityRefPath,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
+      'portfolioId': instance.portfolioId,
     };

@@ -33,6 +33,10 @@ abstract class PortfolioEntity with _$PortfolioEntity {
     required String portfolioName,
     required String countryId,
     required String cityId,
+    /// Partition key del tenant SaaS.
+    /// Permite consultar portafolios por organización activa.
+    /// Wire-stable: nunca renombrar este campo.
+    @Default('') String orgId,
     @Default(PortfolioStatus.draft) PortfolioStatus status,
     @Default(0) int assetsCount,
     required String createdBy,

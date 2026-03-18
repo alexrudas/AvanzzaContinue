@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../core/campaign/campaign_orchestrator.dart';
-import '../../../core/campaign/demo/demo_campaigns.dart';
 import '../../../core/config/campaign_config.dart';
 
 /// Wrapper widget que activa campañas en cualquier pantalla
@@ -52,14 +51,13 @@ class _CampaignLauncherState extends State<CampaignLauncher> {
   }
 
   void _launchCampaign() {
-    final campaign = DemoCampaigns.forScreen(widget.screenId);
-    if (campaign != null) {
-      CampaignOrchestrator().showIfEligible(
-        context,
-        screenId: widget.screenId,
-        campaign: campaign,
-      );
-    }
+    // Campaign seleccionada por CampaignOrchestrator._selectCampaign():
+    //   1. CampaignResolver  — datos reales (SOAT, activos del org)
+    //   2. DemoCampaigns     — fallback estático si el resolver retorna null
+    CampaignOrchestrator().showIfEligible(
+      context,
+      screenId: widget.screenId,
+    );
   }
 
   @override

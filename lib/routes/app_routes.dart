@@ -79,6 +79,34 @@ abstract class Routes {
   static const runtQueryProgress = _Paths.runtQueryProgress;
   static const runtQueryResult = _Paths.runtQueryResult;
 
+  /// Detalle de un portafolio existente.
+  /// CONTRACT: Get.toNamed(Routes.portfolioDetail, arguments: portfolioEntity)
+  static const portfolioDetail = _Paths.portfolioDetail;
+
+  /// Lista de activos de un portafolio específico.
+  /// CONTRACT: Get.toNamed(Routes.portfolioAssets, arguments: portfolioEntity)
+  static const portfolioAssets = _Paths.portfolioAssets;
+
+  /// Detalle de un activo específico.
+  /// CONTRACT: Get.toNamed(Routes.assetDetail, arguments: assetId)
+  static const assetDetail = _Paths.assetDetail;
+
+  /// Registro de un activo en un portafolio existente.
+  /// CONTRACT: Get.toNamed(Routes.assetRegister, arguments: AssetRegistrationContext)
+  static const assetRegister = _Paths.assetRegister;
+
+  /// Detalle RTM v1 de un activo.
+  /// CONTRACT: Get.toNamed(Routes.assetRtmDetail, arguments: assetId (String))
+  static const assetRtmDetail = _Paths.assetRtmDetail;
+
+  /// Detalle SOAT de un activo (historial + vigencia dinámica).
+  /// CONTRACT: Get.toNamed(Routes.soatDetail, arguments: assetId (String))
+  static const soatDetail = _Paths.soatDetail;
+
+  /// Detalle agrupado de Seguros RC (RC Contractual + RC Extracontractual).
+  /// CONTRACT: Get.toNamed(Routes.segurosRcDetail, arguments: assetId (String))
+  static const segurosRcDetail = _Paths.segurosRcDetail;
+
   // ══════════════════════════════════════════════════════════════════════════
   // DEMO / DESARROLLO
   // ══════════════════════════════════════════════════════════════════════════
@@ -136,6 +164,17 @@ abstract class _Paths {
   static const createPortfolioStep2 = '/portfolio/create/step2';
   static const runtQueryProgress = '/portfolio/create/runt/progress';
   static const runtQueryResult = '/portfolio/create/runt/result';
+  static const portfolioDetail = '/portfolio/detail';
+  static const portfolioAssets = '/portfolio/assets';
+  static const assetDetail = '/asset/detail';
+
+  // Asset registration
+  static const assetRegister = '/asset/register';
+
+  // Asset detail modules
+  static const assetRtmDetail = '/asset/rtm/detail';
+  static const soatDetail = '/asset/insurance/soat';
+  static const segurosRcDetail = '/asset/insurance/rc';
 
   // Demo
   static const bottomNavDemo = '/demo/bottom-nav';

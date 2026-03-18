@@ -1,3 +1,30 @@
+// ============================================================================
+// lib/data/models/insurance/insurance_policy_model.dart
+// INSURANCE POLICY MODEL — Modelo Isar + Firestore para pólizas de seguro
+//
+// QUÉ HACE:
+// - Define InsurancePolicyModel con anotaciones Isar (@Collection) y
+//   json_serializable para persistencia local y remota.
+// - Mapea hacia/desde InsurancePolicyEntity del dominio.
+// - Expone fromFirestore, fromEntity y toEntity.
+//
+// QUÉ NO HACE:
+// - No calcula vigencia; el campo estado puede estar stale — calcular desde fechaFin.
+// - No implementa lógica de negocio.
+// - No cambia el tipo de tipo de String a enum (evita migración destructiva Isar).
+//
+// PRINCIPIOS:
+// - El campo tipo permanece String en Isar para compatibilidad de esquema.
+// - @Index() en tipo (aditivo, seguro) habilita queries .tipoEqualTo() eficientes.
+// - Wire values de tipo deben coincidir con InsurancePolicyType.toWireString().
+//
+// ENTERPRISE NOTES:
+// CREADO   (2026-03): Modelo Isar/Firestore original sin índice en tipo.
+// ADAPTADO (2026-03): Track A — Se añade @Index() en tipo para queries
+//   eficientes por tipo de póliza (latestPolicyByTipo). Cambio aditivo, no
+//   destructivo del esquema Isar. Requiere build_runner para regenerar .g.dart.
+// ============================================================================
+
 import 'package:avanzza/core/utils/datetime_timestamp_converter.dart';
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -16,6 +43,10 @@ class InsurancePolicyModel {
   final String id;
   @Index()
   final String assetId;
+
+  /// Wire value del tipo de póliza. Ver InsurancePolicyType para valores válidos.
+  /// @Index() añadido en Track A para soportar queries eficientes por tipo.
+  @Index()
   final String tipo;
   final String aseguradora;
   final double tarifaBase;

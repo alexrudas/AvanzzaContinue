@@ -30,4 +30,8 @@ abstract class PortfolioRepository {
   /// assetsCount nunca será < 0 (protegido internamente)
   /// Retorna el portafolio actualizado
   Future<PortfolioEntity> decrementAssetsCount(String portfolioId);
+
+  /// Stream reactivo de portafolios ACTIVE para una organización.
+  /// Emite lista actualizada cada vez que Isar detecta cambios.
+  Stream<List<PortfolioEntity>> watchActivePortfoliosByOrg(String orgId);
 }

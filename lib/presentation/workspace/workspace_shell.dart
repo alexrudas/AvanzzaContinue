@@ -1,3 +1,49 @@
+// ============================================================================
+// lib/presentation/workspace/workspace_shell.dart
+// WORKSPACE SHELL — Enterprise Ultra Pro Premium (Presentation / Workspace)
+//
+// QUÉ HACE:
+// - Renderiza el shell visual del workspace activo usando WorkspaceConfig.
+// - Muestra AppBar, Drawer y BottomNavigationBar según la configuración recibida.
+// - Detecta cambios de contexto activo y redirige a Routes.home cuando el shell
+//   abierto ya no coincide con el contexto vigente.
+// - Usa SessionContextController.activeWorkspaceContext como fuente principal
+//   de verdad durante Fase 1.
+// - Mantiene compatibilidad transicional con activeContext.rol/selectedRole
+//   solo como fallback legacy.
+//
+// QUÉ NO HACE:
+// - NO decide qué workspace abrir inicialmente (eso es SplashBootstrapController).
+// - NO persiste estado de tabs entre sesiones.
+// - NO consulta repositorios ni lógica de dominio.
+// - NO resuelve rutas finales de bootstrap.
+// - NO construye WorkspaceContext.
+//
+// PRINCIPIOS:
+// - THIN SHELL: solo coordinación visual + reacción a cambios de contexto.
+// - PRIMARY SOURCE: activeWorkspaceContext manda; roleKey string queda como fallback.
+// - ANTI-LOOP: _isNavigating previene reentradas concurrentes a Routes.home.
+// - TRANSITION-SAFE: si el contexto aún está hidratándose, evita navegar prematuramente.
+// - FASE 1: el navbar premium admin usa WorkspaceType.assetAdmin, no roleKey.
+//
+// NOTAS ENTERPRISE:
+// - El shell compara principalmente widget.config.workspaceType vs
+//   session.activeWorkspaceContext.value?.type.
+// - Si activeWorkspaceContext aún es null, usa fallback conservador con rol legacy.
+// - Si Firebase user existe pero el contexto aún no está listo, se asume estado
+//   transicional y NO se navega inmediatamente.
+// - Si el contexto activo se vuelve unknown o deja de coincidir, se redirige a
+//   Routes.home para que HomeRouter/Bootstrap recompongan el flujo.
+//
+// DEPENDENCIAS:
+// - WorkspaceConfig / WorkspaceType
+// - SessionContextController
+// - RegistrationController
+// - WorkspaceDrawer
+// - bottom_nav_theme (AvanzzaNavigationBar / parseUserRole)
+// - WorkspaceNormalizer (solo fallback legacy)
+// ============================================================================
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,20 +53,23 @@ import 'package:get/get.dart';
 
 import '../../core/theme/bottom_nav_theme.dart';
 import '../../core/utils/workspace_normalizer.dart';
+import '../../domain/entities/workspace/workspace_type.dart';
 import '../../routes/app_pages.dart';
 import '../auth/controllers/registration_controller.dart';
 import '../controllers/session_context_controller.dart';
 import '../widgets/workspace/workspace_drawer.dart';
 import 'workspace_config.dart';
 
-/// Simple controller for tab navigation within a workspace
+/// Controller simple para navegación entre tabs dentro del shell.
 class _TabNavigationController extends GetxController {
   final RxInt index = 0.obs;
+
   void setIndex(int value) => index.value = value;
 }
 
 class WorkspaceShell extends StatefulWidget {
   final WorkspaceConfig config;
+
   const WorkspaceShell({super.key, required this.config});
 
   @override
@@ -29,6 +78,8 @@ class WorkspaceShell extends StatefulWidget {
 
 class _WorkspaceShellState extends State<WorkspaceShell> {
   late final _TabNavigationController c;
+
+  /// Guard anti-loop para navegación a home.
   bool _isNavigating = false;
 
   @override
@@ -41,21 +92,29 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
   @override
   void dispose() {
-    Get.delete<_TabNavigationController>();
+    if (Get.isRegistered<_TabNavigationController>()) {
+      Get.delete<_TabNavigationController>();
+    }
     super.dispose();
   }
 
-  /// Configura listeners reactivos para detectar eliminación de workspace activo
+  /// Configura listeners reactivos para detectar invalidación del shell actual.
   void _setupReactiveListeners() {
-    // Listener para auth (SessionContextController)
     if (Get.isRegistered<SessionContextController>()) {
       final session = Get.find<SessionContextController>();
+
+      // Fuente principal de verdad en Fase 1.
+      ever(session.activeWorkspaceContext, (_) {
+        _checkAndNavigateIfNeeded();
+      });
+
+      // Compatibilidad transicional con el modelo legacy.
       ever(session.userRx, (_) {
         _checkAndNavigateIfNeeded();
       });
     }
 
-    // Listener para guest (RegistrationController)
+    // Compatibilidad guest / onboarding.
     if (Get.isRegistered<RegistrationController>()) {
       final reg = Get.find<RegistrationController>();
       ever(reg.progress, (_) {
@@ -64,60 +123,111 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
   }
 
-  /// Verifica si el workspace actual sigue siendo válido, si no navega a Home
+  /// Verifica si el shell actual sigue alineado con el contexto activo.
+  ///
+  /// Regla principal:
+  /// - comparar `widget.config.workspaceType` con `activeWorkspaceContext.type`
+  ///
+  /// Fallback transicional:
+  /// - comparar roleKey vs selectedRole/activeContext.rol solo si todavía no hay
+  ///   activeWorkspaceContext disponible.
   void _checkAndNavigateIfNeeded() {
     if (_isNavigating) return;
 
-    // Detectar fuente y rol activo
-    String? activeRole;
-    bool isAuth = false;
+    final hasFirebaseUser = FirebaseAuth.instance.currentUser != null;
 
+    SessionContextController? session;
     if (Get.isRegistered<SessionContextController>()) {
-      final session = Get.find<SessionContextController>();
+      session = Get.find<SessionContextController>();
+    }
+
+    final activeWorkspaceContext = session?.activeWorkspaceContext.value;
+
+    // -----------------------------------------------------------------------
+    // CAMINO PRINCIPAL — WorkspaceContext tipado
+    // -----------------------------------------------------------------------
+    if (activeWorkspaceContext != null) {
+      final activeType = activeWorkspaceContext.type;
+
+      // Unknown nunca debe sostener un shell operativo.
+      if (activeType == WorkspaceType.unknown) {
+        _log(
+          'activeWorkspaceContext.type = unknown → redirigiendo a Routes.home',
+        );
+        _navigateToHome();
+        return;
+      }
+
+      // Si el shell abierto ya no coincide con el tipo activo, redirigir.
+      if (widget.config.workspaceType != activeType) {
+        _log(
+          'workspaceType mismatch '
+          'shell=${widget.config.workspaceType.wireName} '
+          'active=${activeType.wireName} '
+          '→ redirigiendo a Routes.home',
+        );
+        _navigateToHome();
+        return;
+      }
+
+      // El shell sigue válido.
+      return;
+    }
+
+    // -----------------------------------------------------------------------
+    // FALLBACK TRANSICIONAL — modelo legacy
+    // Solo se usa mientras activeWorkspaceContext aún no esté disponible.
+    // -----------------------------------------------------------------------
+    String? activeRole;
+    bool isAuthenticatedSession = false;
+
+    if (session != null) {
       final user = session.userRx.value;
       if (user != null) {
         activeRole = user.activeContext?.rol;
-        isAuth = true;
+        isAuthenticatedSession = true;
       }
     }
 
-    if (!isAuth && Get.isRegistered<RegistrationController>()) {
+    if (!isAuthenticatedSession && Get.isRegistered<RegistrationController>()) {
       final reg = Get.find<RegistrationController>();
       activeRole = reg.progress.value?.selectedRole;
     }
 
-    // Si no hay rol activo o está vacío, evaluar si es estado transitorio.
-    // REGLA: si FirebaseAuth.instance.currentUser != null, el rol vacío es
-    // un estado TRANSITORIO (session.init() en curso, race condition en OTP).
-    // El SessionContextController ya maneja la navegación cuando el workspace
-    // es eliminado intencionalmente (llama Get.offAllNamed(Routes.home) él mismo).
+    // Si no hay rol activo, distinguir entre estado transicional y sesión inválida.
     if (activeRole == null || activeRole.isEmpty) {
-      if (FirebaseAuth.instance.currentUser != null) {
-        // Firebase user activo → rol vacío es transitorio. No navegar.
-        if (kDebugMode) {
-          debugPrint(
-            '[NAV][WORKSPACE] activeRole vacío pero Firebase user activo — '
-            'estado transitorio, ignorando.',
-          );
-        }
+      if (hasFirebaseUser) {
+        _log(
+          'activeWorkspaceContext=null y activeRole vacío, '
+          'pero Firebase user activo → estado transicional, no navegar',
+        );
         return;
       }
-      // Firebase user null → sesión cerrada. Navegar a home para re-bootstrap.
+
+      _log(
+        'sin activeWorkspaceContext y sin activeRole, '
+        'Firebase user nulo → redirigiendo a Routes.home',
+      );
       _navigateToHome();
       return;
     }
 
-    // Verificar si el rol actual del shell coincide con el activo
     final currentRole = WorkspaceNormalizer.normalize(widget.config.roleKey);
-    final normalizedActive = WorkspaceNormalizer.normalize(activeRole);
+    final normalizedActiveRole = WorkspaceNormalizer.normalize(activeRole);
 
-    if (currentRole != normalizedActive) {
-      // El rol cambió, navegar a Home (que redirigirá al workspace correcto)
+    if (currentRole != normalizedActiveRole) {
+      _log(
+        'fallback legacy mismatch '
+        'shellRole=$currentRole activeRole=$normalizedActiveRole '
+        '→ redirigiendo a Routes.home',
+      );
       _navigateToHome();
     }
   }
 
-  /// Navega a Home de forma segura con anti-loop
+  /// Navega a Home de forma segura con anti-loop.
+  ///
+  /// HomeRouter / SplashBootstrapController reencaminarán al shell correcto.
   void _navigateToHome() {
     if (_isNavigating) return;
 
@@ -132,11 +242,11 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
           'currentRoute=${Get.currentRoute}',
         );
       }
+
       if (Get.currentRoute != Routes.home) {
         Get.offAllNamed(Routes.home);
       }
 
-      // Reset flag después de timeout
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
           _isNavigating = false;
@@ -145,40 +255,40 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     });
   }
 
+  void _log(String msg) {
+    if (kDebugMode || kProfileMode) {
+      debugPrint('[WORKSPACE_SHELL] $msg');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Parsear roleKey a UserRole para aplicar el tema correcto
     final userRole = parseUserRole(widget.config.roleKey);
-    final isAdmin = widget.config.roleKey == 'admin_activos';
+    final isAdmin = widget.config.workspaceType == WorkspaceType.assetAdmin;
 
     return Obx(() {
       final idx = c.index.value;
-
-      // Obtener título del tab actual con fallback seguro
       final tabs = widget.config.tabs;
+
       final currentTitle = (tabs.isNotEmpty && idx >= 0 && idx < tabs.length)
           ? tabs[idx].title
-          : 'Inicio'; // Fallback seguro si idx está fuera de rango
+          : 'Inicio';
 
       return Scaffold(
         appBar: AppBar(
           title: Text(currentTitle),
           actions: [
-            // Botón de Alertas
             IconButton(
               icon: const Icon(Icons.notifications_none_rounded),
               tooltip: 'Alertas',
               onPressed: () {
-                // TODO: Navegar a página de alertas
                 HapticFeedback.lightImpact();
               },
             ),
-            // Botón de Perfil
             IconButton(
               icon: const Icon(Icons.person_outline_rounded),
               tooltip: 'Perfil',
               onPressed: () {
-                // TODO: Navegar a perfil o abrir menú
                 HapticFeedback.lightImpact();
               },
             ),
@@ -188,9 +298,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         drawer: const WorkspaceDrawer(),
         resizeToAvoidBottomInset: false,
         body: IndexedStack(
-            index: idx, children: [for (final t in widget.config.tabs) t.page]),
-        // Para admin: usar CustomFloatingNavBar (Premium Ultra-Pro)
-        // Para otros roles: usar AvanzzaNavigationBar estándar
+          index: idx,
+          children: [for (final t in tabs) t.page],
+        ),
         bottomNavigationBar: isAdmin
             ? SafeArea(
                 child: CustomFloatingNavBar(
@@ -202,8 +312,11 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                 role: userRole,
                 currentIndex: idx,
                 destinations: [
-                  for (final t in widget.config.tabs)
-                    NavigationDestination(icon: Icon(t.icon), label: t.title)
+                  for (final t in tabs)
+                    NavigationDestination(
+                      icon: Icon(t.icon),
+                      label: t.title,
+                    ),
                 ],
                 onDestinationSelected: c.setIndex,
               ),
@@ -213,8 +326,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 }
 
 // ============================================================================
-// CUSTOM FLOATING NAV BAR - Premium Ultra-Pro (Solo para Admin)
+// CUSTOM FLOATING NAV BAR — Premium Ultra Pro (Solo para assetAdmin)
 // ============================================================================
+
 class CustomFloatingNavBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
@@ -303,8 +417,9 @@ class CustomFloatingNavBar extends StatelessWidget {
 }
 
 // ============================================================================
-// NAV BAR ITEM - Item individual con animaciones y accesibilidad
+// NAV BAR ITEM — Item individual con animaciones y accesibilidad
 // ============================================================================
+
 class _NavBarItem extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -325,8 +440,6 @@ class _NavBarItem extends StatelessWidget {
     const selectedColor = Color(0xFF4F5CFF);
     const unselectedColor = Color(0xFFB0B8C8);
 
-    // 1. ELIMINADO EL WIDGET EXPANDED QUE ESTABA AQUÍ
-    // Retornamos directamente el Material/InkWell para que el padre decida el tamaño
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -338,18 +451,15 @@ class _NavBarItem extends StatelessWidget {
         splashColor: selectedColor.withValues(alpha: 0.1),
         highlightColor: selectedColor.withValues(alpha: 0.05),
         child: Container(
-          // Quitamos constraints de altura forzada para que se adapte mejor
-          // o mantenemos minHeight si prefieres que no colapse
           constraints: const BoxConstraints(minHeight: 48),
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Stack(
             clipBehavior: Clip.none,
-            alignment: Alignment.center, // Asegura centrado del stack
+            alignment: Alignment.center,
             children: [
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize:
-                    MainAxisSize.min, // Importante para que no se estire de más
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -374,7 +484,7 @@ class _NavBarItem extends StatelessWidget {
                     opacity: isSelected ? 1.0 : 0.6,
                     child: Text(
                       label,
-                      maxLines: 1, // Evita que textos largos rompan el diseño
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: isSelected ? selectedColor : unselectedColor,
@@ -389,7 +499,7 @@ class _NavBarItem extends StatelessWidget {
               ),
               if (badgeCount > 0)
                 Positioned(
-                  right: -5, // Ajustado ligeramente
+                  right: -5,
                   top: 0,
                   child: Container(
                     padding: const EdgeInsets.all(4),

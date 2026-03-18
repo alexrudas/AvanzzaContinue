@@ -30,15 +30,20 @@ import '../../../core/di/container.dart';
 import '../../../core/utils/workspace_normalizer.dart';
 import '../../../data/datasources/local/registration_progress_ds.dart';
 import '../../../data/models/auth/registration_progress_model.dart';
+import '../../../domain/adapters/workspace_context_adapter.dart';
 import '../../../domain/entities/org/organization_entity.dart';
 import '../../../domain/entities/user/active_context.dart';
 import '../../../domain/entities/user/membership_entity.dart';
 import '../../../domain/entities/user/user_entity.dart';
 import '../../../domain/entities/user_profile_entity.dart';
+import '../../../domain/entities/workspace/registration_workspace_intent.dart';
+import '../../../domain/entities/workspace/workspace_type.dart';
 import '../../../domain/repositories/auth_repository.dart';
+import '../../../domain/services/registration/registration_workspace_resolver.dart';
 import '../../../domain/usecases/check_username_available_uc.dart';
 import '../../../domain/usecases/finalize_registration_uc.dart';
 import '../../../domain/usecases/sign_up_username_password_uc.dart';
+import '../../../domain/value/workspace/business_mode.dart';
 import '../../../routes/app_pages.dart';
 import '../../../services/telemetry/telemetry_service.dart';
 import '../../controllers/session_context_controller.dart';
@@ -738,6 +743,17 @@ class RegistrationController extends GetxController {
     );
     await DIContainer().userRepository.upsertMembership(membership);
 
+    // ── 4b. FASE 2 — Contrato tipado (no-fatal) ───────────────────────────
+    // Si el resolver falla, el bootstrap legacy sigue funcionando (Gate 4
+    // Steps 2-4). Se registra el error en debug pero NO interrumpe el flujo.
+    await _tryApplyFase2Contract(
+      p: p,
+      uid: uid,
+      orgId: orgId,
+      orgName: orgName,
+      legacySelectedRole: selectedRole,
+    );
+
     // ── 5. Re-hidratar sesión ─────────────────────────────────────────────
     // resetForLogout() limpia el single-flight guard → _doInit() corre fresco.
     // Ahora _getLocalUserOnly() encontrará el UserModel recién creado →
@@ -755,6 +771,192 @@ class RegistrationController extends GetxController {
 
     // ── 6. Limpiar progreso (después de re-hidratar, no antes) ────────────
     await clear(id);
+  }
+
+  // ==========================================================================
+  // FASE 2 — Bloque de resolución tipada (no-fatal)
+  // ==========================================================================
+
+  /// Intenta aplicar el contrato tipado de Fase 2.
+  ///
+  /// Si el resolver falla por cualquier motivo (combinación no mapeada,
+  /// campos faltantes, inconsistencia), registra el error en debug y retorna
+  /// sin lanzar. El bootstrap legacy (Gate 4 Steps 2-4) actúa como fallback.
+  Future<void> _tryApplyFase2Contract({
+    required RegistrationProgressModel p,
+    required String uid,
+    required String orgId,
+    required String orgName,
+    required String legacySelectedRole,
+  }) async {
+    try {
+      final workspaceType = WorkspaceContextAdapter.resolveType(
+        normalizedRole:
+            WorkspaceContextAdapter.normalizeRole(legacySelectedRole),
+        normalizedProviderType:
+            WorkspaceContextAdapter.normalizeProviderType(p.providerType),
+      );
+
+      if (workspaceType == WorkspaceType.unknown) {
+        debugPrint(
+            '[Fase2] workspaceType unknown para role=$legacySelectedRole — skip');
+        return;
+      }
+
+      final businessMode = _deriveBusinessMode(
+        workspaceType: workspaceType,
+        adminFollowUp: p.adminFollowUp,
+        ownerFollowUp: p.ownerFollowUp,
+      );
+
+      if (businessMode == null) {
+        debugPrint(
+            '[Fase2] businessMode no derivable para type=${workspaceType.wireName} — skip');
+        return;
+      }
+
+      final orgType = (p.titularType ?? '').toLowerCase() == 'empresa'
+          ? 'empresa'
+          : 'personal';
+
+      final intent = RegistrationWorkspaceIntent(
+        workspaceType: workspaceType,
+        businessMode: businessMode,
+        orgType: orgType,
+        providerType:
+            p.providerType?.isNotEmpty == true ? p.providerType : null,
+      );
+
+      final resolved = const RegistrationWorkspaceResolver().resolve(
+        intent: intent,
+        userId: uid,
+        orgId: orgId,
+        orgName: orgName,
+      );
+
+      // Doble escritura transicional: canonical legacyRoleCode.
+      final canonicalRole = resolved.legacyRoleCode;
+
+      // Actualizar UserEntity.activeContext.rol al rol canónico.
+      final existingUser = await DIContainer().userRepository.getUser(uid);
+      if (existingUser != null) {
+        final updatedCtx = existingUser.activeContext?.copyWith(
+              rol: canonicalRole,
+            ) ??
+            ActiveContext(
+              orgId: orgId,
+              orgName: orgName,
+              rol: canonicalRole,
+              providerType: p.providerType,
+            );
+        await DIContainer().userRepository.upsertUser(
+              existingUser.copyWith(
+                activeContext: updatedCtx,
+                updatedAt: DateTime.now().toUtc(),
+              ),
+            );
+      }
+
+      // Actualizar Membership.roles[] con el rol canónico.
+      //
+      // ESTRATEGIA FASE 2: se reemplazan los roles de la membership dejando
+      // solo el rol canónico formal. Los códigos internos del wizard (ej.
+      // 'admin_activos_ind') son artefactos de onboarding, no roles formales
+      // del dominio. Mezclarlos produciría ambigüedad semántica en bootstrap.
+      // Solo se preservan roles canónicos formales previos distintos al nuevo.
+      final memberships =
+          await DIContainer().userRepository.fetchMemberships(uid);
+      final existingMembership =
+          memberships.where((m) => m.orgId == orgId).firstOrNull;
+      if (existingMembership != null) {
+        const formalRoles = {
+          'propietario',
+          'administrador',
+          'arrendatario',
+          'proveedor_servicios',
+          'proveedor_articulos',
+        };
+        final cleanedRoles = existingMembership.roles
+            .where((r) => formalRoles.contains(r) && r != canonicalRole)
+            .toList()
+          ..add(canonicalRole);
+
+        await DIContainer().userRepository.upsertMembership(
+          existingMembership.copyWith(
+            roles: cleanedRoles,
+            updatedAt: DateTime.now().toUtc(),
+          ),
+        );
+      }
+
+      // Persistir workspaceId activo.
+      // Esta escritura sobrevive al clear() de RegistrationProgressModel y es
+      // la fuente de verdad que Gate 4 Step 1 del bootstrap usa para rehidratar
+      // el WorkspaceContext sin re-resolver desde legacy.
+      await DIContainer()
+          .workspaceRepository
+          .setActiveWorkspace(resolved.workspaceId);
+
+      // NOTA ARQUITECTÓNICA — seed NO se persiste en RegistrationProgressModel:
+      // Sería destruido por clear() al final de finalizeRegistration().
+      // La doble escritura a UserEntity.activeContext.rol + WorkspaceRepository
+      // es suficiente. SessionContextController reconstruye el contexto desde ahí.
+
+      debugPrint('[Fase2] contrato resuelto: ${resolved.debugDescription}');
+    } catch (e, st) {
+      debugPrint('[Fase2] resolver no-fatal error: $e\n$st');
+    }
+  }
+
+  /// Deriva [BusinessMode] desde el workspaceType y los follow-up del progress.
+  ///
+  /// Retorna null si la combinación no es derivable (indica datos de onboarding
+  /// incompletos o un tipo de workspace sin follow-up mapeado).
+  /// Deriva [BusinessMode] desde workspaceType + follow-up del wizard.
+  ///
+  /// REGLA: prefiere null honesto a semántica falsa.
+  /// Si la combinación no puede mapearse con los datos disponibles, retorna null
+  /// y el bloque Fase 2 hace skip no-fatal → bootstrap legacy actúa como fallback.
+  ///
+  /// Valores esperados del wizard:
+  /// - ownerFollowUp: 'self' | 'third'
+  /// - adminFollowUp: 'third' | 'both'  ('own' no mapea a ningún modo de la matriz)
+  BusinessMode? _deriveBusinessMode({
+    required WorkspaceType workspaceType,
+    required String? adminFollowUp,
+    required String? ownerFollowUp,
+  }) {
+    switch (workspaceType) {
+      case WorkspaceType.owner:
+        final followUp = ownerFollowUp?.trim().toLowerCase();
+        if (followUp == 'self') return BusinessMode.selfManaged;
+        if (followUp == 'third') return BusinessMode.delegated;
+        // Cualquier otro valor (null, 'both', inesperado) → no derivable.
+        return null;
+
+      case WorkspaceType.assetAdmin:
+        final followUp = adminFollowUp?.trim().toLowerCase();
+        if (followUp == 'third') return BusinessMode.thirdParty;
+        if (followUp == 'both') return BusinessMode.hybrid;
+        // 'own' significa solo activos propios — no está en la matriz formal.
+        // null u otro valor inesperado → no derivable.
+        return null;
+
+      case WorkspaceType.renter:
+        return BusinessMode.consumer;
+
+      case WorkspaceType.workshop:
+        return BusinessMode.serviceProvider;
+
+      case WorkspaceType.supplier:
+        return BusinessMode.retailer;
+
+      case WorkspaceType.insurer:
+      case WorkspaceType.legal:
+      case WorkspaceType.advisor:
+      case WorkspaceType.unknown:
+        return null;
+    }
   }
 
   // --- Shims para compatibilidad con provider_profile_page.dart ---

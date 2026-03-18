@@ -116,6 +116,19 @@ const InsurancePolicyModelSchema = CollectionSchema(
         )
       ],
     ),
+    r'tipo': IndexSchema(
+      id: 3681353239984507137,
+      name: r'tipo',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'tipo',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
     r'countryId': IndexSchema(
       id: -5115696458787596369,
       name: r'countryId',
@@ -503,6 +516,51 @@ extension InsurancePolicyModelQueryWhere
               indexName: r'assetId',
               lower: [],
               upper: [assetId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QAfterWhereClause>
+      tipoEqualTo(String tipo) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'tipo',
+        value: [tipo],
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QAfterWhereClause>
+      tipoNotEqualTo(String tipo) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'tipo',
+              lower: [],
+              upper: [tipo],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'tipo',
+              lower: [tipo],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'tipo',
+              lower: [tipo],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'tipo',
+              lower: [],
+              upper: [tipo],
               includeUpper: false,
             ));
       }

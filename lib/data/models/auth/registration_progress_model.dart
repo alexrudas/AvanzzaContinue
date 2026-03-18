@@ -51,6 +51,30 @@ class RegistrationProgressModel {
   String?
       authMethod; // Método de autenticación: 'phone', 'email-password', 'google', 'apple', 'facebook'
 
+  // ==========================================================================
+  // FASE 2 — Contrato tipado de onboarding (onboarding_workspace_contract.md)
+  // Escritura transicional: estos campos persisten el output de
+  // RegistrationWorkspaceResolver para que SplashBootstrapController pueda
+  // construir el WorkspaceContext sin re-resolver desde el modelo legacy.
+  // ==========================================================================
+
+  /// workspaceId determinístico producido por el resolver.
+  /// Null si el registro no completó la Fase 2.
+  String? resolvedWorkspaceId;
+
+  /// wireName del WorkspaceType resuelto (ej. 'owner', 'assetAdmin').
+  /// Null si el registro no completó la Fase 2.
+  String? resolvedWorkspaceTypeName;
+
+  /// wireName del BusinessMode resuelto (ej. 'self_managed', 'third_party').
+  /// Null si el registro no completó la Fase 2.
+  String? resolvedBusinessModeName;
+
+  /// WorkspaceContextSeed serializado como JSON string.
+  /// Deserializar con WorkspaceContextSeed.fromMap(jsonDecode(value)).
+  /// Null si el registro no completó la Fase 2.
+  String? resolvedWorkspaceContextSeedJson;
+
   bool termsAccepted = false;
 
   late DateTime updatedAt;

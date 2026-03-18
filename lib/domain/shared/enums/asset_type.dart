@@ -1,13 +1,37 @@
+// ============================================================================
 // lib/domain/shared/enums/asset_type.dart
-// Enum para tipo de activo con serialización wire-stable.
-// Dominio puro: solo dart:core. Sin async, sin Flutter, sin DS.
+// ASSET REGISTRATION TYPE — Enum de categoría para el wizard de registro
+//
+// QUÉ HACE:
+// - Define AssetRegistrationType, el enum que el wizard (Step1/Step2) usa para
+//   que el usuario seleccione la categoría del activo a registrar.
+// - Provee extensiones de UI (displayName, icon), wire-names (wireName/fromWire),
+//   mapeo a PortfolioType, nombre sugerido y checks booleanos.
+//
+// QUÉ NO HACE:
+// - No es el AssetType canónico del dominio (ese vive en asset_entity.dart).
+// - No se usa en Isar ni en Firebase directamente.
+//
+// PRINCIPIOS:
+// - Wire-names son estables: los valores de wireName NO cambian.
+// - Para convertir AssetRegistrationType → AssetType (canonical), usar
+//   AssetTypeMapper en domain/mappers/asset_type_mapper.dart.
+//
+// ENTERPRISE NOTES:
+// RENOMBRADO (2026-03): era `AssetType`; renombrado a `AssetRegistrationType`
+// para eliminar colisión conceptual con el `AssetType` canónico definido en
+// domain/entities/asset/asset_entity.dart. Los wire-names permanecen intactos.
+// ============================================================================
 
 import 'package:flutter/material.dart';
 
 import '../../entities/portfolio/portfolio_entity.dart';
 
-// Comentarios en el código: enum tipado para tipo de activo y serializar a wireName.
-enum AssetType {
+/// Categoría de activo usada en el wizard de registro.
+///
+/// Distinct from the canonical `AssetType` in `asset_entity.dart`.
+/// Use `AssetTypeMapper` to convert between both.
+enum AssetRegistrationType {
   vehiculo,
   inmueble,
   maquinaria,
@@ -15,59 +39,59 @@ enum AssetType {
   otro,
 }
 
-// Comentarios en el código: extensión para mapeo bi-direccional entre AssetType y string wire-stable.
-extension AssetTypeWire on AssetType {
+// Wire-stable serialization
+extension AssetRegistrationTypeWire on AssetRegistrationType {
   String get wireName {
     switch (this) {
-      case AssetType.vehiculo:
+      case AssetRegistrationType.vehiculo:
         return 'vehiculo';
-      case AssetType.inmueble:
+      case AssetRegistrationType.inmueble:
         return 'inmueble';
-      case AssetType.maquinaria:
+      case AssetRegistrationType.maquinaria:
         return 'maquinaria';
-      case AssetType.equipo:
+      case AssetRegistrationType.equipo:
         return 'equipo';
-      case AssetType.otro:
+      case AssetRegistrationType.otro:
         return 'otro';
     }
   }
 
-  static AssetType fromWire(String? raw) {
-    if (raw == null) return AssetType.otro;
+  static AssetRegistrationType fromWire(String? raw) {
+    if (raw == null) return AssetRegistrationType.otro;
     switch (raw.trim().toLowerCase()) {
       case 'vehiculo':
       case 'vehículo':
-        return AssetType.vehiculo;
+        return AssetRegistrationType.vehiculo;
       case 'inmueble':
-        return AssetType.inmueble;
+        return AssetRegistrationType.inmueble;
       case 'maquinaria':
-        return AssetType.maquinaria;
+        return AssetRegistrationType.maquinaria;
       case 'equipo':
       case 'equipoconstruccion':
       case 'equipo_construccion':
       case 'equipooficina':
       case 'equipo_oficina':
-        return AssetType.equipo;
+        return AssetRegistrationType.equipo;
       default:
-        return AssetType.otro;
+        return AssetRegistrationType.otro;
     }
   }
 }
 
-// Comentarios en el código: extensión para UI - etiquetas e iconos de presentación.
-extension AssetTypeUI on AssetType {
+// UI: display labels and icons
+extension AssetRegistrationTypeUI on AssetRegistrationType {
   /// Etiqueta legible para el usuario
   String get displayName {
     switch (this) {
-      case AssetType.vehiculo:
+      case AssetRegistrationType.vehiculo:
         return 'Vehículo';
-      case AssetType.inmueble:
+      case AssetRegistrationType.inmueble:
         return 'Inmueble';
-      case AssetType.maquinaria:
+      case AssetRegistrationType.maquinaria:
         return 'Maquinaria';
-      case AssetType.equipo:
+      case AssetRegistrationType.equipo:
         return 'Equipo';
-      case AssetType.otro:
+      case AssetRegistrationType.otro:
         return 'Otro';
     }
   }
@@ -75,32 +99,32 @@ extension AssetTypeUI on AssetType {
   /// Icono representativo del tipo de activo
   IconData get icon {
     switch (this) {
-      case AssetType.vehiculo:
+      case AssetRegistrationType.vehiculo:
         return Icons.directions_car_filled_outlined;
-      case AssetType.inmueble:
+      case AssetRegistrationType.inmueble:
         return Icons.apartment_outlined;
-      case AssetType.maquinaria:
+      case AssetRegistrationType.maquinaria:
         return Icons.precision_manufacturing_outlined;
-      case AssetType.equipo:
+      case AssetRegistrationType.equipo:
         return Icons.construction_outlined;
-      case AssetType.otro:
+      case AssetRegistrationType.otro:
         return Icons.widgets_outlined;
     }
   }
 }
 
-// Comentarios en el código: extensión para mapeo a PortfolioType.
-extension AssetTypePortfolio on AssetType {
-  /// Mapea AssetType a PortfolioType para creación automática de portafolio
+// PortfolioType mapping
+extension AssetRegistrationTypePortfolio on AssetRegistrationType {
+  /// Mapea AssetRegistrationType a PortfolioType para creación de portafolio
   PortfolioType get portfolioType {
     switch (this) {
-      case AssetType.vehiculo:
+      case AssetRegistrationType.vehiculo:
         return PortfolioType.vehiculos;
-      case AssetType.inmueble:
+      case AssetRegistrationType.inmueble:
         return PortfolioType.inmuebles;
-      case AssetType.maquinaria:
-      case AssetType.equipo:
-      case AssetType.otro:
+      case AssetRegistrationType.maquinaria:
+      case AssetRegistrationType.equipo:
+      case AssetRegistrationType.otro:
         return PortfolioType.operacionGeneral;
     }
   }
@@ -108,34 +132,25 @@ extension AssetTypePortfolio on AssetType {
   /// Nombre sugerido para el portafolio basado en el tipo de activo
   String get suggestedPortfolioName {
     switch (this) {
-      case AssetType.vehiculo:
+      case AssetRegistrationType.vehiculo:
         return 'Mi Flota de Vehículos';
-      case AssetType.inmueble:
+      case AssetRegistrationType.inmueble:
         return 'Mis Inmuebles';
-      case AssetType.maquinaria:
+      case AssetRegistrationType.maquinaria:
         return 'Mi Maquinaria';
-      case AssetType.equipo:
+      case AssetRegistrationType.equipo:
         return 'Mis Equipos';
-      case AssetType.otro:
+      case AssetRegistrationType.otro:
         return 'Mis Activos';
     }
   }
 }
 
-// Comentarios en el código: extensión para verificación de tipo de activo.
-extension AssetTypeChecks on AssetType {
-  /// Verifica si el tipo de activo es Vehículo
-  bool get isVehiculo => this == AssetType.vehiculo;
-
-  /// Verifica si el tipo de activo es Inmueble
-  bool get isInmueble => this == AssetType.inmueble;
-
-  /// Verifica si el tipo de activo es Maquinaria
-  bool get isMaquinaria => this == AssetType.maquinaria;
-
-  /// Verifica si el tipo de activo es Equipo
-  bool get isEquipo => this == AssetType.equipo;
-
-  /// Verifica si el tipo de activo es Otro
-  bool get isOtro => this == AssetType.otro;
+// Boolean type checks
+extension AssetRegistrationTypeChecks on AssetRegistrationType {
+  bool get isVehiculo => this == AssetRegistrationType.vehiculo;
+  bool get isInmueble => this == AssetRegistrationType.inmueble;
+  bool get isMaquinaria => this == AssetRegistrationType.maquinaria;
+  bool get isEquipo => this == AssetRegistrationType.equipo;
+  bool get isOtro => this == AssetRegistrationType.otro;
 }

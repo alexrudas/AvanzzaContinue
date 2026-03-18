@@ -1,40 +1,38 @@
+// ============================================================================
 // lib/presentation/widgets/selectors/asset_type_selector.dart
-// ============================================================================
 // ASSET TYPE SELECTOR — Avanzza 2.0
-// ============================================================================
-// Widget reutilizable para seleccionar el tipo de activo usando ActionSheetPro.
 //
-// **Características:**
-// - Muestra un disparador visual (ListTile) con el valor actual o placeholder
-// - Al hacer tap, abre ActionSheetPro con las 5 opciones de AssetType
-// - Integra iconos y etiquetas automáticamente desde AssetTypeUI
-// - Callback onChanged ejecutado al seleccionar una opción
-// - 100% reutilizable sin lógica de negocio acoplada
+// QUÉ HACE:
+// - Widget reutilizable para seleccionar AssetRegistrationType usando ActionSheetPro.
+// - Muestra disparador visual (icono + etiqueta) con el valor actual o placeholder.
+// - Al hacer tap abre ActionSheetPro con las 5 opciones de AssetRegistrationType.
+// - Integra iconos y etiquetas automáticamente desde AssetRegistrationTypeUI.
+// - Callback onChanged ejecutado al seleccionar una opción.
 //
-// **Ejemplo de uso:**
-// ```dart
-// AssetTypeSelector(
-//   selected: controller.assetType.value,
-//   onChanged: (type) {
-//     controller.assetType.value = type;
-//   },
-//   title: 'Tipo de activo',
-//   subtitle: 'Selecciona la categoría del activo',
-// )
-// ```
+// QUÉ NO HACE:
+// - No conoce el AssetType canónico de domain/entities — usa AssetRegistrationType.
+// - Sin lógica de negocio acoplada: 100% presentacional.
+//
+// PRINCIPIOS:
+// - StatelessWidget puro, sin estado interno.
+// - La conversión a AssetType canónico se hace en el llamador con AssetTypeMapper.
+//
+// ENTERPRISE NOTES:
+// ACTUALIZADO (2026-03): AssetType → AssetRegistrationType (renombrado para
+// eliminar colisión conceptual con AssetType canónico en asset_entity.dart).
 // ============================================================================
 
 import 'package:avanzza/domain/shared/enums/asset_type.dart';
 import 'package:avanzza/presentation/widgets/modal/action_sheet_pro.dart';
 import 'package:flutter/material.dart';
 
-/// Widget selector de tipo de activo que usa ActionSheetPro
+/// Widget selector de tipo de activo que usa ActionSheetPro.
 class AssetTypeSelector extends StatelessWidget {
   /// Valor actualmente seleccionado (null si no hay selección)
-  final AssetType? selected;
+  final AssetRegistrationType? selected;
 
   /// Callback ejecutado cuando el usuario selecciona un tipo
-  final ValueChanged<AssetType> onChanged;
+  final ValueChanged<AssetRegistrationType> onChanged;
 
   /// Título del ActionSheetPro (default: "Selecciona el tipo de activo")
   final String? title;
@@ -112,18 +110,20 @@ class AssetTypeSelector extends StatelessWidget {
   }
 }
 
-/// Muestra el ActionSheetPro con las opciones de tipo de activo
-Future<void> showAssetTypeSheet(BuildContext context,
-    {String? title,
-    String? subtitle,
-    ValueChanged<AssetType>? onChanged}) async {
+/// Muestra el ActionSheetPro con las opciones de AssetRegistrationType.
+Future<void> showAssetTypeSheet(
+  BuildContext context, {
+  String? title,
+  String? subtitle,
+  ValueChanged<AssetRegistrationType>? onChanged,
+}) async {
   await ActionSheetPro.show(
     context,
     title: title ?? 'Selecciona el tipo de activo',
     data: [
       ActionSection(
         header: subtitle,
-        items: AssetType.values
+        items: AssetRegistrationType.values
             .map(
               (type) => ActionItem(
                 label: type.displayName,

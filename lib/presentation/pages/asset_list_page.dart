@@ -12,7 +12,7 @@ class AssetListPage extends StatelessWidget {
     super.key,
   });
 
-  final AssetType? assetType = AssetType.vehiculo;
+  final AssetRegistrationType? assetType = AssetRegistrationType.vehiculo;
 
   @override
   Widget build(BuildContext context) {

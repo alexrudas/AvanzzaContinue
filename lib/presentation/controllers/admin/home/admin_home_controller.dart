@@ -8,13 +8,17 @@
 // - Regla dura: “Activo primero” (bloquea acciones operativas sin activos)
 // ============================================================================
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/di/container.dart';
+import '../../../../domain/entities/portfolio/portfolio_entity.dart';
 import '../../../../domain/repositories/accounting_repository.dart';
 import '../../../../domain/repositories/asset_repository.dart';
 import '../../../../domain/repositories/maintenance_repository.dart';
+import '../../../../domain/repositories/portfolio_repository.dart';
 import '../../../../domain/repositories/purchase_repository.dart';
 import '../../../../domain/shared/enums/asset_type.dart';
 import '../../../../routes/app_routes.dart';
@@ -141,6 +145,10 @@ class AdminHomeController extends GetxController {
   /// Single source of truth para cantidad de activos registrados.
   final RxInt assetsCount = 0.obs;
 
+  /// Portafolios ACTIVE de la organización activa.
+  /// Alimentados por watchActivePortfoliosByOrg — reactivo a cambios en Isar.
+  final RxList<PortfolioEntity> portfolios = <PortfolioEntity>[].obs;
+
   /// Canal de eventos de UI (la vista ejecuta side-effects)
   final Rxn<AdminUiEvent> uiEvent = Rxn<AdminUiEvent>();
 
@@ -213,6 +221,9 @@ class AdminHomeController extends GetxController {
   late final MaintenanceRepository _mntRepo;
   late final AccountingRepository _accRepo;
   late final PurchaseRepository _purRepo;
+  late final PortfolioRepository _portfolioRepo;
+
+  StreamSubscription<List<PortfolioEntity>>? _portfolioSub;
 
   /// Workers reactivos que observan SessionContextController
   Worker? _userWorker;
@@ -230,6 +241,7 @@ class AdminHomeController extends GetxController {
     _mntRepo = _di.maintenanceRepository;
     _accRepo = _di.accountingRepository;
     _purRepo = _di.purchaseRepository;
+    _portfolioRepo = _di.portfolioRepository;
 
     _resolveOrg();
     _loadLocal();
@@ -248,6 +260,7 @@ class AdminHomeController extends GetxController {
   void onClose() {
     _userWorker?.dispose();
     _membershipsWorker?.dispose();
+    _portfolioSub?.cancel();
     super.onClose();
   }
 
@@ -350,6 +363,8 @@ class AdminHomeController extends GetxController {
       if (_orgId == null) {
         _debugLog('_loadLocal', 'orgId=null → fail-safe con ceros');
         assetsCount.value = 0;
+        portfolios.clear();
+        _subscribeToPortfolios(null);
         kpis.value = [
           const AdminKpiVM(label: 'Activos', value: 0),
           const AdminKpiVM(label: 'Egresos del mes', value: 0, suffix: '\$'),
@@ -360,6 +375,7 @@ class AdminHomeController extends GetxController {
       }
 
       final orgId = _orgId!;
+      _subscribeToPortfolios(orgId);
 
       final assets = await _assetRepo.fetchAssetsByOrg(orgId);
       assetsCount.value = assets.length;
@@ -453,6 +469,28 @@ class AdminHomeController extends GetxController {
       _debugLog('_loadLocal', 'EXIT loading=false kpis=${kpis.length}');
       loading.value = false;
     }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // HELPER: Portfolio stream reactivo
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /// Cancela la suscripción anterior y abre una nueva para [orgId].
+  ///
+  /// Si [orgId] es null, limpia la lista sin abrir un stream.
+  /// Llamado desde [_loadLocal()] en cada cambio de org.
+  void _subscribeToPortfolios(String? orgId) {
+    _portfolioSub?.cancel();
+    _portfolioSub = null;
+
+    if (orgId == null || orgId.trim().isEmpty) {
+      portfolios.clear();
+      return;
+    }
+
+    _portfolioSub = _portfolioRepo
+        .watchActivePortfoliosByOrg(orgId)
+        .listen((list) => portfolios.assignAll(list));
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -591,7 +629,7 @@ class AdminHomeController extends GetxController {
 
   /// Abre el wizard de registro de activo con tipo preseleccionado
   /// El wizard crea el portafolio internamente (camuflado en UX)
-  void openCreateAssetWizard(AssetType assetType) {
+  void openCreateAssetWizard(AssetRegistrationType assetType) {
     uiEvent.value = AdminUiEvent.redirect(
       route: Routes.createPortfolioStep1,
       arguments: {'preselectedAssetType': assetType},

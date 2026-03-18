@@ -19,7 +19,33 @@ mixin _$AssetVehiculoEntity {
   String get placa;
   String get marca;
   String get modelo;
-  int get anio;
+  int get anio; // ── Campos enriquecidos desde RUNT ────────────────────────────────────
+// Null para activos registrados antes de la Fase RUNT Grid (2026-03).
+// Se persisten durante el registro; leídos de regreso en _toEnrichedEntity().
+  String? get color;
+  double? get engineDisplacement;
+  String? get vin;
+  String? get engineNumber;
+  String? get chassisNumber;
+  String? get line;
+  String? get serviceType;
+  String? get vehicleClass;
+  String? get bodyType;
+  String? get fuelType;
+  int? get passengerCapacity;
+  double? get loadCapacityKg;
+  double? get grossWeightKg;
+  int? get axles;
+  String? get transitAuthority;
+  String? get initialRegistrationDate;
+  String? get propertyLiens;
+
+  /// JSON serializado de snapshots RTM, limitaciones y garantías.
+  ///
+  /// Formato: {'runt_rtm': [...], 'runt_limitations': [...],
+  ///           'runt_warranties': [...]}
+  /// Null si no hay datos RUNT disponibles en el momento del registro.
+  String? get runtMetaJson;
   DateTime? get createdAt;
   DateTime? get updatedAt;
 
@@ -45,6 +71,39 @@ mixin _$AssetVehiculoEntity {
             (identical(other.marca, marca) || other.marca == marca) &&
             (identical(other.modelo, modelo) || other.modelo == modelo) &&
             (identical(other.anio, anio) || other.anio == anio) &&
+            (identical(other.color, color) || other.color == color) &&
+            (identical(other.engineDisplacement, engineDisplacement) ||
+                other.engineDisplacement == engineDisplacement) &&
+            (identical(other.vin, vin) || other.vin == vin) &&
+            (identical(other.engineNumber, engineNumber) ||
+                other.engineNumber == engineNumber) &&
+            (identical(other.chassisNumber, chassisNumber) ||
+                other.chassisNumber == chassisNumber) &&
+            (identical(other.line, line) || other.line == line) &&
+            (identical(other.serviceType, serviceType) ||
+                other.serviceType == serviceType) &&
+            (identical(other.vehicleClass, vehicleClass) ||
+                other.vehicleClass == vehicleClass) &&
+            (identical(other.bodyType, bodyType) ||
+                other.bodyType == bodyType) &&
+            (identical(other.fuelType, fuelType) ||
+                other.fuelType == fuelType) &&
+            (identical(other.passengerCapacity, passengerCapacity) ||
+                other.passengerCapacity == passengerCapacity) &&
+            (identical(other.loadCapacityKg, loadCapacityKg) ||
+                other.loadCapacityKg == loadCapacityKg) &&
+            (identical(other.grossWeightKg, grossWeightKg) ||
+                other.grossWeightKg == grossWeightKg) &&
+            (identical(other.axles, axles) || other.axles == axles) &&
+            (identical(other.transitAuthority, transitAuthority) ||
+                other.transitAuthority == transitAuthority) &&
+            (identical(
+                    other.initialRegistrationDate, initialRegistrationDate) ||
+                other.initialRegistrationDate == initialRegistrationDate) &&
+            (identical(other.propertyLiens, propertyLiens) ||
+                other.propertyLiens == propertyLiens) &&
+            (identical(other.runtMetaJson, runtMetaJson) ||
+                other.runtMetaJson == runtMetaJson) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -53,12 +112,39 @@ mixin _$AssetVehiculoEntity {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, assetId, refCode, placa, marca,
-      modelo, anio, createdAt, updatedAt);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        assetId,
+        refCode,
+        placa,
+        marca,
+        modelo,
+        anio,
+        color,
+        engineDisplacement,
+        vin,
+        engineNumber,
+        chassisNumber,
+        line,
+        serviceType,
+        vehicleClass,
+        bodyType,
+        fuelType,
+        passengerCapacity,
+        loadCapacityKg,
+        grossWeightKg,
+        axles,
+        transitAuthority,
+        initialRegistrationDate,
+        propertyLiens,
+        runtMetaJson,
+        createdAt,
+        updatedAt
+      ]);
 
   @override
   String toString() {
-    return 'AssetVehiculoEntity(assetId: $assetId, refCode: $refCode, placa: $placa, marca: $marca, modelo: $modelo, anio: $anio, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'AssetVehiculoEntity(assetId: $assetId, refCode: $refCode, placa: $placa, marca: $marca, modelo: $modelo, anio: $anio, color: $color, engineDisplacement: $engineDisplacement, vin: $vin, engineNumber: $engineNumber, chassisNumber: $chassisNumber, line: $line, serviceType: $serviceType, vehicleClass: $vehicleClass, bodyType: $bodyType, fuelType: $fuelType, passengerCapacity: $passengerCapacity, loadCapacityKg: $loadCapacityKg, grossWeightKg: $grossWeightKg, axles: $axles, transitAuthority: $transitAuthority, initialRegistrationDate: $initialRegistrationDate, propertyLiens: $propertyLiens, runtMetaJson: $runtMetaJson, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -75,6 +161,24 @@ abstract mixin class $AssetVehiculoEntityCopyWith<$Res> {
       String marca,
       String modelo,
       int anio,
+      String? color,
+      double? engineDisplacement,
+      String? vin,
+      String? engineNumber,
+      String? chassisNumber,
+      String? line,
+      String? serviceType,
+      String? vehicleClass,
+      String? bodyType,
+      String? fuelType,
+      int? passengerCapacity,
+      double? loadCapacityKg,
+      double? grossWeightKg,
+      int? axles,
+      String? transitAuthority,
+      String? initialRegistrationDate,
+      String? propertyLiens,
+      String? runtMetaJson,
       DateTime? createdAt,
       DateTime? updatedAt});
 }
@@ -98,6 +202,24 @@ class _$AssetVehiculoEntityCopyWithImpl<$Res>
     Object? marca = null,
     Object? modelo = null,
     Object? anio = null,
+    Object? color = freezed,
+    Object? engineDisplacement = freezed,
+    Object? vin = freezed,
+    Object? engineNumber = freezed,
+    Object? chassisNumber = freezed,
+    Object? line = freezed,
+    Object? serviceType = freezed,
+    Object? vehicleClass = freezed,
+    Object? bodyType = freezed,
+    Object? fuelType = freezed,
+    Object? passengerCapacity = freezed,
+    Object? loadCapacityKg = freezed,
+    Object? grossWeightKg = freezed,
+    Object? axles = freezed,
+    Object? transitAuthority = freezed,
+    Object? initialRegistrationDate = freezed,
+    Object? propertyLiens = freezed,
+    Object? runtMetaJson = freezed,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
@@ -126,6 +248,78 @@ class _$AssetVehiculoEntityCopyWithImpl<$Res>
           ? _self.anio
           : anio // ignore: cast_nullable_to_non_nullable
               as int,
+      color: freezed == color
+          ? _self.color
+          : color // ignore: cast_nullable_to_non_nullable
+              as String?,
+      engineDisplacement: freezed == engineDisplacement
+          ? _self.engineDisplacement
+          : engineDisplacement // ignore: cast_nullable_to_non_nullable
+              as double?,
+      vin: freezed == vin
+          ? _self.vin
+          : vin // ignore: cast_nullable_to_non_nullable
+              as String?,
+      engineNumber: freezed == engineNumber
+          ? _self.engineNumber
+          : engineNumber // ignore: cast_nullable_to_non_nullable
+              as String?,
+      chassisNumber: freezed == chassisNumber
+          ? _self.chassisNumber
+          : chassisNumber // ignore: cast_nullable_to_non_nullable
+              as String?,
+      line: freezed == line
+          ? _self.line
+          : line // ignore: cast_nullable_to_non_nullable
+              as String?,
+      serviceType: freezed == serviceType
+          ? _self.serviceType
+          : serviceType // ignore: cast_nullable_to_non_nullable
+              as String?,
+      vehicleClass: freezed == vehicleClass
+          ? _self.vehicleClass
+          : vehicleClass // ignore: cast_nullable_to_non_nullable
+              as String?,
+      bodyType: freezed == bodyType
+          ? _self.bodyType
+          : bodyType // ignore: cast_nullable_to_non_nullable
+              as String?,
+      fuelType: freezed == fuelType
+          ? _self.fuelType
+          : fuelType // ignore: cast_nullable_to_non_nullable
+              as String?,
+      passengerCapacity: freezed == passengerCapacity
+          ? _self.passengerCapacity
+          : passengerCapacity // ignore: cast_nullable_to_non_nullable
+              as int?,
+      loadCapacityKg: freezed == loadCapacityKg
+          ? _self.loadCapacityKg
+          : loadCapacityKg // ignore: cast_nullable_to_non_nullable
+              as double?,
+      grossWeightKg: freezed == grossWeightKg
+          ? _self.grossWeightKg
+          : grossWeightKg // ignore: cast_nullable_to_non_nullable
+              as double?,
+      axles: freezed == axles
+          ? _self.axles
+          : axles // ignore: cast_nullable_to_non_nullable
+              as int?,
+      transitAuthority: freezed == transitAuthority
+          ? _self.transitAuthority
+          : transitAuthority // ignore: cast_nullable_to_non_nullable
+              as String?,
+      initialRegistrationDate: freezed == initialRegistrationDate
+          ? _self.initialRegistrationDate
+          : initialRegistrationDate // ignore: cast_nullable_to_non_nullable
+              as String?,
+      propertyLiens: freezed == propertyLiens
+          ? _self.propertyLiens
+          : propertyLiens // ignore: cast_nullable_to_non_nullable
+              as String?,
+      runtMetaJson: freezed == runtMetaJson
+          ? _self.runtMetaJson
+          : runtMetaJson // ignore: cast_nullable_to_non_nullable
+              as String?,
       createdAt: freezed == createdAt
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -231,16 +425,66 @@ extension AssetVehiculoEntityPatterns on AssetVehiculoEntity {
 
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>(
-    TResult Function(String assetId, String refCode, String placa, String marca,
-            String modelo, int anio, DateTime? createdAt, DateTime? updatedAt)?
+    TResult Function(
+            String assetId,
+            String refCode,
+            String placa,
+            String marca,
+            String modelo,
+            int anio,
+            String? color,
+            double? engineDisplacement,
+            String? vin,
+            String? engineNumber,
+            String? chassisNumber,
+            String? line,
+            String? serviceType,
+            String? vehicleClass,
+            String? bodyType,
+            String? fuelType,
+            int? passengerCapacity,
+            double? loadCapacityKg,
+            double? grossWeightKg,
+            int? axles,
+            String? transitAuthority,
+            String? initialRegistrationDate,
+            String? propertyLiens,
+            String? runtMetaJson,
+            DateTime? createdAt,
+            DateTime? updatedAt)?
         $default, {
     required TResult orElse(),
   }) {
     final _that = this;
     switch (_that) {
       case _AssetVehiculoEntity() when $default != null:
-        return $default(_that.assetId, _that.refCode, _that.placa, _that.marca,
-            _that.modelo, _that.anio, _that.createdAt, _that.updatedAt);
+        return $default(
+            _that.assetId,
+            _that.refCode,
+            _that.placa,
+            _that.marca,
+            _that.modelo,
+            _that.anio,
+            _that.color,
+            _that.engineDisplacement,
+            _that.vin,
+            _that.engineNumber,
+            _that.chassisNumber,
+            _that.line,
+            _that.serviceType,
+            _that.vehicleClass,
+            _that.bodyType,
+            _that.fuelType,
+            _that.passengerCapacity,
+            _that.loadCapacityKg,
+            _that.grossWeightKg,
+            _that.axles,
+            _that.transitAuthority,
+            _that.initialRegistrationDate,
+            _that.propertyLiens,
+            _that.runtMetaJson,
+            _that.createdAt,
+            _that.updatedAt);
       case _:
         return orElse();
     }
@@ -261,15 +505,65 @@ extension AssetVehiculoEntityPatterns on AssetVehiculoEntity {
 
   @optionalTypeArgs
   TResult when<TResult extends Object?>(
-    TResult Function(String assetId, String refCode, String placa, String marca,
-            String modelo, int anio, DateTime? createdAt, DateTime? updatedAt)
+    TResult Function(
+            String assetId,
+            String refCode,
+            String placa,
+            String marca,
+            String modelo,
+            int anio,
+            String? color,
+            double? engineDisplacement,
+            String? vin,
+            String? engineNumber,
+            String? chassisNumber,
+            String? line,
+            String? serviceType,
+            String? vehicleClass,
+            String? bodyType,
+            String? fuelType,
+            int? passengerCapacity,
+            double? loadCapacityKg,
+            double? grossWeightKg,
+            int? axles,
+            String? transitAuthority,
+            String? initialRegistrationDate,
+            String? propertyLiens,
+            String? runtMetaJson,
+            DateTime? createdAt,
+            DateTime? updatedAt)
         $default,
   ) {
     final _that = this;
     switch (_that) {
       case _AssetVehiculoEntity():
-        return $default(_that.assetId, _that.refCode, _that.placa, _that.marca,
-            _that.modelo, _that.anio, _that.createdAt, _that.updatedAt);
+        return $default(
+            _that.assetId,
+            _that.refCode,
+            _that.placa,
+            _that.marca,
+            _that.modelo,
+            _that.anio,
+            _that.color,
+            _that.engineDisplacement,
+            _that.vin,
+            _that.engineNumber,
+            _that.chassisNumber,
+            _that.line,
+            _that.serviceType,
+            _that.vehicleClass,
+            _that.bodyType,
+            _that.fuelType,
+            _that.passengerCapacity,
+            _that.loadCapacityKg,
+            _that.grossWeightKg,
+            _that.axles,
+            _that.transitAuthority,
+            _that.initialRegistrationDate,
+            _that.propertyLiens,
+            _that.runtMetaJson,
+            _that.createdAt,
+            _that.updatedAt);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -296,6 +590,24 @@ extension AssetVehiculoEntityPatterns on AssetVehiculoEntity {
             String marca,
             String modelo,
             int anio,
+            String? color,
+            double? engineDisplacement,
+            String? vin,
+            String? engineNumber,
+            String? chassisNumber,
+            String? line,
+            String? serviceType,
+            String? vehicleClass,
+            String? bodyType,
+            String? fuelType,
+            int? passengerCapacity,
+            double? loadCapacityKg,
+            double? grossWeightKg,
+            int? axles,
+            String? transitAuthority,
+            String? initialRegistrationDate,
+            String? propertyLiens,
+            String? runtMetaJson,
             DateTime? createdAt,
             DateTime? updatedAt)?
         $default,
@@ -303,8 +615,33 @@ extension AssetVehiculoEntityPatterns on AssetVehiculoEntity {
     final _that = this;
     switch (_that) {
       case _AssetVehiculoEntity() when $default != null:
-        return $default(_that.assetId, _that.refCode, _that.placa, _that.marca,
-            _that.modelo, _that.anio, _that.createdAt, _that.updatedAt);
+        return $default(
+            _that.assetId,
+            _that.refCode,
+            _that.placa,
+            _that.marca,
+            _that.modelo,
+            _that.anio,
+            _that.color,
+            _that.engineDisplacement,
+            _that.vin,
+            _that.engineNumber,
+            _that.chassisNumber,
+            _that.line,
+            _that.serviceType,
+            _that.vehicleClass,
+            _that.bodyType,
+            _that.fuelType,
+            _that.passengerCapacity,
+            _that.loadCapacityKg,
+            _that.grossWeightKg,
+            _that.axles,
+            _that.transitAuthority,
+            _that.initialRegistrationDate,
+            _that.propertyLiens,
+            _that.runtMetaJson,
+            _that.createdAt,
+            _that.updatedAt);
       case _:
         return null;
     }
@@ -321,6 +658,24 @@ class _AssetVehiculoEntity implements AssetVehiculoEntity {
       required this.marca,
       required this.modelo,
       required this.anio,
+      this.color,
+      this.engineDisplacement,
+      this.vin,
+      this.engineNumber,
+      this.chassisNumber,
+      this.line,
+      this.serviceType,
+      this.vehicleClass,
+      this.bodyType,
+      this.fuelType,
+      this.passengerCapacity,
+      this.loadCapacityKg,
+      this.grossWeightKg,
+      this.axles,
+      this.transitAuthority,
+      this.initialRegistrationDate,
+      this.propertyLiens,
+      this.runtMetaJson,
       this.createdAt,
       this.updatedAt});
   factory _AssetVehiculoEntity.fromJson(Map<String, dynamic> json) =>
@@ -339,6 +694,51 @@ class _AssetVehiculoEntity implements AssetVehiculoEntity {
   final String modelo;
   @override
   final int anio;
+// ── Campos enriquecidos desde RUNT ────────────────────────────────────
+// Null para activos registrados antes de la Fase RUNT Grid (2026-03).
+// Se persisten durante el registro; leídos de regreso en _toEnrichedEntity().
+  @override
+  final String? color;
+  @override
+  final double? engineDisplacement;
+  @override
+  final String? vin;
+  @override
+  final String? engineNumber;
+  @override
+  final String? chassisNumber;
+  @override
+  final String? line;
+  @override
+  final String? serviceType;
+  @override
+  final String? vehicleClass;
+  @override
+  final String? bodyType;
+  @override
+  final String? fuelType;
+  @override
+  final int? passengerCapacity;
+  @override
+  final double? loadCapacityKg;
+  @override
+  final double? grossWeightKg;
+  @override
+  final int? axles;
+  @override
+  final String? transitAuthority;
+  @override
+  final String? initialRegistrationDate;
+  @override
+  final String? propertyLiens;
+
+  /// JSON serializado de snapshots RTM, limitaciones y garantías.
+  ///
+  /// Formato: {'runt_rtm': [...], 'runt_limitations': [...],
+  ///           'runt_warranties': [...]}
+  /// Null si no hay datos RUNT disponibles en el momento del registro.
+  @override
+  final String? runtMetaJson;
   @override
   final DateTime? createdAt;
   @override
@@ -371,6 +771,39 @@ class _AssetVehiculoEntity implements AssetVehiculoEntity {
             (identical(other.marca, marca) || other.marca == marca) &&
             (identical(other.modelo, modelo) || other.modelo == modelo) &&
             (identical(other.anio, anio) || other.anio == anio) &&
+            (identical(other.color, color) || other.color == color) &&
+            (identical(other.engineDisplacement, engineDisplacement) ||
+                other.engineDisplacement == engineDisplacement) &&
+            (identical(other.vin, vin) || other.vin == vin) &&
+            (identical(other.engineNumber, engineNumber) ||
+                other.engineNumber == engineNumber) &&
+            (identical(other.chassisNumber, chassisNumber) ||
+                other.chassisNumber == chassisNumber) &&
+            (identical(other.line, line) || other.line == line) &&
+            (identical(other.serviceType, serviceType) ||
+                other.serviceType == serviceType) &&
+            (identical(other.vehicleClass, vehicleClass) ||
+                other.vehicleClass == vehicleClass) &&
+            (identical(other.bodyType, bodyType) ||
+                other.bodyType == bodyType) &&
+            (identical(other.fuelType, fuelType) ||
+                other.fuelType == fuelType) &&
+            (identical(other.passengerCapacity, passengerCapacity) ||
+                other.passengerCapacity == passengerCapacity) &&
+            (identical(other.loadCapacityKg, loadCapacityKg) ||
+                other.loadCapacityKg == loadCapacityKg) &&
+            (identical(other.grossWeightKg, grossWeightKg) ||
+                other.grossWeightKg == grossWeightKg) &&
+            (identical(other.axles, axles) || other.axles == axles) &&
+            (identical(other.transitAuthority, transitAuthority) ||
+                other.transitAuthority == transitAuthority) &&
+            (identical(
+                    other.initialRegistrationDate, initialRegistrationDate) ||
+                other.initialRegistrationDate == initialRegistrationDate) &&
+            (identical(other.propertyLiens, propertyLiens) ||
+                other.propertyLiens == propertyLiens) &&
+            (identical(other.runtMetaJson, runtMetaJson) ||
+                other.runtMetaJson == runtMetaJson) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -379,12 +812,39 @@ class _AssetVehiculoEntity implements AssetVehiculoEntity {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, assetId, refCode, placa, marca,
-      modelo, anio, createdAt, updatedAt);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        assetId,
+        refCode,
+        placa,
+        marca,
+        modelo,
+        anio,
+        color,
+        engineDisplacement,
+        vin,
+        engineNumber,
+        chassisNumber,
+        line,
+        serviceType,
+        vehicleClass,
+        bodyType,
+        fuelType,
+        passengerCapacity,
+        loadCapacityKg,
+        grossWeightKg,
+        axles,
+        transitAuthority,
+        initialRegistrationDate,
+        propertyLiens,
+        runtMetaJson,
+        createdAt,
+        updatedAt
+      ]);
 
   @override
   String toString() {
-    return 'AssetVehiculoEntity(assetId: $assetId, refCode: $refCode, placa: $placa, marca: $marca, modelo: $modelo, anio: $anio, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'AssetVehiculoEntity(assetId: $assetId, refCode: $refCode, placa: $placa, marca: $marca, modelo: $modelo, anio: $anio, color: $color, engineDisplacement: $engineDisplacement, vin: $vin, engineNumber: $engineNumber, chassisNumber: $chassisNumber, line: $line, serviceType: $serviceType, vehicleClass: $vehicleClass, bodyType: $bodyType, fuelType: $fuelType, passengerCapacity: $passengerCapacity, loadCapacityKg: $loadCapacityKg, grossWeightKg: $grossWeightKg, axles: $axles, transitAuthority: $transitAuthority, initialRegistrationDate: $initialRegistrationDate, propertyLiens: $propertyLiens, runtMetaJson: $runtMetaJson, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -403,6 +863,24 @@ abstract mixin class _$AssetVehiculoEntityCopyWith<$Res>
       String marca,
       String modelo,
       int anio,
+      String? color,
+      double? engineDisplacement,
+      String? vin,
+      String? engineNumber,
+      String? chassisNumber,
+      String? line,
+      String? serviceType,
+      String? vehicleClass,
+      String? bodyType,
+      String? fuelType,
+      int? passengerCapacity,
+      double? loadCapacityKg,
+      double? grossWeightKg,
+      int? axles,
+      String? transitAuthority,
+      String? initialRegistrationDate,
+      String? propertyLiens,
+      String? runtMetaJson,
       DateTime? createdAt,
       DateTime? updatedAt});
 }
@@ -426,6 +904,24 @@ class __$AssetVehiculoEntityCopyWithImpl<$Res>
     Object? marca = null,
     Object? modelo = null,
     Object? anio = null,
+    Object? color = freezed,
+    Object? engineDisplacement = freezed,
+    Object? vin = freezed,
+    Object? engineNumber = freezed,
+    Object? chassisNumber = freezed,
+    Object? line = freezed,
+    Object? serviceType = freezed,
+    Object? vehicleClass = freezed,
+    Object? bodyType = freezed,
+    Object? fuelType = freezed,
+    Object? passengerCapacity = freezed,
+    Object? loadCapacityKg = freezed,
+    Object? grossWeightKg = freezed,
+    Object? axles = freezed,
+    Object? transitAuthority = freezed,
+    Object? initialRegistrationDate = freezed,
+    Object? propertyLiens = freezed,
+    Object? runtMetaJson = freezed,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
@@ -454,6 +950,78 @@ class __$AssetVehiculoEntityCopyWithImpl<$Res>
           ? _self.anio
           : anio // ignore: cast_nullable_to_non_nullable
               as int,
+      color: freezed == color
+          ? _self.color
+          : color // ignore: cast_nullable_to_non_nullable
+              as String?,
+      engineDisplacement: freezed == engineDisplacement
+          ? _self.engineDisplacement
+          : engineDisplacement // ignore: cast_nullable_to_non_nullable
+              as double?,
+      vin: freezed == vin
+          ? _self.vin
+          : vin // ignore: cast_nullable_to_non_nullable
+              as String?,
+      engineNumber: freezed == engineNumber
+          ? _self.engineNumber
+          : engineNumber // ignore: cast_nullable_to_non_nullable
+              as String?,
+      chassisNumber: freezed == chassisNumber
+          ? _self.chassisNumber
+          : chassisNumber // ignore: cast_nullable_to_non_nullable
+              as String?,
+      line: freezed == line
+          ? _self.line
+          : line // ignore: cast_nullable_to_non_nullable
+              as String?,
+      serviceType: freezed == serviceType
+          ? _self.serviceType
+          : serviceType // ignore: cast_nullable_to_non_nullable
+              as String?,
+      vehicleClass: freezed == vehicleClass
+          ? _self.vehicleClass
+          : vehicleClass // ignore: cast_nullable_to_non_nullable
+              as String?,
+      bodyType: freezed == bodyType
+          ? _self.bodyType
+          : bodyType // ignore: cast_nullable_to_non_nullable
+              as String?,
+      fuelType: freezed == fuelType
+          ? _self.fuelType
+          : fuelType // ignore: cast_nullable_to_non_nullable
+              as String?,
+      passengerCapacity: freezed == passengerCapacity
+          ? _self.passengerCapacity
+          : passengerCapacity // ignore: cast_nullable_to_non_nullable
+              as int?,
+      loadCapacityKg: freezed == loadCapacityKg
+          ? _self.loadCapacityKg
+          : loadCapacityKg // ignore: cast_nullable_to_non_nullable
+              as double?,
+      grossWeightKg: freezed == grossWeightKg
+          ? _self.grossWeightKg
+          : grossWeightKg // ignore: cast_nullable_to_non_nullable
+              as double?,
+      axles: freezed == axles
+          ? _self.axles
+          : axles // ignore: cast_nullable_to_non_nullable
+              as int?,
+      transitAuthority: freezed == transitAuthority
+          ? _self.transitAuthority
+          : transitAuthority // ignore: cast_nullable_to_non_nullable
+              as String?,
+      initialRegistrationDate: freezed == initialRegistrationDate
+          ? _self.initialRegistrationDate
+          : initialRegistrationDate // ignore: cast_nullable_to_non_nullable
+              as String?,
+      propertyLiens: freezed == propertyLiens
+          ? _self.propertyLiens
+          : propertyLiens // ignore: cast_nullable_to_non_nullable
+              as String?,
+      runtMetaJson: freezed == runtMetaJson
+          ? _self.runtMetaJson
+          : runtMetaJson // ignore: cast_nullable_to_non_nullable
+              as String?,
       createdAt: freezed == createdAt
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable

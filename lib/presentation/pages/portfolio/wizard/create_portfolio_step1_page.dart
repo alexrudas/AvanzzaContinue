@@ -16,15 +16,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../core/theme/spacing.dart';
 import '../../../../domain/shared/enums/asset_type.dart';
+import '../../../../domain/value/registration/asset_registration_context.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../widgets/selectors/asset_type_selector.dart';
 import '../controllers/create_portfolio_controller.dart';
 
 class CreatePortfolioStep1Page extends StatefulWidget {
-  final AssetType? preselectedAssetType;
+  final AssetRegistrationType? preselectedAssetType;
 
   const CreatePortfolioStep1Page({
     super.key,
@@ -80,8 +82,8 @@ class _CreatePortfolioStep1PageState extends State<CreatePortfolioStep1Page> {
   /// El tipo de activo es obligatorio solo cuando no hay preselección.
   bool get _canContinue {
     final hasType = _ctrl.selectedAssetType.value != null;
-    final hasLocation = _ctrl.draftCountryId.value != null &&
-        _ctrl.draftCityId.value != null;
+    final hasLocation =
+        _ctrl.draftCountryId.value != null && _ctrl.draftCityId.value != null;
     return hasType && hasLocation;
   }
 
@@ -106,9 +108,20 @@ class _CreatePortfolioStep1PageState extends State<CreatePortfolioStep1Page> {
         cityId: _ctrl.draftCityId.value!,
       );
 
-      if (mounted) {
-        Get.toNamed(Routes.createPortfolioStep2);
-      }
+      if (!mounted) return;
+
+      // Construir contexto de registro con los primitivos del portafolio creado.
+      // registrationSessionId es un UUID fresco — NUNCA el portfolioId.
+      final ctx = AssetRegistrationContext(
+        portfolioId: _ctrl.createdPortfolioId!,
+        portfolioName: _ctrl.createdPortfolioName!,
+        countryId: _ctrl.createdCountryId!,
+        cityId: _ctrl.createdCityId,
+        assetType: assetType,
+        registrationSessionId: const Uuid().v4(),
+      );
+
+      Get.toNamed(Routes.assetRegister, arguments: ctx);
     } catch (e) {
       if (mounted) {
         Get.snackbar(
@@ -121,7 +134,7 @@ class _CreatePortfolioStep1PageState extends State<CreatePortfolioStep1Page> {
   }
 
   /// Actualiza el tipo en el draft y fuerza rebuild (canContinue depende de él).
-  void _onAssetTypeChanged(AssetType type) {
+  void _onAssetTypeChanged(AssetRegistrationType type) {
     _ctrl.selectedAssetType.value = type;
     setState(() {});
   }
@@ -218,8 +231,9 @@ class _CreatePortfolioStep1PageState extends State<CreatePortfolioStep1Page> {
               decoration: InputDecoration(
                 labelText: 'Nombre del portafolio',
                 // Sugerencia dinámica: cambia con el tipo de activo.
-                hintText: _ctrl.selectedAssetType.value?.suggestedPortfolioName
-                    ?? 'Nombre del portafolio',
+                hintText:
+                    _ctrl.selectedAssetType.value?.suggestedPortfolioName ??
+                        'Nombre del portafolio',
                 border: const OutlineInputBorder(),
                 helperText: 'Puedes personalizarlo si lo deseas.',
                 constraints: const BoxConstraints(minHeight: 56),
@@ -267,8 +281,7 @@ class _CreatePortfolioStep1PageState extends State<CreatePortfolioStep1Page> {
                     ]
                   : countryId == 'MX'
                       ? const [
-                          DropdownMenuItem(
-                              value: 'CDMX', child: Text('CDMX')),
+                          DropdownMenuItem(value: 'CDMX', child: Text('CDMX')),
                           DropdownMenuItem(
                               value: 'GDL', child: Text('Guadalajara')),
                         ]

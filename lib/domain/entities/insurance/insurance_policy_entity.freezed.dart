@@ -16,7 +16,19 @@ T _$identity<T>(T value) => value;
 mixin _$InsurancePolicyEntity {
   String get id;
   String get assetId;
-  String get tipo; // SOAT | todo_riesgo | inmueble
+
+  /// Wire value del tipo de póliza.
+  ///
+  /// Para lógica tipada usar la extension [InsurancePolicyEntityX.policyType].
+  ///
+  /// Valores válidos:
+  /// - `soat`
+  /// - `rc_contractual`
+  /// - `rc_extracontractual`
+  /// - `todo_riesgo`
+  /// - `inmueble`
+  /// - `unknown`
+  String get tipo;
   String get aseguradora;
   double get tarifaBase;
   String get currencyCode;
@@ -24,7 +36,17 @@ mixin _$InsurancePolicyEntity {
   String? get cityId;
   DateTime get fechaInicio;
   DateTime get fechaFin;
-  String get estado; // vigente | vencido | por_vencer
+
+  /// Estado calculado al momento de persistencia.
+  ///
+  /// Puede quedar stale con el tiempo. Para UI y vigencia actual,
+  /// calcular dinámicamente desde [fechaFin].
+  ///
+  /// Valores esperados:
+  /// - `vigente`
+  /// - `vencido`
+  /// - `por_vencer`
+  String get estado;
   DateTime? get createdAt;
   DateTime? get updatedAt;
 
@@ -459,9 +481,20 @@ class _InsurancePolicyEntity implements InsurancePolicyEntity {
   final String id;
   @override
   final String assetId;
+
+  /// Wire value del tipo de póliza.
+  ///
+  /// Para lógica tipada usar la extension [InsurancePolicyEntityX.policyType].
+  ///
+  /// Valores válidos:
+  /// - `soat`
+  /// - `rc_contractual`
+  /// - `rc_extracontractual`
+  /// - `todo_riesgo`
+  /// - `inmueble`
+  /// - `unknown`
   @override
   final String tipo;
-// SOAT | todo_riesgo | inmueble
   @override
   final String aseguradora;
   @override
@@ -476,9 +509,18 @@ class _InsurancePolicyEntity implements InsurancePolicyEntity {
   final DateTime fechaInicio;
   @override
   final DateTime fechaFin;
+
+  /// Estado calculado al momento de persistencia.
+  ///
+  /// Puede quedar stale con el tiempo. Para UI y vigencia actual,
+  /// calcular dinámicamente desde [fechaFin].
+  ///
+  /// Valores esperados:
+  /// - `vigente`
+  /// - `vencido`
+  /// - `por_vencer`
   @override
   final String estado;
-// vigente | vencido | por_vencer
   @override
   final DateTime? createdAt;
   @override

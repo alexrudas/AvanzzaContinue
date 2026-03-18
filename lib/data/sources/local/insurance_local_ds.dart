@@ -17,6 +17,23 @@ class InsuranceLocalDataSource {
     return q.findAll();
   }
 
+  /// Retorna la póliza más reciente (mayor fechaFin) para el [assetId] y
+  /// [tipoWire] dados, o null si no existe ninguna.
+  ///
+  /// Usa el índice compuesto assetId + @Index(tipo) para la query eficiente;
+  /// el sort por fechaFin descendente selecciona la más reciente.
+  Future<InsurancePolicyModel?> latestPolicyByTipo(
+      String assetId, String tipoWire) async {
+    final results = await isar.insurancePolicyModels
+        .filter()
+        .assetIdEqualTo(assetId)
+        .tipoEqualTo(tipoWire)
+        .sortByFechaFinDesc()
+        .limit(1)
+        .findAll();
+    return results.isEmpty ? null : results.first;
+  }
+
   Future<void> upsertPolicy(InsurancePolicyModel m) async =>
       isar.writeTxn(() async => isar.insurancePolicyModels.put(m));
 

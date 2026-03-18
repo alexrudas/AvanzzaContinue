@@ -123,6 +123,20 @@ class InsuranceRepositoryImpl implements InsuranceRepository {
   }
 
   @override
+  Future<InsurancePolicyEntity?> latestPolicyByTipo({
+    required String assetId,
+    required InsurancePolicyType tipo,
+  }) async {
+    try {
+      final model = await local.latestPolicyByTipo(assetId, tipo.toWireString());
+      return model?.toEntity();
+    } catch (e) {
+      // Isar error: retornar null de forma segura en lugar de propagar.
+      return null;
+    }
+  }
+
+  @override
   Future<void> upsertPolicy(InsurancePolicyEntity policy) async {
     final now = DateTime.now().toUtc();
     final model = InsurancePolicyModel.fromEntity(

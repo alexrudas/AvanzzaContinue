@@ -97,7 +97,7 @@ class ExpenseFormController extends GetxController {
   // Identificación
   final fecha = DateTime.now().obs;
   final consecutivo = 'GAS-${DateTime.now().year}-00001'.obs;
-  final assetType = AssetType.vehiculo.obs;
+  final assetType = AssetRegistrationType.vehiculo.obs;
   final centroCosto = ''.obs;
   final expenseType = ExpenseType.mantenimiento.obs;
 
@@ -658,7 +658,7 @@ class _ModernSelectAssetType extends StatelessWidget {
                 border: Border.all(color: const Color(0xFFE5E7EB)),
               ),
               child: DropdownButtonHideUnderline(
-                child: DropdownButton<AssetType>(
+                child: DropdownButton<AssetRegistrationType>(
                   value: c.assetType.value,
                   isExpanded: true,
                   icon: const Icon(Icons.arrow_drop_down,
@@ -668,7 +668,7 @@ class _ModernSelectAssetType extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                     color: Color(0xFF1F2937),
                   ),
-                  items: AssetType.values
+                  items: AssetRegistrationType.values
                       .map((t) => DropdownMenuItem(
                             value: t,
                             child: Text(_assetTypeLabel(t)),
@@ -684,17 +684,17 @@ class _ModernSelectAssetType extends StatelessWidget {
     );
   }
 
-  static String _assetTypeLabel(AssetType t) {
+  static String _assetTypeLabel(AssetRegistrationType t) {
     switch (t) {
-      case AssetType.vehiculo:
+      case AssetRegistrationType.vehiculo:
         return '🚗 Vehículo';
-      case AssetType.inmueble:
+      case AssetRegistrationType.inmueble:
         return '🏢 Inmueble';
-      case AssetType.maquinaria:
+      case AssetRegistrationType.maquinaria:
         return '🏗️ Maquinaria';
-      case AssetType.equipo:
+      case AssetRegistrationType.equipo:
         return '💼 Equipo';
-      case AssetType.otro:
+      case AssetRegistrationType.otro:
         return '✨ Otro';
     }
   }

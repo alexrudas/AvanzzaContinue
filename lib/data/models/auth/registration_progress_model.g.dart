@@ -123,43 +123,63 @@ const RegistrationProgressModelSchema = CollectionSchema(
       name: r'regionId',
       type: IsarType.string,
     ),
-    r'resolvedRoles': PropertySchema(
+    r'resolvedBusinessModeName': PropertySchema(
       id: 21,
+      name: r'resolvedBusinessModeName',
+      type: IsarType.string,
+    ),
+    r'resolvedRoles': PropertySchema(
+      id: 22,
       name: r'resolvedRoles',
       type: IsarType.stringList,
     ),
+    r'resolvedWorkspaceContextSeedJson': PropertySchema(
+      id: 23,
+      name: r'resolvedWorkspaceContextSeedJson',
+      type: IsarType.string,
+    ),
+    r'resolvedWorkspaceId': PropertySchema(
+      id: 24,
+      name: r'resolvedWorkspaceId',
+      type: IsarType.string,
+    ),
+    r'resolvedWorkspaceTypeName': PropertySchema(
+      id: 25,
+      name: r'resolvedWorkspaceTypeName',
+      type: IsarType.string,
+    ),
     r'resolvedWorkspaces': PropertySchema(
-      id: 22,
+      id: 26,
       name: r'resolvedWorkspaces',
       type: IsarType.stringList,
     ),
     r'selectedRole': PropertySchema(
-      id: 23,
+      id: 27,
       name: r'selectedRole',
       type: IsarType.string,
     ),
     r'step': PropertySchema(
-      id: 24,
+      id: 28,
       name: r'step',
       type: IsarType.long,
     ),
     r'termsAccepted': PropertySchema(
-      id: 25,
+      id: 29,
       name: r'termsAccepted',
       type: IsarType.bool,
     ),
     r'titularType': PropertySchema(
-      id: 26,
+      id: 30,
       name: r'titularType',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 27,
+      id: 31,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'username': PropertySchema(
-      id: 28,
+      id: 32,
       name: r'username',
       type: IsarType.string,
     )
@@ -318,11 +338,35 @@ int _registrationProgressModelEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.resolvedBusinessModeName;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.resolvedRoles.length * 3;
   {
     for (var i = 0; i < object.resolvedRoles.length; i++) {
       final value = object.resolvedRoles[i];
       bytesCount += value.length * 3;
+    }
+  }
+  {
+    final value = object.resolvedWorkspaceContextSeedJson;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.resolvedWorkspaceId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.resolvedWorkspaceTypeName;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
     }
   }
   bytesCount += 3 + object.resolvedWorkspaces.length * 3;
@@ -380,14 +424,18 @@ void _registrationProgressModelSerialize(
   writer.writeString(offsets[18], object.phone);
   writer.writeString(offsets[19], object.providerType);
   writer.writeString(offsets[20], object.regionId);
-  writer.writeStringList(offsets[21], object.resolvedRoles);
-  writer.writeStringList(offsets[22], object.resolvedWorkspaces);
-  writer.writeString(offsets[23], object.selectedRole);
-  writer.writeLong(offsets[24], object.step);
-  writer.writeBool(offsets[25], object.termsAccepted);
-  writer.writeString(offsets[26], object.titularType);
-  writer.writeDateTime(offsets[27], object.updatedAt);
-  writer.writeString(offsets[28], object.username);
+  writer.writeString(offsets[21], object.resolvedBusinessModeName);
+  writer.writeStringList(offsets[22], object.resolvedRoles);
+  writer.writeString(offsets[23], object.resolvedWorkspaceContextSeedJson);
+  writer.writeString(offsets[24], object.resolvedWorkspaceId);
+  writer.writeString(offsets[25], object.resolvedWorkspaceTypeName);
+  writer.writeStringList(offsets[26], object.resolvedWorkspaces);
+  writer.writeString(offsets[27], object.selectedRole);
+  writer.writeLong(offsets[28], object.step);
+  writer.writeBool(offsets[29], object.termsAccepted);
+  writer.writeString(offsets[30], object.titularType);
+  writer.writeDateTime(offsets[31], object.updatedAt);
+  writer.writeString(offsets[32], object.username);
 }
 
 RegistrationProgressModel _registrationProgressModelDeserialize(
@@ -419,14 +467,19 @@ RegistrationProgressModel _registrationProgressModelDeserialize(
   object.phone = reader.readStringOrNull(offsets[18]);
   object.providerType = reader.readStringOrNull(offsets[19]);
   object.regionId = reader.readStringOrNull(offsets[20]);
-  object.resolvedRoles = reader.readStringList(offsets[21]) ?? [];
-  object.resolvedWorkspaces = reader.readStringList(offsets[22]) ?? [];
-  object.selectedRole = reader.readStringOrNull(offsets[23]);
-  object.step = reader.readLong(offsets[24]);
-  object.termsAccepted = reader.readBool(offsets[25]);
-  object.titularType = reader.readStringOrNull(offsets[26]);
-  object.updatedAt = reader.readDateTime(offsets[27]);
-  object.username = reader.readStringOrNull(offsets[28]);
+  object.resolvedBusinessModeName = reader.readStringOrNull(offsets[21]);
+  object.resolvedRoles = reader.readStringList(offsets[22]) ?? [];
+  object.resolvedWorkspaceContextSeedJson =
+      reader.readStringOrNull(offsets[23]);
+  object.resolvedWorkspaceId = reader.readStringOrNull(offsets[24]);
+  object.resolvedWorkspaceTypeName = reader.readStringOrNull(offsets[25]);
+  object.resolvedWorkspaces = reader.readStringList(offsets[26]) ?? [];
+  object.selectedRole = reader.readStringOrNull(offsets[27]);
+  object.step = reader.readLong(offsets[28]);
+  object.termsAccepted = reader.readBool(offsets[29]);
+  object.titularType = reader.readStringOrNull(offsets[30]);
+  object.updatedAt = reader.readDateTime(offsets[31]);
+  object.username = reader.readStringOrNull(offsets[32]);
   return object;
 }
 
@@ -480,20 +533,28 @@ P _registrationProgressModelDeserializeProp<P>(
     case 20:
       return (reader.readStringOrNull(offset)) as P;
     case 21:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 22:
       return (reader.readStringList(offset) ?? []) as P;
     case 23:
       return (reader.readStringOrNull(offset)) as P;
     case 24:
-      return (reader.readLong(offset)) as P;
-    case 25:
-      return (reader.readBool(offset)) as P;
-    case 26:
       return (reader.readStringOrNull(offset)) as P;
+    case 25:
+      return (reader.readStringOrNull(offset)) as P;
+    case 26:
+      return (reader.readStringList(offset) ?? []) as P;
     case 27:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 28:
+      return (reader.readLong(offset)) as P;
+    case 29:
+      return (reader.readBool(offset)) as P;
+    case 30:
+      return (reader.readStringOrNull(offset)) as P;
+    case 31:
+      return (reader.readDateTime(offset)) as P;
+    case 32:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -4245,6 +4306,164 @@ extension RegistrationProgressModelQueryFilter on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedBusinessModeNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'resolvedBusinessModeName',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedBusinessModeNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'resolvedBusinessModeName',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedBusinessModeNameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'resolvedBusinessModeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedBusinessModeNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'resolvedBusinessModeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedBusinessModeNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'resolvedBusinessModeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedBusinessModeNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'resolvedBusinessModeName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedBusinessModeNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'resolvedBusinessModeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedBusinessModeNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'resolvedBusinessModeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      resolvedBusinessModeNameContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'resolvedBusinessModeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      resolvedBusinessModeNameMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'resolvedBusinessModeName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedBusinessModeNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'resolvedBusinessModeName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedBusinessModeNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'resolvedBusinessModeName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
       QAfterFilterCondition> resolvedRolesElementEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -4468,6 +4687,478 @@ extension RegistrationProgressModelQueryFilter on QueryBuilder<
         upper,
         includeUpper,
       );
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceContextSeedJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'resolvedWorkspaceContextSeedJson',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceContextSeedJsonIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'resolvedWorkspaceContextSeedJson',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceContextSeedJsonEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'resolvedWorkspaceContextSeedJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceContextSeedJsonGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'resolvedWorkspaceContextSeedJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceContextSeedJsonLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'resolvedWorkspaceContextSeedJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceContextSeedJsonBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'resolvedWorkspaceContextSeedJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceContextSeedJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'resolvedWorkspaceContextSeedJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceContextSeedJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'resolvedWorkspaceContextSeedJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      resolvedWorkspaceContextSeedJsonContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'resolvedWorkspaceContextSeedJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      resolvedWorkspaceContextSeedJsonMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'resolvedWorkspaceContextSeedJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceContextSeedJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'resolvedWorkspaceContextSeedJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceContextSeedJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'resolvedWorkspaceContextSeedJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'resolvedWorkspaceId',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'resolvedWorkspaceId',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'resolvedWorkspaceId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'resolvedWorkspaceId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'resolvedWorkspaceId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'resolvedWorkspaceId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'resolvedWorkspaceId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'resolvedWorkspaceId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      resolvedWorkspaceIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'resolvedWorkspaceId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      resolvedWorkspaceIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'resolvedWorkspaceId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'resolvedWorkspaceId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'resolvedWorkspaceId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceTypeNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'resolvedWorkspaceTypeName',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceTypeNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'resolvedWorkspaceTypeName',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceTypeNameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'resolvedWorkspaceTypeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceTypeNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'resolvedWorkspaceTypeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceTypeNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'resolvedWorkspaceTypeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceTypeNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'resolvedWorkspaceTypeName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceTypeNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'resolvedWorkspaceTypeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceTypeNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'resolvedWorkspaceTypeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      resolvedWorkspaceTypeNameContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'resolvedWorkspaceTypeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+          QAfterFilterCondition>
+      resolvedWorkspaceTypeNameMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'resolvedWorkspaceTypeName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceTypeNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'resolvedWorkspaceTypeName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterFilterCondition> resolvedWorkspaceTypeNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'resolvedWorkspaceTypeName',
+        value: '',
+      ));
     });
   }
 
@@ -5524,6 +6215,62 @@ extension RegistrationProgressModelQuerySortBy on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByResolvedBusinessModeName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resolvedBusinessModeName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByResolvedBusinessModeNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resolvedBusinessModeName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByResolvedWorkspaceContextSeedJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resolvedWorkspaceContextSeedJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByResolvedWorkspaceContextSeedJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resolvedWorkspaceContextSeedJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByResolvedWorkspaceId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resolvedWorkspaceId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByResolvedWorkspaceIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resolvedWorkspaceId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByResolvedWorkspaceTypeName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resolvedWorkspaceTypeName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> sortByResolvedWorkspaceTypeNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resolvedWorkspaceTypeName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
       QAfterSortBy> sortBySelectedRole() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'selectedRole', Sort.asc);
@@ -5849,6 +6596,62 @@ extension RegistrationProgressModelQuerySortThenBy on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByResolvedBusinessModeName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resolvedBusinessModeName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByResolvedBusinessModeNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resolvedBusinessModeName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByResolvedWorkspaceContextSeedJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resolvedWorkspaceContextSeedJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByResolvedWorkspaceContextSeedJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resolvedWorkspaceContextSeedJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByResolvedWorkspaceId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resolvedWorkspaceId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByResolvedWorkspaceIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resolvedWorkspaceId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByResolvedWorkspaceTypeName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resolvedWorkspaceTypeName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
+      QAfterSortBy> thenByResolvedWorkspaceTypeNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'resolvedWorkspaceTypeName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel,
       QAfterSortBy> thenBySelectedRole() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'selectedRole', Sort.asc);
@@ -6086,9 +6889,41 @@ extension RegistrationProgressModelQueryWhereDistinct on QueryBuilder<
   }
 
   QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
+      distinctByResolvedBusinessModeName({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'resolvedBusinessModeName',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
       distinctByResolvedRoles() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'resolvedRoles');
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
+      distinctByResolvedWorkspaceContextSeedJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'resolvedWorkspaceContextSeedJson',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
+      distinctByResolvedWorkspaceId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'resolvedWorkspaceId',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, RegistrationProgressModel, QDistinct>
+      distinctByResolvedWorkspaceTypeName({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'resolvedWorkspaceTypeName',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -6298,10 +7133,38 @@ extension RegistrationProgressModelQueryProperty on QueryBuilder<
     });
   }
 
+  QueryBuilder<RegistrationProgressModel, String?, QQueryOperations>
+      resolvedBusinessModeNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'resolvedBusinessModeName');
+    });
+  }
+
   QueryBuilder<RegistrationProgressModel, List<String>, QQueryOperations>
       resolvedRolesProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'resolvedRoles');
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, String?, QQueryOperations>
+      resolvedWorkspaceContextSeedJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'resolvedWorkspaceContextSeedJson');
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, String?, QQueryOperations>
+      resolvedWorkspaceIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'resolvedWorkspaceId');
+    });
+  }
+
+  QueryBuilder<RegistrationProgressModel, String?, QQueryOperations>
+      resolvedWorkspaceTypeNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'resolvedWorkspaceTypeName');
     });
   }
 

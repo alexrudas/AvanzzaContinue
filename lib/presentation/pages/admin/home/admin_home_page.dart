@@ -18,8 +18,10 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../../../application/services/accounting/accounting_outbox_sync_service.dart';
+import '../../../../routes/app_pages.dart';
 import '../../../../core/auth/auth_state_observer.dart';
 import '../../../../domain/entities/accounting/accounting_event.dart';
+import '../../../../domain/entities/portfolio/portfolio_entity.dart';
 import '../../../../infrastructure/isar/repositories/isar_accounting_event_repository.dart';
 import '../../../config/empty_state_config.dart';
 import '../../../controllers/activation/activation_gate_controller.dart';
@@ -399,6 +401,53 @@ class _AdminHomePageState extends State<AdminHomePage> {
             )),
         const SizedBox(height: 14),
 
+        // ────────────────────────────────────────────────────────────────────
+        // PORTAFOLIOS — lista dinámica desde AdminHomeController.portfolios
+        // Reactivo a cambios en Isar vía watchActivePortfoliosByOrg(orgId).
+        // ────────────────────────────────────────────────────────────────────
+        const AdminSectionTitle(title: 'Portafolios de activos'),
+        const SizedBox(height: 14),
+        Obx(() {
+          final portfolioList = controller.portfolios;
+          if (portfolioList.isEmpty) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                'No hay portafolios activos',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+            );
+          }
+          return Column(
+            children: portfolioList.map((portfolio) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: AdminAssetCategoryCard(
+                  title: portfolio.portfolioName,
+                  subtitle: _portfolioTypeLabel(portfolio.portfolioType),
+                  value: '${portfolio.assetsCount} activos',
+                  icon: _portfolioIcon(portfolio.portfolioType),
+                  color: _portfolioColor(portfolio.portfolioType, cs),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    // Navega directamente a la vista operativa de activos,
+                    // eliminando el paso intermedio de PortfolioDetailPage.
+                    // PortfolioDetailPage sigue disponible vía Routes.portfolioDetail
+                    // para navegación directa o deep-link desde otros contextos.
+                    Get.toNamed(
+                      Routes.portfolioAssets,
+                      arguments: portfolio,
+                    );
+                  },
+                ),
+              );
+            }).toList(),
+          );
+        }),
+        const SizedBox(height: 14),
+
         // Red Operativa Section
         const AdminSectionTitle(title: 'Mi red operativa'),
         const SizedBox(height: 4),
@@ -429,6 +478,43 @@ class _AdminHomePageState extends State<AdminHomePage> {
         const SizedBox(height: 80), // Espacio para el FAB
       ],
     );
+  }
+
+  // ============================================================================
+  // PORTFOLIO HELPERS (presentacionales, sin lógica de negocio)
+  // ============================================================================
+
+  IconData _portfolioIcon(PortfolioType type) {
+    switch (type) {
+      case PortfolioType.vehiculos:
+        return Icons.directions_car_outlined;
+      case PortfolioType.inmuebles:
+        return Icons.home_outlined;
+      case PortfolioType.operacionGeneral:
+        return Icons.work_outline;
+    }
+  }
+
+  Color _portfolioColor(PortfolioType type, ColorScheme cs) {
+    switch (type) {
+      case PortfolioType.vehiculos:
+        return cs.primary;
+      case PortfolioType.inmuebles:
+        return cs.tertiary;
+      case PortfolioType.operacionGeneral:
+        return cs.secondary;
+    }
+  }
+
+  String _portfolioTypeLabel(PortfolioType type) {
+    switch (type) {
+      case PortfolioType.vehiculos:
+        return 'Flota vehicular';
+      case PortfolioType.inmuebles:
+        return 'Bienes inmuebles';
+      case PortfolioType.operacionGeneral:
+        return 'Operación general';
+    }
   }
 
   // ============================================================================
@@ -656,7 +742,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
       data: [
         ActionSection(
           header: 'Elige la categoría para tu primer registro',
-          items: AssetType.values
+          items: AssetRegistrationType.values
               .map(
                 (type) => ActionItem(
                   label: type.displayName,

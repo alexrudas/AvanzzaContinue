@@ -3,6 +3,16 @@ import 'package:avanzza/routes/app_pages.dart';
 import '../models/campaign.dart';
 import '../models/campaign_eligibility.dart';
 
+/// Registro estático de campañas de demostración.
+///
+/// ESTADO ACTUAL: Fallback registry del Campaign Engine.
+///
+/// CampaignOrchestrator._selectCampaign() intenta primero CampaignResolver
+/// (datos reales del dominio). Si retorna null, usa [DemoCampaigns.forScreen()]
+/// como fallback para garantizar que siempre haya contenido.
+///
+/// No eliminar: este registro se usa como contenido de relleno mientras los
+/// módulos reales (mantenimientos, catálogo, etc.) no tienen resolver propio.
 class DemoCampaigns {
   static final List<Campaign> all = [
     const Campaign(
@@ -48,6 +58,12 @@ class DemoCampaigns {
     }
   }
 
+  /// Selección aleatoria por timestamp — solo para testing/QA.
+  ///
+  /// No usar en flujos de producción. El Campaign Engine usa
+  /// CampaignResolver + [forScreen()] como fallback.
+  @Deprecated('Usar CampaignResolver en producción. '
+      'Solo válido para testing/QA manual.')
   static Campaign? random() {
     if (all.isEmpty) return null;
     final index = DateTime.now().millisecondsSinceEpoch % all.length;

@@ -26,8 +26,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../domain/errors/asset_creation_exception.dart';
+import '../../../../domain/value/registration/asset_runt_snapshot.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../controllers/runt/runt_query_controller.dart';
+import '../../../widgets/asset/vehicle/vehicle_summary_widget.dart';
+import '../../../controllers/asset/asset_registration_controller.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE
@@ -42,11 +46,13 @@ class RuntQueryResultPage extends StatefulWidget {
 
 class _RuntQueryResultPageState extends State<RuntQueryResultPage> {
   late final RuntQueryController _ctrl;
+  late final AssetRegistrationController _assetRegCtrl;
 
   @override
   void initState() {
     super.initState();
     _ctrl = Get.find<RuntQueryController>();
+    _assetRegCtrl = Get.find<AssetRegistrationController>();
   }
 
   Future<void> _confirmBackToForm() async {
@@ -74,7 +80,7 @@ class _RuntQueryResultPageState extends State<RuntQueryResultPage> {
 
     if (!mounted) return;
     if (shouldLeave) {
-      Get.until((r) => r.settings.name == Routes.createPortfolioStep2);
+      Get.until((r) => r.settings.name == Routes.assetRegister);
     }
   }
 
@@ -106,11 +112,19 @@ class _RuntQueryResultPageState extends State<RuntQueryResultPage> {
           ],
         ),
         body: Obx(() {
+          // Bloquear UI durante la transición de registro → navegación.
+          // isRegistering permanece true desde que clearQueryState() vacía
+          // vehicleData hasta que Get.offAllNamed destruye la pantalla.
+          // Evita el glitch visual de "No se obtuvieron resultados".
+          if (_assetRegCtrl.isRegistering.value) {
+            return const _RegisteringOverlay();
+          }
+
           final data = _ctrl.vehicleData.value;
           if (data == null || data.isEmpty) {
             return _EmptyResultView(
               onBackToForm: () => Get.until(
-                  (r) => r.settings.name == Routes.createPortfolioStep2),
+                  (r) => r.settings.name == Routes.assetRegister),
             );
           }
           return _ResultView(data: data, ctrl: _ctrl);
@@ -229,13 +243,18 @@ class _ResultViewState extends State<_ResultView> {
     final vehicleColor = _str(vs?['color'] ?? data['color']);
     // Tipo de servicio (Público / Particular) — para color de placa y badge.
     // RUNT lo envía típicamente en vehicleRegistration.type, con fallback al mapa raíz.
-    final serviceType = _str(
-        vr?['type'] ?? vs?['type'] ?? data['type'] ??
-        vr?['tipoServicio'] ?? data['tipoServicio']);
+    final serviceType = _str(vr?['type'] ??
+        vs?['type'] ??
+        data['type'] ??
+        vr?['tipoServicio'] ??
+        data['tipoServicio']);
     // Clase de vehículo (Automóvil, Motocicleta, etc.) — sube al summary.
-    final vehicleClass = _str(
-        vr?['category'] ?? vs?['category'] ?? data['category'] ??
-        vr?['clase'] ?? vs?['clase'] ?? data['clase']);
+    final vehicleClass = _str(vr?['category'] ??
+        vs?['category'] ??
+        data['category'] ??
+        vr?['clase'] ??
+        vs?['clase'] ??
+        data['clase']);
     final vin = _str(vi?['vin'] ?? data['vin']);
     final engine = _str(vi?['engine'] ?? data['engine']);
     final version = _str(vs?['version'] ?? vs?['trim'] ?? data['version']);
@@ -262,7 +281,7 @@ class _ResultViewState extends State<_ResultView> {
       slivers: [
         // 1. Vehicle Summary
         SliverToBoxAdapter(
-          child: _VehicleSummary(
+          child: VehicleSummaryWidget(
             plate: plate,
             brand: brand,
             model: model,
@@ -296,7 +315,7 @@ class _ResultViewState extends State<_ResultView> {
           ),
         ),
 
-        // 3. Estado del activo (no expandible)
+        // 3. Resumen estado del activo (no expandible)
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           sliver: SliverToBoxAdapter(
@@ -699,241 +718,6 @@ class _ResultViewState extends State<_ResultView> {
       _f('Número de póliza',
           item['numeroPóliza'] ?? item['numeroPoliza'] ?? item['poliza']),
     ];
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// VEHICLE SUMMARY
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Cabecera del activo. Muestra placa prominente, nombre del vehículo,
-/// carrocería/color y datos técnicos de identificación (VIN, motor).
-/// No es una card expandible — siempre visible.
-class _VehicleSummary extends StatelessWidget {
-  final String plate;
-  final String? brand;
-  final String? model;
-  final String? version;
-  final String? modelYear;
-  final String? transmision;
-  final String? cilindraje;
-  final String? bodyType;
-  final String? vehicleColor;
-  /// Clase de vehículo (Automóvil, Motocicleta, etc.) desde vehicleRegistration.
-  final String? vehicleClass;
-  /// Tipo de servicio (Público / Particular) — controla color de placa y badge.
-  final String? serviceType;
-  final String? vin;
-  final String? engine;
-
-  const _VehicleSummary({
-    required this.plate,
-    this.brand,
-    this.model,
-    this.version,
-    this.modelYear,
-    this.transmision,
-    this.cilindraje,
-    this.bodyType,
-    this.vehicleColor,
-    this.vehicleClass,
-    this.serviceType,
-    this.vin,
-    this.engine,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    // Color de placa según tipo de servicio.
-    // "publico" / "público" → blanco; "particular" → amarillo; desconocido → amarillo.
-    final serviceNorm = serviceType?.trim().toLowerCase() ?? '';
-    final isPublico = serviceNorm.contains('public');
-    final plateBackground =
-        isPublico ? Colors.white : const Color(0xFFFDD835);
-
-    // Línea 2: MARCA MODELO VERSIÓN
-    final modelParts = <String>[
-      if (brand != null && brand!.isNotEmpty) brand!,
-      if (model != null && model!.isNotEmpty) model!,
-      if (version != null && version!.isNotEmpty) version!,
-    ];
-    final modelLine = modelParts.join(' ').toUpperCase();
-
-    // Badge de servicio — se muestra solo si hay valor
-    final badgeLabel =
-        (serviceType != null && serviceType!.trim().isNotEmpty)
-            ? serviceType!.trim().toUpperCase()
-            : null;
-
-    // Línea 3: CLASE · CARROCERÍA · COLOR
-    final bodyParts = <String>[
-      if (vehicleClass != null && vehicleClass!.isNotEmpty) vehicleClass!,
-      if (bodyType != null && bodyType!.isNotEmpty) bodyType!,
-      if (vehicleColor != null && vehicleColor!.isNotEmpty) vehicleColor!,
-    ];
-    final bodyLine = bodyParts.join(' · ');
-
-    // Línea 4: TRANSMISIÓN · CILINDRAJE
-    final techParts = <String>[
-      if (transmision != null && transmision!.isNotEmpty) transmision!,
-      if (cilindraje != null && cilindraje!.isNotEmpty) '$cilindraje cc',
-    ];
-    final techLine = techParts.join(' · ');
-
-    return Container(
-      color: colors.surface,
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Línea 1: Placa — color dinámico según tipo de servicio
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-            decoration: BoxDecoration(
-              color: plateBackground,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.black, width: 2),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.10),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Text(
-              plate.toUpperCase(),
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 6,
-                fontFamily: 'monospace',
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 14),
-
-          // Línea 2: MARCA MODELO VERSIÓN + badge de servicio en la misma línea
-          if (modelLine.isNotEmpty || badgeLabel != null)
-            Wrap(
-              alignment: WrapAlignment.center,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                if (modelLine.isNotEmpty)
-                  Text(
-                    modelLine,
-                    style: textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: colors.onSurface,
-                      letterSpacing: 0.4,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                if (badgeLabel != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: colors.secondaryContainer,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      badgeLabel,
-                      style: textTheme.labelSmall?.copyWith(
-                        color: colors.onSecondaryContainer,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-
-          // Línea 3: CLASE · CARROCERÍA · COLOR (normal)
-          if (bodyLine.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              bodyLine,
-              style: textTheme.bodySmall?.copyWith(
-                color: colors.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-
-          // Línea 4: TRANSMISIÓN · CILINDRAJE (normal)
-          if (techLine.isNotEmpty) ...[
-            const SizedBox(height: 2),
-            Text(
-              techLine,
-              style: textTheme.bodySmall?.copyWith(
-                color: colors.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-
-          // Línea 5: AÑO: XXXX
-          if (modelYear != null && modelYear!.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            _TechLine(label: 'AÑO', value: modelYear!),
-          ],
-
-          // Línea 6: VIN
-          if (vin != null) ...[
-            const SizedBox(height: 4),
-            _TechLine(label: 'VIN', value: vin!),
-          ],
-
-          // Línea 7: Motor
-          if (engine != null) ...[
-            const SizedBox(height: 4),
-            _TechLine(label: 'MOTOR', value: engine!),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// Fila de dato técnico de identificación (VIN / Motor).
-class _TechLine extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _TechLine({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          '$label: ',
-          style: textTheme.labelSmall?.copyWith(color: colors.onSurfaceVariant),
-        ),
-        Flexible(
-          child: Text(
-            value.toUpperCase(),
-            style: textTheme.labelSmall?.copyWith(
-              color: colors.onSurface,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }
 
@@ -1677,6 +1461,97 @@ class _ActionFooter extends StatelessWidget {
 
   const _ActionFooter({required this.ctrl});
 
+  /// Persiste el vehículo confirmado en el portafolio.
+  ///
+  /// Construye un [AssetRuntSnapshot] con todos los campos disponibles en
+  /// [RuntQueryController.vehicleData] y lo pasa al controller de registro.
+  /// La navegación final la gestiona [AssetRegistrationController.registerVehicle()].
+  Future<void> _registerVehicle(RuntQueryController runtCtrl) async {
+    final data = runtCtrl.vehicleData.value;
+    if (data == null || data.isEmpty) return;
+
+    // ── Secciones del mapa vehicleData ──────────────────────────────────────
+    final vs  = _asMap(data['vehicleSpecs']);
+    final vi  = _asMap(data['vehicleIdentity']);
+    final vr  = _asMap(data['vehicleRegistration']);
+    final vtd = _asMap(data['vehicleTechnicalData']);
+
+    // ── Campos básicos de identificación ────────────────────────────────────
+    final plate  = _strOf(data['plate']) ?? '';
+    final marca  = _strOf(vs?['brand']  ?? data['brand'])  ?? '';
+    final modelo = _strOf(vs?['model']  ?? data['model'])  ?? '';
+    final anioRaw = vs?['modelYear'] ?? vs?['year'] ?? data['year']
+        ?? vs?['anio'] ?? data['anio'];
+    final anio = anioRaw is int
+        ? anioRaw
+        : int.tryParse(anioRaw?.toString() ?? '') ?? 0;
+
+    // ── Construir AssetRuntSnapshot con todos los datos disponibles ──────────
+    final snapshot = AssetRuntSnapshot(
+      // Specs técnicas
+      color: _strOf(vs?['color'] ?? data['color']),
+      engineDisplacement: _toDouble(vs?['cilindraje'] ?? data['cilindraje']),
+      vin:           _strOf(vi?['vin']    ?? data['vin']),
+      engineNumber:  _strOf(vi?['engine'] ?? data['engine']),
+      chassisNumber: _strOf(vi?['chassisNumber'] ?? data['chassisNumber']),
+      line:          _strOf(vs?['line']   ?? data['line']),
+      serviceType:   _strOf(vr?['type']   ?? vr?['tipoServicio']
+          ?? vs?['type']  ?? data['type']    ?? data['tipoServicio']),
+      vehicleClass:  _strOf(vr?['category'] ?? vr?['clase']
+          ?? vs?['category'] ?? data['category'] ?? data['clase']),
+      bodyType:      _strOf(vs?['tipoCarroceria'] ?? data['tipoCarroceria']),
+      fuelType:      _strOf(vs?['fuel'] ?? vs?['tipoCombustible']
+          ?? data['fuel'] ?? data['tipoCombustible']),
+      passengerCapacity: _toInt(vtd?['seatedPassengers']
+          ?? data['capacity'] ?? data['pasajeros']),
+      loadCapacityKg:  _toDouble(vtd?['capacidadCarga']
+          ?? data['capacidadCarga']),
+      grossWeightKg:   _toDouble(vtd?['pesoBrutoVehicular']
+          ?? data['pesoBrutoVehicular']),
+      axles:           _toInt(vtd?['numeroEjes'] ?? data['numeroEjes']),
+      transitAuthority: _strOf(vr?['autoridadTransito']
+          ?? data['autoridadTransito']),
+      initialRegistrationDate: _strOf(vr?['fechaMatricula']
+          ?? data['fechaMatricula']),
+      propertyLiens: _strOf(vr?['gravamenesPropiedad']
+          ?? data['gravamenesPropiedad']),
+
+      // Seguros
+      soatRecords: _asMaps(data['soatItems']),
+      rcRecords:   _asMaps(data['segurosRc']),
+
+      // Snapshots jurídicos / historial
+      rtmRecords:   _asMaps(data['revisionTecnicaItems']),
+      limitations:  _asMaps(data['limitacionesPropiedad']),
+      warranties:   _asMaps(data['garantias']),
+    );
+
+    try {
+      // Navegación a portfolioAssets se gestiona dentro de registerVehicle().
+      await Get.find<AssetRegistrationController>().registerVehicle(
+        plate:         plate.isNotEmpty  ? plate  : 'N/D',
+        marca:         marca.isNotEmpty  ? marca  : 'N/D',
+        modelo:        modelo.isNotEmpty ? modelo : 'N/D',
+        anio:          anio,
+        runtSnapshot:  snapshot,
+      );
+    } on AssetCreationException catch (e) {
+      final msg = e.code == AssetCreationExceptionCode.duplicatePlate
+          ? 'Este vehículo ya está registrado en tu portafolio.'
+          : 'No se pudo registrar el vehículo. Intenta nuevamente.';
+      Get.snackbar('Error al registrar', msg,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 4));
+    } catch (_) {
+      Get.snackbar(
+        'Error al registrar',
+        'No se pudo registrar el vehículo. Intenta nuevamente.',
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 4),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -1685,8 +1560,9 @@ class _ActionFooter extends StatelessWidget {
           width: double.infinity,
           height: 56,
           child: FilledButton.icon(
-            onPressed: () => Get.until(
-                (r) => r.settings.name == Routes.createPortfolioStep2),
+            // [FIX-NAV] Antes: Get.until() navegaba de vuelta al formulario
+            // (loop). Corregido: persiste el activo y navega hacia Routes.home.
+            onPressed: () => _registerVehicle(ctrl),
             icon: const Icon(Icons.check_rounded),
             label: const Text('REGISTRAR VEHÍCULO EN AVANZZA'),
           ),
@@ -1698,7 +1574,7 @@ class _ActionFooter extends StatelessWidget {
           child: OutlinedButton.icon(
             onPressed: () async {
               await ctrl.clearQueryState();
-              Get.until((r) => r.settings.name == Routes.createPortfolioStep2);
+              Get.until((r) => r.settings.name == Routes.assetRegister);
             },
             icon: const Icon(Icons.refresh_rounded),
             label: const Text('NUEVA CONSULTA'),
@@ -1707,7 +1583,7 @@ class _ActionFooter extends StatelessWidget {
         const SizedBox(height: 8),
         TextButton(
           onPressed: () =>
-              Get.until((r) => r.settings.name == Routes.createPortfolioStep2),
+              Get.until((r) => r.settings.name == Routes.assetRegister),
           child: const Text('VOLVER AL FORMULARIO'),
         ),
       ],
@@ -1717,6 +1593,38 @@ class _ActionFooter extends StatelessWidget {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EMPTY VIEW
+// ─────────────────────────────────────────────────────────────────────────────
+// REGISTERING OVERLAY
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Overlay de carga mostrado mientras [AssetRegistrationController.registerVehicle()]
+/// está en curso. Bloquea la reevaluación del body para evitar el glitch visual
+/// de "No se obtuvieron resultados" que ocurre cuando [clearQueryState()] vacía
+/// [vehicleData] antes de que la navegación final haya ocurrido.
+class _RegisteringOverlay extends StatelessWidget {
+  const _RegisteringOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(color: colors.primary),
+          const SizedBox(height: 24),
+          Text(
+            'Registrando activo…',
+            style: textTheme.bodyLarge?.copyWith(color: colors.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _EmptyResultView extends StatelessWidget {
@@ -1924,4 +1832,51 @@ String? _formatShortDate(dynamic raw) {
   } catch (_) {
     return s;
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS DE EXTRACCIÓN — usados por _ActionFooter._registerVehicle()
+// File-level para ser accesibles desde widgets StatelessWidget sin estado.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Convierte [raw] a Map<String, dynamic> si es posible; null en otro caso.
+Map<String, dynamic>? _asMap(dynamic raw) {
+  if (raw is Map<String, dynamic>) return raw;
+  if (raw is Map) return Map<String, dynamic>.from(raw);
+  return null;
+}
+
+/// Convierte [raw] a List<Map<String, dynamic>>.
+///
+/// Si [raw] es una List, filtra y convierte cada elemento que sea Map.
+/// Devuelve lista vacía si [raw] es null o no es una List.
+List<Map<String, dynamic>> _asMaps(dynamic raw) {
+  if (raw is! List) return const [];
+  return raw
+      .whereType<Map>()
+      .map((e) => Map<String, dynamic>.from(e))
+      .toList();
+}
+
+/// Extrae un String no vacío de [raw]; null si no hay valor utilizable.
+String? _strOf(dynamic raw) {
+  if (raw == null) return null;
+  final s = raw.toString().trim();
+  return s.isEmpty ? null : s;
+}
+
+/// Convierte [raw] a double; null si no es numérico.
+double? _toDouble(dynamic raw) {
+  if (raw == null) return null;
+  if (raw is double) return raw;
+  if (raw is int) return raw.toDouble();
+  return double.tryParse(raw.toString());
+}
+
+/// Convierte [raw] a int; null si no es numérico.
+int? _toInt(dynamic raw) {
+  if (raw == null) return null;
+  if (raw is int) return raw;
+  if (raw is double) return raw.toInt();
+  return int.tryParse(raw.toString());
 }

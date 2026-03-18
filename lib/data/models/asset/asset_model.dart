@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart'
     show FirebaseFirestore, DocumentReference;
 import 'package:cloud_firestore/cloud_firestore.dart' as fs show Timestamp;
+import 'package:flutter/foundation.dart';
 import 'package:isar_community/isar.dart' as isar;
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -78,6 +79,12 @@ class AssetModel {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
+  /// Portafolio al que pertenece este activo.
+  /// Indexado para permitir consultas eficientes por portafolio.
+  /// Nulo si el activo no fue creado mediante el wizard de portafolio.
+  @isar.Index()
+  final String? portfolioId;
+
   AssetModel({
     this.isarId,
     required this.id,
@@ -103,6 +110,7 @@ class AssetModel {
     this.cityRefPath,
     this.createdAt,
     this.updatedAt,
+    this.portfolioId,
   });
 
   factory AssetModel.fromJson(Map<String, dynamic> json) =>
@@ -327,6 +335,7 @@ class AssetModel {
       fotosUrls: fotosUrls,
       createdAt: e.createdAt,
       updatedAt: e.updatedAt,
+      portfolioId: e.portfolioId,
     );
   }
 
@@ -351,7 +360,7 @@ class AssetModel {
       legalOwner: null,
       beneficialOwner: _createBeneficialOwnerIfValid(),
       snapshotId: null,
-      portfolioId: null,
+      portfolioId: portfolioId,
       metadata: {
         'orgId': orgId,
         'countryId': countryId,
@@ -443,6 +452,17 @@ class AssetModel {
     final placeholder = (type == domain.AssetType.vehicle && fullId.length >= 6)
         ? fullId.substring(0, 6)
         : fullId;
+
+    // ⚠️ AUDIT LOG: Este es el punto donde se genera la placa FALSA.
+    // placeholder = primeros 6 chars del UUID en mayúsculas.
+    // PlateWidget lo formateará como "XXX - XXX" → parece placa real pero es fake.
+    if (kDebugMode) {
+      debugPrint(
+        '[AUDIT][PLACEHOLDER] assetId=$assetId type=$type '
+        '→ assetKey(FALSO)="$placeholder" '
+        '(uuid[0:6] — la placa real está en AssetVehiculoModel)',
+      );
+    }
 
     const unknown = 'PENDIENTE';
 

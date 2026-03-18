@@ -41,6 +41,31 @@ class AssetVehiculoModel {
   final String marca;
   final String modelo;
   final int anio;
+
+  // ── Campos enriquecidos desde RUNT (nullable — backward compatible) ──────
+  // Null para activos registrados antes de la Fase RUNT Grid (2026-03).
+  final String? color;
+  final double? engineDisplacement;
+  final String? vin;
+  final String? engineNumber;
+  final String? chassisNumber;
+  final String? line;
+  final String? serviceType;
+  final String? vehicleClass;
+  final String? bodyType;
+  final String? fuelType;
+  final int? passengerCapacity;
+  final double? loadCapacityKg;
+  final double? grossWeightKg;
+  final int? axles;
+  final String? transitAuthority;
+  final String? initialRegistrationDate;
+  final String? propertyLiens;
+
+  /// JSON serializado de snapshots RTM, limitaciones y garantías.
+  /// Formato: {'runt_rtm': [...], 'runt_limitations': [...], 'runt_warranties': [...]}
+  final String? runtMetaJson;
+
   @DateTimeTimestampConverter()
   final DateTime? createdAt;
   @DateTimeTimestampConverter()
@@ -54,6 +79,24 @@ class AssetVehiculoModel {
     required this.marca,
     required this.modelo,
     required this.anio,
+    this.color,
+    this.engineDisplacement,
+    this.vin,
+    this.engineNumber,
+    this.chassisNumber,
+    this.line,
+    this.serviceType,
+    this.vehicleClass,
+    this.bodyType,
+    this.fuelType,
+    this.passengerCapacity,
+    this.loadCapacityKg,
+    this.grossWeightKg,
+    this.axles,
+    this.transitAuthority,
+    this.initialRegistrationDate,
+    this.propertyLiens,
+    this.runtMetaJson,
     this.createdAt,
     this.updatedAt,
   });
@@ -73,6 +116,24 @@ class AssetVehiculoModel {
         marca: e.marca,
         modelo: e.modelo,
         anio: e.anio,
+        color: e.color,
+        engineDisplacement: e.engineDisplacement,
+        vin: e.vin,
+        engineNumber: e.engineNumber,
+        chassisNumber: e.chassisNumber,
+        line: e.line,
+        serviceType: e.serviceType,
+        vehicleClass: e.vehicleClass,
+        bodyType: e.bodyType,
+        fuelType: e.fuelType,
+        passengerCapacity: e.passengerCapacity,
+        loadCapacityKg: e.loadCapacityKg,
+        grossWeightKg: e.grossWeightKg,
+        axles: e.axles,
+        transitAuthority: e.transitAuthority,
+        initialRegistrationDate: e.initialRegistrationDate,
+        propertyLiens: e.propertyLiens,
+        runtMetaJson: e.runtMetaJson,
         createdAt: e.createdAt,
         updatedAt: e.updatedAt,
       );
@@ -84,6 +145,24 @@ class AssetVehiculoModel {
         marca: marca,
         modelo: modelo,
         anio: anio,
+        color: color,
+        engineDisplacement: engineDisplacement,
+        vin: vin,
+        engineNumber: engineNumber,
+        chassisNumber: chassisNumber,
+        line: line,
+        serviceType: serviceType,
+        vehicleClass: vehicleClass,
+        bodyType: bodyType,
+        fuelType: fuelType,
+        passengerCapacity: passengerCapacity,
+        loadCapacityKg: loadCapacityKg,
+        grossWeightKg: grossWeightKg,
+        axles: axles,
+        transitAuthority: transitAuthority,
+        initialRegistrationDate: initialRegistrationDate,
+        propertyLiens: propertyLiens,
+        runtMetaJson: runtMetaJson,
         createdAt: createdAt,
         updatedAt: updatedAt,
       );

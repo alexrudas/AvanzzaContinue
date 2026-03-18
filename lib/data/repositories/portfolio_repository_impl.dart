@@ -21,6 +21,7 @@ class PortfolioRepositoryImpl implements PortfolioRepository {
       portfolioName: portfolio.portfolioName,
       countryId: portfolio.countryId,
       cityId: portfolio.cityId,
+      orgId: portfolio.orgId,
       status: 'DRAFT', // Siempre DRAFT al crear
       assetsCount: 0, // Siempre 0 al crear
       createdBy: portfolio.createdBy,
@@ -67,6 +68,13 @@ class PortfolioRepositoryImpl implements PortfolioRepository {
     // Null-safety: decrementAssetsCount lanza Exception si no existe
     // Nunca retorna null, así que podemos mapear directamente
     return updated.toEntity();
+  }
+
+  @override
+  Stream<List<PortfolioEntity>> watchActivePortfoliosByOrg(String orgId) {
+    return local
+        .watchActiveByOrg(orgId)
+        .map((models) => models.map((m) => m.toEntity()).toList());
   }
 
   // Helper para serializar PortfolioType

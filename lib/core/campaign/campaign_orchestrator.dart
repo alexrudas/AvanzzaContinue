@@ -6,10 +6,12 @@ import '../../presentation/controllers/session_context_controller.dart';
 import '../analytics/analytics_service.dart';
 import '../config/campaign_config.dart';
 import '../di/container.dart';
+import 'demo/demo_campaigns.dart';
 import 'models/campaign.dart';
 import 'models/campaign_eligibility.dart';
 import 'models/campaign_event.dart';
 import 'persistence/campaign_frequency_store.dart';
+import 'resolver/campaign_resolver.dart';
 import 'ui/full_screen_campaign_overlay.dart';
 import 'ui/mini_card_campaign_overlay.dart';
 
@@ -168,8 +170,29 @@ class CampaignOrchestrator {
     return DateTime.now().difference(_showStartTime!);
   }
 
+  /// Selecciona la campaña más relevante para el screen actual.
+  ///
+  /// Estrategia en dos pasos:
+  /// 1. [CampaignResolver] — datos reales del dominio (SOAT, activos del org).
+  ///    Requiere sesión autenticada con orgId disponible.
+  /// 2. [DemoCampaigns.forScreen()] — fallback estático cuando el resolver
+  ///    no encuentra nada accionable o la sesión no está disponible.
   Future<Campaign?> _selectCampaign(String screenId) async {
-    return null;
+    // ── Paso 1: Resolver basado en datos reales ───────────────────────────────
+    try {
+      final session  = Get.find<SessionContextController>();
+      final orgId    = session.user?.activeContext?.orgId;
+
+      if (orgId != null && orgId.isNotEmpty) {
+        final resolved = await CampaignResolver().resolve(orgId: orgId);
+        if (resolved != null) return resolved;
+      }
+    } catch (_) {
+      // Sesión no disponible o resolver falló — caer al fallback.
+    }
+
+    // ── Paso 2: Fallback al registro estático de demo ─────────────────────────
+    return DemoCampaigns.forScreen(screenId);
   }
 
   Future<bool> _checkEligibility(Campaign campaign, String screenId) async {

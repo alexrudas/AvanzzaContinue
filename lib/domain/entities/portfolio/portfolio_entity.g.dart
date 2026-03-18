@@ -13,6 +13,7 @@ _PortfolioEntity _$PortfolioEntityFromJson(Map<String, dynamic> json) =>
       portfolioName: json['portfolioName'] as String,
       countryId: json['countryId'] as String,
       cityId: json['cityId'] as String,
+      orgId: json['orgId'] as String? ?? '',
       status: $enumDecodeNullable(_$PortfolioStatusEnumMap, json['status']) ??
           PortfolioStatus.draft,
       assetsCount: (json['assetsCount'] as num?)?.toInt() ?? 0,
@@ -32,6 +33,7 @@ Map<String, dynamic> _$PortfolioEntityToJson(_PortfolioEntity instance) =>
       'portfolioName': instance.portfolioName,
       'countryId': instance.countryId,
       'cityId': instance.cityId,
+      'orgId': instance.orgId,
       'status': _$PortfolioStatusEnumMap[instance.status]!,
       'assetsCount': instance.assetsCount,
       'createdBy': instance.createdBy,

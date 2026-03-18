@@ -12,6 +12,35 @@ abstract class AssetVehiculoEntity with _$AssetVehiculoEntity {
     required String marca,
     required String modelo,
     required int anio,
+
+    // ── Campos enriquecidos desde RUNT ────────────────────────────────────
+    // Null para activos registrados antes de la Fase RUNT Grid (2026-03).
+    // Se persisten durante el registro; leídos de regreso en _toEnrichedEntity().
+    String? color,
+    double? engineDisplacement,
+    String? vin,
+    String? engineNumber,
+    String? chassisNumber,
+    String? line,
+    String? serviceType,
+    String? vehicleClass,
+    String? bodyType,
+    String? fuelType,
+    int? passengerCapacity,
+    double? loadCapacityKg,
+    double? grossWeightKg,
+    int? axles,
+    String? transitAuthority,
+    String? initialRegistrationDate,
+    String? propertyLiens,
+
+    /// JSON serializado de snapshots RTM, limitaciones y garantías.
+    ///
+    /// Formato: {'runt_rtm': [...], 'runt_limitations': [...],
+    ///           'runt_warranties': [...]}
+    /// Null si no hay datos RUNT disponibles en el momento del registro.
+    String? runtMetaJson,
+
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _AssetVehiculoEntity;

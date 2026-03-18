@@ -1,32 +1,52 @@
 // ============================================================================
 // lib/presentation/bindings/splash_binding.dart
-// SPLASH BINDING — Enterprise Ultra Pro (Presentation / Bindings)
+// SPLASH BINDING — Enterprise Ultra Pro Premium (Presentation / Bindings)
 //
 // QUÉ HACE:
 // - Registra SessionContextController como singleton permanente (si no existe).
 // - Registra WorkspaceController como singleton permanente (si no existe).
 // - Registra SplashBootstrapController como singleton permanente (si no existe).
+// - Registra ContextSwitchService como singleton permanente (si no existe).
+// - Inyecta adaptadores concretos de infraestructura para Fase 1:
+//   WorkspaceContextStateStoreImpl + LegacyActiveContextBridgeImpl.
 //
 // QUÉ NO HACE:
-// - No ejecuta bootstrap aquí (eso corresponde al Page/Controller).
-// - No usa Future.delayed ni temporizadores.
-// - No re-instancia dependencias si ya están registradas.
+// - NO ejecuta bootstrap aquí (eso corresponde al Page/Controller).
+// - NO navega ni decide rutas.
+// - NO re-instancia dependencias ya registradas.
+// - NO resuelve lógica de dominio.
+// - NO crea WorkspaceContext directamente.
+//
+// PRINCIPIOS:
+// - IDEMPOTENCIA: abrir app / re-entry / hot restart no debe duplicar singletons.
+// - ORDEN DE REGISTRO: ContextSwitchService se registra después de
+//   SessionContextController.
+// - FASE 1 COMPAT: mantiene bridge hacia ActiveContext legacy sin contaminar
+//   el binding con lógica de negocio.
+// - LAZY SAFETY: registra solo lo necesario para splash/bootstrap.
 //
 // NOTAS ENTERPRISE:
-// - Este binding debe ser idempotente: abrir la app / hot-restart / re-entry
-//   no debe duplicar controladores.
-// - DIContainer se instancia una sola vez para evitar overhead y mantener
-//   consistencia de singletons internos.
+// - ContextSwitchService permanece en SplashBinding durante Fase 1.
+// - Si al finalizar la migración se convierte en dependencia global estable,
+//   podrá moverse a AppBindings / InitialBinding.
+// - TelemetryService se asume registrado globalmente. Si no existe, se inyecta null
+//   al WorkspaceController para evitar crash innecesario en esta fase.
 //
 // DEPENDENCIAS:
-// - SessionContextController requiere: userRepository, connectivityService
-// - WorkspaceController requiere: workspaceRepository, telemetry (ya registrado)
-// - SplashBootstrapController: constructor default sin parámetros (según proyecto)
+// - DIContainer
+// - SessionContextController
+// - WorkspaceController
+// - SplashBootstrapController
+// - ContextSwitchService
+// - WorkspaceContextStateStoreImpl
+// - LegacyActiveContextBridgeImpl
 // ============================================================================
 
 import 'package:get/get.dart';
 
 import '../../core/di/container.dart';
+import '../../domain/services/workspace/context_switch_service.dart';
+import '../../infrastructure/workspace/context_switch_adapters.dart';
 import '../../services/telemetry/telemetry_service.dart';
 import '../controllers/session_context_controller.dart';
 import '../controllers/splash_bootstrap_controller.dart';
@@ -36,7 +56,7 @@ class SplashBinding extends Bindings {
   @override
   void dependencies() {
     // -------------------------------------------------------------------------
-    // DI CONTAINER (single instance dentro del binding)
+    // DI CONTAINER (instancia única local al binding)
     // -------------------------------------------------------------------------
     final di = DIContainer();
 
@@ -56,10 +76,6 @@ class SplashBinding extends Bindings {
     // -------------------------------------------------------------------------
     // WORKSPACE CONTROLLER (permanent)
     // -------------------------------------------------------------------------
-    // Nota: WorkspaceController depende de "telemetry". Si telemetry no está
-    // registrado aún, Get.find() lanzará. En arquitectura GetX, telemetry suele
-    // estar en AppBindings (permanent). Si no lo está, este binding te revela
-    // el bug de wiring inmediatamente (como debe ser en Enterprise).
     if (!Get.isRegistered<WorkspaceController>()) {
       Get.put<WorkspaceController>(
         WorkspaceController(
@@ -75,11 +91,27 @@ class SplashBinding extends Bindings {
     // -------------------------------------------------------------------------
     // SPLASH BOOTSTRAP CONTROLLER (permanent)
     // -------------------------------------------------------------------------
-    // En tu proyecto actual, SplashBootstrapController NO acepta parámetros
-    // (si se cambian luego, se actualiza aquí).
     if (!Get.isRegistered<SplashBootstrapController>()) {
       Get.put<SplashBootstrapController>(
         SplashBootstrapController(),
+        permanent: true,
+      );
+    }
+
+    // -------------------------------------------------------------------------
+    // CONTEXT SWITCH SERVICE (permanent)
+    // - Debe registrarse después de SessionContextController
+    // - Usa puentes de infraestructura de Fase 1
+    // -------------------------------------------------------------------------
+    if (!Get.isRegistered<ContextSwitchService>()) {
+      final session = Get.find<SessionContextController>();
+
+      Get.put<ContextSwitchService>(
+        ContextSwitchService(
+          sessionContextController: session,
+          stateStore: WorkspaceContextStateStoreImpl(),
+          legacyBridge: LegacyActiveContextBridgeImpl(session),
+        ),
         permanent: true,
       );
     }

@@ -50,29 +50,31 @@ class PortfolioLocalDataSource {
 
       final PortfolioModel toSave;
       if (existing != null) {
-        // UPDATE: preservar isarId y createdAt
+        // UPDATE: preservar isarId, createdAt y orgId (inmutable tras creación).
         toSave = PortfolioModel(
-          isarId: existing.isarId, // CRÍTICO: preservar isarId
+          isarId: existing.isarId,
           id: model.id,
           portfolioType: model.portfolioType,
           portfolioName: model.portfolioName,
           countryId: model.countryId,
           cityId: model.cityId,
+          orgId: model.orgId.isNotEmpty ? model.orgId : existing.orgId,
           status: model.status,
           assetsCount: model.assetsCount,
           createdBy: model.createdBy,
-          createdAt: existing.createdAt, // Inmutable
-          updatedAt: DateTime.now().toUtc(), // Siempre UTC
+          createdAt: existing.createdAt,
+          updatedAt: DateTime.now().toUtc(),
         );
       } else {
-        // INSERT: nuevo registro
+        // INSERT: nuevo registro.
         toSave = PortfolioModel(
-          isarId: model.isarId, // null para auto-increment
+          isarId: model.isarId,
           id: model.id,
           portfolioType: model.portfolioType,
           portfolioName: model.portfolioName,
           countryId: model.countryId,
           cityId: model.cityId,
+          orgId: model.orgId,
           status: model.status,
           assetsCount: model.assetsCount,
           createdBy: model.createdBy,
@@ -170,16 +172,17 @@ class PortfolioLocalDataSource {
             : existing.status;
 
     await isar.portfolioModels.put(PortfolioModel(
-      isarId: existing.isarId, // Preservar isarId
+      isarId: existing.isarId,
       id: existing.id,
       portfolioType: existing.portfolioType,
       portfolioName: existing.portfolioName,
       countryId: existing.countryId,
       cityId: existing.cityId,
+      orgId: existing.orgId,
       status: newStatus,
       assetsCount: newCount,
       createdBy: existing.createdBy,
-      createdAt: existing.createdAt, // Inmutable
+      createdAt: existing.createdAt,
       updatedAt: DateTime.now().toUtc(),
     ));
   }
@@ -204,6 +207,31 @@ class PortfolioLocalDataSource {
     return saved;
   }
 
+  /// Stream reactivo de portafolios ACTIVE para una organización.
+  ///
+  /// Isar emite un nuevo evento cada vez que cualquier PortfolioModel cuyo
+  /// orgId == [orgId] y status == 'ACTIVE' es insertado, modificado o
+  /// eliminado. El HomeController puede suscribirse aquí para mantener la
+  /// lista actualizada sin polling.
+  Stream<List<PortfolioModel>> watchActiveByOrg(String orgId) {
+    return _isar.portfolioModels
+        .filter()
+        .orgIdEqualTo(orgId)
+        .statusEqualTo('ACTIVE')
+        .sortByCreatedAtDesc()
+        .watch(fireImmediately: true);
+  }
+
+  /// Consulta puntual de portafolios ACTIVE de una organización.
+  Future<List<PortfolioModel>> listActiveByOrg(String orgId) {
+    return _isar.portfolioModels
+        .filter()
+        .orgIdEqualTo(orgId)
+        .statusEqualTo('ACTIVE')
+        .sortByCreatedAtDesc()
+        .findAll();
+  }
+
   /// Decrementar assetsCount (transacción atómica)
   Future<PortfolioModel> decrementAssetsCount(String id) async {
     return await _isar.writeTxn(() async {
@@ -219,16 +247,17 @@ class PortfolioLocalDataSource {
       final newCount = (existing.assetsCount > 0) ? existing.assetsCount - 1 : 0;
 
       final updated = PortfolioModel(
-        isarId: existing.isarId, // Preservar isarId
+        isarId: existing.isarId,
         id: existing.id,
         portfolioType: existing.portfolioType,
         portfolioName: existing.portfolioName,
         countryId: existing.countryId,
         cityId: existing.cityId,
+        orgId: existing.orgId,
         status: existing.status,
         assetsCount: newCount,
         createdBy: existing.createdBy,
-        createdAt: existing.createdAt, // Inmutable
+        createdAt: existing.createdAt,
         updatedAt: DateTime.now().toUtc(),
       );
 

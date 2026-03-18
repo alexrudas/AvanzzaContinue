@@ -60,7 +60,7 @@ class _CreatePortfolioStep2PageState extends State<CreatePortfolioStep2Page> {
   final _docNumberController = TextEditingController();
 
   String? _selectedDocType;
-  AssetType? _assetType;
+  AssetRegistrationType? _assetType;
 
   bool _isBootstrapping = true;
   bool _didAutoRedirect = false;
@@ -275,7 +275,7 @@ class _CreatePortfolioStep2PageState extends State<CreatePortfolioStep2Page> {
         title: const Text('Agregar activo'),
         centerTitle: true,
       ),
-      body: _assetType == AssetType.vehiculo
+      body: _assetType == AssetRegistrationType.vehiculo
           ? _VehicleFormBody(
               formKey: _formKey,
               plateController: _plateController,

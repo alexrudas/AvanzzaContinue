@@ -47,23 +47,28 @@ const PortfolioModelSchema = CollectionSchema(
       name: r'id',
       type: IsarType.string,
     ),
-    r'portfolioName': PropertySchema(
+    r'orgId': PropertySchema(
       id: 6,
+      name: r'orgId',
+      type: IsarType.string,
+    ),
+    r'portfolioName': PropertySchema(
+      id: 7,
       name: r'portfolioName',
       type: IsarType.string,
     ),
     r'portfolioType': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'portfolioType',
       type: IsarType.string,
     ),
     r'status': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'status',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -95,6 +100,24 @@ const PortfolioModelSchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'portfolioType',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'orgId_status': IndexSchema(
+      id: 7953819035118082847,
+      name: r'orgId_status',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'orgId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        ),
+        IndexPropertySchema(
+          name: r'status',
           type: IndexType.hash,
           caseSensitive: true,
         )
@@ -145,6 +168,7 @@ int _portfolioModelEstimateSize(
   bytesCount += 3 + object.countryId.length * 3;
   bytesCount += 3 + object.createdBy.length * 3;
   bytesCount += 3 + object.id.length * 3;
+  bytesCount += 3 + object.orgId.length * 3;
   bytesCount += 3 + object.portfolioName.length * 3;
   bytesCount += 3 + object.portfolioType.length * 3;
   bytesCount += 3 + object.status.length * 3;
@@ -163,10 +187,11 @@ void _portfolioModelSerialize(
   writer.writeDateTime(offsets[3], object.createdAt);
   writer.writeString(offsets[4], object.createdBy);
   writer.writeString(offsets[5], object.id);
-  writer.writeString(offsets[6], object.portfolioName);
-  writer.writeString(offsets[7], object.portfolioType);
-  writer.writeString(offsets[8], object.status);
-  writer.writeDateTime(offsets[9], object.updatedAt);
+  writer.writeString(offsets[6], object.orgId);
+  writer.writeString(offsets[7], object.portfolioName);
+  writer.writeString(offsets[8], object.portfolioType);
+  writer.writeString(offsets[9], object.status);
+  writer.writeDateTime(offsets[10], object.updatedAt);
 }
 
 PortfolioModel _portfolioModelDeserialize(
@@ -183,10 +208,11 @@ PortfolioModel _portfolioModelDeserialize(
     createdBy: reader.readString(offsets[4]),
     id: reader.readString(offsets[5]),
     isarId: id,
-    portfolioName: reader.readString(offsets[6]),
-    portfolioType: reader.readString(offsets[7]),
-    status: reader.readString(offsets[8]),
-    updatedAt: reader.readDateTimeOrNull(offsets[9]),
+    orgId: reader.readStringOrNull(offsets[6]) ?? '',
+    portfolioName: reader.readString(offsets[7]),
+    portfolioType: reader.readString(offsets[8]),
+    status: reader.readString(offsets[9]),
+    updatedAt: reader.readDateTimeOrNull(offsets[10]),
   );
   return object;
 }
@@ -211,12 +237,14 @@ P _portfolioModelDeserializeProp<P>(
     case 5:
       return (reader.readString(offset)) as P;
     case 6:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset) ?? '') as P;
     case 7:
       return (reader.readString(offset)) as P;
     case 8:
       return (reader.readString(offset)) as P;
     case 9:
+      return (reader.readString(offset)) as P;
+    case 10:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -453,6 +481,96 @@ extension PortfolioModelQueryWhere
               indexName: r'portfolioType',
               lower: [],
               upper: [portfolioType],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterWhereClause>
+      orgIdEqualToAnyStatus(String orgId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'orgId_status',
+        value: [orgId],
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterWhereClause>
+      orgIdNotEqualToAnyStatus(String orgId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'orgId_status',
+              lower: [],
+              upper: [orgId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'orgId_status',
+              lower: [orgId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'orgId_status',
+              lower: [orgId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'orgId_status',
+              lower: [],
+              upper: [orgId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterWhereClause>
+      orgIdStatusEqualTo(String orgId, String status) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'orgId_status',
+        value: [orgId, status],
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterWhereClause>
+      orgIdEqualToStatusNotEqualTo(String orgId, String status) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'orgId_status',
+              lower: [orgId],
+              upper: [orgId, status],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'orgId_status',
+              lower: [orgId, status],
+              includeLower: false,
+              upper: [orgId],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'orgId_status',
+              lower: [orgId, status],
+              includeLower: false,
+              upper: [orgId],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'orgId_status',
+              lower: [orgId],
+              upper: [orgId, status],
               includeUpper: false,
             ));
       }
@@ -1300,6 +1418,142 @@ extension PortfolioModelQueryFilter
   }
 
   QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      orgIdEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'orgId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      orgIdGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'orgId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      orgIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'orgId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      orgIdBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'orgId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      orgIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'orgId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      orgIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'orgId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      orgIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'orgId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      orgIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'orgId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      orgIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'orgId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      orgIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'orgId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
       portfolioNameEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -1868,6 +2122,18 @@ extension PortfolioModelQuerySortBy
     });
   }
 
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy> sortByOrgId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'orgId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy> sortByOrgIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'orgId', Sort.desc);
+    });
+  }
+
   QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy>
       sortByPortfolioName() {
     return QueryBuilder.apply(this, (query) {
@@ -2016,6 +2282,18 @@ extension PortfolioModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy> thenByOrgId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'orgId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy> thenByOrgIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'orgId', Sort.desc);
+    });
+  }
+
   QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy>
       thenByPortfolioName() {
     return QueryBuilder.apply(this, (query) {
@@ -2115,6 +2393,13 @@ extension PortfolioModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<PortfolioModel, PortfolioModel, QDistinct> distinctByOrgId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'orgId', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<PortfolioModel, PortfolioModel, QDistinct>
       distinctByPortfolioName({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2191,6 +2476,12 @@ extension PortfolioModelQueryProperty
     });
   }
 
+  QueryBuilder<PortfolioModel, String, QQueryOperations> orgIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'orgId');
+    });
+  }
+
   QueryBuilder<PortfolioModel, String, QQueryOperations>
       portfolioNameProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -2231,6 +2522,7 @@ PortfolioModel _$PortfolioModelFromJson(Map<String, dynamic> json) =>
       portfolioName: json['portfolioName'] as String,
       countryId: json['countryId'] as String,
       cityId: json['cityId'] as String,
+      orgId: json['orgId'] as String? ?? '',
       status: json['status'] as String,
       assetsCount: (json['assetsCount'] as num).toInt(),
       createdBy: json['createdBy'] as String,
@@ -2250,6 +2542,7 @@ Map<String, dynamic> _$PortfolioModelToJson(PortfolioModel instance) =>
       'portfolioName': instance.portfolioName,
       'countryId': instance.countryId,
       'cityId': instance.cityId,
+      'orgId': instance.orgId,
       'status': instance.status,
       'assetsCount': instance.assetsCount,
       'createdBy': instance.createdBy,

@@ -23,6 +23,15 @@ class PortfolioModel {
   final String countryId;
   final String cityId;
 
+  /// Partition key del tenant SaaS.
+  /// Índice simple para queries por org. Índice compuesto (orgId+status)
+  /// permite listActiveByOrg() eficiente.
+  /// Default '' para compatibilidad con registros previos al campo.
+  @isar.Index(
+    composite: [isar.CompositeIndex('status')],
+  )
+  final String orgId;
+
   @isar.Index()
   final String status; // 'DRAFT' | 'ACTIVE'
 
@@ -41,6 +50,7 @@ class PortfolioModel {
     required this.portfolioName,
     required this.countryId,
     required this.cityId,
+    this.orgId = '',
     required this.status,
     required this.assetsCount,
     required this.createdBy,
@@ -56,6 +66,7 @@ class PortfolioModel {
       portfolioName: portfolioName,
       countryId: countryId,
       cityId: cityId,
+      orgId: orgId,
       status: _parsePortfolioStatus(status),
       assetsCount: assetsCount,
       createdBy: createdBy,
@@ -72,6 +83,7 @@ class PortfolioModel {
       portfolioName: entity.portfolioName,
       countryId: entity.countryId,
       cityId: entity.cityId,
+      orgId: entity.orgId,
       status: _serializePortfolioStatus(entity.status),
       assetsCount: entity.assetsCount,
       createdBy: entity.createdBy,

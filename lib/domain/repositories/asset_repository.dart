@@ -3,6 +3,7 @@ import '../entities/asset/asset_document_entity.dart';
 import '../entities/asset/special/asset_vehiculo_entity.dart';
 import '../entities/asset/special/asset_inmueble_entity.dart';
 import '../entities/asset/special/asset_maquinaria_entity.dart';
+import '../value/registration/asset_runt_snapshot.dart';
 
 abstract class AssetRepository {
   // Assets root
@@ -46,8 +47,15 @@ abstract class AssetRepository {
     required String countryId,
     required String cityId,
     required String createdBy,
+    AssetRuntSnapshot runtSnapshot = AssetRuntSnapshot.empty,
   });
 
-  /// Obtener activos de un portafolio
+  /// Obtener activos de un portafolio (consulta puntual).
   Future<List<AssetEntity>> getAssetsByPortfolio(String portfolioId);
+
+  /// Stream reactivo de activos de un portafolio.
+  ///
+  /// Emite inmediatamente y se actualiza automáticamente ante cualquier
+  /// cambio (inserción, actualización, borrado) en Isar para ese portfolioId.
+  Stream<List<AssetEntity>> watchAssetsByPortfolio(String portfolioId);
 }

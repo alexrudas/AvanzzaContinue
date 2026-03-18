@@ -19,6 +19,11 @@ mixin _$PortfolioEntity {
   String get portfolioName;
   String get countryId;
   String get cityId;
+
+  /// Partition key del tenant SaaS.
+  /// Permite consultar portafolios por organización activa.
+  /// Wire-stable: nunca renombrar este campo.
+  String get orgId;
   PortfolioStatus get status;
   int get assetsCount;
   String get createdBy;
@@ -49,6 +54,7 @@ mixin _$PortfolioEntity {
             (identical(other.countryId, countryId) ||
                 other.countryId == countryId) &&
             (identical(other.cityId, cityId) || other.cityId == cityId) &&
+            (identical(other.orgId, orgId) || other.orgId == orgId) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.assetsCount, assetsCount) ||
                 other.assetsCount == assetsCount) &&
@@ -62,12 +68,23 @@ mixin _$PortfolioEntity {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, portfolioType, portfolioName,
-      countryId, cityId, status, assetsCount, createdBy, createdAt, updatedAt);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      portfolioType,
+      portfolioName,
+      countryId,
+      cityId,
+      orgId,
+      status,
+      assetsCount,
+      createdBy,
+      createdAt,
+      updatedAt);
 
   @override
   String toString() {
-    return 'PortfolioEntity(id: $id, portfolioType: $portfolioType, portfolioName: $portfolioName, countryId: $countryId, cityId: $cityId, status: $status, assetsCount: $assetsCount, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'PortfolioEntity(id: $id, portfolioType: $portfolioType, portfolioName: $portfolioName, countryId: $countryId, cityId: $cityId, orgId: $orgId, status: $status, assetsCount: $assetsCount, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -83,6 +100,7 @@ abstract mixin class $PortfolioEntityCopyWith<$Res> {
       String portfolioName,
       String countryId,
       String cityId,
+      String orgId,
       PortfolioStatus status,
       int assetsCount,
       String createdBy,
@@ -108,6 +126,7 @@ class _$PortfolioEntityCopyWithImpl<$Res>
     Object? portfolioName = null,
     Object? countryId = null,
     Object? cityId = null,
+    Object? orgId = null,
     Object? status = null,
     Object? assetsCount = null,
     Object? createdBy = null,
@@ -134,6 +153,10 @@ class _$PortfolioEntityCopyWithImpl<$Res>
       cityId: null == cityId
           ? _self.cityId
           : cityId // ignore: cast_nullable_to_non_nullable
+              as String,
+      orgId: null == orgId
+          ? _self.orgId
+          : orgId // ignore: cast_nullable_to_non_nullable
               as String,
       status: null == status
           ? _self.status
@@ -258,6 +281,7 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             String portfolioName,
             String countryId,
             String cityId,
+            String orgId,
             PortfolioStatus status,
             int assetsCount,
             String createdBy,
@@ -275,6 +299,7 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             _that.portfolioName,
             _that.countryId,
             _that.cityId,
+            _that.orgId,
             _that.status,
             _that.assetsCount,
             _that.createdBy,
@@ -306,6 +331,7 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             String portfolioName,
             String countryId,
             String cityId,
+            String orgId,
             PortfolioStatus status,
             int assetsCount,
             String createdBy,
@@ -322,6 +348,7 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             _that.portfolioName,
             _that.countryId,
             _that.cityId,
+            _that.orgId,
             _that.status,
             _that.assetsCount,
             _that.createdBy,
@@ -352,6 +379,7 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             String portfolioName,
             String countryId,
             String cityId,
+            String orgId,
             PortfolioStatus status,
             int assetsCount,
             String createdBy,
@@ -368,6 +396,7 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             _that.portfolioName,
             _that.countryId,
             _that.cityId,
+            _that.orgId,
             _that.status,
             _that.assetsCount,
             _that.createdBy,
@@ -388,6 +417,7 @@ class _PortfolioEntity implements PortfolioEntity {
       required this.portfolioName,
       required this.countryId,
       required this.cityId,
+      this.orgId = '',
       this.status = PortfolioStatus.draft,
       this.assetsCount = 0,
       required this.createdBy,
@@ -406,6 +436,13 @@ class _PortfolioEntity implements PortfolioEntity {
   final String countryId;
   @override
   final String cityId;
+
+  /// Partition key del tenant SaaS.
+  /// Permite consultar portafolios por organización activa.
+  /// Wire-stable: nunca renombrar este campo.
+  @override
+  @JsonKey()
+  final String orgId;
   @override
   @JsonKey()
   final PortfolioStatus status;
@@ -447,6 +484,7 @@ class _PortfolioEntity implements PortfolioEntity {
             (identical(other.countryId, countryId) ||
                 other.countryId == countryId) &&
             (identical(other.cityId, cityId) || other.cityId == cityId) &&
+            (identical(other.orgId, orgId) || other.orgId == orgId) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.assetsCount, assetsCount) ||
                 other.assetsCount == assetsCount) &&
@@ -460,12 +498,23 @@ class _PortfolioEntity implements PortfolioEntity {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, portfolioType, portfolioName,
-      countryId, cityId, status, assetsCount, createdBy, createdAt, updatedAt);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      portfolioType,
+      portfolioName,
+      countryId,
+      cityId,
+      orgId,
+      status,
+      assetsCount,
+      createdBy,
+      createdAt,
+      updatedAt);
 
   @override
   String toString() {
-    return 'PortfolioEntity(id: $id, portfolioType: $portfolioType, portfolioName: $portfolioName, countryId: $countryId, cityId: $cityId, status: $status, assetsCount: $assetsCount, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'PortfolioEntity(id: $id, portfolioType: $portfolioType, portfolioName: $portfolioName, countryId: $countryId, cityId: $cityId, orgId: $orgId, status: $status, assetsCount: $assetsCount, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -483,6 +532,7 @@ abstract mixin class _$PortfolioEntityCopyWith<$Res>
       String portfolioName,
       String countryId,
       String cityId,
+      String orgId,
       PortfolioStatus status,
       int assetsCount,
       String createdBy,
@@ -508,6 +558,7 @@ class __$PortfolioEntityCopyWithImpl<$Res>
     Object? portfolioName = null,
     Object? countryId = null,
     Object? cityId = null,
+    Object? orgId = null,
     Object? status = null,
     Object? assetsCount = null,
     Object? createdBy = null,
@@ -534,6 +585,10 @@ class __$PortfolioEntityCopyWithImpl<$Res>
       cityId: null == cityId
           ? _self.cityId
           : cityId // ignore: cast_nullable_to_non_nullable
+              as String,
+      orgId: null == orgId
+          ? _self.orgId
+          : orgId // ignore: cast_nullable_to_non_nullable
               as String,
       status: null == status
           ? _self.status

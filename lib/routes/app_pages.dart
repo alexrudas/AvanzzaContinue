@@ -47,6 +47,15 @@ import '../presentation/pages/org_selection_page.dart';
 import '../presentation/pages/purchase_request_page.dart';
 import '../presentation/pages/runt/runt_person_consult_page.dart';
 import '../presentation/pages/runt/runt_vehicle_consult_page.dart';
+import '../presentation/bindings/asset/asset_registration_binding.dart';
+import '../presentation/bindings/portfolio/portfolio_detail_binding.dart';
+import '../presentation/pages/asset/asset_detail_page.dart';
+import '../presentation/pages/asset/asset_registration_page.dart';
+import '../presentation/pages/asset/rtm_detail_page.dart';
+import '../presentation/pages/asset/soat_detail_page.dart';
+import '../presentation/pages/asset/seguros_rc_detail_page.dart';
+import '../presentation/pages/portfolio/portfolio_asset_list_page.dart';
+import '../presentation/pages/portfolio/portfolio_detail_page.dart';
 import '../presentation/pages/portfolio/wizard/create_portfolio_step1_page.dart';
 import '../presentation/pages/portfolio/wizard/create_portfolio_step2_page.dart';
 import '../presentation/pages/portfolio/wizard/runt_query_progress_page.dart';
@@ -202,6 +211,57 @@ class AppPages {
       binding: RuntQueryBinding(),
     ),
 
+    // CONTRACT: Routes.assetRegister requiere argument AssetRegistrationContext
+    // Uso: Get.toNamed(Routes.assetRegister, arguments: AssetRegistrationContext(...))
+    GetPage(
+      name: Routes.assetRegister,
+      page: () => const AssetRegistrationPage(),
+      binding: AssetRegistrationBinding(),
+    ),
+
+    // CONTRACT: Routes.portfolioDetail requiere argument PortfolioEntity
+    // Uso: Get.toNamed(Routes.portfolioDetail, arguments: portfolioEntity)
+    GetPage(
+      name: Routes.portfolioDetail,
+      page: () => const PortfolioDetailPage(),
+      binding: PortfolioDetailBinding(),
+    ),
+
+    // CONTRACT: Routes.portfolioAssets requiere argument PortfolioEntity
+    // Uso: Get.toNamed(Routes.portfolioAssets, arguments: portfolioEntity)
+    GetPage(
+      name: Routes.portfolioAssets,
+      page: () => const PortfolioAssetListPage(),
+    ),
+
+    // CONTRACT: Routes.assetDetail requiere argument assetId (String)
+    // Uso: Get.toNamed(Routes.assetDetail, arguments: assetId)
+    GetPage(
+      name: Routes.assetDetail,
+      page: () => const AssetDetailPage(),
+    ),
+
+    // CONTRACT: Routes.assetRtmDetail requiere argument assetId (String)
+    // Uso: Get.toNamed(Routes.assetRtmDetail, arguments: assetId)
+    GetPage(
+      name: Routes.assetRtmDetail,
+      page: () => const RtmDetailPage(),
+    ),
+
+    // CONTRACT: Routes.soatDetail requiere argument assetId (String)
+    // Uso: Get.toNamed(Routes.soatDetail, arguments: assetId)
+    GetPage(
+      name: Routes.soatDetail,
+      page: () => const SoatDetailPage(),
+    ),
+
+    // CONTRACT: Routes.segurosRcDetail requiere argument assetId (String)
+    // Uso: Get.toNamed(Routes.segurosRcDetail, arguments: assetId)
+    GetPage(
+      name: Routes.segurosRcDetail,
+      page: () => const SegurosRcDetailPage(),
+    ),
+
     // ════════════════════════════════════════════════════════════════════════
     // DEMO
     // ════════════════════════════════════════════════════════════════════════
@@ -247,11 +307,11 @@ class _LegacyRedirectPageState extends State<_LegacyRedirectPage> {
 /// Construye CreatePortfolioStep1Page con preselectedAssetType desde arguments
 Widget _buildCreatePortfolioStep1Page() {
   final args = Get.arguments;
-  AssetType? preselectedAssetType;
+  AssetRegistrationType? preselectedAssetType;
 
   if (args is Map) {
     final typeArg = args['preselectedAssetType'];
-    if (typeArg is AssetType) {
+    if (typeArg is AssetRegistrationType) {
       preselectedAssetType = typeArg;
     }
   }

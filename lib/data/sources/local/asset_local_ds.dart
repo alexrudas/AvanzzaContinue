@@ -20,6 +20,31 @@ class AssetLocalDataSource {
     return q.findAll();
   }
 
+  /// Lista activos que pertenecen al portafolio indicado (consulta puntual).
+  ///
+  /// Usa el índice [portfolioId] de [AssetModel] para una consulta eficiente.
+  /// Solo devuelve activos donde el campo fue persistido en la escritura
+  /// (assets creados con portfolioId no-nulo vía createAssetFromRuntAndLinkToPortfolio).
+  Future<List<AssetModel>> listAssetsByPortfolio(String portfolioId) async {
+    return isar.assetModels
+        .filter()
+        .portfolioIdEqualTo(portfolioId)
+        .findAll();
+  }
+
+  /// Stream reactivo de activos de un portafolio.
+  ///
+  /// Emite inmediatamente con [fireImmediately: true] y luego cada vez que
+  /// Isar detecta cambios (inserciones, actualizaciones, borrados) en assets
+  /// cuyo [portfolioId] coincide.
+  /// La suscripción debe cancelarse al hacer dispose del listener.
+  Stream<List<AssetModel>> watchAssetsByPortfolio(String portfolioId) {
+    return isar.assetModels
+        .filter()
+        .portfolioIdEqualTo(portfolioId)
+        .watch(fireImmediately: true);
+  }
+
   Future<AssetModel?> getAsset(String id) async {
     return isar.assetModels.filter().idEqualTo(id).findFirst();
   }
