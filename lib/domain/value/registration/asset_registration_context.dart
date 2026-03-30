@@ -66,6 +66,14 @@ class AssetRegistrationContext {
   /// automáticamente al iniciar un nuevo registro en el mismo portafolio.
   final String registrationSessionId;
 
+  /// Placa pre-cargada al abrir el formulario de registro.
+  ///
+  /// Null en el flujo estándar (formulario vacío).
+  /// Poblado cuando se navega desde [AssetDetailPage] vía "Actualizar
+  /// información" — el activo ya tiene una placa conocida que se pre-rellena
+  /// para evitar que el usuario la ingrese de nuevo.
+  final String? initialPlate;
+
   const AssetRegistrationContext({
     required this.portfolioId,
     required this.portfolioName,
@@ -73,6 +81,7 @@ class AssetRegistrationContext {
     this.cityId,
     required this.assetType,
     required this.registrationSessionId,
+    this.initialPlate,
   });
 
   @override

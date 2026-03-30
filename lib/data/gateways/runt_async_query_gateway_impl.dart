@@ -69,6 +69,8 @@ class RuntAsyncQueryGatewayImpl implements RuntAsyncQueryGateway {
       partialData: response.partialData,
       finalData: response.data,
       error: response.error,
+      failureReason: response.failureReason,
+      failureMessage: response.failureMessage,
       updatedAt: response.updatedAt,
       completedAt: response.completedAt,
     );
@@ -93,6 +95,7 @@ class RuntAsyncQueryGatewayImpl implements RuntAsyncQueryGateway {
       RuntJobStepStatus.loading => RuntQueryStepStatus.loading,
       RuntJobStepStatus.done => RuntQueryStepStatus.done,
       RuntJobStepStatus.failed => RuntQueryStepStatus.failed,
+      RuntJobStepStatus.blocked => RuntQueryStepStatus.blocked,
     };
   }
 

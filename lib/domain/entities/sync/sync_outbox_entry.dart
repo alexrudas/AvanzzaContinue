@@ -339,6 +339,9 @@ abstract class SyncOutboxEntry with _$SyncOutboxEntry {
   }
 
   /// Factory: AuditLog (creación).
+  ///
+  /// Ruta canónica: asset_audit_log/{assetId}/events/{logId}
+  /// Consistente con la escritura directa de AssetAuditService.criticalAlways.
   factory SyncOutboxEntry.forAuditLog({
     required String id,
     required String idempotencyKey,
@@ -358,7 +361,7 @@ abstract class SyncOutboxEntry with _$SyncOutboxEntry {
       operationType: SyncOperationType.create,
       entityType: SyncEntityType.auditLog,
       entityId: logId,
-      firestorePath: 'assets/$assetId/audit_log/$logId',
+      firestorePath: 'asset_audit_log/$assetId/events/$logId',
       payload: logJson,
       schemaVersion: schemaVersion,
       status: SyncStatus.pending,
@@ -408,7 +411,8 @@ abstract class SyncOutboxEntry with _$SyncOutboxEntry {
   bool get isDeadLetter => status == SyncStatus.deadLetter;
 
   /// Terminal: no debe volver a estados vivos.
-  bool get isTerminal => status == SyncStatus.completed || status == SyncStatus.deadLetter;
+  bool get isTerminal =>
+      status == SyncStatus.completed || status == SyncStatus.deadLetter;
 
   /// Retorna TRUE si hay un lock vigente.
   bool isLocked(DateTime nowUtc) {
@@ -430,7 +434,9 @@ abstract class SyncOutboxEntry with _$SyncOutboxEntry {
 
     if (status == SyncStatus.failed) {
       final next = nextAttemptAt;
-      if (next == null) return true; // fallback; idealmente nunca null en FAILED
+      if (next == null) {
+        return true; // fallback; idealmente nunca null en FAILED
+      }
       return !nowUtc.isBefore(next);
     }
 
@@ -441,7 +447,8 @@ abstract class SyncOutboxEntry with _$SyncOutboxEntry {
   bool get canRetry => status == SyncStatus.failed && retryCount < maxRetries;
 
   /// Debe moverse a dead letter (FAILED y excede maxRetries).
-  bool get shouldMoveToDeadLetter => status == SyncStatus.failed && retryCount >= maxRetries;
+  bool get shouldMoveToDeadLetter =>
+      status == SyncStatus.failed && retryCount >= maxRetries;
 
   // ==========================================================================
   // BACKOFF — base (sin jitter). Infra debería aplicar jitter al programar.
@@ -462,7 +469,8 @@ abstract class SyncOutboxEntry with _$SyncOutboxEntry {
     // 5 => 30m
     // 6+ => 1h (techo)
     return switch (retryCount) {
-      0 => const Duration(seconds: 10), // defensivo: si falló y aún 0, no spamees
+      0 =>
+        const Duration(seconds: 10), // defensivo: si falló y aún 0, no spamees
       1 => const Duration(seconds: 10),
       2 => const Duration(seconds: 30),
       3 => const Duration(minutes: 2),
@@ -497,12 +505,14 @@ extension SyncOutboxEntryTransitions on SyncOutboxEntry {
 
     // Anti "lock stealing" (si ya hay un lock vigente de otro worker).
     if (isLocked(now) && lockToken != workerId) {
-      throw StateError('Tarea ya bloqueada por otro worker (lockToken=$lockToken)');
+      throw StateError(
+          'Tarea ya bloqueada por otro worker (lockToken=$lockToken)');
     }
 
     // Solo se permite desde PENDING o FAILED (retry programado).
     if (status != SyncStatus.pending && status != SyncStatus.failed) {
-      throw StateError('acquireLock solo válido desde PENDING o FAILED (estado actual: $status)');
+      throw StateError(
+          'acquireLock solo válido desde PENDING o FAILED (estado actual: $status)');
     }
 
     return copyWith(
@@ -557,7 +567,8 @@ extension SyncOutboxEntryTransitions on SyncOutboxEntry {
     final isDead = newRetryCount >= maxRetries;
 
     if (!isDead && nextAttemptAtUtc == null) {
-      throw StateError('FAILED requiere nextAttemptAtUtc (scheduling persistido)');
+      throw StateError(
+          'FAILED requiere nextAttemptAtUtc (scheduling persistido)');
     }
 
     return copyWith(

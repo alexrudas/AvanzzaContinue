@@ -38,6 +38,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import '../../../core/di/container.dart';
+import '../../../core/navigation/app_navigator.dart';
 import '../../../domain/errors/asset_creation_exception.dart';
 import '../../../domain/value/registration/asset_registration_context.dart';
 import '../../../domain/value/registration/asset_runt_snapshot.dart';
@@ -106,13 +107,21 @@ class AssetRegistrationController extends GetxController {
     final arg = Get.arguments;
     if (arg is AssetRegistrationContext) {
       registrationContext = arg;
+
+      // Pre-poblar placa si el contexto la trae (ej: desde AssetDetailPage
+      // vía "Actualizar información"). En flujo estándar initialPlate es null.
+      if (arg.initialPlate?.isNotEmpty == true) {
+        draftPlate.value = arg.initialPlate!;
+      }
+
       if (kDebugMode) {
         debugPrint(
           '[ASSET_REG][onInit] contexto recibido:\n'
           '  portfolioId=${arg.portfolioId}\n'
           '  portfolioName="${arg.portfolioName}"\n'
           '  assetType=${arg.assetType}\n'
-          '  registrationSessionId=${arg.registrationSessionId}',
+          '  registrationSessionId=${arg.registrationSessionId}\n'
+          '  initialPlate=${arg.initialPlate}',
         );
       }
     } else {
@@ -135,12 +144,11 @@ class AssetRegistrationController extends GetxController {
   /// Flujo:
   /// 1. Valida que registrationContext esté disponible.
   /// 2. Resuelve uid y orgId del usuario autenticado.
-  /// 3. Llama [AssetRepository.createAssetFromRuntAndLinkToPortfolio].
+  /// 3. Llama [AssetRepository.createAssetFromRuntAndLinkToPortfolio] → retorna [AssetEntity].
   /// 4. Limpia el estado RUNT: [RuntQueryController.clearQueryState()].
   /// 5. Obtiene el [PortfolioEntity] actualizado del repositorio.
-  /// 6. Navega a [Routes.portfolioAssets] con el portafolio como argumento.
-  ///    Si getPortfolioById() devuelve null, navega con null (PortfolioAssetListPage
-  ///    ya tiene guard de argumento inválido).
+  /// 6. Navega a [Routes.assetDetail] vía [AppNavigator.afterAssetRegistration].
+  ///    Si getPortfolioById() devuelve null, [AppNavigator] aterriza en Home.
   ///
   /// Lanza [AssetCreationException] con código tipado para mensajes de UI:
   /// - [AssetCreationExceptionCode.duplicatePlate] → placa ya registrada.
@@ -180,6 +188,27 @@ class AssetRegistrationController extends GetxController {
       return;
     }
 
+    // ── GUARDRAIL FINAL: integridad de portafolio ────────────────────────
+    // Si el RUNT data proviene de un recovery de otro portafolio, el
+    // registrationContext.portfolioId no coincide con recoveredPortfolioId.
+    // En ese caso se aborta silenciosamente — la UI ya mostró el flujo
+    // de redirección; este check es la última línea de defensa.
+    if (Get.isRegistered<RuntQueryController>()) {
+      final recoveredPid =
+          Get.find<RuntQueryController>().recoveredPortfolioId;
+      if (recoveredPid != null && recoveredPid != ctx.portfolioId) {
+        if (kDebugMode) {
+          debugPrint(
+            '[ASSET_REG][registerVehicle] ABORTADO — guardrail portafolio: '
+            'RUNT data pertenece a portfolioId=$recoveredPid, '
+            'contexto actual=${ctx.portfolioId}. '
+            'Registro bloqueado para evitar activo en portafolio incorrecto.',
+          );
+        }
+        return;
+      }
+    }
+
     // Activar isRegistering antes de cualquier operación asíncrona.
     // RuntQueryResultPage observa este flag y muestra un loading overlay
     // en lugar de reevaluar vehicleData (que quedará null tras clearQueryState).
@@ -190,7 +219,9 @@ class AssetRegistrationController extends GetxController {
     try {
       isLoading.value = true;
 
-      await DIContainer().assetRepository.createAssetFromRuntAndLinkToPortfolio(
+      // Captura el AssetEntity creado — necesario para la navegación al detalle.
+      final createdAsset =
+          await DIContainer().assetRepository.createAssetFromRuntAndLinkToPortfolio(
         portfolioId: ctx.portfolioId,
         orgId: orgId,
         plate: plate,
@@ -206,7 +237,7 @@ class AssetRegistrationController extends GetxController {
       if (kDebugMode) {
         debugPrint(
           '[ASSET_REG][registerVehicle] activo registrado:\n'
-          '  plate=$plate portfolioId=${ctx.portfolioId}',
+          '  assetId=${createdAsset.id} plate=$plate portfolioId=${ctx.portfolioId}',
         );
       }
 
@@ -218,10 +249,9 @@ class AssetRegistrationController extends GetxController {
         await Get.find<RuntQueryController>().clearQueryState();
       }
 
-      // Obtener el PortfolioEntity actualizado para pasarlo como argumento.
-      // portfolioAssets requiere PortfolioEntity — lo obtenemos del repositorio.
-      // Si el fetch falla (portfolio fue eliminado), se navega con null;
-      // PortfolioAssetListPage tiene guard de argumento inválido.
+      // Obtener el PortfolioEntity actualizado para pasarlo a AppNavigator.
+      // Si el fetch falla (portfolio fue eliminado), AppNavigator.backFromAssetDetail
+      // usará el fallback a Home.
       final portfolio = await DIContainer()
           .portfolioRepository
           .getPortfolioById(ctx.portfolioId);
@@ -229,15 +259,26 @@ class AssetRegistrationController extends GetxController {
       if (kDebugMode && portfolio == null) {
         debugPrint(
           '[ASSET_REG][registerVehicle] ⚠️ getPortfolioById devolvió null '
-          'para portfolioId=${ctx.portfolioId} — navegando con null.',
+          'para portfolioId=${ctx.portfolioId} — AppNavigator usará fallback Home.',
         );
       }
 
       registrationSucceeded = true;
 
-      // Limpiar todo el stack del flujo de registro y aterrizar en la lista
-      // de activos del portafolio. El usuario ve el activo recién registrado.
-      Get.offAllNamed(Routes.portfolioAssets, arguments: portfolio);
+      // Navegar al detalle del activo recién creado.
+      // AppNavigator construye el argumento AssetDetailArgs y limpia el stack.
+      // El AppBar back de AssetDetailPage irá al portafolio de forma explícita.
+      if (portfolio != null) {
+        AppNavigator.afterAssetRegistration(
+          asset: createdAsset,
+          portfolio: portfolio,
+        );
+      } else {
+        // Portfolio no encontrado (eliminado entre el registro y el fetch).
+        // Aterrizamos en el detalle del activo sin contexto de portafolio;
+        // el back irá a Home como fallback seguro.
+        Get.offAllNamed(Routes.assetDetail, arguments: createdAsset.id);
+      }
     } on AssetCreationException {
       rethrow; // La UI maneja los códigos tipados con mensajes específicos.
     } catch (e) {

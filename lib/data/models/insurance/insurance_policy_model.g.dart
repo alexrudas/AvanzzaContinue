@@ -68,18 +68,28 @@ const InsurancePolicyModelSchema = CollectionSchema(
       name: r'id',
       type: IsarType.string,
     ),
-    r'tarifaBase': PropertySchema(
+    r'overrideJson': PropertySchema(
       id: 10,
+      name: r'overrideJson',
+      type: IsarType.string,
+    ),
+    r'policyId': PropertySchema(
+      id: 11,
+      name: r'policyId',
+      type: IsarType.string,
+    ),
+    r'tarifaBase': PropertySchema(
+      id: 12,
       name: r'tarifaBase',
       type: IsarType.double,
     ),
     r'tipo': PropertySchema(
-      id: 11,
+      id: 13,
       name: r'tipo',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 12,
+      id: 14,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -167,6 +177,19 @@ const InsurancePolicyModelSchema = CollectionSchema(
           caseSensitive: true,
         )
       ],
+    ),
+    r'policyId': IndexSchema(
+      id: 5070643496271002886,
+      name: r'policyId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'policyId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
     )
   },
   links: {},
@@ -195,6 +218,18 @@ int _insurancePolicyModelEstimateSize(
   bytesCount += 3 + object.currencyCode.length * 3;
   bytesCount += 3 + object.estado.length * 3;
   bytesCount += 3 + object.id.length * 3;
+  {
+    final value = object.overrideJson;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.policyId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.tipo.length * 3;
   return bytesCount;
 }
@@ -215,9 +250,11 @@ void _insurancePolicyModelSerialize(
   writer.writeDateTime(offsets[7], object.fechaFin);
   writer.writeDateTime(offsets[8], object.fechaInicio);
   writer.writeString(offsets[9], object.id);
-  writer.writeDouble(offsets[10], object.tarifaBase);
-  writer.writeString(offsets[11], object.tipo);
-  writer.writeDateTime(offsets[12], object.updatedAt);
+  writer.writeString(offsets[10], object.overrideJson);
+  writer.writeString(offsets[11], object.policyId);
+  writer.writeDouble(offsets[12], object.tarifaBase);
+  writer.writeString(offsets[13], object.tipo);
+  writer.writeDateTime(offsets[14], object.updatedAt);
 }
 
 InsurancePolicyModel _insurancePolicyModelDeserialize(
@@ -238,9 +275,11 @@ InsurancePolicyModel _insurancePolicyModelDeserialize(
     fechaInicio: reader.readDateTime(offsets[8]),
     id: reader.readString(offsets[9]),
     isarId: id,
-    tarifaBase: reader.readDouble(offsets[10]),
-    tipo: reader.readString(offsets[11]),
-    updatedAt: reader.readDateTimeOrNull(offsets[12]),
+    overrideJson: reader.readStringOrNull(offsets[10]),
+    policyId: reader.readStringOrNull(offsets[11]),
+    tarifaBase: reader.readDouble(offsets[12]),
+    tipo: reader.readString(offsets[13]),
+    updatedAt: reader.readDateTimeOrNull(offsets[14]),
   );
   return object;
 }
@@ -273,10 +312,14 @@ P _insurancePolicyModelDeserializeProp<P>(
     case 9:
       return (reader.readString(offset)) as P;
     case 10:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 11:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 12:
+      return (reader.readDouble(offset)) as P;
+    case 13:
+      return (reader.readString(offset)) as P;
+    case 14:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -718,6 +761,73 @@ extension InsurancePolicyModelQueryWhere
               indexName: r'estado',
               lower: [],
               upper: [estado],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QAfterWhereClause>
+      policyIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'policyId',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QAfterWhereClause>
+      policyIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'policyId',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QAfterWhereClause>
+      policyIdEqualTo(String? policyId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'policyId',
+        value: [policyId],
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QAfterWhereClause>
+      policyIdNotEqualTo(String? policyId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'policyId',
+              lower: [],
+              upper: [policyId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'policyId',
+              lower: [policyId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'policyId',
+              lower: [policyId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'policyId',
+              lower: [],
+              upper: [policyId],
               includeUpper: false,
             ));
       }
@@ -1972,6 +2082,318 @@ extension InsurancePolicyModelQueryFilter on QueryBuilder<InsurancePolicyModel,
   }
 
   QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> overrideJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'overrideJson',
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> overrideJsonIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'overrideJson',
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> overrideJsonEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'overrideJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> overrideJsonGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'overrideJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> overrideJsonLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'overrideJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> overrideJsonBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'overrideJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> overrideJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'overrideJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> overrideJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'overrideJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+          QAfterFilterCondition>
+      overrideJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'overrideJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+          QAfterFilterCondition>
+      overrideJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'overrideJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> overrideJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'overrideJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> overrideJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'overrideJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> policyIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'policyId',
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> policyIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'policyId',
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> policyIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'policyId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> policyIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'policyId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> policyIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'policyId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> policyIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'policyId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> policyIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'policyId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> policyIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'policyId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+          QAfterFilterCondition>
+      policyIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'policyId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+          QAfterFilterCondition>
+      policyIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'policyId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> policyIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'policyId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
+      QAfterFilterCondition> policyIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'policyId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel,
       QAfterFilterCondition> tarifaBaseEqualTo(
     double value, {
     double epsilon = Query.epsilon,
@@ -2399,6 +2821,34 @@ extension InsurancePolicyModelQuerySortBy
   }
 
   QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QAfterSortBy>
+      sortByOverrideJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'overrideJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QAfterSortBy>
+      sortByOverrideJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'overrideJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QAfterSortBy>
+      sortByPolicyId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'policyId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QAfterSortBy>
+      sortByPolicyIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'policyId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QAfterSortBy>
       sortByTarifaBase() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'tarifaBase', Sort.asc);
@@ -2598,6 +3048,34 @@ extension InsurancePolicyModelQuerySortThenBy
   }
 
   QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QAfterSortBy>
+      thenByOverrideJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'overrideJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QAfterSortBy>
+      thenByOverrideJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'overrideJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QAfterSortBy>
+      thenByPolicyId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'policyId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QAfterSortBy>
+      thenByPolicyIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'policyId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QAfterSortBy>
       thenByTarifaBase() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'tarifaBase', Sort.asc);
@@ -2713,6 +3191,20 @@ extension InsurancePolicyModelQueryWhereDistinct
   }
 
   QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QDistinct>
+      distinctByOverrideJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'overrideJson', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QDistinct>
+      distinctByPolicyId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'policyId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, InsurancePolicyModel, QDistinct>
       distinctByTarifaBase() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'tarifaBase');
@@ -2811,6 +3303,20 @@ extension InsurancePolicyModelQueryProperty on QueryBuilder<
     });
   }
 
+  QueryBuilder<InsurancePolicyModel, String?, QQueryOperations>
+      overrideJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'overrideJson');
+    });
+  }
+
+  QueryBuilder<InsurancePolicyModel, String?, QQueryOperations>
+      policyIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'policyId');
+    });
+  }
+
   QueryBuilder<InsurancePolicyModel, double, QQueryOperations>
       tarifaBaseProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -2851,6 +3357,8 @@ InsurancePolicyModel _$InsurancePolicyModelFromJson(
       fechaInicio: DateTime.parse(json['fechaInicio'] as String),
       fechaFin: DateTime.parse(json['fechaFin'] as String),
       estado: json['estado'] as String,
+      policyId: json['policyId'] as String?,
+      overrideJson: json['overrideJson'] as String?,
       createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
       updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
     );
@@ -2870,6 +3378,8 @@ Map<String, dynamic> _$InsurancePolicyModelToJson(
       'fechaInicio': instance.fechaInicio.toIso8601String(),
       'fechaFin': instance.fechaFin.toIso8601String(),
       'estado': instance.estado,
+      'policyId': instance.policyId,
+      'overrideJson': instance.overrideJson,
       'createdAt':
           const DateTimeTimestampConverter().toJson(instance.createdAt),
       'updatedAt':

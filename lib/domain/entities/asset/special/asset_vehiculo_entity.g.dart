@@ -31,6 +31,8 @@ _AssetVehiculoEntity _$AssetVehiculoEntityFromJson(Map<String, dynamic> json) =>
       transitAuthority: json['transitAuthority'] as String?,
       initialRegistrationDate: json['initialRegistrationDate'] as String?,
       propertyLiens: json['propertyLiens'] as String?,
+      ownerDocumentType: json['ownerDocumentType'] as String?,
+      ownerDocument: json['ownerDocument'] as String?,
       runtMetaJson: json['runtMetaJson'] as String?,
       createdAt: json['createdAt'] == null
           ? null
@@ -66,6 +68,8 @@ Map<String, dynamic> _$AssetVehiculoEntityToJson(
       'transitAuthority': instance.transitAuthority,
       'initialRegistrationDate': instance.initialRegistrationDate,
       'propertyLiens': instance.propertyLiens,
+      'ownerDocumentType': instance.ownerDocumentType,
+      'ownerDocument': instance.ownerDocument,
       'runtMetaJson': instance.runtMetaJson,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),

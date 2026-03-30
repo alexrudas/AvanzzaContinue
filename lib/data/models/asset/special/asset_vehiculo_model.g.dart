@@ -98,53 +98,63 @@ const AssetVehiculoModelSchema = CollectionSchema(
       name: r'modelo',
       type: IsarType.string,
     ),
-    r'passengerCapacity': PropertySchema(
+    r'ownerDocument': PropertySchema(
       id: 16,
+      name: r'ownerDocument',
+      type: IsarType.string,
+    ),
+    r'ownerDocumentType': PropertySchema(
+      id: 17,
+      name: r'ownerDocumentType',
+      type: IsarType.string,
+    ),
+    r'passengerCapacity': PropertySchema(
+      id: 18,
       name: r'passengerCapacity',
       type: IsarType.long,
     ),
     r'placa': PropertySchema(
-      id: 17,
+      id: 19,
       name: r'placa',
       type: IsarType.string,
     ),
     r'propertyLiens': PropertySchema(
-      id: 18,
+      id: 20,
       name: r'propertyLiens',
       type: IsarType.string,
     ),
     r'refCode': PropertySchema(
-      id: 19,
+      id: 21,
       name: r'refCode',
       type: IsarType.string,
     ),
     r'runtMetaJson': PropertySchema(
-      id: 20,
+      id: 22,
       name: r'runtMetaJson',
       type: IsarType.string,
     ),
     r'serviceType': PropertySchema(
-      id: 21,
+      id: 23,
       name: r'serviceType',
       type: IsarType.string,
     ),
     r'transitAuthority': PropertySchema(
-      id: 22,
+      id: 24,
       name: r'transitAuthority',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 23,
+      id: 25,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'vehicleClass': PropertySchema(
-      id: 24,
+      id: 26,
       name: r'vehicleClass',
       type: IsarType.string,
     ),
     r'vin': PropertySchema(
-      id: 25,
+      id: 27,
       name: r'vin',
       type: IsarType.string,
     )
@@ -254,6 +264,18 @@ int _assetVehiculoModelEstimateSize(
   }
   bytesCount += 3 + object.marca.length * 3;
   bytesCount += 3 + object.modelo.length * 3;
+  {
+    final value = object.ownerDocument;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.ownerDocumentType;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.placa.length * 3;
   {
     final value = object.propertyLiens;
@@ -317,16 +339,18 @@ void _assetVehiculoModelSerialize(
   writer.writeDouble(offsets[13], object.loadCapacityKg);
   writer.writeString(offsets[14], object.marca);
   writer.writeString(offsets[15], object.modelo);
-  writer.writeLong(offsets[16], object.passengerCapacity);
-  writer.writeString(offsets[17], object.placa);
-  writer.writeString(offsets[18], object.propertyLiens);
-  writer.writeString(offsets[19], object.refCode);
-  writer.writeString(offsets[20], object.runtMetaJson);
-  writer.writeString(offsets[21], object.serviceType);
-  writer.writeString(offsets[22], object.transitAuthority);
-  writer.writeDateTime(offsets[23], object.updatedAt);
-  writer.writeString(offsets[24], object.vehicleClass);
-  writer.writeString(offsets[25], object.vin);
+  writer.writeString(offsets[16], object.ownerDocument);
+  writer.writeString(offsets[17], object.ownerDocumentType);
+  writer.writeLong(offsets[18], object.passengerCapacity);
+  writer.writeString(offsets[19], object.placa);
+  writer.writeString(offsets[20], object.propertyLiens);
+  writer.writeString(offsets[21], object.refCode);
+  writer.writeString(offsets[22], object.runtMetaJson);
+  writer.writeString(offsets[23], object.serviceType);
+  writer.writeString(offsets[24], object.transitAuthority);
+  writer.writeDateTime(offsets[25], object.updatedAt);
+  writer.writeString(offsets[26], object.vehicleClass);
+  writer.writeString(offsets[27], object.vin);
 }
 
 AssetVehiculoModel _assetVehiculoModelDeserialize(
@@ -353,16 +377,18 @@ AssetVehiculoModel _assetVehiculoModelDeserialize(
     loadCapacityKg: reader.readDoubleOrNull(offsets[13]),
     marca: reader.readString(offsets[14]),
     modelo: reader.readString(offsets[15]),
-    passengerCapacity: reader.readLongOrNull(offsets[16]),
-    placa: reader.readString(offsets[17]),
-    propertyLiens: reader.readStringOrNull(offsets[18]),
-    refCode: reader.readString(offsets[19]),
-    runtMetaJson: reader.readStringOrNull(offsets[20]),
-    serviceType: reader.readStringOrNull(offsets[21]),
-    transitAuthority: reader.readStringOrNull(offsets[22]),
-    updatedAt: reader.readDateTimeOrNull(offsets[23]),
-    vehicleClass: reader.readStringOrNull(offsets[24]),
-    vin: reader.readStringOrNull(offsets[25]),
+    ownerDocument: reader.readStringOrNull(offsets[16]),
+    ownerDocumentType: reader.readStringOrNull(offsets[17]),
+    passengerCapacity: reader.readLongOrNull(offsets[18]),
+    placa: reader.readString(offsets[19]),
+    propertyLiens: reader.readStringOrNull(offsets[20]),
+    refCode: reader.readString(offsets[21]),
+    runtMetaJson: reader.readStringOrNull(offsets[22]),
+    serviceType: reader.readStringOrNull(offsets[23]),
+    transitAuthority: reader.readStringOrNull(offsets[24]),
+    updatedAt: reader.readDateTimeOrNull(offsets[25]),
+    vehicleClass: reader.readStringOrNull(offsets[26]),
+    vin: reader.readStringOrNull(offsets[27]),
   );
   return object;
 }
@@ -407,24 +433,28 @@ P _assetVehiculoModelDeserializeProp<P>(
     case 15:
       return (reader.readString(offset)) as P;
     case 16:
-      return (reader.readLongOrNull(offset)) as P;
-    case 17:
-      return (reader.readString(offset)) as P;
-    case 18:
       return (reader.readStringOrNull(offset)) as P;
+    case 17:
+      return (reader.readStringOrNull(offset)) as P;
+    case 18:
+      return (reader.readLongOrNull(offset)) as P;
     case 19:
       return (reader.readString(offset)) as P;
     case 20:
       return (reader.readStringOrNull(offset)) as P;
     case 21:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 22:
       return (reader.readStringOrNull(offset)) as P;
     case 23:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 24:
       return (reader.readStringOrNull(offset)) as P;
     case 25:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 26:
+      return (reader.readStringOrNull(offset)) as P;
+    case 27:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2791,6 +2821,314 @@ extension AssetVehiculoModelQueryFilter
   }
 
   QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'ownerDocument',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'ownerDocument',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'ownerDocument',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'ownerDocument',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'ownerDocument',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'ownerDocument',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'ownerDocument',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'ownerDocument',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'ownerDocument',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'ownerDocument',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'ownerDocument',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'ownerDocument',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentTypeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'ownerDocumentType',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentTypeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'ownerDocumentType',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentTypeEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'ownerDocumentType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentTypeGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'ownerDocumentType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentTypeLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'ownerDocumentType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentTypeBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'ownerDocumentType',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentTypeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'ownerDocumentType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentTypeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'ownerDocumentType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentTypeContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'ownerDocumentType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentTypeMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'ownerDocumentType',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentTypeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'ownerDocumentType',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerDocumentTypeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'ownerDocumentType',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
       passengerCapacityIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -4368,6 +4706,34 @@ extension AssetVehiculoModelQuerySortBy
   }
 
   QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterSortBy>
+      sortByOwnerDocument() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerDocument', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterSortBy>
+      sortByOwnerDocumentDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerDocument', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterSortBy>
+      sortByOwnerDocumentType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerDocumentType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterSortBy>
+      sortByOwnerDocumentTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerDocumentType', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterSortBy>
       sortByPassengerCapacity() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'passengerCapacity', Sort.asc);
@@ -4749,6 +5115,34 @@ extension AssetVehiculoModelQuerySortThenBy
   }
 
   QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterSortBy>
+      thenByOwnerDocument() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerDocument', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterSortBy>
+      thenByOwnerDocumentDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerDocument', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterSortBy>
+      thenByOwnerDocumentType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerDocumentType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterSortBy>
+      thenByOwnerDocumentTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerDocumentType', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterSortBy>
       thenByPassengerCapacity() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'passengerCapacity', Sort.asc);
@@ -5006,6 +5400,22 @@ extension AssetVehiculoModelQueryWhereDistinct
   }
 
   QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QDistinct>
+      distinctByOwnerDocument({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'ownerDocument',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QDistinct>
+      distinctByOwnerDocumentType({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'ownerDocumentType',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QDistinct>
       distinctByPassengerCapacity() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'passengerCapacity');
@@ -5191,6 +5601,20 @@ extension AssetVehiculoModelQueryProperty
     });
   }
 
+  QueryBuilder<AssetVehiculoModel, String?, QQueryOperations>
+      ownerDocumentProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'ownerDocument');
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, String?, QQueryOperations>
+      ownerDocumentTypeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'ownerDocumentType');
+    });
+  }
+
   QueryBuilder<AssetVehiculoModel, int?, QQueryOperations>
       passengerCapacityProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -5289,6 +5713,8 @@ AssetVehiculoModel _$AssetVehiculoModelFromJson(Map<String, dynamic> json) =>
       transitAuthority: json['transitAuthority'] as String?,
       initialRegistrationDate: json['initialRegistrationDate'] as String?,
       propertyLiens: json['propertyLiens'] as String?,
+      ownerDocumentType: json['ownerDocumentType'] as String?,
+      ownerDocument: json['ownerDocument'] as String?,
       runtMetaJson: json['runtMetaJson'] as String?,
       createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
       updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
@@ -5320,6 +5746,8 @@ Map<String, dynamic> _$AssetVehiculoModelToJson(AssetVehiculoModel instance) =>
       'transitAuthority': instance.transitAuthority,
       'initialRegistrationDate': instance.initialRegistrationDate,
       'propertyLiens': instance.propertyLiens,
+      'ownerDocumentType': instance.ownerDocumentType,
+      'ownerDocument': instance.ownerDocument,
       'runtMetaJson': instance.runtMetaJson,
       'createdAt':
           const DateTimeTimestampConverter().toJson(instance.createdAt),

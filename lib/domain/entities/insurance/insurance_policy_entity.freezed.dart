@@ -17,6 +17,14 @@ mixin _$InsurancePolicyEntity {
   String get id;
   String get assetId;
 
+  /// UUID único por póliza para fusión determinista en AssetPolicyMerger.
+  ///
+  /// DISTINTO de [id] (PK Isar/Firestore). No usar [id] como policyId.
+  ///
+  /// - Default `''`: registro pre-v1.3.4 sin UUID asignado.
+  /// - El data source genera y persiste el UUID antes de retornar la entidad.
+  String get policyId;
+
   /// Wire value del tipo de póliza.
   ///
   /// Para lógica tipada usar la extension [InsurancePolicyEntityX.policyType].
@@ -68,6 +76,8 @@ mixin _$InsurancePolicyEntity {
             other is InsurancePolicyEntity &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.assetId, assetId) || other.assetId == assetId) &&
+            (identical(other.policyId, policyId) ||
+                other.policyId == policyId) &&
             (identical(other.tipo, tipo) || other.tipo == tipo) &&
             (identical(other.aseguradora, aseguradora) ||
                 other.aseguradora == aseguradora) &&
@@ -95,6 +105,7 @@ mixin _$InsurancePolicyEntity {
       runtimeType,
       id,
       assetId,
+      policyId,
       tipo,
       aseguradora,
       tarifaBase,
@@ -109,7 +120,7 @@ mixin _$InsurancePolicyEntity {
 
   @override
   String toString() {
-    return 'InsurancePolicyEntity(id: $id, assetId: $assetId, tipo: $tipo, aseguradora: $aseguradora, tarifaBase: $tarifaBase, currencyCode: $currencyCode, countryId: $countryId, cityId: $cityId, fechaInicio: $fechaInicio, fechaFin: $fechaFin, estado: $estado, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'InsurancePolicyEntity(id: $id, assetId: $assetId, policyId: $policyId, tipo: $tipo, aseguradora: $aseguradora, tarifaBase: $tarifaBase, currencyCode: $currencyCode, countryId: $countryId, cityId: $cityId, fechaInicio: $fechaInicio, fechaFin: $fechaFin, estado: $estado, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -122,6 +133,7 @@ abstract mixin class $InsurancePolicyEntityCopyWith<$Res> {
   $Res call(
       {String id,
       String assetId,
+      String policyId,
       String tipo,
       String aseguradora,
       double tarifaBase,
@@ -150,6 +162,7 @@ class _$InsurancePolicyEntityCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? assetId = null,
+    Object? policyId = null,
     Object? tipo = null,
     Object? aseguradora = null,
     Object? tarifaBase = null,
@@ -170,6 +183,10 @@ class _$InsurancePolicyEntityCopyWithImpl<$Res>
       assetId: null == assetId
           ? _self.assetId
           : assetId // ignore: cast_nullable_to_non_nullable
+              as String,
+      policyId: null == policyId
+          ? _self.policyId
+          : policyId // ignore: cast_nullable_to_non_nullable
               as String,
       tipo: null == tipo
           ? _self.tipo
@@ -315,6 +332,7 @@ extension InsurancePolicyEntityPatterns on InsurancePolicyEntity {
     TResult Function(
             String id,
             String assetId,
+            String policyId,
             String tipo,
             String aseguradora,
             double tarifaBase,
@@ -335,6 +353,7 @@ extension InsurancePolicyEntityPatterns on InsurancePolicyEntity {
         return $default(
             _that.id,
             _that.assetId,
+            _that.policyId,
             _that.tipo,
             _that.aseguradora,
             _that.tarifaBase,
@@ -369,6 +388,7 @@ extension InsurancePolicyEntityPatterns on InsurancePolicyEntity {
     TResult Function(
             String id,
             String assetId,
+            String policyId,
             String tipo,
             String aseguradora,
             double tarifaBase,
@@ -388,6 +408,7 @@ extension InsurancePolicyEntityPatterns on InsurancePolicyEntity {
         return $default(
             _that.id,
             _that.assetId,
+            _that.policyId,
             _that.tipo,
             _that.aseguradora,
             _that.tarifaBase,
@@ -421,6 +442,7 @@ extension InsurancePolicyEntityPatterns on InsurancePolicyEntity {
     TResult? Function(
             String id,
             String assetId,
+            String policyId,
             String tipo,
             String aseguradora,
             double tarifaBase,
@@ -440,6 +462,7 @@ extension InsurancePolicyEntityPatterns on InsurancePolicyEntity {
         return $default(
             _that.id,
             _that.assetId,
+            _that.policyId,
             _that.tipo,
             _that.aseguradora,
             _that.tarifaBase,
@@ -463,6 +486,7 @@ class _InsurancePolicyEntity implements InsurancePolicyEntity {
   const _InsurancePolicyEntity(
       {required this.id,
       required this.assetId,
+      this.policyId = '',
       required this.tipo,
       required this.aseguradora,
       required this.tarifaBase,
@@ -481,6 +505,16 @@ class _InsurancePolicyEntity implements InsurancePolicyEntity {
   final String id;
   @override
   final String assetId;
+
+  /// UUID único por póliza para fusión determinista en AssetPolicyMerger.
+  ///
+  /// DISTINTO de [id] (PK Isar/Firestore). No usar [id] como policyId.
+  ///
+  /// - Default `''`: registro pre-v1.3.4 sin UUID asignado.
+  /// - El data source genera y persiste el UUID antes de retornar la entidad.
+  @override
+  @JsonKey()
+  final String policyId;
 
   /// Wire value del tipo de póliza.
   ///
@@ -549,6 +583,8 @@ class _InsurancePolicyEntity implements InsurancePolicyEntity {
             other is _InsurancePolicyEntity &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.assetId, assetId) || other.assetId == assetId) &&
+            (identical(other.policyId, policyId) ||
+                other.policyId == policyId) &&
             (identical(other.tipo, tipo) || other.tipo == tipo) &&
             (identical(other.aseguradora, aseguradora) ||
                 other.aseguradora == aseguradora) &&
@@ -576,6 +612,7 @@ class _InsurancePolicyEntity implements InsurancePolicyEntity {
       runtimeType,
       id,
       assetId,
+      policyId,
       tipo,
       aseguradora,
       tarifaBase,
@@ -590,7 +627,7 @@ class _InsurancePolicyEntity implements InsurancePolicyEntity {
 
   @override
   String toString() {
-    return 'InsurancePolicyEntity(id: $id, assetId: $assetId, tipo: $tipo, aseguradora: $aseguradora, tarifaBase: $tarifaBase, currencyCode: $currencyCode, countryId: $countryId, cityId: $cityId, fechaInicio: $fechaInicio, fechaFin: $fechaFin, estado: $estado, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'InsurancePolicyEntity(id: $id, assetId: $assetId, policyId: $policyId, tipo: $tipo, aseguradora: $aseguradora, tarifaBase: $tarifaBase, currencyCode: $currencyCode, countryId: $countryId, cityId: $cityId, fechaInicio: $fechaInicio, fechaFin: $fechaFin, estado: $estado, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -605,6 +642,7 @@ abstract mixin class _$InsurancePolicyEntityCopyWith<$Res>
   $Res call(
       {String id,
       String assetId,
+      String policyId,
       String tipo,
       String aseguradora,
       double tarifaBase,
@@ -633,6 +671,7 @@ class __$InsurancePolicyEntityCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? assetId = null,
+    Object? policyId = null,
     Object? tipo = null,
     Object? aseguradora = null,
     Object? tarifaBase = null,
@@ -653,6 +692,10 @@ class __$InsurancePolicyEntityCopyWithImpl<$Res>
       assetId: null == assetId
           ? _self.assetId
           : assetId // ignore: cast_nullable_to_non_nullable
+              as String,
+      policyId: null == policyId
+          ? _self.policyId
+          : policyId // ignore: cast_nullable_to_non_nullable
               as String,
       tipo: null == tipo
           ? _self.tipo

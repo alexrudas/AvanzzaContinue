@@ -1516,6 +1516,12 @@ class _ActionFooter extends StatelessWidget {
       propertyLiens: _strOf(vr?['gravamenesPropiedad']
           ?? data['gravamenesPropiedad']),
 
+      // Propietario — tipo y número de documento usados en la consulta RUNT
+      ownerDocumentType:
+          runtCtrl.ownerDocumentType.value ?? _strOf(data['ownerDocumentType']),
+      ownerDocument:
+          runtCtrl.ownerDocumentNumber.value ?? _strOf(data['ownerDocument']),
+
       // Seguros
       soatRecords: _asMaps(data['soatItems']),
       rcRecords:   _asMaps(data['segurosRc']),

@@ -69,7 +69,11 @@ enum RuntJobStepStatus {
   done,
 
   /// Bloque fallido.
-  failed;
+  failed,
+
+  /// Bloque bloqueado por condición externa (portal caído, sección no disponible).
+  /// Se pinta neutral — no es un error operativo.
+  blocked;
 
   static RuntJobStepStatus fromString(String? value) {
     switch (value) {
@@ -79,6 +83,8 @@ enum RuntJobStepStatus {
         return RuntJobStepStatus.done;
       case 'failed':
         return RuntJobStepStatus.failed;
+      case 'blocked':
+        return RuntJobStepStatus.blocked;
       default:
         return RuntJobStepStatus.pending;
     }
@@ -229,6 +235,15 @@ class RuntJobStatusResponse {
   /// Mensaje de error si status=failed.
   final String? error;
 
+  /// Código de razón de fallo. Valores conocidos:
+  ///   - `PARTIAL_EXTRACTION_ERROR` → fallo parcial con datos utilizables en partialData.
+  /// Fuente principal de clasificación de fallo junto a [failureMessage].
+  final String? failureReason;
+
+  /// Mensaje de fallo legible para mostrar al usuario.
+  /// Prioridad: failureMessage > failureReason > error.
+  final String? failureMessage;
+
   /// Timestamp de actualización del job, si el backend lo provee.
   final DateTime? updatedAt;
 
@@ -248,6 +263,8 @@ class RuntJobStatusResponse {
     this.partialData,
     this.data,
     this.error,
+    this.failureReason,
+    this.failureMessage,
     this.updatedAt,
     this.completedAt,
   });
@@ -274,6 +291,8 @@ class RuntJobStatusResponse {
       partialData: _asMapOrNull(json['partialData']),
       data: _asMapOrNull(json['data']),
       error: json['error'] as String?,
+      failureReason: json['failureReason'] as String?,
+      failureMessage: json['failureMessage'] as String?,
       updatedAt: _parseDateTime(json['updatedAt']),
       completedAt: _parseDateTime(json['completedAt']),
       progressPercent: rawProgress is int ? rawProgress : computedProgress,
@@ -287,6 +306,8 @@ class RuntJobStatusResponse {
         'partialData': partialData,
         'data': data,
         'error': error,
+        'failureReason': failureReason,
+        'failureMessage': failureMessage,
         'updatedAt': updatedAt?.toIso8601String(),
         'completedAt': completedAt?.toIso8601String(),
         'progressPercent': progressPercent,

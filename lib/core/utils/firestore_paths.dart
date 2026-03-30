@@ -43,4 +43,14 @@ class FirestorePaths {
   static const aiAdvisor = 'ai_advisor';
   static const aiPredictions = 'ai_predictions';
   static const aiAuditLogs = 'ai_audit_logs';
+
+  // Asset Audit Log (v1.3.4)
+  // Estructura: asset_audit_log/{assetId}/events/{eventId}
+  static const assetAuditLog = 'asset_audit_log';
+  static const assetAuditLogEvents = 'events';
+
+  // Asset History (v1.3.4)
+  // Path canónico: asset_vehiculo/{assetId}/history/{domain}/items/{itemId}
+  // 'history' → doc(domain) → 'items' → doc(itemId)
+  static const assetHistory = 'history';
 }

@@ -11,6 +11,7 @@ _InsurancePolicyEntity _$InsurancePolicyEntityFromJson(
     _InsurancePolicyEntity(
       id: json['id'] as String,
       assetId: json['assetId'] as String,
+      policyId: json['policyId'] as String? ?? '',
       tipo: json['tipo'] as String,
       aseguradora: json['aseguradora'] as String,
       tarifaBase: (json['tarifaBase'] as num).toDouble(),
@@ -33,6 +34,7 @@ Map<String, dynamic> _$InsurancePolicyEntityToJson(
     <String, dynamic>{
       'id': instance.id,
       'assetId': instance.assetId,
+      'policyId': instance.policyId,
       'tipo': instance.tipo,
       'aseguradora': instance.aseguradora,
       'tarifaBase': instance.tarifaBase,

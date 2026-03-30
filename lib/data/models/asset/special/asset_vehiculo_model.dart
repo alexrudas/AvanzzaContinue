@@ -62,6 +62,11 @@ class AssetVehiculoModel {
   final String? initialRegistrationDate;
   final String? propertyLiens;
 
+  // ── Propietario registrado en RUNT ───────────────────────────────────────
+  // Null para activos registrados antes de la Fase Propietario (2026-03).
+  final String? ownerDocumentType;
+  final String? ownerDocument;
+
   /// JSON serializado de snapshots RTM, limitaciones y garantías.
   /// Formato: {'runt_rtm': [...], 'runt_limitations': [...], 'runt_warranties': [...]}
   final String? runtMetaJson;
@@ -96,6 +101,8 @@ class AssetVehiculoModel {
     this.transitAuthority,
     this.initialRegistrationDate,
     this.propertyLiens,
+    this.ownerDocumentType,
+    this.ownerDocument,
     this.runtMetaJson,
     this.createdAt,
     this.updatedAt,
@@ -133,6 +140,8 @@ class AssetVehiculoModel {
         transitAuthority: e.transitAuthority,
         initialRegistrationDate: e.initialRegistrationDate,
         propertyLiens: e.propertyLiens,
+        ownerDocumentType: e.ownerDocumentType,
+        ownerDocument: e.ownerDocument,
         runtMetaJson: e.runtMetaJson,
         createdAt: e.createdAt,
         updatedAt: e.updatedAt,
@@ -162,6 +171,8 @@ class AssetVehiculoModel {
         transitAuthority: transitAuthority,
         initialRegistrationDate: initialRegistrationDate,
         propertyLiens: propertyLiens,
+        ownerDocumentType: ownerDocumentType,
+        ownerDocument: ownerDocument,
         runtMetaJson: runtMetaJson,
         createdAt: createdAt,
         updatedAt: updatedAt,

@@ -95,6 +95,10 @@ enum RuntQueryStepStatus {
   loading,
   done,
   failed,
+
+  /// Bloque bloqueado por condición externa (portal caído, sección no disponible).
+  /// Se pinta neutral — no es un error operativo.
+  blocked,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -153,6 +157,8 @@ class RuntQuerySteps {
         return RuntQueryStepStatus.done;
       case 'failed':
         return RuntQueryStepStatus.failed;
+      case 'blocked':
+        return RuntQueryStepStatus.blocked;
       case 'pending':
       default:
         return RuntQueryStepStatus.pending;
@@ -204,8 +210,17 @@ class RuntAsyncQueryStatusResult {
   /// Payload final completo cuando el job termina correctamente.
   final Map<String, dynamic>? finalData;
 
-  /// Mensaje de error cuando el job falla.
+  /// Mensaje de error cuando el job falla (campo legacy).
+  ///
+  /// Prioridad de lectura: [failureMessage] > [failureReason] > [error].
   final String? error;
+
+  /// Código de razón de fallo. Valor conocido clave:
+  ///   `PARTIAL_EXTRACTION_ERROR` → fallo parcial con datos utilizables en [partialData].
+  final String? failureReason;
+
+  /// Mensaje de fallo legible para mostrar al usuario.
+  final String? failureMessage;
 
   /// Última actualización reportada por backend.
   final DateTime? updatedAt;
@@ -221,6 +236,8 @@ class RuntAsyncQueryStatusResult {
     this.partialData,
     this.finalData,
     this.error,
+    this.failureReason,
+    this.failureMessage,
     this.updatedAt,
     this.completedAt,
   })  : assert(jobId != ''),
@@ -243,6 +260,7 @@ class RuntAsyncQueryStatusResult {
         'hasPartialData: $hasPartialData, '
         'hasFinalData: $hasFinalData, '
         'error: $error, '
+        'failureReason: $failureReason, '
         'updatedAt: $updatedAt, '
         'completedAt: $completedAt'
         ')';
@@ -260,6 +278,8 @@ class RuntAsyncQueryStatusResult {
           _mapEquals(partialData, other.partialData) &&
           _mapEquals(finalData, other.finalData) &&
           error == other.error &&
+          failureReason == other.failureReason &&
+          failureMessage == other.failureMessage &&
           updatedAt == other.updatedAt &&
           completedAt == other.completedAt;
 
@@ -272,6 +292,8 @@ class RuntAsyncQueryStatusResult {
         _mapHash(partialData),
         _mapHash(finalData),
         error,
+        failureReason,
+        failureMessage,
         updatedAt,
         completedAt,
       );

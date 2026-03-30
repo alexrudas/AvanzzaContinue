@@ -86,6 +86,12 @@ class ApiEndpoints {
   /// ```
   static String get runtBaseUrl => _baseApiUrl;
 
+  /// URL base para Avanzza Core API (insurance/leads, y futuros endpoints propios).
+  ///
+  /// Separada semánticamente de [runtBaseUrl] aunque hoy apunten al mismo host.
+  /// Los servicios Core NO usan X-API-Key — son recursos internos del backend.
+  static String get coreBaseUrl => _baseApiUrl;
+
   /// URL base para el servicio de SIMIT (Sistema Integrado de Multas de Tránsito).
   ///
   /// Proporciona acceso a información sobre:

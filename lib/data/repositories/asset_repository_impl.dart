@@ -577,6 +577,8 @@ class AssetRepositoryImpl implements AssetRepository {
       transitAuthority: runtSnapshot.transitAuthority,
       initialRegistrationDate: runtSnapshot.initialRegistrationDate,
       propertyLiens: runtSnapshot.propertyLiens,
+      ownerDocumentType: runtSnapshot.ownerDocumentType,
+      ownerDocument: runtSnapshot.ownerDocument,
       runtMetaJson: runtMetaJson,
       createdAt: now,
       updatedAt: now,

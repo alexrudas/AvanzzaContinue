@@ -1,16 +1,17 @@
 // ============================================================================
 // lib/presentation/pages/portfolio/wizard/runt_query_progress_page.dart
 //
-// RUNT QUERY PROGRESS PAGE — Enterprise-grade Ultra Pro 10/10
+// RUNT QUERY PROGRESS PAGE — Enterprise-grade Ultra Pro
 //
 // PROPÓSITO
-// Visualizar el progreso de la consulta RUNT asíncrona del wizard de registro
-// de activos con una UX robusta, protegida y alineada con un flujo crítico.
+// Visualizar el estado de la consulta RUNT asíncrona con una UX honesta:
+// indicador local de espera estimada (no falso progreso técnico del backend),
+// mensajes rotativos por tramo de tiempo, y estados terminales claros.
 //
 // RESPONSABILIDAD
-// - Renderizar el progreso global y por bloques.
+// - Renderizar un indicador de espera local durante `running`.
 // - Escuchar el estado reactivo del RuntQueryController.
-// - Navegar automáticamente a la pantalla de resultado al completar.
+// - Navegar automáticamente al resultado cuando el job termina (completed/partial).
 // - Proteger al usuario contra cierres accidentales del proceso.
 // - Mostrar estado de error con salida controlada al formulario.
 //
@@ -19,13 +20,24 @@
 // - No hace polling.
 // - No persiste datos.
 // - No contiene lógica de negocio del wizard.
+// - No representa subetapas (vehicle/soat/rtm/history) como progreso operativo
+//   real mientras el scraper sea monolítico.
 //
-// NOTAS DE UX
+// PRINCIPIOS DE UX
+// - El círculo usa un temporizador LOCAL (90s estimados), no progressPercent
+//   del backend, para evitar vender un falso avance técnico durante `running`.
+// - El círculo se capa al 90% mientras el job siga activo.
+// - Los mensajes cambian por tramos de tiempo transcurrido.
+// - `failed + PARTIAL_EXTRACTION_ERROR + partialData` no colapsa en error total:
+//   el controller lo resuelve como `RuntViewState.partial` y navega a resultado.
+//
+// ENTERPRISE NOTES
 // - Se bloquea el back físico mientras la consulta está en curso.
 // - Se muestra confirmación antes de salir.
-// - Si el estado ya llega "completed" al montar la pantalla, redirige de inmediato.
-// - El texto de las acciones coincide con el comportamiento real.
+// - Si el estado ya llega "completed" o "partial" al montar, redirige de inmediato.
 // ============================================================================
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -49,18 +61,19 @@ class _RuntQueryProgressPageState extends State<RuntQueryProgressPage> {
     super.initState();
     _ctrl = Get.find<RuntQueryController>();
 
-    // Cubrir el caso donde la pantalla se monta y el estado ya está completado.
+    // Cubrir el caso donde la pantalla se monta y el estado ya es terminal.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _handleImmediateState(_ctrl.viewState.value);
     });
 
-    // Escucha reactiva del estado para navegar automáticamente al resultado.
+    // Navegación reactiva: completed y partial van al resultado.
     _navigationWorker = ever<RuntViewState>(
       _ctrl.viewState,
       (state) {
         if (!mounted) return;
-        if (state == RuntViewState.completed) {
+        if (state == RuntViewState.completed ||
+            state == RuntViewState.partial) {
           Get.offNamed(Routes.runtQueryResult);
         }
       },
@@ -74,7 +87,7 @@ class _RuntQueryProgressPageState extends State<RuntQueryProgressPage> {
   }
 
   void _handleImmediateState(RuntViewState state) {
-    if (state == RuntViewState.completed) {
+    if (state == RuntViewState.completed || state == RuntViewState.partial) {
       Get.offNamed(Routes.runtQueryResult);
     }
   }
@@ -82,8 +95,10 @@ class _RuntQueryProgressPageState extends State<RuntQueryProgressPage> {
   Future<void> _confirmExit(BuildContext context) async {
     final state = _ctrl.viewState.value;
 
-    // Si ya falló, no necesitamos diálogo: permitimos volver directamente.
-    if (state == RuntViewState.failed) {
+    // Estados terminales sin proceso activo: salir sin diálogo.
+    if (state == RuntViewState.failed ||
+        state == RuntViewState.connectionInterrupted ||
+        state == RuntViewState.jobUnavailable) {
       Get.back();
       return;
     }
@@ -96,7 +111,8 @@ class _RuntQueryProgressPageState extends State<RuntQueryProgressPage> {
             return AlertDialog(
               title: const Text('¿Salir de la consulta?'),
               content: const Text(
-                'La consulta RUNT sigue en proceso. Si sales ahora, el borrador permanecerá guardado, pero el resultado podría quedar incompleto.',
+                'La consulta RUNT sigue en proceso. Si sales ahora, el borrador '
+                'permanecerá guardado, pero el resultado podría quedar incompleto.',
               ),
               actions: [
                 TextButton(
@@ -117,10 +133,7 @@ class _RuntQueryProgressPageState extends State<RuntQueryProgressPage> {
         false;
 
     if (!mounted) return;
-
-    if (shouldExit) {
-      Get.back();
-    }
+    if (shouldExit) Get.back();
   }
 
   @override
@@ -154,10 +167,23 @@ class _RuntQueryProgressPageState extends State<RuntQueryProgressPage> {
             );
           }
 
-          return _ProgressView(
-            progress: _ctrl.progressPercent.value,
-            steps: _ctrl.steps.value,
-          );
+          if (state == RuntViewState.connectionInterrupted) {
+            return _ConnectionInterruptedView(
+              onRetry: () => _ctrl.resumePolling(),
+              onBack: () => Get.back(),
+            );
+          }
+
+          if (state == RuntViewState.jobUnavailable) {
+            return _JobUnavailableView(
+              onNewQuery: () => Get.back(),
+            );
+          }
+
+          // running / pending / completed / partial:
+          // completed y partial disparan navegación inmediata vía el worker.
+          // Se muestra _RunningView brevemente mientras el worker actúa.
+          return const _RunningView();
         }),
       ),
     );
@@ -165,30 +191,110 @@ class _RuntQueryProgressPageState extends State<RuntQueryProgressPage> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// VISTA DE PROGRESO
+// VISTA DE CARGA HONESTA
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _ProgressView extends StatelessWidget {
-  final int progress;
-  final RuntQuerySteps steps;
+/// Vista de espera durante la consulta RUNT.
+///
+/// HONESTIDAD UX:
+/// - El círculo anima de 0 a 90% con un [AnimationController] local de 90s.
+///   No usa progressPercent del backend — evita vender falso avance técnico.
+/// - Los mensajes cambian según el tiempo transcurrido, no por eventos reales.
+/// - El círculo nunca llega al 100% mientras el backend no confirme terminación.
+class _RunningView extends StatefulWidget {
+  const _RunningView();
 
-  const _ProgressView({
-    required this.progress,
-    required this.steps,
-  });
+  @override
+  State<_RunningView> createState() => _RunningViewState();
+}
+
+class _RunningViewState extends State<_RunningView>
+    with SingleTickerProviderStateMixin {
+  /// Duración estimada base: el portal RUNT tarda ~30–90s en condiciones normales.
+  static const Duration _kEstimated = Duration(seconds: 90);
+
+  /// Techo visual del círculo mientras el backend no confirma terminación.
+  static const double _kCircleCap = 0.90;
+
+  /// Mensajes honestos por tramo de tiempo transcurrido (segundos).
+  /// No mencionan secciones ni sugieren validación por bloque.
+  static const List<({int threshold, String text})> _kMessages = [
+    (threshold: 0, text: 'Preparando la consulta...'),
+    (threshold: 10, text: 'Estamos consultando la información en el RUNT...'),
+    (threshold: 30, text: 'Seguimos procesando la consulta...'),
+    (
+      threshold: 70,
+      text: 'Parece que está tardando un poco más de lo esperado.\n'
+          'Seguimos intentando obtener la información disponible.',
+    ),
+  ];
+
+  late final AnimationController _progressAnim;
+  Timer? _tickTimer;
+  int _elapsedSeconds = 0;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Anima de 0.0 a 1.0 en 90s.
+    // Valor visual del círculo = _progressAnim.value * _kCircleCap → 0% a 90%.
+    _progressAnim = AnimationController(
+      vsync: this,
+      duration: _kEstimated,
+    );
+    _progressAnim.forward();
+
+    // Tick cada segundo: actualiza contador y mensajes.
+    _tickTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {
+        _elapsedSeconds++;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _progressAnim.dispose();
+    _tickTimer?.cancel();
+    super.dispose();
+  }
+
+  double get _circleValue => _progressAnim.value * _kCircleCap;
+
+  String get _countdownText {
+    final remaining = 90 - _elapsedSeconds;
+    return remaining > 0 ? '$remaining s' : '…';
+  }
+
+  String get _currentMessage {
+    String msg = _kMessages.first.text;
+    for (final m in _kMessages) {
+      if (_elapsedSeconds >= m.threshold) msg = m.text;
+    }
+    return msg;
+  }
 
   @override
   Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _progressAnim,
+      builder: (context, _) => _buildContent(context),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
       child: Column(
         children: [
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
-          // Indicador circular principal
+          // Círculo con temporizador local — NO porcentaje del backend.
           Stack(
             alignment: Alignment.center,
             children: [
@@ -196,14 +302,14 @@ class _ProgressView extends StatelessWidget {
                 width: 124,
                 height: 124,
                 child: CircularProgressIndicator(
-                  value: progress.clamp(0, 100) / 100,
+                  value: _circleValue,
                   strokeWidth: 10,
                   backgroundColor: colors.surfaceContainerHighest,
                   strokeCap: StrokeCap.round,
                 ),
               ),
               Text(
-                '$progress%',
+                _countdownText,
                 style: textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: colors.primary,
@@ -212,58 +318,50 @@ class _ProgressView extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: 28),
+          const SizedBox(height: 32),
 
+          // Título fijo.
           Text(
-            'Sincronizando con el sistema nacional',
+            'Estamos consultando la información del vehículo',
             style: textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Estamos obteniendo la información técnica y legal del vehículo por bloques para validar el registro antes de continuar.',
-            textAlign: TextAlign.center,
-            style: textTheme.bodyMedium?.copyWith(
-              color: colors.onSurfaceVariant,
-              height: 1.45,
-            ),
-          ),
-
-          const SizedBox(height: 32),
-
-          _StepTile(
-            label: 'Información del vehículo',
-            status: steps.vehicle,
-          ),
-          _StepTile(
-            label: 'Vigencia SOAT',
-            status: steps.soat,
-          ),
-          _StepTile(
-            label: 'Revisión técnico-mecánica',
-            status: steps.rtm,
-          ),
-          _StepTile(
-            label: 'Historial y trazabilidad',
-            status: steps.history,
-          ),
-
-          const SizedBox(height: 28),
-
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: progress.clamp(0, 100) / 100,
-              minHeight: 6,
-            ),
-          ),
 
           const SizedBox(height: 14),
 
+          // Mensaje rotativo con fade + slide suave.
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 380),
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.12),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOut,
+                )),
+                child: child,
+              ),
+            ),
+            child: Text(
+              _currentMessage,
+              key: ValueKey(_currentMessage),
+              textAlign: TextAlign.center,
+              style: textTheme.bodyMedium?.copyWith(
+                color: colors.onSurfaceVariant,
+                height: 1.55,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 40),
+
           Text(
-            'Por favor, no cierres la aplicación ni bloquees tu celular.',
+            'Por favor, no cierres la aplicación.',
             style: textTheme.labelMedium?.copyWith(
               color: colors.outline,
               letterSpacing: 0.3,
@@ -277,195 +375,160 @@ class _ProgressView extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BLOQUE DE ESTADO
+// VISTA DE ERROR TOTAL
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _StepTile extends StatelessWidget {
-  final String label;
-  final RuntQueryStepStatus status;
+// ─────────────────────────────────────────────────────────────────────────────
+// VISTA DE CONEXIÓN INTERRUMPIDA
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const _StepTile({
-    required this.label,
-    required this.status,
+/// Vista cuando el polling falló por pérdida de conectividad del cliente.
+///
+/// NO es un fallo real del job — el backend puede seguir ejecutando.
+/// El usuario puede reintentar el seguimiento sin lanzar una consulta nueva.
+class _ConnectionInterruptedView extends StatelessWidget {
+  final VoidCallback onRetry;
+  final VoidCallback onBack;
+
+  const _ConnectionInterruptedView({
+    required this.onRetry,
+    required this.onBack,
   });
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: _backgroundColor(colors),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: _borderColor(colors),
-          width: 1,
-        ),
-      ),
-      child: Row(
+    return Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _AnimatedStatusIcon(status: status),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontWeight: status == RuntQueryStepStatus.loading
-                    ? FontWeight.w700
-                    : FontWeight.w500,
-                color: status == RuntQueryStepStatus.pending
-                    ? colors.outline
-                    : colors.onSurface,
-              ),
+          Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerHighest,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.wifi_off_rounded,
+              size: 60,
+              color: colors.onSurfaceVariant,
             ),
           ),
-          const SizedBox(width: 12),
-          _StepStatusLabel(status: status),
+          const SizedBox(height: 24),
+          Text(
+            'Conexión interrumpida',
+            style: textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Se perdió la conexión durante el seguimiento de la consulta. '
+            'El proceso en el servidor puede seguir activo.',
+            textAlign: TextAlign.center,
+            style: textTheme.bodyLarge?.copyWith(
+              color: colors.onSurfaceVariant,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('REINTENTAR SEGUIMIENTO'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: onBack,
+              child: const Text('VOLVER AL FORMULARIO'),
+            ),
+          ),
         ],
       ),
     );
   }
-
-  Color _backgroundColor(ColorScheme colors) {
-    switch (status) {
-      case RuntQueryStepStatus.loading:
-        return colors.primaryContainer.withOpacity(0.24);
-      case RuntQueryStepStatus.done:
-        return colors.surface;
-      case RuntQueryStepStatus.failed:
-        return colors.errorContainer.withOpacity(0.35);
-      case RuntQueryStepStatus.pending:
-        return colors.surface;
-    }
-  }
-
-  Color _borderColor(ColorScheme colors) {
-    switch (status) {
-      case RuntQueryStepStatus.loading:
-        return colors.primary.withOpacity(0.45);
-      case RuntQueryStepStatus.done:
-        return colors.outlineVariant;
-      case RuntQueryStepStatus.failed:
-        return colors.error.withOpacity(0.35);
-      case RuntQueryStepStatus.pending:
-        return colors.surfaceContainerLow;
-    }
-  }
 }
 
-class _AnimatedStatusIcon extends StatelessWidget {
-  final RuntQueryStepStatus status;
+// ─────────────────────────────────────────────────────────────────────────────
+// VISTA DE JOB NO RECUPERABLE
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const _AnimatedStatusIcon({
-    required this.status,
-  });
+/// Vista cuando el backend confirmó que el job ya no existe o expiró.
+///
+/// Diferencia respecto a [_ConnectionInterruptedView]:
+/// - Allá: Flutter no pudo confirmar el estado (red caída) → se puede reintentar.
+/// - Aquí: backend confirmó que ese jobId ya no está → hay que consultar de nuevo.
+class _JobUnavailableView extends StatelessWidget {
+  final VoidCallback onNewQuery;
+
+  const _JobUnavailableView({required this.onNewQuery});
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 260),
-      transitionBuilder: (child, animation) {
-        return ScaleTransition(scale: animation, child: child);
-      },
-      child: _buildIcon(colors),
+    return Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerHighest,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.search_off_rounded,
+              size: 60,
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'No fue posible recuperar la consulta',
+            style: textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'La consulta anterior ya no está disponible. '
+            'Debes realizar una nueva consulta para continuar.',
+            textAlign: TextAlign.center,
+            style: textTheme.bodyLarge?.copyWith(
+              color: colors.onSurfaceVariant,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: onNewQuery,
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('NUEVA CONSULTA'),
+            ),
+          ),
+        ],
+      ),
     );
-  }
-
-  Widget _buildIcon(ColorScheme colors) {
-    switch (status) {
-      case RuntQueryStepStatus.pending:
-        return Icon(
-          Icons.circle_outlined,
-          key: const ValueKey('pending'),
-          color: colors.outlineVariant,
-          size: 22,
-        );
-      case RuntQueryStepStatus.loading:
-        return SizedBox(
-          key: const ValueKey('loading'),
-          width: 22,
-          height: 22,
-          child: CircularProgressIndicator(
-            strokeWidth: 2.2,
-            color: colors.primary,
-          ),
-        );
-      case RuntQueryStepStatus.done:
-        return Icon(
-          Icons.check_circle,
-          key: const ValueKey('done'),
-          color: colors.primary,
-          size: 22,
-        );
-      case RuntQueryStepStatus.failed:
-        return Icon(
-          Icons.error,
-          key: const ValueKey('failed'),
-          color: colors.error,
-          size: 22,
-        );
-    }
-  }
-}
-
-class _StepStatusLabel extends StatelessWidget {
-  final RuntQueryStepStatus status;
-
-  const _StepStatusLabel({
-    required this.status,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
-    switch (status) {
-      case RuntQueryStepStatus.done:
-        return Text(
-          'Cargado',
-          style: TextStyle(
-            color: colors.primary,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        );
-      case RuntQueryStepStatus.loading:
-        return Text(
-          'Consultando',
-          style: TextStyle(
-            color: colors.primary,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        );
-      case RuntQueryStepStatus.failed:
-        return Text(
-          'Error',
-          style: TextStyle(
-            color: colors.error,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        );
-      case RuntQueryStepStatus.pending:
-        return Text(
-          'Pendiente',
-          style: TextStyle(
-            color: colors.outline,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        );
-    }
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// VISTA DE ERROR
+// VISTA DE ERROR TOTAL
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _FailedView extends StatelessWidget {
@@ -510,7 +573,8 @@ class _FailedView extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             error ??
-                'No pudimos completar la consulta con el RUNT. Regresa al formulario y vuelve a intentarlo.',
+                'No fue posible completar la consulta oficial. '
+                    'La fuente oficial puede no estar disponible en este momento.',
             textAlign: TextAlign.center,
             style: textTheme.bodyLarge?.copyWith(
               color: colors.onSurfaceVariant,

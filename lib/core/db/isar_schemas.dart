@@ -39,11 +39,15 @@ import 'package:avanzza/data/models/workspace/workspace_state_model.dart';
 import '../../infrastructure/isar/entities/account_receivable_projection_entity.dart';
 import '../../infrastructure/isar/entities/accounting_event_entity.dart';
 import '../../infrastructure/isar/entities/outbox_event_entity.dart';
+import '../../infrastructure/local/isar/models/sync/sync_outbox_entry_model.dart';
 
 final allIsarSchemas = [
   // Integrations — RUNT Persona + SIMIT cache (generados por build_runner)
   IntegrationsRuntPersonCacheModelSchema,
   IntegrationsSimitCacheModelSchema,
+
+  // Sync Outbox
+  SyncOutboxEntryModelSchema,
 
   // Audit Trail — P2-D
   AccountingEventEntitySchema,

@@ -34,6 +34,13 @@ abstract class AssetVehiculoEntity with _$AssetVehiculoEntity {
     String? initialRegistrationDate,
     String? propertyLiens,
 
+    // ── Propietario registrado en RUNT ───────────────────────────────────────
+    // Null para activos registrados antes de la Fase Propietario (2026-03).
+    /// Tipo de documento del propietario (ej. 'CC', 'CE').
+    String? ownerDocumentType,
+    /// Número de documento del propietario.
+    String? ownerDocument,
+
     /// JSON serializado de snapshots RTM, limitaciones y garantías.
     ///
     /// Formato: {'runt_rtm': [...], 'runt_limitations': [...],

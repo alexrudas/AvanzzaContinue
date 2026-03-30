@@ -27,6 +27,7 @@ import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/di/container.dart';
+import '../../../core/navigation/app_navigator.dart';
 import '../../../domain/entities/asset/asset_entity.dart';
 import '../../../domain/entities/portfolio/portfolio_entity.dart';
 import '../../../domain/shared/enums/asset_type.dart';
@@ -74,7 +75,14 @@ class _PortfolioAssetListPageState extends State<PortfolioAssetListPage> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    return Scaffold(
+    // PopScope intercepta el botón de sistema (Android back).
+    // Política única: Portfolio → Home, siempre, sin depender del stack.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) AppNavigator.goToHome();
+      },
+      child: Scaffold(
       backgroundColor: cs.surface,
       appBar: AppBar(
         backgroundColor: cs.surface,
@@ -82,7 +90,7 @@ class _PortfolioAssetListPageState extends State<PortfolioAssetListPage> {
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: cs.onSurface),
-          onPressed: Get.back,
+          onPressed: AppNavigator.goToHome,
         ),
         title: Text(
           portfolio.portfolioName,
@@ -108,7 +116,7 @@ class _PortfolioAssetListPageState extends State<PortfolioAssetListPage> {
           // 2. Estado: Error
           if (snapshot.hasError) {
             return _ErrorState(
-                onBack: Get.back,
+                onBack: AppNavigator.goToHome,
                 message: 'Error de conexión con la base de datos.');
           }
 
@@ -145,9 +153,11 @@ class _PortfolioAssetListPageState extends State<PortfolioAssetListPage> {
                           final summary = assets[i].toSummaryVM();
                           return PortfolioAssetOperationalTile(
                             summary: summary,
-                            onTap: () => Get.toNamed(
-                              Routes.assetDetail,
-                              arguments: summary.assetId,
+                            // Pasa portfolio para que AssetDetailPage tenga
+                            // contexto de back sin depender del stack.
+                            onTap: () => AppNavigator.openAssetDetail(
+                              assetId: summary.assetId,
+                              portfolio: portfolio,
                             ),
                           );
                         },
@@ -161,6 +171,7 @@ class _PortfolioAssetListPageState extends State<PortfolioAssetListPage> {
         onPressed: () => _goToRegisterAsset(portfolio),
         icon: const Icon(Icons.add_rounded),
         label: const Text('Registrar activo'),
+      ),
       ),
     );
   }

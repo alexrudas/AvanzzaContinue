@@ -1,4 +1,5 @@
-//lib\core\di\container.dart
+// lib/core/di/container.dart
+// ignore_for_file: directives_ordering
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
@@ -9,7 +10,6 @@ import '../../data/repositories/accounting_repository_impl.dart';
 import '../../data/repositories/ai_repository_impl.dart';
 import '../../data/repositories/asset_registration_draft_repository_impl.dart';
 import '../../data/repositories/asset_repository_impl.dart';
-
 import '../../data/repositories/catalog_repository_impl.dart';
 import '../../data/repositories/chat_repository_impl.dart';
 import '../../data/repositories/geo_repository_impl.dart';
@@ -18,7 +18,6 @@ import '../../data/repositories/maintenance_repository_impl.dart';
 import '../../data/repositories/org_repository_impl.dart';
 import '../../data/repositories/portfolio_repository_impl.dart';
 import '../../data/repositories/purchase_repository_impl.dart';
-// Sync Engine V2 imports
 import '../../data/repositories/sync_outbox_repository_impl.dart';
 import '../../data/repositories/user_repository_impl.dart';
 import '../../data/repositories/workspace_repository_impl.dart';
@@ -44,18 +43,26 @@ import '../../data/sources/remote/maintenance_remote_ds.dart';
 import '../../data/sources/remote/org_remote_ds.dart';
 import '../../data/sources/remote/purchase_remote_ds.dart';
 import '../../data/sources/remote/user_remote_ds.dart';
+import '../../data/sync/asset_audit_service.dart';
+import '../../data/sync/asset_firestore_adapter.dart';
+import '../../data/sync/asset_history_archive_service.dart';
+import '../../data/sync/asset_history_reconciliation_worker.dart';
+import '../../data/sync/asset_sync_dispatcher.dart';
+import '../../data/sync/asset_sync_engine.dart';
+import '../../data/sync/asset_sync_queue.dart';
+import '../../data/sync/asset_sync_service.dart';
+import '../telemetry/sync_telemetry.dart';
 import '../../domain/policies/access_policy.dart';
 import '../../domain/policies/automation_policy.dart';
 import '../../domain/policies/default_access_policy.dart';
 import '../../domain/policies/default_automation_policy.dart';
 import '../../domain/policies/default_payout_policy.dart';
 import '../../domain/policies/payout_policy.dart';
-// Policy Layer imports
 import '../../domain/policies/policy_context_factory.dart';
 import '../../domain/policies/policy_engine.dart';
 import '../../domain/repositories/accounting_repository.dart';
-import '../../domain/repositories/asset_registration_draft_repository.dart';
 import '../../domain/repositories/ai_repository.dart';
+import '../../domain/repositories/asset_registration_draft_repository.dart';
 import '../../domain/repositories/asset_repository.dart';
 import '../../domain/repositories/catalog_repository.dart';
 import '../../domain/repositories/chat_repository.dart';
@@ -68,6 +75,10 @@ import '../../domain/repositories/purchase_repository.dart';
 import '../../domain/repositories/sync_outbox_repository.dart';
 import '../../domain/repositories/user_repository.dart';
 import '../../domain/repositories/workspace_repository.dart';
+import '../../domain/services/alerts/asset_alert_snapshot_assembler.dart';
+import '../../domain/services/alerts/asset_compliance_alert_orchestrator.dart';
+import '../../domain/services/alerts/home_alert_aggregation_service.dart';
+import '../alerts/evaluators/soat_alert_adapter.dart';
 import '../../domain/services/sync/sync_dispatcher.dart';
 import '../../domain/services/sync/sync_engine.dart';
 import '../../infrastructure/sync/connectivity_service_adapter.dart';
@@ -75,41 +86,91 @@ import '../../infrastructure/sync/firestore_sync_executor.dart';
 import '../../infrastructure/sync/system_now_provider.dart';
 import '../network/connectivity_service.dart';
 import '../platform/offline_sync_service.dart';
+import '../utils/firestore_paths.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DI CONTAINER — Singleton global de infraestructura
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// RESPONSABILIDAD
+// - Centralizar wiring de data sources, repositories, políticas y sync stack.
+//
+// REGLAS
+// - initDI() debe llamarse una sola vez en producción.
+// - El container NO soporta reset/re-init completo.
+// - El start/stop del sync stack se hace explícitamente desde bootstrap.
+// - Este archivo define wiring; NO decide lifecycle de la app.
+//
+// DECISIÓN DE SYNC ACTUAL
+// - Vehicle sync especializado:
+//     AssetSyncDispatcher + AssetSyncEngine + AssetSyncService
+// - SyncEngineService genérico:
+//     se mantiene instanciado como infraestructura compartida,
+//     pero NO es el owner principal de entities vehicle:*.
+// - OfflineSyncService:
+//     permanece por compatibilidad con flujos legacy.
+//     NO es el owner principal del sync vehicular actual.
+//
+// NOTA DE OWNERSHIP
+// Cualquier nueva entidad NO vehicular que requiera sync:
+// - NO debe asumir automáticamente que usa SyncEngineService genérico
+// - Debe documentar explícitamente si:
+//   a) reutiliza el engine genérico, o
+//   b) introduce stack especializado propio.
+// ─────────────────────────────────────────────────────────────────────────────
 
 class DIContainer {
   static final DIContainer _instance = DIContainer._internal();
+
   factory DIContainer() => _instance;
+
   DIContainer._internal();
 
   late final Isar _isar;
   late final FirebaseFirestore _firestore;
+
+  // LEGACY:
+  // Sigue existiendo por compatibilidad con flujos previos.
+  // NO es el owner principal del sync vehicular actual.
   late final OfflineSyncService _syncService;
 
-  // Data sources
+  bool _isInitialized = false;
+
+  // ── Data sources ──────────────────────────────────────────────────────────
   late final GeoLocalDataSource geoLocal;
   late final GeoRemoteDataSource geoRemote;
+
   late final OrgLocalDataSource orgLocal;
   late final OrgRemoteDataSource orgRemote;
+
   late final UserLocalDataSource userLocal;
   late final UserRemoteDataSource userRemote;
+
   late final AssetLocalDataSource assetLocal;
   late final AssetRemoteDataSource assetRemote;
+
   late final MaintenanceLocalDataSource maintenanceLocal;
   late final MaintenanceRemoteDataSource maintenanceRemote;
+
   late final PurchaseLocalDataSource purchaseLocal;
   late final PurchaseRemoteDataSource purchaseRemote;
+
   late final AccountingLocalDataSource accountingLocal;
   late final AccountingRemoteDataSource accountingRemote;
+
   late final InsuranceLocalDataSource insuranceLocal;
   late final InsuranceRemoteDataSource insuranceRemote;
+
   late final ChatLocalDataSource chatLocal;
   late final ChatRemoteDataSource chatRemote;
+
   late final AILocalDataSource aiLocal;
   late final AIRemoteDataSource aiRemote;
+
   late final PortfolioLocalDataSource portfolioLocal;
   late final AssetRegistrationDraftLocalDataSource assetRegistrationDraftLocal;
 
-  // Repositories
+  // ── Repositories ──────────────────────────────────────────────────────────
   late final GeoRepository geoRepository;
   late final OrgRepository orgRepository;
   late final UserRepository userRepository;
@@ -120,31 +181,63 @@ class DIContainer {
   late final InsuranceRepository insuranceRepository;
   late final ChatRepository chatRepository;
   late final AIRepository aiRepository;
-  // Catálogo (local en memoria por ahora)
   late final CatalogRepository catalogRepository;
   late final WorkspaceRepository workspaceRepository;
   late final PortfolioRepository portfolioRepository;
   late final AssetRegistrationDraftRepository assetRegistrationDraftRepository;
 
-  // Sync Engine V2
+  // ── Sync Engine V2 (genérico) ─────────────────────────────────────────────
   late final SyncOutboxRepository syncOutboxRepository;
   late final SyncDispatcher syncDispatcher;
   late final SyncEngineService syncEngineService;
 
-  // Policy Layer
+  // ── Asset Audit Service (v1.3.4) ──────────────────────────────────────────
+  late final AssetAuditService assetAuditService;
+
+  // ── Sync Telemetry + History Stack (v1.3.4) ───────────────────────────────
+  late final SyncTelemetry syncTelemetry;
+  late final AssetHistoryArchiveService assetHistoryArchiveService;
+  late final AssetHistoryReconciliationWorker assetHistoryReconciliationWorker;
+
+  // ── Asset Sync Stack (vehicle-specific) ───────────────────────────────────
+  late final AssetFirestoreAdapter assetFirestoreAdapter;
+  late final AssetSyncQueue assetSyncQueue;
+  late final AssetSyncService assetSyncService;
+  late final AssetSyncEngine assetSyncEngine;
+  late final AssetSyncDispatcher assetSyncDispatcher;
+
+  // ── Alert System (V4) ─────────────────────────────────────────────────────
+  late final AssetAlertSnapshotAssembler assetAlertSnapshotAssembler;
+  late final AssetComplianceAlertOrchestrator assetComplianceAlertOrchestrator;
+  late final HomeAlertAggregationService homeAlertAggregationService;
+
+  // ── Policy Layer ──────────────────────────────────────────────────────────
   late final PolicyContextFactory policyContextFactory;
   late final AutomationPolicy automationPolicy;
   late final PayoutPolicy payoutPolicy;
   late final AccessPolicy accessPolicy;
   late final PolicyEngine policyEngine;
 
-  // Connectivity
+  // ── Connectivity ──────────────────────────────────────────────────────────
   late final ConnectivityService connectivityService;
 
+  // ── Getters públicos de infraestructura base ──────────────────────────────
   Isar get isar => _isar;
   FirebaseFirestore get firestore => _firestore;
   OfflineSyncService get syncService => _syncService;
+  bool get isInitialized => _isInitialized;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INIT DI
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Idempotencia:
+// - Si initDI() se llama de nuevo después de una inicialización exitosa,
+//   retorna sin re-wiring.
+// - Esto evita reescribir late finals y hace explícito el contrato
+//   de una sola inicialización por proceso.
+// ─────────────────────────────────────────────────────────────────────────────
 
 Future<void> initDI({
   required Isar isar,
@@ -152,84 +245,155 @@ Future<void> initDI({
   required ConnectivityService connectivity,
 }) async {
   final c = DIContainer();
+
+  if (c._isInitialized) {
+    return;
+  }
+
+  // ── Infra base ────────────────────────────────────────────────────────────
   c._isar = isar;
   c._firestore = firestore;
   c._syncService = OfflineSyncService();
+  c.connectivityService = connectivity;
+
   if (!Get.isRegistered<OfflineSyncService>()) {
     Get.put<OfflineSyncService>(c.syncService, permanent: true);
   }
-  c.connectivityService = connectivity;
 
-  // Instantiate data sources
+  // ───────────────────────────────────────────────────────────────────────────
+  // DATA SOURCES
+  // ───────────────────────────────────────────────────────────────────────────
   c.geoLocal = GeoLocalDataSource(isar);
   c.geoRemote = GeoRemoteDataSource(firestore);
+
   c.orgLocal = OrgLocalDataSource(isar);
   c.orgRemote = OrgRemoteDataSource(firestore);
+
   c.userLocal = UserLocalDataSource(isar);
   c.userRemote = UserRemoteDataSource(firestore);
+
   c.assetLocal = AssetLocalDataSource(isar);
   c.assetRemote = AssetRemoteDataSource(firestore);
+
   c.maintenanceLocal = MaintenanceLocalDataSource(isar);
   c.maintenanceRemote = MaintenanceRemoteDataSource(firestore);
+
   c.purchaseLocal = PurchaseLocalDataSource(isar);
   c.purchaseRemote = PurchaseRemoteDataSource(firestore);
+
   c.accountingLocal = AccountingLocalDataSource(isar);
   c.accountingRemote = AccountingRemoteDataSource(firestore);
+
   c.insuranceLocal = InsuranceLocalDataSource(isar);
   c.insuranceRemote = InsuranceRemoteDataSource(firestore);
+
   c.chatLocal = ChatLocalDataSource(isar);
   c.chatRemote = ChatRemoteDataSource(firestore);
+
   c.aiLocal = AILocalDataSource(isar);
   c.aiRemote = AIRemoteDataSource(firestore);
+
   c.portfolioLocal = PortfolioLocalDataSource(isar);
   c.assetRegistrationDraftLocal = AssetRegistrationDraftLocalDataSource(isar);
 
-  // Instantiate repositories
-  c.geoRepository = GeoRepositoryImpl(local: c.geoLocal, remote: c.geoRemote);
-  c.orgRepository = OrgRepositoryImpl(local: c.orgLocal, remote: c.orgRemote);
-  c.userRepository =
-      UserRepositoryImpl(local: c.userLocal, remote: c.userRemote);
+  // ───────────────────────────────────────────────────────────────────────────
+  // REPOSITORIES
+  // ───────────────────────────────────────────────────────────────────────────
+  c.geoRepository = GeoRepositoryImpl(
+    local: c.geoLocal,
+    remote: c.geoRemote,
+  );
+
+  c.orgRepository = OrgRepositoryImpl(
+    local: c.orgLocal,
+    remote: c.orgRemote,
+  );
+
+  c.userRepository = UserRepositoryImpl(
+    local: c.userLocal,
+    remote: c.userRemote,
+  );
+
   c.assetRepository = AssetRepositoryImpl(
     local: c.assetLocal,
     remote: c.assetRemote,
     enqueueSync: c.syncService.enqueue,
     portfolioLocalDS: c.portfolioLocal,
   );
+
   c.maintenanceRepository = MaintenanceRepositoryImpl(
-      local: c.maintenanceLocal, remote: c.maintenanceRemote);
-  c.purchaseRepository =
-      PurchaseRepositoryImpl(local: c.purchaseLocal, remote: c.purchaseRemote);
+    local: c.maintenanceLocal,
+    remote: c.maintenanceRemote,
+  );
+
+  c.purchaseRepository = PurchaseRepositoryImpl(
+    local: c.purchaseLocal,
+    remote: c.purchaseRemote,
+  );
+
   c.accountingRepository = AccountingRepositoryImpl(
-      local: c.accountingLocal, remote: c.accountingRemote);
+    local: c.accountingLocal,
+    remote: c.accountingRemote,
+  );
+
   c.insuranceRepository = InsuranceRepositoryImpl(
-      local: c.insuranceLocal, remote: c.insuranceRemote);
-  c.chatRepository =
-      ChatRepositoryImpl(local: c.chatLocal, remote: c.chatRemote);
-  c.aiRepository = AIRepositoryImpl(local: c.aiLocal, remote: c.aiRemote);
+    local: c.insuranceLocal,
+    remote: c.insuranceRemote,
+  );
+
+  c.chatRepository = ChatRepositoryImpl(
+    local: c.chatLocal,
+    remote: c.chatRemote,
+  );
+
+  c.aiRepository = AIRepositoryImpl(
+    local: c.aiLocal,
+    remote: c.aiRemote,
+  );
+
   c.catalogRepository = CatalogRepositoryImpl();
+
   c.workspaceRepository = WorkspaceRepositoryImpl(
     isar: isar,
     prefsProvider: SharedPreferences.getInstance,
   );
-  c.portfolioRepository = PortfolioRepositoryImpl(local: c.portfolioLocal);
+
+  c.portfolioRepository = PortfolioRepositoryImpl(
+    local: c.portfolioLocal,
+  );
+
   c.assetRegistrationDraftRepository = AssetRegistrationDraftRepositoryImpl(
     c.assetRegistrationDraftLocal,
   );
 
-  // Policy Layer (singletons)
+  // ───────────────────────────────────────────────────────────────────────────
+  // POLICY LAYER
+  // ───────────────────────────────────────────────────────────────────────────
   c.policyContextFactory = const DefaultPolicyContextFactory();
+
   c.automationPolicy = DefaultAutomationPolicy(c.policyContextFactory);
   c.payoutPolicy = DefaultPayoutPolicy(c.policyContextFactory);
   c.accessPolicy = DefaultAccessPolicy(c.policyContextFactory);
+
   c.policyEngine = PolicyEngine(
     automationPolicy: c.automationPolicy,
     payoutPolicy: c.payoutPolicy,
     accessPolicy: c.accessPolicy,
   );
 
-  // Sync Engine V2
+  // ───────────────────────────────────────────────────────────────────────────
+  // SYNC OUTBOX — BASE COMPARTIDA
+  // ───────────────────────────────────────────────────────────────────────────
   c.syncOutboxRepository = SyncOutboxRepositoryImpl(isar: isar);
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // SYNC ENGINE V2 — GENÉRICO
+  // ───────────────────────────────────────────────────────────────────────────
+  //
+  // Se mantiene instanciado porque forma parte de la infraestructura general.
+  // Pero NO es el camino preferido para vehicle:* mientras el dispatcher
+  // especializado esté activo.
+  // ───────────────────────────────────────────────────────────────────────────
   final syncExecutor = FirestoreSyncExecutor(firestore: firestore);
   final connectivityAdapter = ConnectivityServiceAdapter(service: connectivity);
   final nowProvider = SystemNowProvider();
@@ -246,7 +410,134 @@ Future<void> initDI({
     connectivity: connectivityAdapter,
   );
 
-  // Log versión del catálogo
+  // ───────────────────────────────────────────────────────────────────────────
+  // ASSET AUDIT SERVICE — V1.3.4
+  // ───────────────────────────────────────────────────────────────────────────
+  c.assetAuditService = AssetAuditService(
+    auditEventsCollectionBuilder: (assetId) => firestore
+        .collection(FirestorePaths.assetAuditLog)
+        .doc(assetId)
+        .collection(FirestorePaths.assetAuditLogEvents),
+    enqueueAuditOutboxEntry: (entry) => c.syncOutboxRepository.upsert(entry),
+  );
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // ASSET SYNC STACK — VEHICLE-SPECIFIC
+  // ───────────────────────────────────────────────────────────────────────────
+  c.assetFirestoreAdapter = const AssetFirestoreAdapter();
+
+  c.assetSyncQueue = AssetSyncQueue(
+    outboxRepo: c.syncOutboxRepository,
+    adapter: c.assetFirestoreAdapter,
+  );
+
+  c.assetSyncService = AssetSyncService(
+    localDs: c.assetLocal,
+    remoteDs: c.assetRemote,
+    queue: c.assetSyncQueue,
+    adapter: c.assetFirestoreAdapter,
+  );
+
+  c.assetSyncEngine = AssetSyncEngine(
+    localDs: c.assetLocal,
+    syncService: c.assetSyncService,
+    isar: isar,
+  );
+
+  c.syncTelemetry = SyncTelemetry();
+
+  c.assetHistoryArchiveService = AssetHistoryArchiveService(
+    firestore: firestore,
+    auditService: c.assetAuditService,
+    telemetry: c.syncTelemetry,
+  );
+
+  c.assetHistoryReconciliationWorker = AssetHistoryReconciliationWorker(
+    firestore: firestore,
+    archiveService: c.assetHistoryArchiveService,
+    telemetry: c.syncTelemetry,
+  );
+
+  c.assetSyncDispatcher = AssetSyncDispatcher(
+    outboxRepo: c.syncOutboxRepository,
+    remoteDs: c.assetRemote,
+    syncService: c.assetSyncService,
+    adapter: c.assetFirestoreAdapter,
+    archiveService: c.assetHistoryArchiveService,
+    reconciliationWorker: c.assetHistoryReconciliationWorker,
+    telemetry: c.syncTelemetry,
+  );
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // ALERT SYSTEM V4 — PIPELINE CANÓNICO
+  // ───────────────────────────────────────────────────────────────────────────
+  c.assetAlertSnapshotAssembler = AssetAlertSnapshotAssembler(
+    assetRepository: c.assetRepository,
+    insuranceRepository: c.insuranceRepository,
+  );
+
+  c.assetComplianceAlertOrchestrator = AssetComplianceAlertOrchestrator(
+    assembler: c.assetAlertSnapshotAssembler,
+    // buildSoatAlert vive en core/ — se inyecta aquí para que el orquestador
+    // (domain) no importe core directamente.
+    buildSoatAlert: buildSoatAlert,
+  );
+
+  c.homeAlertAggregationService = HomeAlertAggregationService(
+    orchestrator: c.assetComplianceAlertOrchestrator,
+    assetRepository: c.assetRepository,
+  );
+
+  c._isInitialized = true;
+
   // ignore: avoid_print
   print('[Catalog] version: ${c.catalogRepository.version}');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// START / STOP DEL SYNC STACK
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// REGLA ACTUAL
+// 1. Dispatcher vehicle-specific primero (consumer)
+// 2. Engine vehicle-specific después (producer)
+// 3. Engine genérico NO se arranca aquí para evitar competencia innecesaria
+//    con entries vehicle:*
+//
+// Cuando existan otras entidades reales en outbox (maintenance, insurance,
+// accounting, etc.), esta estrategia puede evolucionar.
+// ─────────────────────────────────────────────────────────────────────────────
+
+Future<void> startSyncInfrastructure() async {
+  final c = DIContainer();
+
+  if (!c.isInitialized) {
+    throw StateError(
+      'startSyncInfrastructure() llamado antes de initDI().',
+    );
+  }
+
+  // Consumer primero: evita backlog temporal.
+  c.assetSyncDispatcher.start();
+
+  // Producer después: watchers comienzan cuando ya hay consumidor.
+  await c.assetSyncEngine.start();
+
+  // Guardrail: asegurar que el engine genérico no compita por vehicle:*.
+  await c.syncEngineService.stop(graceful: true);
+}
+
+Future<void> stopSyncInfrastructure() async {
+  final c = DIContainer();
+
+  if (!c.isInitialized) {
+    return;
+  }
+
+  // Orden inverso: primero producer, luego consumer.
+  await c.assetSyncEngine.stop();
+  c.assetSyncDispatcher.stop();
+
+  // Best-effort: si el engine genérico llegó a estar activo, apagarlo.
+  await c.syncEngineService.stop(graceful: true);
 }

@@ -1,20 +1,31 @@
 // ============================================================================
 // lib/core/startup/bootstrap.dart
-// BOOTSTRAP — Enterprise Ultra Pro (Core / Startup)
 //
 // QUÉ HACE:
-// - Inicializa Firebase, Isar, DI, observers y bindings.
-// - Devuelve un BootstrapResult con los recursos created/owned.
+// - Inicialización segura de la app: Firebase, Isar, DI, observers, sync stack.
+// - Single-flight + idempotente: llamadas concurrentes a init() esperan el mismo
+//   Future; una vez completado, retorna el resultado cacheado.
+// - Control EXPLÍCITO del Sync Stack con separación entre vehicle-specific
+//   (AssetSyncLifecycleObserver) y genérico (SyncLifecycleObserver — legacy).
 //
-// IDEMPOTENCIA (PRODUCCIÓN):
-// - Single-flight: si init() se llama concurrentemente, todos esperan el mismo Future.
-// - No re-init: si init() ya completó, devuelve el resultado cacheado.
+// QUÉ NO HACE:
+// - No soporta re-init después de dispose() — DIContainer no es re-entrante.
+// - No inicia SyncEngineService genérico en el lifecycle principal.
+// - No re-inicia automáticamente si el init falla (el caller debe reintentar).
 //
-// DISPOSE (PRODUCCIÓN):
-// - Idempotente: llamar dispose() múltiples veces es seguro.
-// - NO soporta re-init después de dispose() (DIContainer no es re-entrante).
-//   Si necesitas re-init real para tests, debes implementar un reset explícito
-//   en DI (no se hace aquí).
+// PRINCIPIOS:
+// - Lifecycle principal del stack vehicular: AssetSyncLifecycleObserver.
+// - SyncLifecycleObserver se mantiene instanciado (legacy compat) pero NO
+//   recibe startIfResumed() — evita reactivar el engine genérico en resume.
+// - Orden de start: dispatcher (consumer) → engine (producer).
+// - Orden de dispose: AssetSync observer → legacy observer → infra.
+//
+// ENTERPRISE NOTES:
+// - BootstrapResult expone ambos observers:
+//     assetSyncLifecycleObserver — nuevo, lifecycle principal
+//     syncLifecycleObserver      — legacy, no debe llamar startIfResumed()
+// - startSyncInfrastructure() / stopSyncInfrastructure() en container.dart
+//   quedan disponibles para reintentos explícitos (tests, hot-restart).
 // ============================================================================
 
 import 'dart:async';
@@ -30,29 +41,31 @@ import '../db/isar_instance.dart';
 import '../db/migrations.dart';
 import '../di/container.dart';
 import '../network/connectivity_service.dart';
+import '../sync/asset_sync_lifecycle_observer.dart';
 import '../sync/sync_lifecycle_observer.dart';
 import '../sync/sync_observer.dart';
 
 class Bootstrap {
   static Completer<BootstrapResult>? _inflight;
   static BootstrapResult? _result;
-
   static bool _disposed = false;
+
+  // ==========================================================================
+  // INIT
+  // ==========================================================================
 
   /// Inicializa la app. Idempotente + single-flight.
   static Future<BootstrapResult> init() async {
     if (_disposed) {
       throw StateError(
         'Bootstrap.init() llamado después de dispose(). '
-        'DIContainer no soporta re-init en producción.',
+        'No se permite re-init en producción.',
       );
     }
 
-    // Fast path: ya inicializado.
     final cached = _result;
     if (cached != null) return cached;
 
-    // Single-flight: si hay init en curso, esperar.
     final inflight = _inflight;
     if (inflight != null) return inflight.future;
 
@@ -72,19 +85,24 @@ class Bootstrap {
     }
   }
 
-  /// Libera recursos owned por Bootstrap. Idempotente.
+  // ==========================================================================
+  // DISPOSE
+  // ==========================================================================
+
+  /// Libera todos los recursos. Idempotente.
   ///
-  /// Nota PRO: no soporta re-init después de dispose() (ver header).
+  /// Orden de dispose:
+  /// 1. AssetSyncLifecycleObserver (nuevo — lifecycle principal)
+  /// 2. SyncLifecycleObserver (legacy — best-effort cleanup)
+  /// 3. SyncEngineService genérico (por si llegó a estar activo)
+  /// 4. Core observers (auth, sync, connectivity)
   static Future<void> dispose() async {
-    // Si hay un init en curso, esperamos a que termine (o falle) para evitar
-    // estado parcialmente inicializado.
+    // Si hay init en curso, esperamos para evitar estado parcial.
     final inflight = _inflight;
     if (inflight != null) {
       try {
         await inflight.future;
-      } catch (_) {
-        // Si falló el init, igual permitimos dispose best-effort.
-      }
+      } catch (_) {}
     }
 
     final r = _result;
@@ -93,70 +111,114 @@ class Bootstrap {
       return;
     }
 
-    // Marcar disposed primero para bloquear re-entradas peligrosas.
     _disposed = true;
 
-    // Orden: primero desregistrar lifecycle observer (evita re-start por eventos),
-    // luego detener engine y observers, y por último liberar connectivity.
-    r.syncLifecycleObserver.dispose();
+    final di = DIContainer();
 
-    // Best-effort: engine stop idempotente.
-    await DIContainer().syncEngineService.stop(graceful: true);
+    // 1. Lifecycle observers (desregistra y detiene cada stack).
+    r.assetSyncLifecycleObserver.dispose();
+    r.syncLifecycleObserver
+        .dispose(); // legacy — su dispose() llama stop() interno
 
-    // Observers core (si existen sus APIs, se usan tal cual).
-    // Si alguno no tuviera estos métodos en tu proyecto, AJUSTA aquí a su API real.
+    // 2. Guardrail: asegurar que el engine genérico queda detenido.
+    await di.syncEngineService.stop(graceful: true);
+
+    // 3. Core observers.
     r.authStateObserver.stop();
     r.syncObserver.dispose();
 
-    // ConnectivityService.dispose() ES void en tu implementación actual.
+    // 4. Infra.
     r.connectivity.dispose();
-
-    // No nullificamos _result para evitar que alguien llame init() otra vez
-    // y dispare re-init (DIContainer no lo soporta). Se mantiene cacheado.
   }
 
-  // --------------------------------------------------------------------------
-  // PRIVATE
-  // --------------------------------------------------------------------------
+  // ==========================================================================
+  // INTERNAL INIT
+  // ==========================================================================
 
   static Future<BootstrapResult> _doInit() async {
-    // Firebase initialize: seguro ante múltiples llamadas en el mismo proceso.
+    // ─────────────────────────────────────────────────────────────────────────
+    // FIREBASE
+    // ─────────────────────────────────────────────────────────────────────────
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
     } else {
-      Firebase.app(); // asegura app default disponible
+      Firebase.app();
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // DATABASE
+    // ─────────────────────────────────────────────────────────────────────────
     final isar = await openIsar();
     await runMigrations(isar);
 
     final firestore = FirebaseFirestore.instance;
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // CONNECTIVITY + SYNC OBSERVER BASE
+    // ─────────────────────────────────────────────────────────────────────────
     final connectivity = ConnectivityService();
     final syncObserver = SyncObserver(connectivityService: connectivity);
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // DI CONTAINER
+    // ─────────────────────────────────────────────────────────────────────────
     await initDI(
       isar: isar,
       firestore: firestore,
       connectivity: connectivity,
     );
 
-    syncObserver.start();
+    final di = DIContainer();
 
-    // AuthStateObserver se crea aquí pero start() se llama desde AppBindings,
-    // DESPUÉS de que todos los deps (IsarAccountingEventRepository, gateway)
-    // estén registrados en GetX. Esto evita la race condition donde el worker
-    // no arranca porque sus deps aún no existen.
+    // ─────────────────────────────────────────────────────────────────────────
+    // OBSERVERS BASE
+    // ─────────────────────────────────────────────────────────────────────────
+    syncObserver.start();
     final authStateObserver = AuthStateObserver();
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // SYNC LIFECYCLE — LEGACY (SyncEngineService genérico)
+    //
+    // Se mantiene instanciado y registrado por compatibilidad con AppBindings
+    // y cualquier otra dependencia que espere este objeto en BootstrapResult.
+    //
+    // REGLA: NO llamar startIfResumed() aquí.
+    // Llamar startIfResumed() activaría syncEngineService en resume, lo cual
+    // contradice la estrategia "vehicle sync especializado manda".
+    // El lifecycle del engine genérico queda en manos del owner que lo active
+    // explícitamente en el futuro (cuando existan entidades no-vehículo reales
+    // en el outbox).
+    // ─────────────────────────────────────────────────────────────────────────
     final syncLifecycleObserver = SyncLifecycleObserver(
-      engine: DIContainer().syncEngineService,
+      engine: di.syncEngineService,
     );
     syncLifecycleObserver.register();
-    syncLifecycleObserver.startIfResumed();
+    // ⚠️ NO llamar syncLifecycleObserver.startIfResumed()
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // SYNC LIFECYCLE — ASSET SYNC STACK (lifecycle principal vehicle-specific)
+    //
+    // Este observer es el dueño real del lifecycle del stack vehicular.
+    // startIfResumed() garantiza el arranque correcto en el primer frame
+    // y en cada app resume posterior.
+    // ─────────────────────────────────────────────────────────────────────────
+    final assetSyncLifecycleObserver = AssetSyncLifecycleObserver(
+      engine: di.assetSyncEngine,
+      dispatcher: di.assetSyncDispatcher,
+    );
+    assetSyncLifecycleObserver.register();
+    await assetSyncLifecycleObserver.startIfResumed();
+
+    // Guardrail: asegurar que el engine genérico no compita con vehicle:* en
+    // este ciclo de init. El syncLifecycleObserver.register() ya está hecho,
+    // así que este stop solo aplica al arranque inicial.
+    await di.syncEngineService.stop(graceful: true);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // RESULT + BINDINGS UI
+    // ─────────────────────────────────────────────────────────────────────────
     final result = BootstrapResult(
       isar: isar,
       firestore: firestore,
@@ -164,6 +226,7 @@ class Bootstrap {
       syncObserver: syncObserver,
       authStateObserver: authStateObserver,
       syncLifecycleObserver: syncLifecycleObserver,
+      assetSyncLifecycleObserver: assetSyncLifecycleObserver,
     );
 
     final appBinding = AppBindings(result);
@@ -173,13 +236,23 @@ class Bootstrap {
   }
 }
 
+// ============================================================================
+// RESULT OBJECT
+// ============================================================================
+
 class BootstrapResult {
   final Isar isar;
   final FirebaseFirestore firestore;
   final ConnectivityService connectivity;
   final SyncObserver syncObserver;
   final AuthStateObserver authStateObserver;
+
+  /// Legacy — mantiene compatibilidad con AppBindings y dependencias existentes.
+  /// NO es el lifecycle principal del sync vehicular.
   final SyncLifecycleObserver syncLifecycleObserver;
+
+  /// Nuevo — lifecycle principal del Asset Sync Stack (vehicle-specific).
+  final AssetSyncLifecycleObserver assetSyncLifecycleObserver;
 
   BootstrapResult({
     required this.isar,
@@ -188,5 +261,6 @@ class BootstrapResult {
     required this.syncObserver,
     required this.authStateObserver,
     required this.syncLifecycleObserver,
+    required this.assetSyncLifecycleObserver,
   });
 }

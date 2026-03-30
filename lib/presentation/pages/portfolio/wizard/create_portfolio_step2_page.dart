@@ -149,11 +149,14 @@ class _CreatePortfolioStep2PageState extends State<CreatePortfolioStep2Page> {
     switch (state) {
       case RuntViewState.pending:
       case RuntViewState.running:
+      case RuntViewState.connectionInterrupted:
+      case RuntViewState.jobUnavailable:
         _didAutoRedirect = true;
         Get.offNamed(Routes.runtQueryProgress);
         return;
 
       case RuntViewState.completed:
+      case RuntViewState.partial:
         _didAutoRedirect = true;
         Get.offNamed(Routes.runtQueryResult);
         return;
@@ -244,6 +247,8 @@ class _CreatePortfolioStep2PageState extends State<CreatePortfolioStep2Page> {
     await _runtQueryCtrl.startQuery(
       draftId: portfolioId,
       plate: _plateController.text.trim().toUpperCase(),
+      portfolioId: portfolioId,
+      portfolioName: _portfolioCtrl.createdPortfolioName ?? portfolioId,
       documentType: _selectedDocType!,
       documentNumber: _docNumberController.text.trim(),
     );
@@ -579,7 +584,7 @@ class _ErrorBanner extends StatelessWidget {
         color: colors.errorContainer,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: colors.error.withOpacity(0.3),
+          color: colors.error.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
