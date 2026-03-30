@@ -15,6 +15,7 @@ Eres **Claude**, el agente ejecutor en Visual Studio Code. Tu misión es transfo
 - ✅ Optimizada en uso de recursos
 - ✅ Consistente con el código existente del proyecto
 - ✅ Enums con wireName/fromWire wire-stable.
+
 ---
 
 ## STACK TÉCNICO DEL PROYECTO
@@ -69,7 +70,8 @@ lib/
 │
 ├── domain/                  # Business Logic Layer (agnóstico de framework)
 │   ├── entities/           # Modelos puros de negocio (freezed)
-│   └── repositories/       # Interfaces (contratos) - NO implementaciones
+│   ├── repositories/       # Interfaces (contratos) - NO implementaciones
+│   └── services/           # Lógica de dominio pura (NO UI, NO Flutter, NO Data)
 │
 ├── data/                    # Data Layer (implementaciones)
 │   ├── models/             # DTOs con serialización (JSON + Isar)
@@ -87,10 +89,13 @@ lib/
 ```
 
 **Reglas de dependencia (Dependency Rule):**
-- ❌ **Presentation** NO debe importar **Data**
-- ✅ **Presentation** importa **Domain**
-- ✅ **Data** implementa contratos de **Domain**
-- ✅ Las capas internas no conocen las externas
+
+- ❌ **Domain** NO importa `core`, `data` ni `presentation`
+- ✅ **Core** puede importar `domain`
+- ❌ **Core** NO importa `presentation`
+- ✅ **Data** puede importar `domain` y `core`
+- ❌ **Presentation** NO debe importar `data` directamente
+- ✅ **Presentation** importa `domain` y `core`
 
 ---
 
@@ -98,15 +103,16 @@ lib/
 
 **Convención única para evitar ambigüedades semánticas:**
 
-| Campo | Definición estricta | Uso permitido | ❌ Uso prohibido |
-|-------|---------------------|---------------|------------------|
-| **orgId** | SaaS tenant / Organization (partición de datos) | Partition key Firestore/Isar, scoping global de queries | NO usar como "workspace" ni "tenant de arriendo" |
-| **workspaceId** | Contexto UX (workspace/rol del usuario) | Menús, permisos UI, filtros de navegación | NO usar como partition key de datos |
-| **tenantId** | Arrendatario/Inquilino (rental tenant) | SOLO en contratos de arrendamiento (leases, rental agreements) | NO usar para referirse a org/empresa |
-| **assetOwnerId** | Dueño patrimonial/legal del activo | Trazabilidad de propiedad, permisos de modificación | NO confundir con createdBy |
-| **createdById** | Auditoría de registro | Quién creó/registró la entidad en el sistema | NO usar para lógica de permisos |
+| Campo            | Definición estricta                             | Uso permitido                                                  | ❌ Uso prohibido                                 |
+| ---------------- | ----------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------ |
+| **orgId**        | SaaS tenant / Organization (partición de datos) | Partition key Firestore/Isar, scoping global de queries        | NO usar como "workspace" ni "tenant de arriendo" |
+| **workspaceId**  | Contexto UX (workspace/rol del usuario)         | Menús, permisos UI, filtros de navegación                      | NO usar como partition key de datos              |
+| **tenantId**     | Arrendatario/Inquilino (rental tenant)          | SOLO en contratos de arrendamiento (leases, rental agreements) | NO usar para referirse a org/empresa             |
+| **assetOwnerId** | Dueño patrimonial/legal del activo              | Trazabilidad de propiedad, permisos de modificación            | NO confundir con createdBy                       |
+| **createdById**  | Auditoría de registro                           | Quién creó/registró la entidad en el sistema                   | NO usar para lógica de permisos                  |
 
 **Ejemplos correctos:**
+
 ```dart
 // ✅ CORRECTO: Query con partición orgId
 final assets = await firestore
@@ -138,6 +144,7 @@ final assets = await firestore
 **Regla madre:** Controllers y bindings usan GetX. Repositorios y servicios usan DIContainer.
 
 #### ✅ Controllers (GetX):
+
 ```dart
 // En AppBindings o bindings específicos
 class AppBindings extends Bindings {
@@ -153,6 +160,7 @@ final controller = Get.find<ProductController>();
 ```
 
 #### ✅ Repositorios y Servicios (DIContainer):
+
 ```dart
 class ProductController extends GetxController {
   // ✅ CORRECTO: Repos desde DIContainer
@@ -171,6 +179,7 @@ class ProductRepositoryImpl implements ProductRepository {
 ```
 
 **Justificación:**
+
 - GetX es para estado reactivo y navegación
 - DIContainer es para inyección de dependencias arquitectónicas (repos, services, datasources)
 - Mezclarlos genera acoplamiento innecesario
@@ -183,6 +192,7 @@ class ProductRepositoryImpl implements ProductRepository {
 **Escritura:** Local first + enqueue en SyncService
 
 #### Ejemplo de lectura:
+
 ```dart
 Future<List<Entity>> getItems() async {
   // 1. Leer local (Isar) primero
@@ -203,6 +213,7 @@ Future<List<Entity>> getItems() async {
 ```
 
 #### Ejemplo de escritura (patrón obligatorio):
+
 ```dart
 Future<void> saveItem(Entity item) async {
   // 1. Guardar localmente PRIMERO (respuesta inmediata)
@@ -218,6 +229,7 @@ Future<void> saveItem(Entity item) async {
 ```
 
 **❌ Anti-pattern:** Reintentos manuales dispersos en controllers
+
 ```dart
 // NO HACER ESTO:
 try {
@@ -235,10 +247,31 @@ try {
 
 ### Reglas de dependencia (Dependency Rule)
 
-- ❌ **Presentation** NO debe importar **Data**
-- ✅ **Presentation** importa **Domain**
-- ✅ **Data** implementa contratos de **Domain**
-- ✅ Las capas internas no conocen las externas
+- ❌ **Domain** NO importa `core`, `data` ni `presentation`
+- ✅ **Core** puede importar `domain`
+- ❌ **Core** NO importa `presentation`
+- ✅ **Data** puede importar `domain` y `core`
+- ❌ **Presentation** NO debe importar `data` directamente
+- ✅ **Presentation** importa `domain` y `core`
+
+---
+
+### ALERT SYSTEM (CRÍTICO)
+
+El sistema de alertas sigue un modelo canónico definido en:
+
+`docs/architecture/alerts/ALERTS_SYSTEM_V4.md`
+
+Reglas clave:
+
+- Las alertas nacen en el dominio, no en UI
+- `DomainAlert` es el único contrato válido
+- NO usar `List<String>` ni widgets como contrato de alertas
+- Evaluadores y adapters viven en `core/alerts/evaluators/`
+- Orquestación y snapshots viven en `domain/services/alerts/`
+- Home y UI son consumidores, no productores
+
+Cualquier implementación de alertas debe seguir estrictamente ese documento.
 
 ---
 
