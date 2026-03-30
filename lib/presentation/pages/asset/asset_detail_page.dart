@@ -37,6 +37,10 @@
 // REFACTORIZADO (2026-03): Separación producto Estado del vehículo / Gestión
 //   operativa. Elimina el collage de módulos mezclados. Introduce _ModuleSeverity
 //   privado para señal visual sobria sin hardcodear colores.
+// Consulta RUNT añadida (2026-03): sección "Consulta RUNT" debajo de ficha
+//   técnica. Muestra la fecha de la última consulta RUNT (proxy: _vehiculo.updatedAt
+//   ?? createdAt) y el botón "ACTUALIZAR INFORMACIÓN" que navega al flujo de
+//   registro con la placa pre-cargada via AssetRegistrationContext.initialPlate.
 // TODO (Score): Agregar campo `score` a VehicleSummaryVM cuando esté en dominio.
 // TODO (Timeline): Conectar a repositorio de eventos del activo.
 // TODO (Módulos): Activar navegación real cuando cada módulo esté disponible.
@@ -48,19 +52,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/di/container.dart';
+import '../../../core/navigation/app_navigator.dart';
 import '../../../core/theme/spacing.dart';
 import '../../../domain/entities/asset/asset_content.dart';
 import '../../../domain/entities/asset/asset_entity.dart';
 import '../../../domain/entities/asset/special/asset_vehiculo_entity.dart';
-import '../../../domain/entities/insurance/insurance_policy_entity.dart';
-import '../../../domain/entities/vehicle/vehicle_document_status.dart';
+import '../../../domain/entities/portfolio/portfolio_entity.dart';
+import '../../../domain/shared/enums/asset_type.dart';
+import '../../../domain/value/navigation/asset_detail_args.dart';
+import '../../../domain/value/registration/asset_registration_context.dart';
 import '../../../routes/app_pages.dart';
+import '../../alerts/mappers/domain_alert_mapper.dart';
+import '../../alerts/viewmodels/alert_card_vm.dart';
+import '../../controllers/asset/asset_detail_runt_controller.dart';
+import '../../controllers/asset/asset_operational_status_controller.dart';
+import '../../controllers/session_context_controller.dart';
 import '../../mappers/asset_summary_mapper.dart';
 import '../../viewmodels/asset/asset_summary_vm.dart';
-import '../../widgets/asset/vehicle_detail_section.dart';
-import 'asset_rtm_helpers.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SEMANTIC COLOR HELPERS — Tokens M3 sin literales hex
@@ -143,22 +154,15 @@ Color _severityMetricColor(_ModuleSeverity s, ColorScheme cs) => switch (s) {
 /// [primaryMetric] — dato principal visible bajo el título del tile.
 /// [secondaryMetric] — subtipo o segundo dato contextual; null cuando sería
 ///   redundante con el título o la métrica principal.
-/// [snackMessage] — texto del SnackBar provisional (null → fallback genérico).
-///   Solo se usa cuando [onTap] es null.
 /// [severity] — señal visual UI-only; solo relevante para tiles de estado.
 ///   Ignorado por [_OperationalItemRow].
-/// [onTap] — callback de navegación real. Cuando no es null, reemplaza el
-///   SnackBar provisional. Los módulos con datos reales conectados usan este
-///   campo; los módulos en construcción lo dejan null.
 class _ModuleDef {
   final String id;
   final IconData icon;
   final String title;
   final String primaryMetric;
   final String? secondaryMetric;
-  final String? snackMessage;
   final _ModuleSeverity severity;
-  final VoidCallback? onTap;
 
   const _ModuleDef({
     required this.id,
@@ -166,9 +170,7 @@ class _ModuleDef {
     required this.title,
     required this.primaryMetric,
     this.secondaryMetric,
-    this.snackMessage,
     this.severity = _ModuleSeverity.neutral,
-    this.onTap,
   });
 }
 
@@ -200,45 +202,72 @@ class AssetDetailPage extends StatefulWidget {
 
 class _AssetDetailPageState extends State<AssetDetailPage> {
   String? _assetId;
+
+  /// Portafolio de origen. Recibido desde [AssetDetailArgs.portfolio].
+  /// Null solo en rutas legacy (argumento String crudo).
+  /// Usado por [AppNavigator.backFromAssetDetail] para decidir el destino back.
+  PortfolioEntity? _portfolio;
+
+  /// Controller reactivo granular para el estado RUNT (freshness, connectivity).
+  ///
+  /// Instanciado en [initState] y eliminado en [dispose].
+  /// El header y la tarjeta RUNT observan sus observables via [Obx] — solo
+  /// esas secciones se reconstruyen cuando cambia el estado RUNT.
+  late final AssetDetailRuntController _runtCtrl;
+
+  /// Controller reactivo para el bloque "Estado operativo HOY".
+  ///
+  /// Instanciado en [initState] y eliminado en [dispose].
+  /// Default: [OperationalDayStatus.unconfigured] hasta que exista
+  /// configuración real del módulo operativo del activo.
+  late final AssetOperationalStatusController _opStatusCtrl;
+
   late final Stream<AssetEntity?>? _assetStream;
   AssetVehiculoEntity? _vehiculo;
 
-  /// Estado RTM resuelto desde [_vehiculo.runtMetaJson].
+  /// Alertas canónicas del activo, cargadas vía el pipeline de alertas.
   ///
-  /// Null hasta que [_loadVehiculoDetails] complete, o si el activo no
-  /// tiene datos RUNT / no tiene registros RTM con fecha parseable.
-  /// Usado por [_buildVehicleStateModules] para el tile RTM dinámico.
-  VehicleDocumentStatus? _rtmDoc;
-
-  /// Póliza SOAT más reciente del activo (por fechaFin).
-  ///
-  /// Null hasta que [_loadInsurancePolicies] complete o si no existe registro.
-  /// Usado por [_buildSoatModuleDef] para métrica y severidad dinámicas.
-  InsurancePolicyEntity? _soatPolicy;
-
-  /// Póliza RC Contractual más reciente del activo (por fechaFin).
-  ///
-  /// Null hasta que [_loadInsurancePolicies] complete o si no existe registro.
-  InsurancePolicyEntity? _rcCPolicy;
-
-  /// Póliza RC Extracontractual más reciente del activo (por fechaFin).
-  ///
-  /// Null hasta que [_loadInsurancePolicies] complete o si no existe registro.
-  InsurancePolicyEntity? _rcEPolicy;
+  /// Null mientras la carga no ha completado (spinner no mostrado — fail-silent).
+  /// Lista vacía si el pipeline no produjo alertas para este activo.
+  /// Poblada por [_loadAlerts] una vez por ciclo de vida de la página.
+  List<AlertCardVm>? _alertCardVms;
 
   @override
   void initState() {
     super.initState();
+    // El controller RUNT se registra antes de _initializeData para que esté
+    // disponible cuando los streams y los loaders actualicen _vehiculo.
+    _runtCtrl = Get.put(AssetDetailRuntController());
+    _opStatusCtrl = Get.put(AssetOperationalStatusController());
     _initializeData();
+  }
+
+  @override
+  void dispose() {
+    Get.delete<AssetDetailRuntController>();
+    Get.delete<AssetOperationalStatusController>();
+    super.dispose();
   }
 
   void _initializeData() {
     final arg = Get.arguments;
-    if (arg is String && arg.isNotEmpty) {
-      _assetId = arg;
-      _assetStream = DIContainer().assetRepository.watchAsset(arg);
-      _loadVehiculoDetails(arg);
-      _loadInsurancePolicies(arg);
+
+    String? resolvedId;
+    if (arg is AssetDetailArgs && arg.assetId.isNotEmpty) {
+      // Formato nuevo: recibe assetId + portfolio de origen para back explícito.
+      resolvedId = arg.assetId;
+      _portfolio = arg.portfolio;
+    } else if (arg is String && arg.isNotEmpty) {
+      // Formato legacy: solo assetId. Back irá a Home como fallback seguro.
+      resolvedId = arg;
+      _portfolio = null;
+    }
+
+    if (resolvedId != null) {
+      _assetId = resolvedId;
+      _assetStream = DIContainer().assetRepository.watchAsset(resolvedId);
+      _loadVehiculoDetails(resolvedId);
+      _loadAlerts(resolvedId);
     } else {
       _assetId = null;
       _assetStream = null;
@@ -248,18 +277,22 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
   /// Carga [AssetVehiculoEntity] y resuelve el estado RTM desde [runtMetaJson].
   ///
   /// [_vehiculo] provee el año del vehículo para la ficha técnica.
-  /// [_rtmDoc] provee el estado RTM para el tile dinámico y la navegación a
-  /// [RtmDetailPage]. Ambos se actualizan en un único [setState] para evitar
-  /// doble rebuild.
+  /// Carga [AssetVehiculoEntity] y notifica al controller RUNT.
+  ///
+  /// [_vehiculo] provee el año del vehículo para la ficha técnica y los
+  /// tiles de acceso rápido (VehicleInfo, RuntConsult).
   Future<void> _loadVehiculoDetails(String assetId) async {
     try {
       final details =
           await DIContainer().assetRepository.getAssetDetails(assetId);
       if (!mounted) return;
       final veh = details.vehiculo;
+      // Notificar al controller RUNT ANTES del setState para que el header
+      // reactive se actualice simultáneamente con el rebuild del StreamBuilder.
+      _runtCtrl.updateFromVehiculo(veh);
+
       setState(() {
-        _vehiculo = veh; // null limpia explícitamente el estado anterior
-        _rtmDoc = veh != null ? parseRtmFromMetaJson(veh.runtMetaJson) : null;
+        _vehiculo = veh;
       });
     } catch (e) {
       if (!mounted) return;
@@ -271,33 +304,109 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
     }
   }
 
+  /// Ejecuta el pipeline canónico de alertas para el activo y almacena el
+  /// resultado en [_alertCardVms].
+  ///
+  /// Fail-silent: ante orgId vacío o cualquier error, [_alertCardVms] queda
+  /// en null — el banner simplemente no se muestra.
+  Future<void> _loadAlerts(String assetId) async {
+    final orgId =
+        Get.find<SessionContextController>().user?.activeContext?.orgId ?? '';
+    if (orgId.isEmpty) return;
+
+    try {
+      final raw = await DIContainer()
+          .assetComplianceAlertOrchestrator
+          .evaluate(assetId: assetId, orgId: orgId);
+      if (!mounted) return;
+      setState(() {
+        _alertCardVms = DomainAlertMapper.fromDomainList(raw);
+      });
+    } catch (e) {
+      // Fail-silent: el banner queda oculto en lugar de bloquear la página.
+      if (kDebugMode) {
+        debugPrint('[AssetDetailPage][_loadAlerts] Error: $e');
+      }
+    }
+  }
+
   /// Carga en paralelo las pólizas más recientes de SOAT, RC Contractual y RC
   /// Extracontractual usando [latestPolicyByTipo].
   ///
   /// Fail-silent: ante cualquier error los tiles muestran "Sin información"
   /// con severidad neutral — comportamiento correcto y seguro.
-  Future<void> _loadInsurancePolicies(String assetId) async {
-    try {
-      final repo = DIContainer().insuranceRepository;
-      final results = await Future.wait([
-        repo.latestPolicyByTipo(
-            assetId: assetId, tipo: InsurancePolicyType.soat),
-        repo.latestPolicyByTipo(
-            assetId: assetId, tipo: InsurancePolicyType.rcContractual),
-        repo.latestPolicyByTipo(
-            assetId: assetId, tipo: InsurancePolicyType.rcExtracontractual),
-      ]);
-      if (!mounted) return;
-      setState(() {
-        _soatPolicy = results[0];
-        _rcCPolicy = results[1];
-        _rcEPolicy = results[2];
-      });
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('[AssetDetailPage][_loadInsurancePolicies] Error: $e');
+  /// Handler del botón "Actualizar" de la tarjeta RUNT.
+  ///
+  /// Verifica conectividad y estado del controller antes de actuar.
+  /// Navega al wizard RUNT con la placa pre-cargada (flujo actual hasta que
+  /// AssetRepository soporte refresh directo sin ownerDocument).
+  ///
+  /// Fail-silent: muestra snackbar en lugar de propagar excepciones.
+  Future<void> _onRuntUpdateTapped(AssetEntity entity) async {
+    // Verificación de conectividad y doble-tap vía controller.
+    if (!_runtCtrl.beginUpdate()) {
+      if (!_runtCtrl.isOnline.value) {
+        Get.snackbar(
+          'Sin conexión',
+          'Conéctate para actualizar los datos RUNT.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
       }
-      // No setState: los tiles muestran "Sin información" con severidad neutral.
+      return;
+    }
+
+    final portfolioId = entity.portfolioId;
+    if (portfolioId == null || portfolioId.isEmpty) {
+      _runtCtrl.cancelUpdate();
+      Get.snackbar(
+        'Sin portafolio',
+        'Este activo no está asociado a un portafolio.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    try {
+      final portfolio =
+          await DIContainer().portfolioRepository.getPortfolioById(portfolioId);
+      if (!mounted) {
+        _runtCtrl.cancelUpdate();
+        return;
+      }
+
+      if (portfolio == null) {
+        _runtCtrl.cancelUpdate();
+        Get.snackbar(
+          'Portafolio no encontrado',
+          'No se pudo cargar el portafolio del activo.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+
+      final ctx = AssetRegistrationContext(
+        portfolioId: portfolio.id,
+        portfolioName: portfolio.portfolioName,
+        countryId: portfolio.countryId,
+        cityId: portfolio.cityId,
+        assetType: AssetRegistrationType.vehiculo,
+        registrationSessionId: const Uuid().v4(),
+        initialPlate: entity.assetKey,
+      );
+
+      // Navegar al wizard; isUpdating se cancela si el usuario vuelve sin
+      // completar el flujo. Cuando vuelva con datos nuevos, el stream de Isar
+      // emitirá el vehículo actualizado → updateFromVehiculo → header refresca.
+      _runtCtrl.cancelUpdate(); // Reset antes de navegar (wizard toma control).
+      Get.toNamed(Routes.assetRegister, arguments: ctx);
+    } catch (e) {
+      if (!mounted) return;
+      _runtCtrl.cancelUpdate();
+      Get.snackbar(
+        'Error',
+        'No se pudo iniciar la actualización. Intenta nuevamente.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 
@@ -305,148 +414,209 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
   Widget build(BuildContext context) {
     // Guard: argumento de navegación inválido
     if (_assetId == null || _assetStream == null) {
-      return _ErrorState(onBack: Get.back);
+      return _ErrorState(
+        onBack: () => AppNavigator.backFromAssetDetail(_portfolio),
+      );
     }
 
-    return StreamBuilder<AssetEntity?>(
-      stream: _assetStream,
-      builder: (context, snapshot) {
-        // ── Estado: cargando (antes del primer evento del stream) ───────────
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const _LoadingSkeleton();
-        }
+    // PopScope intercepta el botón de sistema (Android back) y aplica la
+    // misma política que el AppBar: siempre al portafolio (o Home si null).
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) AppNavigator.backFromAssetDetail(_portfolio);
+      },
+      child: StreamBuilder<AssetEntity?>(
+        stream: _assetStream,
+        builder: (context, snapshot) {
+          // ── Estado: cargando (antes del primer evento del stream) ───────────
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const _LoadingSkeleton();
+          }
 
-        // ── Estado: error del stream ─────────────────────────────────────────
-        if (snapshot.hasError) {
-          return _ErrorState(onBack: Get.back);
-        }
+          // ── Estado: error del stream ─────────────────────────────────────────
+          if (snapshot.hasError) {
+            return _ErrorState(
+              onBack: () => AppNavigator.backFromAssetDetail(_portfolio),
+            );
+          }
 
-        // ── Estado: activo no encontrado en Isar ─────────────────────────────
-        final entity = snapshot.data;
-        if (entity == null) return const _NotFoundState();
+          // ── Estado: activo no encontrado en Isar ─────────────────────────────
+          final entity = snapshot.data;
+          if (entity == null) return const _NotFoundState();
 
-        // ── Estado: activo cargado → renderizar Asset OS ─────────────────────
-        final summary = AssetSummaryMapper.fromEntity(entity);
-        final vm = summary is VehicleSummaryVM ? summary : null;
+          // ── Estado: activo cargado → renderizar Asset OS ─────────────────────
+          // Las alertas canónicas se pasan al mapper para que vm.alerts sea
+          // la fuente real — null colapsa a lista vacía hasta que carguen.
+          final summary = AssetSummaryMapper.fromEntity(
+            entity,
+            alerts: _alertCardVms ?? const [],
+          );
+          final vm = summary is VehicleSummaryVM ? summary : null;
 
-        // Construir módulos del grid aquí para que el tile RTM use _rtmDoc
-        // actualizado. El StreamBuilder re-ejecuta este builder tanto cuando
-        // el stream emite como cuando setState actualiza _rtmDoc.
-        final vehicleModules = _buildVehicleStateModules();
+          // Construir módulos del grid aquí para que el tile RTM use _rtmDoc
+          // actualizado. El StreamBuilder re-ejecuta este builder tanto cuando
+          // el stream emite como cuando setState actualiza _rtmDoc.
+          final vehicleModules = _buildVehicleStateModules();
 
-        // TODO: Agregar campo `score` a VehicleSummaryVM cuando esté disponible
-        // en el dominio. Valor temporal exclusivamente para renderizar la UI.
-        // No propagar este valor fuera del builder ni a capa de datos.
-        const int placeholderScore = 92;
+          // TODO: Agregar campo `score` a VehicleSummaryVM cuando esté disponible
+          // en el dominio. Valor temporal exclusivamente para renderizar la UI.
+          // No propagar este valor fuera del builder ni a capa de datos.
+          const int placeholderScore = 92;
 
-        final plate = vm?.plate ?? entity.assetKey;
-        final brandModel = vm != null
-            ? '${vm.brand} ${vm.model}'.trim()
-            : entity.content.displayName;
+          final plate = vm?.plate ?? entity.assetKey;
+          final brandModel = vm != null
+              ? '${vm.brand} ${vm.model}'.trim()
+              : entity.content.displayName;
 
-        return Scaffold(
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          body: CustomScrollView(
-            slivers: [
-              // 1. SliverAppBar — Hero Header ─────────────────────────────────
-              _buildHeroAppBar(
-                context,
-                entity,
-                plate,
-                brandModel,
-                vm?.stateLabel ?? _stateLabel(entity.state),
-                placeholderScore,
-              ),
-
-              // 2. Health Score + Alertas del estado del vehículo ─────────────
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    const _HealthScoreBar(score: placeholderScore),
-                    if (vm?.alerts?.isNotEmpty == true)
-                      _AlertsBanner(alerts: vm!.alerts!),
-                  ],
+          return Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            body: CustomScrollView(
+              slivers: [
+                // 1. SliverAppBar — Hero Header ─────────────────────────────────
+                _buildHeroAppBar(
+                  context,
+                  entity,
+                  plate,
+                  brandModel,
+                  vm?.stateLabel ?? _stateLabel(entity.state),
+                  placeholderScore,
                 ),
-              ),
 
-              // 3. Encabezado sección Estado del vehículo ─────────────────────
-              // Padding compacto: prioridad visual alta, sin espaciado excesivo.
-              const SliverToBoxAdapter(
-                child: _SectionHeader(
-                  title: 'Estado del vehículo',
-                  topSpacing: AppSpacing.md,
-                  bottomSpacing: 6,
-                ),
-              ),
-
-              // 4. SliverGrid — Estado del vehículo (8 tiles de compliance) ───
-              // childAspectRatio 1.65: compacto sin sacrificar legibilidad.
-              // vehicleModules fue construido antes del Scaffold para que el
-              // tile RTM refleje _rtmDoc actual en cada rebuild del StreamBuilder.
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                sliver: SliverGrid.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 1.65,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
+                // 2. Estado operativo HOY ─────────────────────────────────────
+                // Siempre visible: "Por configurar" es informativo incluso sin
+                // datos del vehículo cargados. No es alerta de compliance.
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      AppSpacing.md,
+                      AppSpacing.md,
+                      0,
+                    ),
+                    child: _OperationalDayCard(ctrl: _opStatusCtrl),
                   ),
-                  itemCount: vehicleModules.length,
-                  itemBuilder: (_, i) =>
-                      _VehicleStateTile(def: vehicleModules[i]),
                 ),
-              ),
 
-              // 5. Encabezado sección Gestión operativa ───────────────────────
-              const SliverToBoxAdapter(
-                child: _SectionHeader(
-                  title: 'Gestión operativa',
-                  topSpacing: AppSpacing.lg,
-                  bottomSpacing: AppSpacing.sm,
+                // 3. Health Score + Alertas del estado del vehículo ─────────────
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      const _HealthScoreBar(score: placeholderScore),
+                      if (vm != null && vm.alerts.isNotEmpty)
+                        _AlertsBanner(alerts: vm.alerts),
+                    ],
+                  ),
                 ),
-              ),
 
-              // 6. Lista — Gestión operativa (4 módulos de negocio) ───────────
-              const SliverToBoxAdapter(
-                child: _OperationalSection(modules: _operationalModules),
-              ),
-
-              // 7. Ficha técnica (solo vehículos) ─────────────────────────────
-              if (entity.content is VehicleContent) ...[
+                // 3. Encabezado sección Estado del vehículo ─────────────────────
+                // Padding compacto: prioridad visual alta, sin espaciado excesivo.
                 const SliverToBoxAdapter(
                   child: _SectionHeader(
-                    title: 'Ficha técnica',
+                    title: 'Estado del vehículo',
+                    topSpacing: AppSpacing.md,
+                    bottomSpacing: 6,
+                  ),
+                ),
+
+                // 4. SliverGrid — Estado del vehículo (8 tiles de compliance) ───
+                // childAspectRatio 1.65: compacto sin sacrificar legibilidad.
+                // vehicleModules fue construido antes del Scaffold para que el
+                // tile RTM refleje _rtmDoc actual en cada rebuild del StreamBuilder.
+                SliverPadding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                  sliver: SliverGrid.builder(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 1.65,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                    ),
+                    itemCount: vehicleModules.length,
+                    itemBuilder: (_, i) =>
+                        _VehicleStateTile(def: vehicleModules[i]),
+                  ),
+                ),
+
+                // 5. Encabezado sección Gestión operativa ───────────────────────
+                const SliverToBoxAdapter(
+                  child: _SectionHeader(
+                    title: 'Gestión operativa',
                     topSpacing: AppSpacing.lg,
                     bottomSpacing: AppSpacing.sm,
                   ),
                 ),
-                SliverToBoxAdapter(
-                  child: VehicleDetailSection(
-                    content: entity.content as VehicleContent,
-                    modelYear: _vehiculo?.anio,
+
+                // 6. Lista — Gestión operativa (4 módulos de negocio) ───────────
+                const SliverToBoxAdapter(
+                  child: _OperationalSection(modules: _operationalModules),
+                ),
+
+                // 7. Acceso rápido — Información del vehículo ─────────────────
+                if (_vehiculo != null)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.md,
+                        AppSpacing.md,
+                        AppSpacing.md,
+                        0,
+                      ),
+                      child: _VehicleInfoTile(vehiculo: _vehiculo!),
+                    ),
                   ),
+
+                // 8. Acceso rápido — Consulta RUNT ────────────────────────────
+                if (_vehiculo != null)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.md,
+                        AppSpacing.sm,
+                        AppSpacing.md,
+                        0,
+                      ),
+                      child: Obx(() {
+                        final dt = _runtCtrl.lastRuntQueryAt.value;
+                        String? fd;
+                        if (dt != null) {
+                          try {
+                            fd = DateFormat("d MMM y · h:mm a", 'es_CO')
+                                .format(dt.toLocal());
+                          } catch (_) {
+                            fd = DateFormat('d MMM y · HH:mm')
+                                .format(dt.toLocal());
+                          }
+                        }
+                        return _RuntConsultTile(
+                          vehiculo: _vehiculo!,
+                          formattedDate: fd,
+                        );
+                      }),
+                    ),
+                  ),
+
+                // 9. Timeline — actividad reciente ─────────────────────────────
+                SliverToBoxAdapter(
+                  child: _TimelineSection(events: _buildTimeline(entity)),
+                ),
+
+                // 10. Espaciado inferior (clearance para FAB) ───────────────────
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: AppSpacing.xxl + AppSpacing.xl),
                 ),
               ],
-
-              // 8. Timeline — actividad reciente ─────────────────────────────
-              SliverToBoxAdapter(
-                child: _TimelineSection(events: _buildTimeline(entity)),
-              ),
-
-              // 9. Espaciado inferior (clearance para FAB) ───────────────────
-              const SliverToBoxAdapter(
-                child: SizedBox(height: AppSpacing.xxl + AppSpacing.xl),
-              ),
-            ],
-          ),
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () => _showQuickActionsSheet(context),
-            icon: const Icon(Icons.bolt_rounded),
-            label: const Text('Acciones'),
-          ),
-        );
-      },
+            ),
+            floatingActionButton: FloatingActionButton.extended(
+              onPressed: () => _showQuickActionsSheet(context),
+              icon: const Icon(Icons.bolt_rounded),
+              label: const Text('Acciones'),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -472,7 +642,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
       scrolledUnderElevation: 1,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios_new_rounded),
-        onPressed: Get.back,
+        onPressed: () => AppNavigator.backFromAssetDetail(_portfolio),
         tooltip: 'Volver',
       ),
       // Título colapsado: placa + marca/modelo en dos líneas.
@@ -505,6 +675,12 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
           brandModel: brandModel,
           stateLabel: stateLabel,
           score: score,
+          // Obx granular: solo esta línea se reconstruye cuando cambia el
+          // estado RUNT. El resto del header no se ve afectado.
+          runtLine: Obx(() => _RuntHeaderLine(
+                lastQueryAt: _runtCtrl.lastRuntQueryAt.value,
+                freshness: _runtCtrl.freshnessState,
+              )),
         ),
       ),
     );
@@ -598,39 +774,22 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
 
   // ── Grid: Estado del vehículo ──────────────────────────────────────────────
   //
-  // Módulos de compliance, seguros, documentación, tracking y restricciones.
-  // RTM es dinámico (lee _rtmDoc del state). Los demás son placeholders hasta
-  // que sus respectivos módulos se conecten a datos reales.
+  // Módulos de tracking y restricciones operativas.
+  // SOAT, RTM, Seguros RC y Estado jurídico se movieron a RuntConsultPage
+  // (sección 7.6 — tile "Consulta RUNT").
 
   /// Construye la lista de módulos del grid "Estado del vehículo".
   ///
-  /// SOAT, RC y RTM son dinámicos: métricas, severidades y callbacks de
-  /// navegación se derivan de datos reales cargados en el state.
-  /// Los demás módulos permanecen como placeholders hasta que sus módulos
-  /// respectivos estén conectados.
+  /// Los módulos de documentación oficial (SOAT, RTM, RC, Legal) viven ahora
+  /// en [RuntConsultPage]. Este grid muestra los módulos operativos del activo.
   List<_ModuleDef> _buildVehicleStateModules() {
     return [
-      // SOAT — conectado a datos reales desde _soatPolicy.
-      _buildSoatModuleDef(),
-      // Seguros RC — conectado a datos reales desde _rcCPolicy y _rcEPolicy.
-      _buildRcModuleDef(),
       const _ModuleDef(
         id: 'insurance_full',
         icon: Icons.security_outlined,
         title: 'Seg. Todo Riesgo',
-        primaryMetric: 'Vence en 12 días', // TODO: conectar a módulo
+        primaryMetric: 'Por configurar', // TODO: conectar a módulo
         severity: _ModuleSeverity.critical,
-      ),
-      // RTM — conectado a datos reales desde _rtmDoc.
-      _buildRtmModuleDef(),
-      const _ModuleDef(
-        id: 'legal_status',
-        icon: Icons.gavel_outlined,
-        title: 'Estado jurídico',
-        primaryMetric: 'Sin información', // TODO: conectar a módulo
-        secondaryMetric: 'Limitaciones · Embargos',
-        severity: _ModuleSeverity.neutral,
-        snackMessage: 'Estado jurídico en construcción',
       ),
       const _ModuleDef(
         id: 'gps',
@@ -654,133 +813,6 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
         severity: _ModuleSeverity.neutral,
       ),
     ];
-  }
-
-  /// Construye el [_ModuleDef] dinámico del tile RTM a partir de [_rtmDoc].
-  ///
-  /// Si [_rtmDoc] es null (activo sin datos RUNT o sin registros RTM), muestra
-  /// "Sin información" con severidad neutral y abre [RtmDetailPage] igualmente
-  /// para que el usuario vea el estado vacío honesto.
-  _ModuleDef _buildRtmModuleDef() {
-    final days = _rtmDoc?.daysToExpire;
-    final status = _rtmDoc?.status;
-
-    final String metric = switch (days) {
-      null => 'Sin información',
-      < 0 => 'Vencida',
-      0 => 'Vence hoy',
-      1 => 'Vence en 1 día',
-      _ => 'Vence en $days días',
-    };
-
-    final _ModuleSeverity severity = switch (status) {
-      null => _ModuleSeverity.neutral, // sin datos aún: estado indeterminado
-      DocumentValidityStatus.vigente => _ModuleSeverity.neutral,
-      DocumentValidityStatus.desconocido => _ModuleSeverity.attention, // dato presente pero no concluyente
-      DocumentValidityStatus.porVencer => _ModuleSeverity.attention,
-      DocumentValidityStatus.vencido => _ModuleSeverity.critical,
-    };
-
-    // Fecha de vencimiento formateada como métrica secundaria si está disponible.
-    final String? secondaryMetric = _rtmDoc?.endDate != null
-        ? DateFormat('d MMM yyyy', 'es_CO').format(_rtmDoc!.endDate!)
-        : null;
-
-    return _ModuleDef(
-      id: 'rtm',
-      icon: Icons.fact_check_outlined,
-      title: 'Rev. Técnico-Mecánica',
-      primaryMetric: metric,
-      secondaryMetric: secondaryMetric,
-      severity: severity,
-      // Navega a RtmDetailPage pasando assetId como argumento.
-      // RtmDetailPage carga el activo independientemente para obtener datos RTM.
-      onTap: () => Get.toNamed(Routes.assetRtmDetail, arguments: _assetId),
-    );
-  }
-
-  // ── Helpers de seguros — días, métrica y severidad ─────────────────────────
-
-  /// Días calendario local hasta el vencimiento de [policy].
-  ///
-  /// Normaliza ambas fechas a medianoche local (.toLocal()) para evitar
-  /// off-by-one por timezone/UTC, consistente con las detail pages de seguro.
-  /// Retorna null si [policy] es null.
-  int? _insuranceDays(InsurancePolicyEntity? policy) {
-    if (policy == null) return null;
-    final local = policy.fechaFin.toLocal();
-    final fin = DateTime(local.year, local.month, local.day);
-    final now = DateTime.now();
-    final hoy = DateTime(now.year, now.month, now.day);
-    return fin.difference(hoy).inDays;
-  }
-
-  /// Convierte [days] a la cadena de métrica del tile.
-  String _daysToMetric(int? days) => switch (days) {
-        null => 'Sin información',
-        < 0 => 'Vencida',
-        0 => 'Vence hoy',
-        1 => 'Vence en 1 día',
-        _ => 'Vence en $days días',
-      };
-
-  /// Convierte [days] a severidad visual del tile.
-  ///
-  /// Vencida → critical, ≤30 días → attention, >30 días → neutral, null → neutral.
-  _ModuleSeverity _daysToSeverity(int? days) {
-    if (days == null) return _ModuleSeverity.neutral;
-    if (days < 0) return _ModuleSeverity.critical;
-    if (days <= 30) return _ModuleSeverity.attention;
-    return _ModuleSeverity.neutral;
-  }
-
-  /// Construye el [_ModuleDef] dinámico del tile SOAT desde [_soatPolicy].
-  ///
-  /// Si [_soatPolicy] es null (sin datos RUNT) muestra "Sin información" con
-  /// severidad neutral y navega a [SoatDetailPage] igualmente.
-  _ModuleDef _buildSoatModuleDef() {
-    final days = _insuranceDays(_soatPolicy);
-    return _ModuleDef(
-      id: 'soat',
-      icon: Icons.shield_outlined,
-      title: 'SOAT',
-      primaryMetric: _daysToMetric(days),
-      severity: _daysToSeverity(days),
-      onTap: () => Get.toNamed(Routes.soatDetail, arguments: _assetId),
-    );
-  }
-
-  /// Construye el [_ModuleDef] dinámico del tile Seguros RC.
-  ///
-  /// Toma la peor severidad entre RC Contractual ([_rcCPolicy]) y RC
-  /// Extracontractual ([_rcEPolicy]), y muestra la métrica del más urgente.
-  /// Si ambas son null, muestra "Sin información" con severidad neutral y
-  /// navega a [SegurosRcDetailPage] igualmente.
-  _ModuleDef _buildRcModuleDef() {
-    final daysC = _insuranceDays(_rcCPolicy);
-    final daysE = _insuranceDays(_rcEPolicy);
-
-    // Peor severidad entre los dos subtipos.
-    final severity = [_daysToSeverity(daysC), _daysToSeverity(daysE)]
-        .reduce((a, b) => a.index >= b.index ? a : b);
-
-    // Métrica del subtipo más urgente (menor días o vencido).
-    final int? worstDays;
-    if (daysC != null && daysE != null) {
-      worstDays = daysC <= daysE ? daysC : daysE;
-    } else {
-      worstDays = daysC ?? daysE; // null si ambos son null
-    }
-
-    return _ModuleDef(
-      id: 'insurance_rc',
-      icon: Icons.policy_outlined,
-      title: 'Seguros RC',
-      primaryMetric: _daysToMetric(worstDays),
-      secondaryMetric: 'RCC + RCEC',
-      severity: severity,
-      onTap: () => Get.toNamed(Routes.segurosRcDetail, arguments: _assetId),
-    );
   }
 
   // ── Lista: Gestión operativa ───────────────────────────────────────────────
@@ -871,11 +903,19 @@ class _HeroBackground extends StatelessWidget {
   final String stateLabel;
   final int score;
 
+  /// Línea reactiva de estado RUNT inyectada desde la página.
+  ///
+  /// Se pasa como widget (Obx) para que solo este fragmento del header
+  /// se reconstruya cuando cambia el estado RUNT — sin afectar el resto.
+  /// Null si el activo no es un vehículo.
+  final Widget? runtLine;
+
   const _HeroBackground({
     required this.plate,
     required this.brandModel,
     required this.stateLabel,
     required this.score,
+    this.runtLine,
   });
 
   @override
@@ -938,6 +978,14 @@ class _HeroBackground extends StatelessWidget {
                   _ScoreBadge(score: score),
                 ],
               ),
+
+              // ── Línea RUNT — reactiva via Obx (inyectada desde la página) ──
+              // Solo se muestra para vehículos. Se reconstruye de forma granular
+              // sin afectar placa, badges ni score.
+              if (runtLine != null) ...[
+                const SizedBox(height: 8),
+                runtLine!,
+              ],
             ],
           ),
         ),
@@ -1117,8 +1165,9 @@ class _HealthScoreBar extends StatelessWidget {
 /// Banner de alertas del estado del vehículo.
 ///
 /// Solo se renderiza cuando [alerts] no está vacío.
+/// Alimentado exclusivamente por [DomainAlertMapper] — nunca por strings crudos.
 class _AlertsBanner extends StatelessWidget {
-  final List<String> alerts;
+  final List<AlertCardVm> alerts;
   const _AlertsBanner({required this.alerts});
 
   @override
@@ -1183,11 +1232,26 @@ class _AlertsBanner extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
-                          alert,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: cs.onErrorContainer,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              alert.title,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: cs.onErrorContainer,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (alert.subtitle != null)
+                              Text(
+                                alert.subtitle!,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: cs.onErrorContainer
+                                      .withValues(alpha: 0.7),
+                                  fontSize: 11,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ],
@@ -1232,20 +1296,14 @@ class _VehicleStateTile extends StatelessWidget {
       child: InkWell(
         onTap: () {
           HapticFeedback.selectionClick();
-          if (def.onTap != null) {
-            // Módulo con datos reales conectados: navega a la pantalla real.
-            def.onTap!();
-          } else {
-            // Módulo en construcción: snackbar provisional.
-            Get.snackbar(
-              'En construcción',
-              def.snackMessage ?? '${def.title} en desarrollo',
-              snackPosition: SnackPosition.BOTTOM,
-              margin: const EdgeInsets.all(AppSpacing.md),
-              borderRadius: 12,
-              duration: const Duration(seconds: 2),
-            );
-          }
+          Get.snackbar(
+            'En construcción',
+            '${def.title} en desarrollo',
+            snackPosition: SnackPosition.BOTTOM,
+            margin: const EdgeInsets.all(AppSpacing.md),
+            borderRadius: 12,
+            duration: const Duration(seconds: 2),
+          );
         },
         child: Container(
           padding: const EdgeInsets.all(10),
@@ -1367,7 +1425,7 @@ class _OperationalItemRow extends StatelessWidget {
           HapticFeedback.selectionClick();
           Get.snackbar(
             'En construcción',
-            def.snackMessage ?? '${def.title} en desarrollo',
+            '${def.title} en desarrollo',
             snackPosition: SnackPosition.BOTTOM,
             margin: const EdgeInsets.all(AppSpacing.md),
             borderRadius: 12,
@@ -1827,6 +1885,368 @@ class _ErrorState extends StatelessWidget {
               FilledButton(
                 onPressed: onBack,
                 child: const Text('Volver'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// RUNT HEADER LINE
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Línea informativa de estado RUNT para el hero header.
+///
+/// Muestra "RUNT actualizado: {fecha}" con color según [freshness].
+/// Se renderiza dentro del gradiente de [_HeroBackground] vía [Obx] granular.
+///
+/// Estados visuales:
+///   noData   → texto neutro   "Sin consulta RUNT"
+///   fresh    → texto normal   "RUNT actualizado: {fecha}"
+///   warning  → texto amber    "RUNT actualizado: {fecha} · Actualizar pronto"
+///   stale    → texto error    "RUNT desactualizado · {fecha}"
+class _RuntHeaderLine extends StatelessWidget {
+  final DateTime? lastQueryAt;
+  final RuntFreshnessState freshness;
+
+  const _RuntHeaderLine({
+    required this.lastQueryAt,
+    required this.freshness,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+
+    final (label, color) = switch (freshness) {
+      RuntFreshnessState.noData => (
+          'Sin consulta RUNT',
+          cs.onPrimaryContainer.withValues(alpha: 0.55),
+        ),
+      RuntFreshnessState.fresh => (
+          'RUNT actualizado: ${_fmt(lastQueryAt)}',
+          cs.onPrimaryContainer.withValues(alpha: 0.72),
+        ),
+      RuntFreshnessState.warning => (
+          'RUNT: ${_fmt(lastQueryAt)} · Actualizar pronto',
+          cs.tertiary,
+        ),
+      RuntFreshnessState.stale => (
+          'RUNT desactualizado · ${_fmt(lastQueryAt)}',
+          cs.error,
+        ),
+    };
+
+    return Row(
+      children: [
+        Icon(Icons.manage_search_rounded, size: 13, color: color),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(color: color),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  static String _fmt(DateTime? dt) {
+    if (dt == null) return '—';
+    return DateFormat('d MMM yyyy', 'es').format(dt.toLocal());
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VEHICLE INFO TILE — entrada destacada hacia VehicleInfoPage
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// ListTile destacado que navega a [RuntConsultPage].
+///
+/// Solo se renderiza cuando [AssetVehiculoEntity] está cargado.
+/// Posición: sección 7.6, inmediatamente debajo de [_VehicleInfoTile].
+class _RuntConsultTile extends StatelessWidget {
+  final AssetVehiculoEntity vehiculo;
+  final String? formattedDate;
+
+  const _RuntConsultTile({required this.vehiculo, this.formattedDate});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Material(
+      color: cs.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => Get.toNamed(Routes.runtConsult, arguments: vehiculo),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.md,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: cs.outline.withValues(alpha: 0.12)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: cs.secondaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.verified_user_outlined,
+                  color: cs.onSecondaryContainer,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Documentos del vehículo y Estado jurídico',
+                      style: textTheme.bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Fuente: RUNT',
+                      style: textTheme.bodySmall
+                          ?.copyWith(color: cs.onSurfaceVariant),
+                    ),
+                    if (formattedDate != null) ...[
+                      const SizedBox(height: 0),
+                      Row(
+                        children: [
+                          Text(
+                            'Actualizado',
+                            style: textTheme.labelSmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            formattedDate!,
+                            style: textTheme.labelSmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: cs.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OPERATIONAL DAY CARD — Estado operativo HOY
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Tarjeta de estado operativo diario del activo.
+///
+/// Muestra el estado actual ([OperationalDayStatus]) y la razón textual cuando
+/// aplica. No es navegable — es un display de estado, no un acceso a un módulo.
+///
+/// Semántica de color:
+///   unconfigured → onSurfaceVariant (neutro/gris)
+///   enabled      → tertiaryContainer (positivo)
+///   blocked      → errorContainer (crítico)
+///   limited      → secondaryContainer (atención)
+///
+/// Siempre visible en la página, incluso sin datos del vehículo cargados.
+/// Cuando no hay configuración muestra "Por configurar" como estado informativo.
+class _OperationalDayCard extends StatelessWidget {
+  final AssetOperationalStatusController ctrl;
+
+  const _OperationalDayCard({required this.ctrl});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Obx(() {
+      final status = ctrl.status.value;
+      final reason = ctrl.reason.value;
+
+      // Color semántico e icono según el estado operativo.
+      final (icon, containerColor, iconColor, label) = switch (status) {
+        OperationalDayStatus.unconfigured => (
+            Icons.tune_rounded,
+            cs.surfaceContainerHighest,
+            cs.onSurfaceVariant,
+            'Por configurar',
+          ),
+        OperationalDayStatus.enabled => (
+            Icons.check_circle_outline_rounded,
+            cs.tertiaryContainer,
+            cs.onTertiaryContainer,
+            'Habilitado para operar hoy',
+          ),
+        OperationalDayStatus.blocked => (
+            Icons.block_rounded,
+            cs.errorContainer,
+            cs.onErrorContainer,
+            'No puede operar hoy',
+          ),
+        OperationalDayStatus.limited => (
+            Icons.warning_amber_rounded,
+            cs.secondaryContainer,
+            cs.onSecondaryContainer,
+            'Operación limitada',
+          ),
+      };
+
+      return Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 10),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: cs.outline.withValues(alpha: 0.12)),
+        ),
+        child: Row(
+          children: [
+            // ── Icono semántico ──────────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: containerColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: iconColor, size: 22),
+            ),
+            const SizedBox(width: AppSpacing.md),
+
+            // ── Título + estado + razón ──────────────────────────────────────
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Estado operativo HOY',
+                    style: textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    label,
+                    style: textTheme.bodySmall
+                        ?.copyWith(color: cs.onSurfaceVariant),
+                  ),
+                  if (reason != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      reason,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VEHICLE INFO TILE — entrada destacada hacia VehicleInfoPage
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// ListTile destacado que navega a [VehicleInfoPage].
+///
+/// Solo se renderiza cuando [AssetVehiculoEntity] está cargado.
+class _VehicleInfoTile extends StatelessWidget {
+  final AssetVehiculoEntity vehiculo;
+
+  const _VehicleInfoTile({required this.vehiculo});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Material(
+      color: cs.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => Get.toNamed(Routes.vehicleInfo, arguments: vehiculo),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.md,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: cs.outline.withValues(alpha: 0.12)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.directions_car_outlined,
+                  color: cs.onPrimaryContainer,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Información del vehículo',
+                      style: textTheme.bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Datos para trámites, seguros y autoridades',
+                      style: textTheme.bodySmall
+                          ?.copyWith(color: cs.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: cs.onSurfaceVariant,
               ),
             ],
           ),

@@ -46,7 +46,13 @@ import 'package:intl/intl.dart';
 
 import '../../../core/di/container.dart';
 import '../../../core/theme/spacing.dart';
+import '../../../domain/entities/insurance/insurance_opportunity_lead.dart';
 import '../../../domain/entities/insurance/insurance_policy_entity.dart';
+import '../../../routes/app_routes.dart';
+import '../../controllers/asset/asset_detail_runt_controller.dart';
+import '../../widgets/asset_document_context_header.dart';
+import '../../widgets/monetization/rc_extracontractual_upsell_card.dart';
+import '../insurance/rc_quote_request_page.dart' show RcQuoteRequestArgs;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS DE FECHA Y TEXTO
@@ -102,15 +108,73 @@ class _SegurosRcDetailPageState extends State<SegurosRcDetailPage> {
 
   _PageState _state = _PageState.loading;
 
+  String _assetId = '';
+  String _assetPrimaryLabel = '';
+  String? _assetSecondaryLabel;
+
+  /// Snapshot del vehículo para el flujo de cotización SRCE.
+  /// Null si AssetDetailRuntController no está en memoria (entrada desde AlertCenter).
+  VehicleSnapshot? _vehicleSnapshotForQuote;
+
   @override
   void initState() {
     super.initState();
-    final arg = Get.arguments;
-    if (arg is String && arg.isNotEmpty) {
-      _loadData(arg);
+    final args = Get.arguments;
+    String? assetId;
+    if (args is Map) {
+      // Entry point: AlertCenter — labels viajan en el Map junto al assetId.
+      assetId = args['assetId'] as String?;
+      _assetPrimaryLabel = (args['primaryLabel'] as String?) ?? '';
+      _assetSecondaryLabel = args['secondaryLabel'] as String?;
+    } else if (args is String && args.isNotEmpty) {
+      // Entry point: AssetDetailPage → labels y snapshot desde AssetDetailRuntController.
+      assetId = args;
+      try {
+        final runtCtrl = Get.find<AssetDetailRuntController>();
+        _assetPrimaryLabel = runtCtrl.vehiclePrimaryLabel;
+        _assetSecondaryLabel = runtCtrl.vehicleSecondaryLabel;
+        _vehicleSnapshotForQuote = runtCtrl.vehicleSnapshotForQuote;
+      } catch (_) {}
+    }
+    if (assetId != null && assetId.isNotEmpty) {
+      _assetId = assetId;
+      _loadData(assetId);
     } else {
       _state = _PageState.invalidArg;
     }
+  }
+
+  /// Navega al flujo de cotización SRCE pasando el contrato tipado.
+  ///
+  /// Si el snapshot no está disponible (entrada desde AlertCenter sin
+  /// AssetDetailRuntController), el botón no se muestra — ver [showUpsell]
+  /// en [_RcContent].
+  void _navigateToQuoteRequest() {
+    final snapshot = _vehicleSnapshotForQuote;
+
+    // Si el snapshot no está disponible, navega igual con Map minimal.
+    // La request page muestra el error específico al usuario — no silenciamos aquí.
+    if (snapshot == null) {
+      Get.toNamed(
+        Routes.rcQuoteRequest,
+        arguments: {
+          'assetId': _assetId,
+          'primaryLabel': _assetPrimaryLabel,
+          'secondaryLabel': _assetSecondaryLabel,
+        },
+      );
+      return;
+    }
+
+    Get.toNamed(
+      Routes.rcQuoteRequest,
+      arguments: RcQuoteRequestArgs(
+        assetId: _assetId,
+        vehicleSnapshot: snapshot,
+        primaryLabel: _assetPrimaryLabel.isNotEmpty ? _assetPrimaryLabel : null,
+        secondaryLabel: _assetSecondaryLabel,
+      ),
+    );
   }
 
   /// Carga todas las pólizas del activo y separa RC Contractual / Extracontractual.
@@ -222,30 +286,44 @@ class _SegurosRcDetailPageState extends State<SegurosRcDetailPage> {
               ?.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
-      body: switch (_state) {
-        _PageState.loading => const _LoadingState(),
-        _PageState.invalidArg => _MessageState(
-            icon: Icons.link_off_rounded,
-            iconColor: cs.error,
-            title: 'Navegación inválida',
-            body: 'No se recibió el identificador del activo. '
-                'Regresa e intenta de nuevo.',
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_assetPrimaryLabel.isNotEmpty)
+            AssetDocumentContextHeader(
+              primaryLabel: _assetPrimaryLabel,
+              secondaryLabel: _assetSecondaryLabel,
+              sectionTitle: 'Responsabilidad Civil',
+            ),
+          Expanded(
+            child: switch (_state) {
+              _PageState.loading => const _LoadingState(),
+              _PageState.invalidArg => _MessageState(
+                  icon: Icons.link_off_rounded,
+                  iconColor: cs.error,
+                  title: 'Navegación inválida',
+                  body: 'No se recibió el identificador del activo. '
+                      'Regresa e intenta de nuevo.',
+                ),
+              _PageState.loadError => _MessageState(
+                  icon: Icons.error_outline_rounded,
+                  iconColor: cs.error,
+                  title: 'Error al cargar',
+                  body: 'No fue posible obtener las pólizas de Seguros RC. '
+                      'Intenta volver e ingresar de nuevo.',
+                ),
+              _PageState.ready => _RcContent(
+                  rcC: _rcC,
+                  rcE: _rcE,
+                  hasInconsistency: _hasInconsistency(),
+                  onQuoteRequest: _navigateToQuoteRequest,
+                  cs: cs,
+                  theme: theme,
+                ),
+            },
           ),
-        _PageState.loadError => _MessageState(
-            icon: Icons.error_outline_rounded,
-            iconColor: cs.error,
-            title: 'Error al cargar',
-            body: 'No fue posible obtener las pólizas de Seguros RC. '
-                'Intenta volver e ingresar de nuevo.',
-          ),
-        _PageState.ready => _RcContent(
-            rcC: _rcC,
-            rcE: _rcE,
-            hasInconsistency: _hasInconsistency(),
-            cs: cs,
-            theme: theme,
-          ),
-      },
+        ],
+      ),
     );
   }
 }
@@ -258,6 +336,7 @@ class _RcContent extends StatelessWidget {
   final List<InsurancePolicyEntity> rcC;
   final List<InsurancePolicyEntity> rcE;
   final bool hasInconsistency;
+  final VoidCallback onQuoteRequest;
   final ColorScheme cs;
   final ThemeData theme;
 
@@ -265,6 +344,7 @@ class _RcContent extends StatelessWidget {
     required this.rcC,
     required this.rcE,
     required this.hasInconsistency,
+    required this.onQuoteRequest,
     required this.cs,
     required this.theme,
   });
@@ -276,6 +356,12 @@ class _RcContent extends StatelessWidget {
     final histC = rcC.skip(1).toList();
     final histE = rcE.skip(1).toList();
     final hasHistory = histC.isNotEmpty || histE.isNotEmpty;
+
+    // Upsell visible cuando rcE está vacío o la póliza más reciente está vencida.
+    // Mismo criterio de vencimiento que _PolicyCard: _calendarDay(fechaFin) < hoy.
+    final showUpsell = rcE.isEmpty ||
+        _calendarDay(rcE.first.fechaFin)
+            .isBefore(_calendarDay(DateTime.now()));
 
     return ListView(
       padding: const EdgeInsets.symmetric(
@@ -324,6 +410,16 @@ class _RcContent extends StatelessWidget {
                 cs: cs,
                 theme: theme,
               ),
+
+        // ── Upsell RC Extracontractual ───────────────────────────────────────
+        // Visible cuando rcE está vacío o la póliza más reciente está vencida.
+        // El snapshot se valida en la request page, no aquí.
+        if (showUpsell) ...[
+          const SizedBox(height: AppSpacing.md),
+          RcExtracontractualUpsellCard(
+            onTap: onQuoteRequest,
+          ),
+        ],
 
         // ── Historial ────────────────────────────────────────────────────────
         if (hasHistory) ...[

@@ -2,10 +2,31 @@
 // ============================================================================
 // AdminHomeController — UI Governance v1.0.5 (Enterprise-ready)
 // ============================================================================
-// - Controller 100% data-only (sin Widgets / BuildContext)
-// - Sin Get.snackbar (usa uiEvent)
-// - Sin navegación directa (la vista ejecuta side-effects)
-// - Regla dura: “Activo primero” (bloquea acciones operativas sin activos)
+// QUÉ HACE:
+// - Provee estado reactivo para AdminHomePage: KPIs, alertas operacionales,
+//   portafolios, sesión.
+// - Carga alertas de compliance via HomeAlertAggregationService (pipeline
+//   canónico). Alimenta [promotedAlertVms] para métricas y card en Home.
+// - Gestiona alertas operacionales (incidencias/programaciones/compras)
+//   en [alerts] via AdminAiAlertVM — sistema ortogonal a compliance.
+// - Implementa “Activo primero”: bloquea acciones operativas sin activos.
+// - Expone canal [uiEvent] para side-effects (snackbar, redirect).
+//
+// QUÉ NO HACE:
+// - NO evalúa alertas de compliance — delega al pipeline canónico.
+// - NO contiene lógica de negocio de dominio.
+// - NO ejecuta snackbars ni navegación directamente (uiEvent pattern).
+//
+// PRINCIPIOS:
+// - Data-only: sin Widgets / BuildContext.
+// - Una sola fuente de estado para AdminHomePage: este controller.
+// - [promotedAlertVms] y [alerts] son listas ortogonales (distinto origen).
+// - Falla silenciosa en compliance alerts: listas vacías, no crash.
+//
+// ENTERPRISE NOTES:
+// CREADO: UI Governance v1.0 (sin fecha registrada).
+// ACTUALIZADO (2026-03): Fase 5.5 — integración HomeAlertAggregationService.
+//   promotedAlertVms, totalAlertsCount/criticalAlertsCount/affectedAssetsCount.
 // ============================================================================
 
 import 'dart:async';
@@ -22,8 +43,13 @@ import '../../../../domain/repositories/portfolio_repository.dart';
 import '../../../../domain/repositories/purchase_repository.dart';
 import '../../../../domain/shared/enums/asset_type.dart';
 import '../../../../routes/app_routes.dart';
+import '../../../alerts/mappers/domain_alert_mapper.dart';
+import '../../../alerts/viewmodels/alert_card_vm.dart';
 import '../../../common/ensure_registered_guard.dart';
 import '../../session_context_controller.dart';
+import '../../../../domain/entities/alerts/alert_code.dart';
+import '../../../../domain/entities/alerts/alert_kind.dart';
+import '../../../../domain/entities/alerts/alert_severity.dart';
 
 // ============================================================================
 // UI EVENT PATTERN (data-only)
@@ -142,6 +168,16 @@ class AdminHomeController extends GetxController {
   final events = <AdminEventVM>[].obs;
   final alerts = <AdminAiAlertVM>[].obs;
 
+  /// Alertas de compliance promovidas por el pipeline canónico
+  /// (SOAT, RTM, RC, legal). DISTINTO de [alerts] operacionales.
+  /// Actualizado por [_loadPromotedAlerts()].
+  final promotedAlertVms = <AlertCardVm>[].obs;
+
+  /// Señales de oportunidad del pipeline canónico (alertKind == opportunity).
+  /// DISTINTO de [promotedAlertVms] — no contaminan el canal de riesgo.
+  /// Actualizado por [_loadOpportunities()].
+  final opportunityAlertVms = <AlertCardVm>[].obs;
+
   /// Single source of truth para cantidad de activos registrados.
   final RxInt assetsCount = 0.obs;
 
@@ -163,6 +199,37 @@ class AdminHomeController extends GetxController {
   // ──────────────────────────────────────────────────────────────────────────
   /// Retorna true si hay al menos 1 activo registrado.
   bool get hasAssets => assetsCount.value > 0;
+
+  // ── Métricas de alertas de compliance ────────────────────────────────────
+
+  /// Total de alertas de compliance promovidas activas.
+  int get totalAlertsCount => promotedAlertVms.length;
+
+  /// Total de alertas con severidad CRITICAL.
+  int get criticalAlertsCount =>
+      promotedAlertVms.where((v) => v.severity == AlertSeverity.critical).length;
+
+  /// Número de activos únicos con al menos una alerta de compliance.
+  int get affectedAssetsCount =>
+      promotedAlertVms.map((v) => v.sourceEntityId).toSet().length;
+
+  /// Total de oportunidades activas.
+  int get opportunityCount => opportunityAlertVms.length;
+
+  /// Texto resumen para la tarjeta de oportunidades en Home.
+  ///
+  /// V1: solo describe [AlertCode.rcExtracontractualOpportunity].
+  /// Cuenta activos únicos afectados para evitar duplicados por vehículo.
+  String get opportunitySummaryText {
+    final count = opportunityAlertVms
+        .where((v) => v.code == AlertCode.rcExtracontractualOpportunity)
+        .map((v) => v.sourceEntityId)
+        .toSet()
+        .length;
+    if (count == 0) return '';
+    return 'RC extracontractual recomendada para $count '
+        '${count == 1 ? "vehículo" : "vehículos"}';
+  }
 
   // ──────────────────────────────────────────────────────────────────────────
   // REACTIVE SESSION STATE (sincronizado via _userWorker)
@@ -225,6 +292,10 @@ class AdminHomeController extends GetxController {
 
   StreamSubscription<List<PortfolioEntity>>? _portfolioSub;
 
+  // Guard de concurrencia + request ID para _loadPromotedAlerts
+  bool _isRefreshingAlerts = false;
+  int _alertRequestId = 0;
+
   /// Workers reactivos que observan SessionContextController
   Worker? _userWorker;
   Worker? _membershipsWorker;
@@ -245,6 +316,8 @@ class AdminHomeController extends GetxController {
 
     _resolveOrg();
     _loadLocal();
+    _loadPromotedAlerts();
+    _loadOpportunities();
 
     // Workers reactivos: cuando userRx o membershipsRx cambian,
     // re-resolver orgId, sincronizar estado de sesión, y recargar datos.
@@ -336,6 +409,8 @@ class AdminHomeController extends GetxController {
       _debugLog('_onUserChanged', 'orgId cambió: $_orgId → $newOrgId');
       _orgId = newOrgId;
       _loadLocal();
+      _loadPromotedAlerts();
+      _loadOpportunities();
     }
   }
 
@@ -352,6 +427,8 @@ class AdminHomeController extends GetxController {
   Future<void> refreshData() async {
     await _loadLocal();
     await _di.syncService.sync();
+    _loadPromotedAlerts();
+    _loadOpportunities();
   }
 
   Future<void> _loadLocal() async {
@@ -371,6 +448,7 @@ class AdminHomeController extends GetxController {
         ];
         events.clear();
         alerts.clear();
+        opportunityAlertVms.clear();
         return;
       }
 
@@ -468,6 +546,73 @@ class AdminHomeController extends GetxController {
     } finally {
       _debugLog('_loadLocal', 'EXIT loading=false kpis=${kpis.length}');
       loading.value = false;
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // COMPLIANCE ALERTS — pipeline canónico
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /// Carga alertas de compliance promovidas via el pipeline canónico.
+  ///
+  /// Actualiza [promotedAlertVms] para métricas en el Home.
+  /// Concurrencia segura: guard [_isRefreshingAlerts] + request ID.
+  /// Falla silenciosamente en release. Requiere [_orgId] resuelto.
+  Future<void> _loadPromotedAlerts() async {
+    if (_isRefreshingAlerts) return;
+    _isRefreshingAlerts = true;
+    final currentId = ++_alertRequestId;
+    final stopwatch = Stopwatch()..start();
+    try {
+      final orgId = _orgId;
+      if (orgId == null) return;
+      final domainAlerts =
+          await _di.homeAlertAggregationService.promotedAlertsForOrg(orgId);
+      if (currentId != _alertRequestId) return; // resultado stale — ignorar
+      final vms = DomainAlertMapper.fromDomainList(domainAlerts);
+      promotedAlertVms.assignAll(vms);
+    } catch (e, st) {
+      assert(() {
+        debugPrint('[AdminAlerts] refresh failed: $e');
+        debugPrint('$st');
+        return true;
+      }());
+    } finally {
+      _isRefreshingAlerts = false;
+      stopwatch.stop();
+      assert(() {
+        debugPrint(
+          '[AdminAlerts] refresh took ${stopwatch.elapsedMilliseconds}ms '
+          '(${promotedAlertVms.length} alertas promovidas)',
+        );
+        return true;
+      }());
+    }
+  }
+
+  /// Carga señales de oportunidad del pipeline canónico.
+  ///
+  /// Usa [allAlertsForOrg()] y filtra por [AlertKind.opportunity].
+  /// No interfiere con [promotedAlertVms] — canales ortogonales.
+  /// Falla silenciosamente en release.
+  Future<void> _loadOpportunities() async {
+    try {
+      final orgId = _orgId;
+      if (orgId == null) {
+        opportunityAlertVms.clear();
+        return;
+      }
+      final all = await _di.homeAlertAggregationService.allAlertsForOrg(orgId);
+      final ops =
+          all.where((a) => a.alertKind == AlertKind.opportunity).toList();
+      final vms = DomainAlertMapper.fromDomainList(ops);
+      opportunityAlertVms.assignAll(vms);
+    } catch (e, st) {
+      assert(() {
+        debugPrint('[AdminOpportunities] load failed: $e');
+        debugPrint('$st');
+        return true;
+      }());
     }
   }
 

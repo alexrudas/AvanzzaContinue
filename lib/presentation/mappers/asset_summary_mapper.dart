@@ -4,12 +4,14 @@
 //
 // QUÉ HACE:
 // - Convierte AssetEntity → AssetSummaryVM de forma pura y segura.
+// - Acepta alertas ya resueltas como parámetro opcional para poblar
+//   VehicleSummaryVM.alerts (no las obtiene, solo las recibe).
 // - Detecta anomalías de datos en debug (placa falsa = UUID).
 //
 // QUÉ NO HACE:
 // - No resuelve documentos de compliance (RTM, SOAT, RC).
-//   La resolución RTM ocurre en AssetDetailPage desde _vehiculo.runtMetaJson,
-//   manteniendo la lógica fuera de este mapper de resumen.
+// - No obtiene ni carga alertas — las recibe desde el presentation state
+//   (AssetComplianceAlertOrchestrator → DomainAlertMapper → caller).
 // - No contiene I/O ni lógica de negocio.
 //
 // PRINCIPIOS:
@@ -30,9 +32,10 @@ import 'package:flutter/foundation.dart';
 
 import '../../domain/entities/asset/asset_content.dart';
 import '../../domain/entities/asset/asset_entity.dart';
+import '../alerts/viewmodels/alert_card_vm.dart';
 import '../viewmodels/asset/asset_summary_vm.dart';
 
-// Extension para un uso ultra-limpio en la capa de UI.
+// Extension para uso sin alertas (listas, portafolio, contextos sin pipeline).
 // Uso: final vm = myAssetEntity.toSummaryVM();
 extension AssetEntityToVM on AssetEntity {
   AssetSummaryVM toSummaryVM() => AssetSummaryMapper.fromEntity(this);
@@ -40,7 +43,14 @@ extension AssetEntityToVM on AssetEntity {
 
 abstract final class AssetSummaryMapper {
   /// Convierte [AssetEntity] → [AssetSummaryVM] de forma pura y segura.
-  static AssetSummaryVM fromEntity(AssetEntity entity) {
+  ///
+  /// [alerts]: alertas canónicas ya mapeadas por [DomainAlertMapper].
+  /// Pasar el resultado del pipeline cuando se necesite el banner de alertas.
+  /// Omitir (o pasar vacío) en contextos sin pipeline activo (listas, portafolio).
+  static AssetSummaryVM fromEntity(
+    AssetEntity entity, {
+    List<AlertCardVm> alerts = const [],
+  }) {
     if (kDebugMode) _auditLogContent(entity);
 
     final label = _stateLabel(entity.state);
@@ -68,7 +78,7 @@ abstract final class AssetSummaryMapper {
           model: model.trim(),
           line: line?.trim(),
           modelYear: null, // V2 no expone modelYear directo
-          cilindraje: (engineDisplacement ?? 0) > 0
+          cilindraje: engineDisplacement > 0
               ? engineDisplacement.toStringAsFixed(0)
               : null,
           bodyType: bodyType?.trim(),
@@ -81,8 +91,7 @@ abstract final class AssetSummaryMapper {
           ownerName: entity.legalOwner?.name.trim(),
           ownerDocument: _ownerDocDisplay(entity.legalOwner),
           stateLabel: label,
-          // TODO (Integración API): Mapear entity.alerts cuando existan en el dominio
-          alerts: const [],
+          alerts: alerts,
         ),
 
       // ── Inmueble ──────────────────────────────────────────────────────────
@@ -100,7 +109,7 @@ abstract final class AssetSummaryMapper {
           address: address.trim(),
           city: city.trim(),
           propertyType: propertyType?.trim(),
-          areaDisplay: (area ?? 0) > 0 ? '${area.toStringAsFixed(1)} m²' : null,
+          areaDisplay: area > 0 ? '${area.toStringAsFixed(1)} m²' : null,
           stateLabel: label,
         ),
 

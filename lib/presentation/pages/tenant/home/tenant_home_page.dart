@@ -4,7 +4,9 @@
 // TenantHomePage — REDISEÑO PRO 2025
 // ============================================================================
 
+import 'package:avanzza/presentation/controllers/tenant/home/tenant_home_controller.dart';
 import 'package:avanzza/presentation/widgets/ai_banner/ai_banner.dart';
+import 'package:avanzza/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -144,401 +146,6 @@ class SemanticColors extends ThemeExtension<SemanticColors> {
 }
 
 // ============================================================================
-// UTILS
-// ============================================================================
-class Formatters {
-  static String money(num value) {
-    final f =
-        NumberFormat.currency(locale: 'es_CO', symbol: r'$', decimalDigits: 0);
-    return f.format(value);
-  }
-
-  static String dayShort(DateTime date) {
-    final f = DateFormat('EEE, d MMM', 'es_CO');
-    final s = f.format(date);
-    return s[0].toUpperCase() + s.substring(1);
-  }
-
-  static String weekdayLong(DateTime date) {
-    final f = DateFormat('EEEE', 'es_CO');
-    final s = f.format(date);
-    return s[0].toUpperCase() + s.substring(1);
-  }
-
-  static String timeOfDay(DateTime date) {
-    final hour = date.hour;
-    if (hour < 12) return 'Buenos días';
-    if (hour < 18) return 'Buenas tardes';
-    return 'Buenas noches';
-  }
-
-  static String relativeTime(DateTime date) {
-    final now = DateTime.now();
-    final diff = date.difference(now);
-
-    if (diff.inDays == 0) {
-      if (diff.inHours == 0) {
-        return '${diff.inMinutes}m';
-      }
-      return '${diff.inHours}h';
-    }
-    if (diff.inDays == 1) return 'Mañana';
-    if (diff.inDays < 7) return '${diff.inDays}d';
-    return DateFormat('d MMM', 'es_CO').format(date);
-  }
-}
-
-class Analytics {
-  static void track(String event, [Map<String, dynamic>? props]) {
-    debugPrint('📊 Analytics: $event ${props ?? ""}');
-  }
-}
-
-// TODO: Migrar estas rutas a app_routes.dart cuando se implementen las pantallas
-class _TenantRoutes {
-  static const paymentsPending = '/payments/pending';
-  static const picoPlacaCalendar = '/traffic/restrictions';
-  static const tasksAll = '/tasks';
-  static const rentalsAll = '/rentals';
-  static const notifications = '/notifications';
-  static const profile = '/profile';
-
-  // Emergencias / soporte
-  static const emergencyCai = '/emergency/cai';
-  static const emergencyAmbulance = '/emergency/ambulance';
-  static const emergencyFirefighters = '/emergency/firefighters';
-  static const emergencyTow = '/emergency/tow';
-  static const accidentGuide = '/emergency/accident-guide';
-  static const techHelp = '/support/tech-help';
-  static const callInsurance = '/support/insurance-help';
-  static const legalHelp = '/support/legal-help';
-  static const onlineAssistance = '/support/online-assistance';
-}
-
-// ============================================================================
-// VIEW MODELS
-// ============================================================================
-class TaskVM {
-  final String id;
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String subtitle;
-  final DateTime? dueDate;
-  final bool isUrgent;
-  final bool isCompleted;
-
-  TaskVM({
-    required this.id,
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.subtitle,
-    this.dueDate,
-    this.isUrgent = false,
-    this.isCompleted = false,
-  });
-
-  String get dueLabel {
-    if (dueDate == null) return '';
-    return Formatters.relativeTime(dueDate!);
-  }
-}
-
-class RentalVM {
-  final String id;
-  final String icon;
-  final String type;
-  final String name;
-  final String details;
-  final bool hasPendingPayment;
-  final int pendingInvoices;
-  final num nextPaymentAmount;
-  final DateTime? nextPaymentDate;
-
-  RentalVM({
-    required this.id,
-    required this.icon,
-    required this.type,
-    required this.name,
-    required this.details,
-    required this.hasPendingPayment,
-    required this.pendingInvoices,
-    required this.nextPaymentAmount,
-    this.nextPaymentDate,
-  });
-
-  String get dueDateLabel {
-    if (nextPaymentDate == null) return '';
-    final now = DateTime.now();
-    final diff = nextPaymentDate!.difference(now);
-
-    if (diff.inDays == 0) return 'Vence hoy';
-    if (diff.inDays < 0) return 'Pago inmediato';
-    if (diff.inDays == 1) return 'Vence mañana';
-    return Formatters.dayShort(nextPaymentDate!);
-  }
-
-  bool get isOverdue {
-    if (nextPaymentDate == null) return false;
-    return nextPaymentDate!.isBefore(DateTime.now());
-  }
-}
-
-class UrgentPaymentVM {
-  final num amount;
-  final String concept;
-  final DateTime dueDate;
-  final String vehicleName;
-
-  UrgentPaymentVM({
-    required this.amount,
-    required this.concept,
-    required this.dueDate,
-    required this.vehicleName,
-  });
-
-  String get timeRemaining {
-    final now = DateTime.now();
-    final diff = dueDate.difference(now);
-
-    if (diff.inHours < 0) return 'Vencido';
-    if (diff.inHours == 0) return 'Vence en ${diff.inMinutes}m';
-    if (diff.inHours < 24) return 'Vence en ${diff.inHours}h';
-    return 'Vence hoy';
-  }
-
-  bool get isOverdue => dueDate.isBefore(DateTime.now());
-}
-
-// ============================================================================
-// CONTROLLER
-// ============================================================================
-class TenantHomeController extends GetxController {
-  final userName = 'Alexander'.obs;
-  final now = DateTime.now().obs;
-  final notificationsCount = 3.obs;
-
-  // Urgent Payment
-  final urgentPayment = Rxn<UrgentPaymentVM>();
-
-  // Pico y Placa
-  final picoPlacaActive = false.obs;
-  final picoPlacaCity = 'Barranquilla'.obs;
-
-  // Tasks
-  final tasks = <TaskVM>[].obs;
-  final showAllTasks = false.obs;
-
-  // Rentals
-  final rentals = <RentalVM>[].obs;
-
-  // AI Messages
-  final aiMessages = <AIBannerMessage>[].obs;
-
-  // Online assistance subscription
-  final assistanceSubscribed = false.obs;
-
-  @override
-  void onInit() {
-    super.onInit();
-    _loadMockData();
-  }
-
-  void _loadMockData() {
-    urgentPayment.value = UrgentPaymentVM(
-      amount: 450000,
-      concept: 'Arriendo',
-      dueDate: DateTime.now().add(const Duration(hours: 2)),
-      vehicleName: 'Hyundai Grand i10',
-    );
-
-    tasks.value = [
-      TaskVM(
-        id: '1',
-        icon: Icons.local_gas_station_rounded,
-        iconColor: const Color(0xFFEF4444),
-        title: 'Pagar arriendo del vehículo',
-        subtitle: '🚗 Hyundai Grand i10',
-        dueDate: DateTime.now().add(const Duration(hours: 2)),
-        isUrgent: true,
-      ),
-      TaskVM(
-        id: '2',
-        icon: Icons.build_rounded,
-        iconColor: const Color(0xFFF59E0B),
-        title: 'Revisar equipo de carretera',
-        subtitle: '🚗 Hyundai Grand i10',
-        dueDate: DateTime.now().add(const Duration(hours: 6)),
-      ),
-      TaskVM(
-        id: '3',
-        icon: Icons.engineering_rounded,
-        iconColor: const Color(0xFF3B82F6),
-        title: 'Llevar el carro al taller',
-        subtitle: '🚗 Hyundai Grand i10',
-        dueDate: DateTime.now().add(const Duration(hours: 9)),
-      ),
-    ];
-
-    rentals.value = [
-      RentalVM(
-        id: '1',
-        icon: '🚗',
-        type: 'Vehículo',
-        name: 'Hyundai Grand i10',
-        details: 'WPV-584 • 2018',
-        hasPendingPayment: true,
-        pendingInvoices: 1,
-        nextPaymentAmount: 450000,
-        nextPaymentDate: DateTime.now().add(const Duration(hours: 2)),
-      ),
-      RentalVM(
-        id: '2',
-        icon: '🏠',
-        type: 'Inmueble',
-        name: 'Casa en San José',
-        details: 'Calle 45 # 19-54',
-        hasPendingPayment: false,
-        pendingInvoices: 0,
-        nextPaymentAmount: 980000,
-        nextPaymentDate: DateTime.now().add(const Duration(days: 15)),
-      ),
-    ];
-
-    aiMessages.value = [
-      AIBannerMessage(
-        type: AIMessageType.warning,
-        icon: Icons.gavel_rounded,
-        title: 'Tienes 3 multas vigentes.',
-        subtitle: 'Verifica',
-      ),
-      AIBannerMessage(
-        type: AIMessageType.info,
-        icon: Icons.trending_up_rounded,
-        title: 'Morosidad en 6.3%',
-      ),
-      AIBannerMessage(
-        type: AIMessageType.success,
-        icon: Icons.lightbulb_outline_rounded,
-        title: 'Tip:  ahorra 2%',
-      ),
-      AIBannerMessage(
-        type: AIMessageType.critical,
-        icon: Icons.lightbulb_outline_rounded,
-        title: 'Tip: Programa pagos',
-      ),
-    ];
-  }
-
-  String get greeting => Formatters.timeOfDay(now.value);
-  String get todayLabel => Formatters.dayShort(now.value);
-  String get picoPlacaLabel => picoPlacaActive.value
-      ? '🔴 Pico y Placa HOY en ${picoPlacaCity.value}'
-      : 'Sin restricción vehicular en ${picoPlacaCity.value}';
-
-  int get urgentTasksCount =>
-      tasks.where((t) => t.isUrgent && !t.isCompleted).length;
-  int get totalTasksCount => tasks.where((t) => !t.isCompleted).length;
-
-  List<TaskVM> get visibleTasks =>
-      showAllTasks.value ? tasks : tasks.take(3).toList();
-
-  void toggleTasksView() {
-    showAllTasks.value = !showAllTasks.value;
-    HapticFeedback.selectionClick();
-  }
-
-  void goToPayment() {
-    HapticFeedback.mediumImpact();
-    Analytics.track('urgent_payment_tap');
-    Get.toNamed(_TenantRoutes.paymentsPending);
-  }
-
-  void goToNotifications() {
-    HapticFeedback.lightImpact();
-    Analytics.track('notifications_tap');
-    Get.toNamed(_TenantRoutes.notifications);
-  }
-
-  void goToProfile() {
-    HapticFeedback.lightImpact();
-    Analytics.track('profile_tap');
-    Get.toNamed(_TenantRoutes.profile);
-  }
-
-  void onTaskTap(TaskVM task) {
-    HapticFeedback.selectionClick();
-    Analytics.track('task_tap', {'task_id': task.id});
-  }
-
-  void onRentalTap(RentalVM rental) {
-    HapticFeedback.selectionClick();
-    Analytics.track('rental_tap', {'rental_id': rental.id});
-  }
-
-  void onAIMessageTap() {
-    HapticFeedback.lightImpact();
-    Analytics.track('ai_banner_tap');
-  }
-
-  // --- Emergencias actions (placeholder navigations) ---
-  void openCai() {
-    HapticFeedback.mediumImpact();
-    Analytics.track('emergency_cai');
-    Get.toNamed(_TenantRoutes.emergencyCai);
-  }
-
-  void callAmbulance() {
-    HapticFeedback.mediumImpact();
-    Analytics.track('emergency_ambulance');
-    Get.toNamed(_TenantRoutes.emergencyAmbulance);
-  }
-
-  void callFirefighters() {
-    HapticFeedback.mediumImpact();
-    Analytics.track('emergency_firefighters');
-    Get.toNamed(_TenantRoutes.emergencyFirefighters);
-  }
-
-  void requestTow() {
-    HapticFeedback.mediumImpact();
-    Analytics.track('emergency_tow');
-    Get.toNamed(_TenantRoutes.emergencyTow);
-  }
-
-  void openAccidentGuide() {
-    HapticFeedback.lightImpact();
-    Analytics.track('accident_guide');
-    Get.toNamed(_TenantRoutes.accidentGuide);
-  }
-
-  void registerCallInsurance() {
-    HapticFeedback.lightImpact();
-    Analytics.track('accident_guide');
-    Get.toNamed(_TenantRoutes.callInsurance);
-  }
-
-  void openLegalHelp() {
-    HapticFeedback.lightImpact();
-    Analytics.track('accident_guide');
-    Get.toNamed(_TenantRoutes.legalHelp);
-  }
-
-  void openTechHelp() {
-    HapticFeedback.lightImpact();
-    Analytics.track('tech_help');
-    Get.toNamed(_TenantRoutes.techHelp);
-  }
-
-  void openOnlineAssistance() {
-    HapticFeedback.lightImpact();
-    Analytics.track('online_assistance');
-    Get.toNamed(_TenantRoutes.onlineAssistance);
-  }
-}
-
-// ============================================================================
 // PAGE
 // ============================================================================
 class TenantHomePage extends GetView<TenantHomeController> {
@@ -546,44 +153,59 @@ class TenantHomePage extends GetView<TenantHomeController> {
 
   @override
   Widget build(BuildContext context) {
-    Get.put(TenantHomeController());
-
+    // TenantHomeController registrado por TenantHomeBinding (app_pages.dart).
+    // No usar Get.put() aquí — instanciaría un segundo controller en cada rebuild.
     final theme = Theme.of(context);
     final semantic = theme.extension<SemanticColors>() ??
         SemanticColors.from(theme.colorScheme);
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      body: CustomScrollView(
-        slivers: [
-          _buildAppBar(context, theme),
+      body: Obx(() => CustomScrollView(
+            slivers: [
+              _buildAppBar(context, theme),
 
-          // IA Banner con margen superior/lateral
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpacing.sm, AppSpacing.sm, AppSpacing.sm, 0),
-            sliver: SliverAIBanner(
-              messages: controller.aiMessages,
-              showHeader: false,
-              rotationInterval: const Duration(seconds: 5),
-              onTap: controller.onAIMessageTap,
-              borderRadius: BorderRadius.circular(AppRadius.xl),
-            ),
-          ),
+              // IA Banner con margen superior/lateral
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.sm, AppSpacing.sm, AppSpacing.sm, 0),
+                sliver: SliverAIBanner(
+                  messages: controller.aiMessages,
+                  showHeader: false,
+                  rotationInterval: const Duration(seconds: 5),
+                  onTap: controller.onAIMessageTap,
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                ),
+              ),
 
-          SliverPadding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                _buildQuickStats(context, theme, semantic),
-                const SizedBox(height: AppSpacing.md),
-                _buildRentalsSection(context, theme, semantic),
-                const SizedBox(height: AppSpacing.xxxl * 2),
-              ]),
-            ),
-          ),
-        ],
-      ),
+              // ── Card de métricas de alertas → tap → AlertCenter ────────────
+              if (controller.totalAlertsCount > 0)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.sm, AppSpacing.sm, AppSpacing.sm, 0),
+                    child: _AlertsSummaryCard(
+                      total: controller.totalAlertsCount,
+                      critical: controller.criticalAlertsCount,
+                      affectedAssets: controller.affectedAssetsCount,
+                      onTap: () => Get.toNamed(Routes.alertCenter),
+                    ),
+                  ),
+                ),
+
+              SliverPadding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    _buildQuickStats(context, theme, semantic),
+                    const SizedBox(height: AppSpacing.md),
+                    _buildRentalsSection(context, theme, semantic),
+                    const SizedBox(height: AppSpacing.xxxl * 2),
+                  ]),
+                ),
+              ),
+            ],
+          )),
     );
   }
 
@@ -1438,7 +1060,7 @@ class TenantHomePage extends GetView<TenantHomeController> {
             TextButton(
               onPressed: () {
                 Analytics.track('view_all_rentals');
-                Get.toNamed(_TenantRoutes.rentalsAll);
+                Get.toNamed(TenantHomeRoutes.rentalsAll);
               },
               child: Text(
                 'Ver todos',
@@ -1832,5 +1454,121 @@ class _RentalCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ALERTS SUMMARY CARD — Métricas de alertas promovidas con tap → AlertCenter
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _AlertsSummaryCard extends StatelessWidget {
+  final int total;
+  final int critical;
+  final int affectedAssets;
+  final VoidCallback onTap;
+
+  const _AlertsSummaryCard({
+    required this.total,
+    required this.critical,
+    required this.affectedAssets,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final hasCritical = critical > 0;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
+        ),
+        decoration: BoxDecoration(
+          color: hasCritical
+              ? cs.errorContainer.withValues(alpha: 0.5)
+              : cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+          border: Border.all(
+            color: hasCritical
+                ? cs.error.withValues(alpha: 0.4)
+                : cs.outlineVariant,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              hasCritical
+                  ? Icons.warning_rounded
+                  : Icons.notifications_active_rounded,
+              color: hasCritical ? cs.error : cs.primary,
+              size: 22,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$total ${total == 1 ? 'alerta activa' : 'alertas activas'}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: hasCritical ? cs.error : cs.onSurface,
+                    ),
+                  ),
+                  Text(
+                    _subtitle(),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (hasCritical)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: cs.error,
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                    child: Text(
+                      '$critical crítica${critical == 1 ? '' : 's'}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: cs.onError,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: AppSpacing.sm),
+                Icon(Icons.chevron_right_rounded,
+                    color: cs.onSurfaceVariant, size: 20),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _subtitle() {
+    final parts = <String>[];
+    if (affectedAssets > 0) {
+      parts
+          .add('$affectedAssets ${affectedAssets == 1 ? 'activo' : 'activos'}');
+    }
+    if (critical > 0) {
+      parts.add('requieren atención');
+    }
+    return parts.isNotEmpty ? parts.join(' · ') : 'Ver centro de alertas';
   }
 }

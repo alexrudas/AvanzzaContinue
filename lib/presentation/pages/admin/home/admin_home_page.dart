@@ -18,11 +18,12 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../../../application/services/accounting/accounting_outbox_sync_service.dart';
-import '../../../../routes/app_pages.dart';
 import '../../../../core/auth/auth_state_observer.dart';
 import '../../../../domain/entities/accounting/accounting_event.dart';
 import '../../../../domain/entities/portfolio/portfolio_entity.dart';
 import '../../../../infrastructure/isar/repositories/isar_accounting_event_repository.dart';
+import '../../../../routes/app_pages.dart';
+import '../../../../routes/app_routes.dart';
 import '../../../config/empty_state_config.dart';
 import '../../../controllers/activation/activation_gate_controller.dart';
 import '../../../controllers/admin/home/admin_home_controller.dart';
@@ -383,7 +384,51 @@ class _AdminHomePageState extends State<AdminHomePage> {
         const AdminSectionTitle(title: 'Estado operativo'),
         const SizedBox(height: 12),
         _buildOperationalStatusCard(),
-        const SizedBox(height: 24),
+
+        // Alertas de compliance del pipeline canónico (SOAT, RTM, RC, legal).
+        // DISTINTO de AdminOperationalStatusCard (incidencias/compras).
+        // Solo visible cuando hay alertas promovidas activas.
+        Obx(() {
+          if (controller.totalAlertsCount == 0) {
+            return const SizedBox(height: 24);
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 12),
+              _AdminAlertsSummaryCard(
+                total: controller.totalAlertsCount,
+                critical: controller.criticalAlertsCount,
+                affectedAssets: controller.affectedAssetsCount,
+                onTap: () => Get.toNamed(Routes.alertCenter),
+              ),
+              const SizedBox(height: 24),
+            ],
+          );
+        }),
+
+        // Oportunidades comerciales del pipeline canónico (alertKind == opportunity).
+        // DISTINTO de alertas de compliance: no incrementa contadores de alertas.
+        // Solo visible cuando hay oportunidades activas.
+        Obx(() {
+          if (controller.opportunityCount == 0) {
+            return const SizedBox.shrink();
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _AdminOpportunitiesCard(
+                count: controller.opportunityCount,
+                summaryText: controller.opportunitySummaryText,
+                onTap: () => Get.toNamed(
+                  Routes.alertCenter,
+                  arguments: 'opportunities',
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          );
+        }),
 
         // KPIs Section — SIEMPRE VISIBLE (Activos + Egresos del mes)
         const AdminSectionTitle(title: 'Resumen'),
@@ -1144,6 +1189,195 @@ class _AmbientLight extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
         child: Container(color: Colors.transparent),
+      ),
+    );
+  }
+}
+
+/// Card de resumen de alertas de compliance (SOAT, RTM, RC, legal).
+/// Distinta de AdminOperationalStatusCard (incidencias/compras).
+/// Tap navega al centro de alertas.
+class _AdminAlertsSummaryCard extends StatelessWidget {
+  final int total;
+  final int critical;
+  final int affectedAssets;
+  final VoidCallback onTap;
+
+  const _AdminAlertsSummaryCard({
+    required this.total,
+    required this.critical,
+    required this.affectedAssets,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final hasCritical = critical > 0;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: hasCritical
+              ? cs.errorContainer.withValues(alpha: 0.5)
+              : cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: hasCritical
+                ? cs.error.withValues(alpha: 0.4)
+                : cs.outlineVariant,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              hasCritical
+                  ? Icons.warning_rounded
+                  : Icons.notifications_active_rounded,
+              color: hasCritical ? cs.error : cs.primary,
+              size: 22,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    total == 0
+                        ? 'Sin alertas'
+                        : '$total ${total == 1 ? 'alerta' : 'alertas'}',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: hasCritical ? cs.error : cs.onSurface,
+                    ),
+                  ),
+                  Text(
+                    _subtitle(),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (hasCritical)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: cs.error,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '$critical crítica${critical == 1 ? '' : 's'}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: cs.onError,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                Icon(Icons.chevron_right_rounded,
+                    color: cs.onSurfaceVariant, size: 20),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _subtitle() {
+    final parts = <String>[];
+    if (affectedAssets > 0) {
+      parts
+          .add('$affectedAssets ${affectedAssets == 1 ? 'activo' : 'activos'}');
+    }
+    if (critical > 0) {
+      parts.add('requieren atención');
+    }
+    return parts.isNotEmpty ? parts.join(' · ') : 'Ver centro de alertas';
+  }
+}
+
+/// Card de oportunidades comerciales (alertKind == opportunity).
+///
+/// Distinta de [_AdminAlertsSummaryCard] (compliance).
+/// Estilo indigo/comercial — no transmite urgencia sino valor.
+/// Tap navega al Alert Center con filtro Oportunidades preseleccionado.
+class _AdminOpportunitiesCard extends StatelessWidget {
+  final int count;
+  final String summaryText;
+  final VoidCallback onTap;
+
+  const _AdminOpportunitiesCard({
+    required this.count,
+    required this.summaryText,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const indigo = Color(0xFF6366F1);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: indigo.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: indigo.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.lightbulb_outline_rounded,
+              color: indigo,
+              size: 22,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$count ${count == 1 ? 'Oportunidad' : 'Oportunidades'}',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: indigo,
+                    ),
+                  ),
+                  if (summaryText.isNotEmpty)
+                    Text(
+                      summaryText,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Text(
+              'Ver',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: indigo,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right_rounded, color: indigo, size: 20),
+          ],
+        ),
       ),
     );
   }

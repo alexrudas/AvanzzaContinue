@@ -107,6 +107,47 @@ abstract class Routes {
   /// CONTRACT: Get.toNamed(Routes.segurosRcDetail, arguments: assetId (String))
   static const segurosRcDetail = _Paths.segurosRcDetail;
 
+  /// Detalle de Estado Jurídico (limitaciones + garantías y gravámenes).
+  /// CONTRACT: Get.toNamed(Routes.legalStatus, arguments: assetId (String))
+  static const legalStatus = _Paths.legalStatus;
+
+  /// Alias canónico de [legalStatus]. Preferir este nombre en nuevos usos.
+  /// CONTRACT: Get.toNamed(Routes.assetJuridicalStatus, arguments: assetId (String))
+  static const assetJuridicalStatus = _Paths.legalStatus;
+
+  /// Información completa del vehículo (identificación, técnicos, admin).
+  /// CONTRACT: Get.toNamed(Routes.vehicleInfo, arguments: AssetVehiculoEntity)
+  static const vehicleInfo = _Paths.vehicleInfo;
+
+  /// Panel de documentos y estado oficial RUNT del vehículo.
+  /// CONTRACT: Get.toNamed(Routes.runtConsult, arguments: AssetVehiculoEntity)
+  static const runtConsult = _Paths.runtConsult;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ALERTAS
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /// Vista global de alertas de la flota.
+  /// CONTRACT: no requiere arguments — carga todas las alertas de la org activa.
+  static const alertCenter = _Paths.alertCenter;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // FLUJO COTIZACIÓN SRCE (RC Extracontractual)
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /// Formulario de solicitud de cotización SRCE.
+  /// CONTRACT: Get.toNamed(Routes.rcQuoteRequest, arguments: Map{
+  ///   'assetId': String,
+  ///   'primaryLabel': String?,
+  ///   'secondaryLabel': String?,
+  ///   'vehicleSnapshot': VehicleSnapshot?,
+  /// })
+  static const rcQuoteRequest = _Paths.rcQuoteRequest;
+
+  /// Estado del lead de cotización SRCE creado.
+  /// CONTRACT: Get.offNamed(Routes.rcQuoteStatus, arguments: InsuranceOpportunityLead)
+  static const rcQuoteStatus = _Paths.rcQuoteStatus;
+
   // ══════════════════════════════════════════════════════════════════════════
   // DEMO / DESARROLLO
   // ══════════════════════════════════════════════════════════════════════════
@@ -175,6 +216,18 @@ abstract class _Paths {
   static const assetRtmDetail = '/asset/rtm/detail';
   static const soatDetail = '/asset/insurance/soat';
   static const segurosRcDetail = '/asset/insurance/rc';
+  static const legalStatus = '/asset/legal';
+
+  // Asset detail modules (cont.)
+  static const vehicleInfo = '/asset/vehicle/info';
+  static const runtConsult = '/asset/runt/consult';
+
+  // Alertas
+  static const alertCenter = '/alerts/center';
+
+  // Flujo cotización SRCE
+  static const rcQuoteRequest = '/insurance/rc/quote/request';
+  static const rcQuoteStatus = '/insurance/rc/quote/status';
 
   // Demo
   static const bottomNavDemo = '/demo/bottom-nav';

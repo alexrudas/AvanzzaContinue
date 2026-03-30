@@ -4,7 +4,7 @@
 //
 // QUÉ HACE:
 // - Define AssetSummaryVM como sealed class con una variante por tipo de activo.
-// - Implementa Equatable para renderizado de listas ultra-eficiente (Zero Rebuilds).
+// - Implementa Equatable para comparación por valor (eficiencia en listas).
 // - Soporta Mixins operativos (ej: OperativeAlerts) para extensibilidad.
 // - Desacopla 100% la UI de las entidades de dominio puro (AssetEntity).
 //
@@ -19,16 +19,24 @@
 //
 // ENTERPRISE NOTES:
 // CREADO (2026-03): Capa de presentación inmutable y reactiva.
-// Optimizado para listas de alto rendimiento conectadas a streams (WebSockets).
 // ============================================================================
 
 import 'package:equatable/equatable.dart';
 
-/// Mixin para activos que pueden reportar anomalías o alertas operativas.
-/// Ideal para integración con telemetría o fechas de vencimiento (SOAT, Técnico-mecánica).
+import '../../../domain/entities/alerts/alert_severity.dart';
+import '../../alerts/viewmodels/alert_card_vm.dart';
+
+/// Mixin para activos que pueden reportar alertas operativas de cumplimiento.
+///
+/// V1: solo lo implementa [VehicleSummaryVM].
+/// Fase 6+: extender a MachinerySummaryVM, RealEstateSummaryVM según dominio.
 mixin OperativeAlerts {
-  List<String>? get alerts;
-  bool get hasCriticalAlerts => alerts?.isNotEmpty ?? false;
+  /// Lista de alertas activas. Vacío significa "sin alertas" — nunca null.
+  List<AlertCardVm> get alerts;
+
+  /// True si al menos una alerta tiene severity == [AlertSeverity.critical].
+  bool get hasCriticalAlerts =>
+      alerts.any((a) => a.severity == AlertSeverity.critical);
 }
 
 /// Sealed class base para todos los ViewModels de resumen de activos.
@@ -91,7 +99,7 @@ final class VehicleSummaryVM extends AssetSummaryVM with OperativeAlerts {
   final String stateLabel;
 
   @override
-  final List<String>? alerts;
+  final List<AlertCardVm> alerts;
 
   const VehicleSummaryVM({
     required this.assetId,
@@ -110,7 +118,7 @@ final class VehicleSummaryVM extends AssetSummaryVM with OperativeAlerts {
     this.engine,
     this.ownerName,
     this.ownerDocument,
-    this.alerts,
+    this.alerts = const [],
     required this.stateLabel,
   });
 

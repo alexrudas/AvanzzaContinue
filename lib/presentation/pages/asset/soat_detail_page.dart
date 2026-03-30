@@ -39,6 +39,8 @@ import 'package:intl/intl.dart';
 import '../../../core/di/container.dart';
 import '../../../core/theme/spacing.dart';
 import '../../../domain/entities/insurance/insurance_policy_entity.dart';
+import '../../controllers/asset/asset_detail_runt_controller.dart';
+import '../../widgets/asset_document_context_header.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ESTADO INTERNO DE CARGA
@@ -61,13 +63,30 @@ class _SoatDetailPageState extends State<SoatDetailPage> {
   /// Pólizas SOAT del activo, ordenadas por fechaFin descendente.
   List<InsurancePolicyEntity> _policies = [];
   _PageState _state = _PageState.loading;
+  String _assetPrimaryLabel = '';
+  String? _assetSecondaryLabel;
 
   @override
   void initState() {
     super.initState();
-    final arg = Get.arguments;
-    if (arg is String && arg.isNotEmpty) {
-      _loadData(arg);
+    final args = Get.arguments;
+    String? assetId;
+    if (args is Map) {
+      // Entry point: AlertCenter — labels viajan en el Map junto al assetId.
+      assetId = args['assetId'] as String?;
+      _assetPrimaryLabel = (args['primaryLabel'] as String?) ?? '';
+      _assetSecondaryLabel = args['secondaryLabel'] as String?;
+    } else if (args is String && args.isNotEmpty) {
+      // Entry point: AssetDetailPage → labels desde AssetDetailRuntController.
+      assetId = args;
+      try {
+        final runtCtrl = Get.find<AssetDetailRuntController>();
+        _assetPrimaryLabel = runtCtrl.vehiclePrimaryLabel;
+        _assetSecondaryLabel = runtCtrl.vehicleSecondaryLabel;
+      } catch (_) {}
+    }
+    if (assetId != null && assetId.isNotEmpty) {
+      _loadData(assetId);
     } else {
       _state = _PageState.invalidArg;
     }
@@ -124,36 +143,49 @@ class _SoatDetailPageState extends State<SoatDetailPage> {
               ?.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
-      body: switch (_state) {
-        _PageState.loading => const _LoadingState(),
-        _PageState.invalidArg => _MessageState(
-            icon: Icons.link_off_rounded,
-            iconColor: cs.error,
-            title: 'Navegación inválida',
-            body: 'No se recibió el identificador del activo. '
-                'Regresa e intenta de nuevo.',
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_assetPrimaryLabel.isNotEmpty)
+            AssetDocumentContextHeader(
+              primaryLabel: _assetPrimaryLabel,
+              secondaryLabel: _assetSecondaryLabel,
+              sectionTitle: 'SOAT',
+            ),
+          Expanded(
+            child: switch (_state) {
+              _PageState.loading => const _LoadingState(),
+              _PageState.invalidArg => _MessageState(
+                  icon: Icons.link_off_rounded,
+                  iconColor: cs.error,
+                  title: 'Navegación inválida',
+                  body: 'No se recibió el identificador del activo. '
+                      'Regresa e intenta de nuevo.',
+                ),
+              _PageState.loadError => _MessageState(
+                  icon: Icons.error_outline_rounded,
+                  iconColor: cs.error,
+                  title: 'Error al cargar',
+                  body: 'No fue posible obtener las pólizas SOAT. '
+                      'Intenta volver e ingresar de nuevo.',
+                ),
+              _PageState.noPolicies => _MessageState(
+                  icon: Icons.shield_outlined,
+                  iconColor: cs.onSurfaceVariant.withValues(alpha: 0.4),
+                  title: 'Sin pólizas SOAT',
+                  body: 'Este vehículo no tiene registros SOAT disponibles. '
+                      'Los datos aparecen cuando el vehículo es consultado '
+                      'en el RUNT durante el proceso de registro.',
+                ),
+              _PageState.ready => _SoatContent(
+                  policies: _policies,
+                  cs: cs,
+                  theme: theme,
+                ),
+            },
           ),
-        _PageState.loadError => _MessageState(
-            icon: Icons.error_outline_rounded,
-            iconColor: cs.error,
-            title: 'Error al cargar',
-            body: 'No fue posible obtener las pólizas SOAT. '
-                'Intenta volver e ingresar de nuevo.',
-          ),
-        _PageState.noPolicies => _MessageState(
-            icon: Icons.shield_outlined,
-            iconColor: cs.onSurfaceVariant.withValues(alpha: 0.4),
-            title: 'Sin pólizas SOAT',
-            body: 'Este vehículo no tiene registros SOAT disponibles. '
-                'Los datos aparecen cuando el vehículo es consultado '
-                'en el RUNT durante el proceso de registro.',
-          ),
-        _PageState.ready => _SoatContent(
-            policies: _policies,
-            cs: cs,
-            theme: theme,
-          ),
-      },
+        ],
+      ),
     );
   }
 }

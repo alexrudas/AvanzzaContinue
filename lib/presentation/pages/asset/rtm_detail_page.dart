@@ -40,6 +40,8 @@ import 'package:intl/intl.dart';
 import '../../../core/di/container.dart';
 import '../../../core/theme/spacing.dart';
 import '../../../domain/entities/vehicle/vehicle_document_status.dart';
+import '../../controllers/session_context_controller.dart';
+import '../../widgets/asset_document_context_header.dart';
 import 'asset_rtm_helpers.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,6 +68,10 @@ enum _PageState {
   /// parseables (activo registrado sin consulta RUNT, o RUNT sin datos RTM).
   noRtmData,
 
+  /// Activo en periodo de exención RTM (rtmExemptUntil >= now, sin RTM registrada).
+  /// La exención se lee del snapshot de dominio; nunca se recalcula en UI.
+  exempt,
+
   /// Datos RTM disponibles y resueltos correctamente.
   ready,
 }
@@ -83,7 +89,11 @@ class RtmDetailPage extends StatefulWidget {
 
 class _RtmDetailPageState extends State<RtmDetailPage> {
   VehicleDocumentStatus? _rtmDoc;
+  DateTime? _rtmExemptUntil;
   _PageState _state = _PageState.loading;
+
+  String _assetPrimaryLabel = '';
+  String? _assetSecondaryLabel;
 
   @override
   void initState() {
@@ -92,10 +102,20 @@ class _RtmDetailPageState extends State<RtmDetailPage> {
   }
 
   void _initFromArgs() {
-    final arg = Get.arguments;
-    if (arg is String && arg.isNotEmpty) {
+    final args = Get.arguments;
+    String? assetId;
+    if (args is Map) {
+      // Entry point: AlertCenter — labels viajan en el Map junto al assetId.
+      assetId = args['assetId'] as String?;
+      _assetPrimaryLabel = (args['primaryLabel'] as String?) ?? '';
+      _assetSecondaryLabel = args['secondaryLabel'] as String?;
+    } else if (args is String && args.isNotEmpty) {
+      assetId = args;
+    }
+    if (assetId != null && assetId.isNotEmpty) {
       // Inicia la carga; _state permanece loading hasta que _loadRtmData complete.
-      _loadRtmData(arg);
+      // Si veh carga OK, sus labels (veh.placa, etc.) reemplazarán los del Map.
+      _loadRtmData(assetId);
     } else {
       // Asignación directa — no llamar setState dentro de initState.
       _state = _PageState.invalidArg;
@@ -123,11 +143,46 @@ class _RtmDetailPageState extends State<RtmDetailPage> {
         return;
       }
 
+      _assetPrimaryLabel = veh.placa;
+      _assetSecondaryLabel =
+          buildVehicleSecondaryLabel(veh.marca, veh.modelo, veh.anio);
+
       final rtm = parseRtmFromMetaJson(veh.runtMetaJson);
-      setState(() {
-        _rtmDoc = rtm;
-        _state = rtm != null ? _PageState.ready : _PageState.noRtmData;
-      });
+
+      // ORDEN OBLIGATORIO: exempt → ready → noRtmData.
+      if (rtm != null) {
+        setState(() {
+          _rtmDoc = rtm;
+          _state = _PageState.ready;
+        });
+        return;
+      }
+
+      // Sin RTM — consultar snapshot de dominio para rtmExemptUntil.
+      // No recalcular: la lógica de exención vive en AssetAlertSnapshotAssembler.
+      final orgId = Get.find<SessionContextController>()
+          .activeWorkspaceContext.value?.orgId;
+
+      if (orgId != null) {
+        final snapshot = await DIContainer()
+            .assetAlertSnapshotAssembler
+            .assemble(assetId: assetId, orgId: orgId);
+
+        if (!mounted) return;
+
+        final exemptUntil = snapshot?.rtmExemptUntil;
+        if (exemptUntil != null &&
+            exemptUntil.isAfter(DateTime.now().toUtc())) {
+          setState(() {
+            _rtmExemptUntil = exemptUntil;
+            _state = _PageState.exempt;
+          });
+          return;
+        }
+      }
+
+      if (!mounted) return;
+      setState(() => _state = _PageState.noRtmData);
     } catch (e) {
       if (kDebugMode) {
         debugPrint('[RTM_DETAIL][_loadRtmData] Error al cargar datos RTM '
@@ -161,13 +216,29 @@ class _RtmDetailPageState extends State<RtmDetailPage> {
               ?.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
-      body: switch (_state) {
-        _PageState.loading => const _LoadingState(),
-        _PageState.invalidArg => const _InvalidArgState(),
-        _PageState.loadError => const _LoadErrorState(),
-        _PageState.noRtmData => const _NoRtmDataState(),
-        _PageState.ready => _RtmContent(rtm: _rtmDoc!, cs: cs, theme: theme),
-      },
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_assetPrimaryLabel.isNotEmpty)
+            AssetDocumentContextHeader(
+              primaryLabel: _assetPrimaryLabel,
+              secondaryLabel: _assetSecondaryLabel,
+              sectionTitle: 'Revisión Técnico-Mecánica',
+            ),
+          Expanded(
+            child: switch (_state) {
+              _PageState.loading => const _LoadingState(),
+              _PageState.invalidArg => const _InvalidArgState(),
+              _PageState.loadError => const _LoadErrorState(),
+              _PageState.exempt =>
+                _RtmExemptState(exemptUntil: _rtmExemptUntil!),
+              _PageState.noRtmData => const _NoRtmDataState(),
+              _PageState.ready =>
+                _RtmContent(rtm: _rtmDoc!, cs: cs, theme: theme),
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -226,8 +297,10 @@ class _StatusBadge extends StatelessWidget {
       DocumentValidityStatus.vigente => ('Vigente', cs.tertiary),
       DocumentValidityStatus.porVencer => ('Por vencer', cs.secondary),
       DocumentValidityStatus.vencido => ('Vencida', cs.error),
-      DocumentValidityStatus.desconocido =>
-        ('Sin información', cs.onSurfaceVariant),
+      DocumentValidityStatus.desconocido => (
+          'Sin información',
+          cs.onSurfaceVariant
+        ),
     };
 
     return Row(
@@ -449,8 +522,7 @@ class _DetailRow extends StatelessWidget {
                     color: isAbsent
                         ? cs.onSurfaceVariant.withValues(alpha: 0.5)
                         : cs.onSurface,
-                    fontStyle:
-                        isAbsent ? FontStyle.italic : FontStyle.normal,
+                    fontStyle: isAbsent ? FontStyle.italic : FontStyle.normal,
                   ),
                 ),
               ],
@@ -520,6 +592,35 @@ class _LoadErrorState extends StatelessWidget {
   }
 }
 
+/// [_PageState.exempt]: activo sin RTM pero dentro del periodo de exención.
+///
+/// La fecha [exemptUntil] proviene de [AssetAlertSnapshot.rtmExemptUntil],
+/// calculada por el assembler (2 años público / 5 años particular).
+/// No se recalcula aquí.
+class _RtmExemptState extends StatelessWidget {
+  final DateTime exemptUntil;
+
+  const _RtmExemptState({required this.exemptUntil});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final fmt = DateFormat('d MMM yyyy', 'es_CO');
+    return _CenteredMessage(
+      icon: Icons.verified_outlined,
+      iconColor: cs.primary,
+      title: 'RTM exenta',
+      body: 'Este vehículo se encuentra en periodo de exención de '
+          'Revisión Técnico-Mecánica.\n\n'
+          'Exenta hasta: ${fmt.format(exemptUntil.toLocal())}\n\n'
+          'Fuente: RUNT',
+      cs: cs,
+      theme: theme,
+    );
+  }
+}
+
 /// [_PageState.noRtmData]: activo cargado pero sin registros RTM parseables.
 ///
 /// Ocurre cuando el vehículo fue registrado sin consulta RUNT o el RUNT
@@ -536,9 +637,8 @@ class _NoRtmDataState extends StatelessWidget {
       iconColor: cs.onSurfaceVariant.withValues(alpha: 0.4),
       title: 'Sin datos de RTM',
       body: 'Este vehículo no tiene registros de Revisión '
-          'Técnico-Mecánica disponibles. Los datos aparecen '
-          'cuando el vehículo es consultado en el RUNT durante '
-          'el proceso de registro.',
+          'Técnico-Mecánica disponibles.\n\n'
+          'Fuente: RUNT.',
       cs: cs,
       theme: theme,
     );

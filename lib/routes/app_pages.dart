@@ -54,6 +54,9 @@ import '../presentation/pages/asset/asset_registration_page.dart';
 import '../presentation/pages/asset/rtm_detail_page.dart';
 import '../presentation/pages/asset/soat_detail_page.dart';
 import '../presentation/pages/asset/seguros_rc_detail_page.dart';
+import '../presentation/pages/asset/juridical_status_detail_page.dart';
+import '../presentation/pages/asset/vehicle_info_page.dart';
+import '../presentation/pages/asset/runt_consult_page.dart';
 import '../presentation/pages/portfolio/portfolio_asset_list_page.dart';
 import '../presentation/pages/portfolio/portfolio_detail_page.dart';
 import '../presentation/pages/portfolio/wizard/create_portfolio_step1_page.dart';
@@ -61,6 +64,12 @@ import '../presentation/pages/portfolio/wizard/create_portfolio_step2_page.dart'
 import '../presentation/pages/portfolio/wizard/runt_query_progress_page.dart';
 import '../presentation/pages/portfolio/wizard/runt_query_result_page.dart';
 import '../presentation/pages/simit/simit_consult_page.dart';
+import '../presentation/bindings/alert_center_binding.dart';
+import '../presentation/bindings/insurance/rc_quote_request_binding.dart';
+import '../presentation/bindings/insurance/rc_quote_status_binding.dart';
+import '../presentation/pages/alerts/alert_center_page.dart';
+import '../presentation/pages/insurance/rc_quote_request_page.dart';
+import '../presentation/pages/insurance/rc_quote_status_page.dart';
 import '../presentation/pages/tenant/home/tenant_home_page.dart';
 import 'app_routes.dart';
 
@@ -86,7 +95,7 @@ class AppPages {
     // ════════════════════════════════════════════════════════════════════════
     // AUTH
     // ════════════════════════════════════════════════════════════════════════
-    GetPage(name: Routes.welcome, page: () => AuthWelcomePage()),
+    GetPage(name: Routes.welcome, page: () => const AuthWelcomePage()),
     GetPage(name: Routes.phone, page: () => const PhoneInputPage()),
     GetPage(name: Routes.otp, page: () => const OtpVerifyPage()),
     GetPage(name: Routes.countryCity, page: () => const SelectCountryCityPage()),
@@ -260,6 +269,58 @@ class AppPages {
     GetPage(
       name: Routes.segurosRcDetail,
       page: () => const SegurosRcDetailPage(),
+    ),
+
+    // CONTRACT: Routes.legalStatus requiere argument assetId (String)
+    // Uso: Get.toNamed(Routes.legalStatus, arguments: assetId)
+    GetPage(
+      name: Routes.legalStatus,
+      page: () => const JuridicalStatusDetailPage(),
+    ),
+
+    // CONTRACT: Routes.vehicleInfo requiere argument AssetVehiculoEntity
+    // Uso: Get.toNamed(Routes.vehicleInfo, arguments: vehiculo)
+    GetPage(
+      name: Routes.vehicleInfo,
+      page: () => const VehicleInfoPage(),
+    ),
+
+    // CONTRACT: Routes.runtConsult requiere argument AssetVehiculoEntity
+    // Uso: Get.toNamed(Routes.runtConsult, arguments: vehiculo)
+    GetPage(
+      name: Routes.runtConsult,
+      page: () => const RuntConsultPage(),
+    ),
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ALERTAS
+    // ════════════════════════════════════════════════════════════════════════
+
+    // CONTRACT: no requiere arguments — carga todas las alertas de la org activa.
+    GetPage(
+      name: Routes.alertCenter,
+      page: () => const AlertCenterPage(),
+      binding: AlertCenterBinding(),
+    ),
+
+    // ════════════════════════════════════════════════════════════════════════
+    // FLUJO COTIZACIÓN SRCE (RC Extracontractual)
+    // ════════════════════════════════════════════════════════════════════════
+
+    // CONTRACT: Routes.rcQuoteRequest requiere argument Map o RcQuoteRequestArgs.
+    // Ver RcQuoteRequestArgs en rc_quote_request_page.dart.
+    GetPage(
+      name: Routes.rcQuoteRequest,
+      page: () => const RcQuoteRequestPage(),
+      binding: RcQuoteRequestBinding(),
+    ),
+
+    // CONTRACT: Routes.rcQuoteStatus requiere argument InsuranceOpportunityLead
+    // o RcQuoteStatusArgs. Ver RcQuoteStatusArgs en rc_quote_status_controller.dart.
+    GetPage(
+      name: Routes.rcQuoteStatus,
+      page: () => const RcQuoteStatusPage(),
+      binding: RcQuoteStatusBinding(),
     ),
 
     // ════════════════════════════════════════════════════════════════════════
