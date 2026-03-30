@@ -191,6 +191,14 @@
         { "fieldPath": "cityId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "asset_vehiculo",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "governance.hasPendingHistory", "order": "ASCENDING" },
+        { "fieldPath": "governance.historyPendingSince", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
