@@ -27,7 +27,6 @@ abstract class Routes {
   static const registerUsername = _Paths.registerUsername;
   static const registerEmail = _Paths.registerEmail;
   static const registerIdScan = _Paths.registerIdScan;
-  static const registerTerms = _Paths.registerTerms;
   static const loginUserPass = _Paths.loginUserPass;
   static const loginMfa = _Paths.loginMfa;
   static const registerSummary = _Paths.registerSummary;
@@ -65,11 +64,24 @@ abstract class Routes {
   static const tenantHome = _Paths.tenantHome;
 
   // ══════════════════════════════════════════════════════════════════════════
-  // CONSULTAS EXTERNAS (RUNT / SIMIT)
+  // CONSULTAS EXTERNAS (RUNT / SIMIT / VRC)
   // ══════════════════════════════════════════════════════════════════════════
   static const runtPersonConsult = _Paths.runtPersonConsult;
   static const runtVehicleConsult = _Paths.runtVehicleConsult;
   static const simitConsult = _Paths.simitConsult;
+
+  /// Formulario de consulta VRC Individual (placa + documento).
+  /// CONTRACT: no requiere arguments — los datos se ingresan en el formulario.
+  static const vrcConsult = _Paths.vrcConsult;
+
+  /// Resultado de la consulta VRC Individual.
+  /// CONTRACT: navegar desde VrcConsultPage; el resultado vive en VrcController.
+  static const vrcResult = _Paths.vrcResult;
+
+  /// Progreso y resultado de la consulta VRC Batch (multi-placa).
+  /// CONTRACT: navegar desde AssetRegistrationPage tras llamar
+  /// VrcBatchController.startBatch(). El estado vive en VrcBatchController.
+  static const vrcBatchProgress = _Paths.vrcBatchProgress;
 
   // ══════════════════════════════════════════════════════════════════════════
   // PORTFOLIO / WIZARD
@@ -86,6 +98,10 @@ abstract class Routes {
   /// Lista de activos de un portafolio específico.
   /// CONTRACT: Get.toNamed(Routes.portfolioAssets, arguments: portfolioEntity)
   static const portfolioAssets = _Paths.portfolioAssets;
+
+  /// Vista unificada de activos registrados + batch VRC en progreso.
+  /// CONTRACT: Get.offNamed(Routes.portfolioAssetLive, arguments: AssetRegistrationContext)
+  static const portfolioAssetLive = _Paths.portfolioAssetLive;
 
   /// Detalle de un activo específico.
   /// CONTRACT: Get.toNamed(Routes.assetDetail, arguments: assetId)
@@ -122,6 +138,22 @@ abstract class Routes {
   /// Panel de documentos y estado oficial RUNT del vehículo.
   /// CONTRACT: Get.toNamed(Routes.runtConsult, arguments: AssetVehiculoEntity)
   static const runtConsult = _Paths.runtConsult;
+
+  /// Detalle de licencia de conducción del propietario del vehículo.
+  /// CONTRACT: Get.toNamed(Routes.driverLicenseDetail,
+  ///   arguments: {'data': VrcDataModel, 'checkedAt': DateTime?})
+  static const driverLicenseDetail = _Paths.driverLicenseDetail;
+
+  /// Detalle SIMIT Persona del propietario del vehículo.
+  /// CONTRACT: Get.toNamed(Routes.simitPersonDetail,
+  ///   arguments: {'data': VrcDataModel, 'checkedAt': DateTime?})
+  static const simitPersonDetail = _Paths.simitPersonDetail;
+
+  /// Detalle de ítems individuales SIMIT filtrados por tipo.
+  /// CONTRACT: Get.toNamed(Routes.simitFineDetail,
+  ///   arguments: {'data': VrcDataModel, 'type': String, 'checkedAt': DateTime?})
+  ///   type: 'comparendos' | 'multas' | 'acuerdosDePago'
+  static const simitFineDetail = _Paths.simitFineDetail;
 
   // ══════════════════════════════════════════════════════════════════════════
   // ALERTAS
@@ -169,7 +201,6 @@ abstract class _Paths {
   static const registerUsername = '/auth/register/username';
   static const registerEmail = '/auth/register/email';
   static const registerIdScan = '/auth/register/id-scan';
-  static const registerTerms = '/auth/register/terms';
   static const loginUserPass = '/auth/login';
   static const loginMfa = '/auth/login/mfa';
   static const registerSummary = '/auth/register/summary';
@@ -199,6 +230,9 @@ abstract class _Paths {
   static const runtPersonConsult = '/runt/person';
   static const runtVehicleConsult = '/runt/vehicle';
   static const simitConsult = '/simit/multas';
+  static const vrcConsult = '/vrc/consult';
+  static const vrcResult = '/vrc/result';
+  static const vrcBatchProgress = '/vrc/batch/progress';
 
   // Portfolio / Wizard
   static const createPortfolioStep1 = '/portfolio/create/step1';
@@ -207,6 +241,7 @@ abstract class _Paths {
   static const runtQueryResult = '/portfolio/create/runt/result';
   static const portfolioDetail = '/portfolio/detail';
   static const portfolioAssets = '/portfolio/assets';
+  static const portfolioAssetLive = '/portfolio/asset/live';
   static const assetDetail = '/asset/detail';
 
   // Asset registration
@@ -221,6 +256,11 @@ abstract class _Paths {
   // Asset detail modules (cont.)
   static const vehicleInfo = '/asset/vehicle/info';
   static const runtConsult = '/asset/runt/consult';
+
+  // Owner detail pages
+  static const driverLicenseDetail = '/asset/owner/license';
+  static const simitPersonDetail = '/asset/owner/simit';
+  static const simitFineDetail = '/asset/owner/simit/fines';
 
   // Alertas
   static const alertCenter = '/alerts/center';

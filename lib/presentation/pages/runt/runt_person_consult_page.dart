@@ -81,7 +81,7 @@ class RuntPersonConsultPage extends GetView<RuntController> {
               const SizedBox(height: 16),
               Obx(
                 () => DropdownButtonFormField<String>(
-                  value: controller.documentType.value,
+                  initialValue: controller.documentType.value,
                   decoration: const InputDecoration(
                     labelText: 'Tipo de documento',
                     border: OutlineInputBorder(),

@@ -25,19 +25,19 @@
 // - Contrato estable: parseLegalDataFromMetaJson() retorna SIEMPRE
 //   LegalStatusData, nunca null. Usa LegalStatusData.empty si no hay datos.
 // - Null-safe y type-safe: falla silenciosamente ante datos inválidos.
-// - Claves JSON — DOS paths posibles (prioridad camelCase async → snake legacy):
+// - Claves JSON — TRES paths posibles (prioridad VRC inglés → camelCase async → snake legacy):
 //     runt_limitations items:
-//       'tipoLimitacion'          | 'tipo_de_limitaci_n'              → String?
+//       'type'                    | 'tipoLimitacion'     | 'tipo_de_limitaci_n'              → String?
+//       'authority'               | 'entidadJuridica'    | 'entidad_jur_dica'                → String?
+//       'date'                    | 'fechaExpedicionOficio' | 'fecha_de_expedici_n_del_oficio' → String?
+//       'description'             | 'departamento'       (igual en ambos paths legado)       → String?
+//       'municipality'            | 'municipio'          (igual en ambos paths legado)       → String?
 //       'numeroOficio'            | 'n_mero_de_oficio'                → int?  (NO fecha)
-//       'entidadJuridica'         | 'entidad_jur_dica'                → String?
-//       'departamento'            (igual en ambos paths)              → String?
-//       'municipio'               (igual en ambos paths)              → String?
-//       'fechaExpedicionOficio'   | 'fecha_de_expedici_n_del_oficio'  → String? (no DateTime)
 //       'fechaRegistro'           | 'fecha_de_registro_en_el_sistema' → String? (no DateTime)
 //     runt_warranties items:
-//       'identificacionAcreedor'  | 'identificaci_n_acreedor'         → String?
-//       'acreedor'                (igual en ambos paths)              → String?
-//       'fechaInscripcion'        | 'fecha_de_inscripci_n'            → String? (no DateTime)
+//       'beneficiary'             | 'acreedor'           (igual en path async)               → String?
+//       'creditorId'              | 'identificacionAcreedor' | 'identificaci_n_acreedor'     → String?
+//       'date'                    | 'fechaInscripcion'   | 'fecha_de_inscripci_n'            → String?
 //       'patrimonioAutonomo'      | 'patrimonio_aut_nomo'             → String?
 //       'confecamaras'            | 'confec_maras'                    → String?
 //
@@ -46,7 +46,7 @@
 //   Cachear resultado en _AssetDetailPageState._legalData (setState).
 //   Nunca llamar parseLegalDataFromMetaJson() desde build().
 //
-// ACTUALIZACIÓN (2026-03): Fix de claves de parsing.
+// ACTUALIZACIÓN (2026-03): Fix de claves de parsing (camelCase async).
 //   El sistema de consulta asíncrona (RuntQueryController / runt_query_result_page)
 //   almacena los ítems con claves camelCase extraídas directamente del backend:
 //     runt_limitations: tipoLimitacion, entidadJuridica, fechaExpedicionOficio,
@@ -56,6 +56,14 @@
 //   Las claves snake_case (_$RuntOwnershipLimitationToJson) solo aplican cuando
 //   el dato pasa por el typed model; en el path async van como raw Maps.
 //   _strKey() prioriza camelCase y cae al snake_case como fallback legacy.
+//
+// ACTUALIZACIÓN (2026-04): Fix clave de parsing VRC inglés (Bug forense WPV583).
+//   El backend VRC Individual devuelve los objetos de limitaciones y garantías
+//   con claves en inglés simples distintas de los dos paths anteriores:
+//     runt_limitations: type → limitationType, authority → legalEntity,
+//                       date → officeIssueDate, description → department
+//     runt_warranties:  beneficiary → creditorName, date → registrationDate
+//   _strKey() ahora prioriza inglés VRC → camelCase async → snake_case legacy.
 // ============================================================================
 
 import 'dart:convert';
@@ -321,13 +329,15 @@ List<LimitationItem> _parseLimitations(Map<String, dynamic> decoded) {
     };
 
     final item = LimitationItem(
-      // camelCase (path async) → snake_case encoded (path typed model legacy)
-      limitationType: _strKey(m, ['tipoLimitacion', 'tipo_de_limitaci_n', 'tipo_de_limitacion']),
+      // Prioridad: VRC inglés → camelCase async → snake_case legacy
+      limitationType: _strKey(m, ['type', 'tipoLimitacion', 'tipo_de_limitaci_n', 'tipo_de_limitacion']),
       officeNumber: officeNumber,
-      legalEntity: _strKey(m, ['entidadJuridica', 'entidad_jur_dica', 'entidad_juridica']),
-      department: _str(m['departamento']),
-      municipality: _str(m['municipio']),
-      officeIssueDate: _strKey(m, ['fechaExpedicionOficio', 'fecha_de_expedici_n_del_oficio']),
+      legalEntity: _strKey(m, ['authority', 'entidadJuridica', 'entidad_jur_dica', 'entidad_juridica']),
+      // VRC usa 'description' para el departamento cuando no hay clave explícita
+      department: _strKey(m, ['department', 'departamento', 'description']),
+      municipality: _strKey(m, ['municipality', 'municipio']),
+      // VRC usa 'date' como la fecha única de expedición del oficio
+      officeIssueDate: _strKey(m, ['date', 'fechaExpedicionOficio', 'fecha_de_expedici_n_del_oficio']),
       systemRegistrationDate: _strKey(m, ['fechaRegistro', 'fecha_de_registro_en_el_sistema']),
     );
 
@@ -358,10 +368,12 @@ List<WarrantyItem> _parseWarranties(Map<String, dynamic> decoded) {
     final m = Map<String, dynamic>.from(entry);
 
     final item = WarrantyItem(
-      // camelCase (path async) → snake_case encoded (path typed model legacy)
-      creditorId: _strKey(m, ['identificacionAcreedor', 'identificaci_n_acreedor']),
-      creditorName: _str(m['acreedor']),
-      registrationDate: _strKey(m, ['fechaInscripcion', 'fecha_de_inscripci_n']),
+      // Prioridad: VRC inglés → camelCase async → snake_case legacy
+      // VRC usa 'beneficiary' para el nombre del acreedor/garante
+      creditorName: _strKey(m, ['beneficiary', 'acreedor']),
+      creditorId: _strKey(m, ['creditorId', 'identificacionAcreedor', 'identificaci_n_acreedor']),
+      // VRC usa 'date' como la fecha única de inscripción
+      registrationDate: _strKey(m, ['date', 'fechaInscripcion', 'fecha_de_inscripci_n']),
       autonomousPatrimony: _strKey(m, ['patrimonioAutonomo', 'patrimonio_aut_nomo']),
       confecamaras: _strKey(m, ['confecamaras', 'confec_maras']),
     );

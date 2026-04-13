@@ -437,7 +437,7 @@ class SplashBootstrapController extends GetxController {
       case 4:
         return Routes.profile;
       case 5:
-        return Routes.registerTerms;
+        return Routes.registerSummary;
       case 6:
         return Routes.registerSummary;
       // step 0 (legacy: registerUsername) → redirigir a onboarding moderno.

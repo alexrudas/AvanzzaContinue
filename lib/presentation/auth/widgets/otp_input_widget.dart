@@ -92,7 +92,13 @@ class _OtpInputWidgetState extends State<OtpInputWidget> {
 
   void _checkComplete() {
     final code = _ctls.map((c) => c.text).join();
-    if (code.length == widget.length) widget.onCompleted(code);
+    if (code.length == widget.length) {
+      // Quitar foco de todas las casillas al completar el código.
+      // Sin esto, la última casilla permanece activa y el teclado sigue
+      // aceptando input después del 6.º dígito.
+      FocusScope.of(context).unfocus();
+      widget.onCompleted(code);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -116,11 +122,11 @@ class _OtpInputWidgetState extends State<OtpInputWidget> {
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(widget.length, _buildCell),
+      children: List.generate(widget.length, (idx) => _buildCell(context, idx)),
     );
   }
 
-  Widget _buildCell(int idx) {
+  Widget _buildCell(BuildContext context, int idx) {
     return Container(
       width: 44,
       height: 56,
@@ -130,9 +136,18 @@ class _OtpInputWidgetState extends State<OtpInputWidget> {
         focusNode: _nodes[idx],
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        // Estilo explícito con color del tema: evita heredar color incorrecto
+        // (const TextStyle sin color fallaba en M3 dark/light según plataforma).
+        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+        ),
         decoration: const InputDecoration(
           counterText: '',
+          // contentPadding explícito: sin esto, M3 aplica 16px top+bottom
+          // que con fontSize 20 superaba la altura del Container (56px)
+          // y clipeaba los dígitos mostrando solo fragmentos ("punticos").
+          contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 4),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(8)),
           ),

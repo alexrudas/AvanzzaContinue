@@ -240,9 +240,6 @@ class WorkspaceDrawer extends StatelessWidget {
     'Asesor de seguros',
   ];
 
-  // Evita drift
-  static final _supported = _allWorkspaces.toSet();
-
   static int _preferredOrder(String a, String b) {
     const order = {
       'Administrador': 0,
@@ -308,11 +305,11 @@ class WorkspaceDrawer extends StatelessWidget {
   Future<void> _waitDrawerClose(BuildContext ctx,
       {Duration timeout = const Duration(milliseconds: 500)}) async {
     final start = DateTime.now();
-    while (Scaffold.maybeOf(ctx)?.isDrawerOpen == true) {
+    while (ctx.mounted && Scaffold.maybeOf(ctx)?.isDrawerOpen == true) {
       await SchedulerBinding.instance.endOfFrame;
       if (DateTime.now().difference(start) > timeout) break;
     }
-    await SchedulerBinding.instance.endOfFrame;
+    if (ctx.mounted) await SchedulerBinding.instance.endOfFrame;
   }
 
   Future<void> _goToWorkspace(
@@ -352,7 +349,7 @@ class WorkspaceDrawer extends StatelessWidget {
       }
 
       final ctx = Get.context;
-      if (ctx != null && Scaffold.maybeOf(ctx)?.isDrawerOpen == true) {
+      if (ctx != null && ctx.mounted && Scaffold.maybeOf(ctx)?.isDrawerOpen == true) {
         Navigator.of(ctx).pop();
         await _waitDrawerClose(ctx);
       } else {
@@ -501,6 +498,8 @@ class WorkspaceDrawer extends StatelessWidget {
     );
 
     if (selected == null) return; // Usuario canceló
+
+    if (!context.mounted) return;
 
     // Mostrar confirmación
     final confirmation = await ConfirmationDialog.show(

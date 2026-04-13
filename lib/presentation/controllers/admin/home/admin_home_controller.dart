@@ -35,6 +35,9 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/di/container.dart';
+import '../../../../domain/entities/alerts/alert_code.dart';
+import '../../../../domain/entities/alerts/alert_kind.dart';
+import '../../../../domain/entities/alerts/alert_severity.dart';
 import '../../../../domain/entities/portfolio/portfolio_entity.dart';
 import '../../../../domain/repositories/accounting_repository.dart';
 import '../../../../domain/repositories/asset_repository.dart';
@@ -47,9 +50,6 @@ import '../../../alerts/mappers/domain_alert_mapper.dart';
 import '../../../alerts/viewmodels/alert_card_vm.dart';
 import '../../../common/ensure_registered_guard.dart';
 import '../../session_context_controller.dart';
-import '../../../../domain/entities/alerts/alert_code.dart';
-import '../../../../domain/entities/alerts/alert_kind.dart';
-import '../../../../domain/entities/alerts/alert_severity.dart';
 
 // ============================================================================
 // UI EVENT PATTERN (data-only)
@@ -206,8 +206,9 @@ class AdminHomeController extends GetxController {
   int get totalAlertsCount => promotedAlertVms.length;
 
   /// Total de alertas con severidad CRITICAL.
-  int get criticalAlertsCount =>
-      promotedAlertVms.where((v) => v.severity == AlertSeverity.critical).length;
+  int get criticalAlertsCount => promotedAlertVms
+      .where((v) => v.severity == AlertSeverity.critical)
+      .length;
 
   /// Número de activos únicos con al menos una alerta de compliance.
   int get affectedAssetsCount =>
@@ -227,8 +228,7 @@ class AdminHomeController extends GetxController {
         .toSet()
         .length;
     if (count == 0) return '';
-    return 'RC extracontractual recomendada para $count '
-        '${count == 1 ? "vehículo" : "vehículos"}';
+    return '$count ${count == 1 ? "activo compromete tu patrimonio" : "activos comprometen tu patrimonio"}';
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -453,6 +453,28 @@ class AdminHomeController extends GetxController {
       }
 
       final orgId = _orgId!;
+
+      // Reparar portafolios huérfanos antes de suscribirse al stream.
+      // Race condition de arranque: si _resolveOrgId() devolvió '' cuando
+      // el usuario creó el portafolio, este call parchea esos registros con
+      // el orgId correcto. Debe ejecutarse antes de watchActiveByOrg para
+      // que el primer evento del stream ya incluya los portafolios reparados.
+      try {
+        final userId = Get.find<SessionContextController>().user?.uid;
+        if (userId != null && userId.isNotEmpty) {
+          final repaired =
+              await _portfolioRepo.repairMissingOrgId(userId, orgId);
+          if (repaired > 0) {
+            _debugLog(
+              '_loadLocal',
+              '⚠️ $repaired portafolio(s) reparados: orgId:\'\'→$orgId',
+            );
+          }
+        }
+      } catch (e) {
+        _debugLog('_loadLocal', 'repairMissingOrgId ERROR: $e');
+      }
+
       _subscribeToPortfolios(orgId);
 
       final assets = await _assetRepo.fetchAssetsByOrg(orgId);

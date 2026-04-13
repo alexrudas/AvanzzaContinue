@@ -32,45 +32,52 @@ import '../presentation/auth/pages/provider_profile_page.dart';
 import '../presentation/auth/pages/select_country_city_page.dart';
 import '../presentation/auth/pages/select_profile_page.dart';
 import '../presentation/auth/pages/summary_page.dart';
-import '../presentation/auth/pages/terms_page.dart';
 import '../presentation/auth/pages/username_password_page.dart';
+import '../presentation/bindings/alert_center_binding.dart';
+import '../presentation/bindings/asset/asset_registration_binding.dart';
 import '../presentation/bindings/home_binding.dart';
-import '../presentation/bindings/splash_binding.dart';
-import '../presentation/pages/splash/splash_bootstrap_page.dart';
+import '../presentation/bindings/insurance/rc_quote_request_binding.dart';
+import '../presentation/bindings/insurance/rc_quote_status_binding.dart';
+import '../presentation/bindings/portfolio/portfolio_asset_live_binding.dart';
+import '../presentation/bindings/portfolio/portfolio_detail_binding.dart';
 import '../presentation/bindings/runt/runt_binding.dart';
 import '../presentation/bindings/runt/runt_query_binding.dart';
 import '../presentation/bindings/simit/simit_binding.dart';
+import '../presentation/bindings/splash_binding.dart';
 import '../presentation/bindings/tenant_home_binding.dart';
+import '../presentation/bindings/vrc/vrc_binding.dart';
 import '../presentation/home/pages/home_router.dart';
-import '../presentation/pages/incidencia_page.dart';
-import '../presentation/pages/org_selection_page.dart';
-import '../presentation/pages/purchase_request_page.dart';
-import '../presentation/pages/runt/runt_person_consult_page.dart';
-import '../presentation/pages/runt/runt_vehicle_consult_page.dart';
-import '../presentation/bindings/asset/asset_registration_binding.dart';
-import '../presentation/bindings/portfolio/portfolio_detail_binding.dart';
+import '../presentation/pages/alerts/alert_center_page.dart';
 import '../presentation/pages/asset/asset_detail_page.dart';
 import '../presentation/pages/asset/asset_registration_page.dart';
-import '../presentation/pages/asset/rtm_detail_page.dart';
-import '../presentation/pages/asset/soat_detail_page.dart';
-import '../presentation/pages/asset/seguros_rc_detail_page.dart';
+import '../presentation/pages/asset/driver_license_detail_page.dart';
 import '../presentation/pages/asset/juridical_status_detail_page.dart';
-import '../presentation/pages/asset/vehicle_info_page.dart';
+import '../presentation/pages/asset/rtm_detail_page.dart';
 import '../presentation/pages/asset/runt_consult_page.dart';
+import '../presentation/pages/asset/seguros_rc_detail_page.dart';
+import '../presentation/pages/asset/simit_fine_detail_page.dart';
+import '../presentation/pages/asset/simit_person_detail_page.dart';
+import '../presentation/pages/asset/soat_detail_page.dart';
+import '../presentation/pages/asset/vehicle_info_page.dart';
+import '../presentation/pages/incidencia_page.dart';
+import '../presentation/pages/insurance/rc_quote_request_page.dart';
+import '../presentation/pages/insurance/rc_quote_status_page.dart';
+import '../presentation/pages/org_selection_page.dart';
 import '../presentation/pages/portfolio/portfolio_asset_list_page.dart';
+import '../presentation/pages/portfolio/portfolio_asset_live_page.dart';
 import '../presentation/pages/portfolio/portfolio_detail_page.dart';
 import '../presentation/pages/portfolio/wizard/create_portfolio_step1_page.dart';
 import '../presentation/pages/portfolio/wizard/create_portfolio_step2_page.dart';
 import '../presentation/pages/portfolio/wizard/runt_query_progress_page.dart';
 import '../presentation/pages/portfolio/wizard/runt_query_result_page.dart';
+import '../presentation/pages/purchase_request_page.dart';
+import '../presentation/pages/runt/runt_person_consult_page.dart';
+import '../presentation/pages/runt/runt_vehicle_consult_page.dart';
 import '../presentation/pages/simit/simit_consult_page.dart';
-import '../presentation/bindings/alert_center_binding.dart';
-import '../presentation/bindings/insurance/rc_quote_request_binding.dart';
-import '../presentation/bindings/insurance/rc_quote_status_binding.dart';
-import '../presentation/pages/alerts/alert_center_page.dart';
-import '../presentation/pages/insurance/rc_quote_request_page.dart';
-import '../presentation/pages/insurance/rc_quote_status_page.dart';
+import '../presentation/pages/splash/splash_bootstrap_page.dart';
 import '../presentation/pages/tenant/home/tenant_home_page.dart';
+import '../presentation/pages/vrc/vrc_consult_page.dart';
+import '../presentation/pages/vrc/vrc_result_page.dart';
 import 'app_routes.dart';
 
 // TODO(cleanup): migrar imports a app_routes.dart donde solo se usan constantes
@@ -98,12 +105,15 @@ class AppPages {
     GetPage(name: Routes.welcome, page: () => const AuthWelcomePage()),
     GetPage(name: Routes.phone, page: () => const PhoneInputPage()),
     GetPage(name: Routes.otp, page: () => const OtpVerifyPage()),
-    GetPage(name: Routes.countryCity, page: () => const SelectCountryCityPage()),
+    GetPage(
+        name: Routes.countryCity, page: () => const SelectCountryCityPage()),
     GetPage(name: Routes.profile, page: () => const SelectProfilePage()),
     GetPage(name: Routes.orgSelect, page: () => const OrgSelectionPage()),
 
     // LEGACY_ALIAS: Routes.role -> Canonical: Routes.profile
-    GetPage(name: Routes.role, page: () => const _LegacyRedirectPage(to: Routes.profile)),
+    GetPage(
+        name: Routes.role,
+        page: () => const _LegacyRedirectPage(to: Routes.profile)),
 
     // HomeRouter decide workspace según activeContext
     GetPage(
@@ -113,25 +123,33 @@ class AppPages {
     ),
 
     // Registro
-    GetPage(name: Routes.registerUsername, page: () => const UsernamePasswordPage()),
+    GetPage(
+        name: Routes.registerUsername,
+        page: () => const UsernamePasswordPage()),
     GetPage(name: Routes.registerEmail, page: () => const EmailOptionalPage()),
     GetPage(name: Routes.registerIdScan, page: () => const IdScanPage()),
-    GetPage(name: Routes.registerTerms, page: () => const TermsPage()),
-    GetPage(name: Routes.loginUserPass, page: () => const LoginUsernamePasswordPage()),
+    GetPage(
+        name: Routes.loginUserPass,
+        page: () => const LoginUsernamePasswordPage()),
     GetPage(name: Routes.loginMfa, page: () => const MfaOtpPage()),
     GetPage(name: Routes.registerSummary, page: () => const SummaryPage()),
 
     // LEGACY_ALIAS: Routes.holderType -> Canonical: Routes.profile
-    GetPage(name: Routes.holderType, page: () => const _LegacyRedirectPage(to: Routes.profile)),
+    GetPage(
+        name: Routes.holderType,
+        page: () => const _LegacyRedirectPage(to: Routes.profile)),
 
     // Provider
-    GetPage(name: Routes.providerProfile, page: () => const ProviderProfilePage()),
+    GetPage(
+        name: Routes.providerProfile, page: () => const ProviderProfilePage()),
     GetPage(
       name: Routes.enhancedRegistration,
       page: () => const EnhancedRegistrationPage(),
       binding: EnhancedRegistrationBinding(),
     ),
-    GetPage(name: Routes.providerCoverage, page: () => const ProviderCoveragePage()),
+    GetPage(
+        name: Routes.providerCoverage,
+        page: () => const ProviderCoveragePage()),
 
     // Canonical: Routes.providerWorkspaceArticles (provider articles workspace)
     GetPage(
@@ -141,7 +159,8 @@ class AppPages {
     // LEGACY_ALIAS: Routes.providerHomeArticles -> Canonical: Routes.providerWorkspaceArticles
     GetPage(
       name: Routes.providerHomeArticles,
-      page: () => const _LegacyRedirectPage(to: Routes.providerWorkspaceArticles),
+      page: () =>
+          const _LegacyRedirectPage(to: Routes.providerWorkspaceArticles),
     ),
 
     // Canonical: Routes.providerWorkspaceServices (provider services workspace)
@@ -152,7 +171,8 @@ class AppPages {
     // LEGACY_ALIAS: Routes.providerHomeServices -> Canonical: Routes.providerWorkspaceServices
     GetPage(
       name: Routes.providerHomeServices,
-      page: () => const _LegacyRedirectPage(to: Routes.providerWorkspaceServices),
+      page: () =>
+          const _LegacyRedirectPage(to: Routes.providerWorkspaceServices),
     ),
 
     // ════════════════════════════════════════════════════════════════════════
@@ -194,6 +214,33 @@ class AppPages {
       page: () => SimitConsultPage(),
       binding: SimitBinding(),
     ),
+
+    // CONTRACT: Routes.vrcConsult acepta arguments opcionales:
+    //   {plate, documentType, documentNumber, fromRegistration: true} — modo registro.
+    //   Sin arguments → modo standalone (usuario ingresa datos manualmente).
+    // VrcBinding usa fenix:true → VrcController sobrevive la navegación a vrcResult.
+    GetPage(
+      name: Routes.vrcConsult,
+      page: () => VrcConsultPage(),
+      binding: VrcBinding(),
+    ),
+
+    // CONTRACT: Routes.vrcResult requiere VrcController activo (navegar desde vrcConsult).
+    // VrcBinding registrado aquí también para que el controller persista al navegar directamente.
+    GetPage(
+      name: Routes.vrcResult,
+      page: () => const VrcResultPage(),
+      binding: VrcBinding(),
+    ),
+
+    // CONTRACT: Routes.vrcBatchProgress requiere VrcBatchController activo.
+    // AssetRegistrationBinding lo registra antes de navegar aquí desde el flujo
+    // de registro. El binding se incluye también aquí como guard defensivo.
+    // GetPage(
+    //   name: Routes.vrcBatchProgress,
+    //   page: () => const VrcBatchProgressPage(),
+    //   binding: AssetRegistrationBinding(),
+    // ),
 
     // ════════════════════════════════════════════════════════════════════════
     // PORTFOLIO / WIZARD
@@ -243,6 +290,16 @@ class AppPages {
       page: () => const PortfolioAssetListPage(),
     ),
 
+    // CONTRACT: Routes.portfolioAssetLive requiere argument AssetRegistrationContext.
+    // Navegar con Get.offNamed — remueve el formulario de registro del stack.
+    // PortfolioAssetLiveBinding guard-registra Dio/VrcService/VrcBatchController;
+    // si AssetRegistrationBinding ya los registró, los reutiliza (estado en vuelo).
+    GetPage(
+      name: Routes.portfolioAssetLive,
+      page: () => const PortfolioAssetLivePage(),
+      binding: PortfolioAssetLiveBinding(),
+    ),
+
     // CONTRACT: Routes.assetDetail requiere argument assetId (String)
     // Uso: Get.toNamed(Routes.assetDetail, arguments: assetId)
     GetPage(
@@ -290,6 +347,30 @@ class AppPages {
     GetPage(
       name: Routes.runtConsult,
       page: () => const RuntConsultPage(),
+    ),
+
+    // CONTRACT: Routes.driverLicenseDetail requiere argument
+    //   Map{'data': VrcDataModel, 'checkedAt': DateTime?}
+    // Uso: Get.toNamed(Routes.driverLicenseDetail, arguments: {'data': ..., 'checkedAt': ...})
+    GetPage(
+      name: Routes.driverLicenseDetail,
+      page: () => const DriverLicenseDetailPage(),
+    ),
+
+    // CONTRACT: Routes.simitPersonDetail requiere argument
+    //   Map{'data': VrcDataModel, 'checkedAt': DateTime?}
+    // Uso: Get.toNamed(Routes.simitPersonDetail, arguments: {'data': ..., 'checkedAt': ...})
+    GetPage(
+      name: Routes.simitPersonDetail,
+      page: () => const SimitPersonDetailPage(),
+    ),
+
+    // CONTRACT: Routes.simitFineDetail requiere argument
+    //   Map{'data': VrcDataModel, 'type': String, 'checkedAt': DateTime?}
+    //   type: 'comparendos' | 'multas' | 'acuerdosDePago'
+    GetPage(
+      name: Routes.simitFineDetail,
+      page: () => const SimitFineDetailPage(),
     ),
 
     // ════════════════════════════════════════════════════════════════════════
@@ -398,7 +479,8 @@ Widget _buildIncidenciaPage() {
   final assetId = _resolveAssetIdFromArgs(Get.arguments);
 
   if (assetId == null) {
-    debugPrint('[AppPages] ERROR: Routes.incidencia navegado sin assetId válido. args=${Get.arguments}');
+    debugPrint(
+        '[AppPages] ERROR: Routes.incidencia navegado sin assetId válido. args=${Get.arguments}');
 
     if (kReleaseMode) {
       // RELEASE: redirige inmediatamente sin UI intermedia

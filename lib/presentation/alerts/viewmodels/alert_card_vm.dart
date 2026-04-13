@@ -7,6 +7,8 @@
 // - Es el contrato entre DomainAlertMapper y los widgets de alertas.
 // - Expone sourceEntityId, actionLabel y actionRoute para navegación desde
 //   la alerta hacia la pantalla correspondiente del activo.
+// - Expone docStatus (AlertDocStatus) para el badge de estado documental,
+//   eliminando la necesidad de inferir estado desde strings en la UI.
 //
 // QUÉ NO HACE:
 // - No depende de package:flutter (sin widgets, sin colores, sin IconData).
@@ -15,24 +17,28 @@
 //
 // PRINCIPIOS:
 // - Dart puro + Equatable: value equality para listas eficientes.
-// - Flags UI (isExpired, isCritical) sin widgets ni colores.
 // - title y subtitle son strings resueltos (no i18n keys).
 //   En V1 resueltos directamente en español por DomainAlertMapper.
 // - code está expuesto para que la UI pueda filtrar por dominio si lo necesita.
 // - sourceEntityId: assetId que originó la alerta — permite routing por activo.
 // - actionLabel / actionRoute: CTA de navegación contextual (nullable en V1
 //   para alertas cuya ruta destino aún no está implementada).
+// - docStatus: canal ortogonal a severity — estado del documento/cobertura.
+//   La UI consume docStatus para el badge; no infiere estado desde texto.
 //
 // ENTERPRISE NOTES:
 // CREADO (2026-03): Fase 3 — Consumo contextual V1. Ver ALERTS_SYSTEM_V4.md §13.
 // ACTUALIZADO (2026-03): Fase 5.5 — sourceEntityId, actionLabel, actionRoute
 //   para navegación desde AlertCenterPage y card de métricas en Home.
+// ACTUALIZADO (2026-03): Fase 5.5 — docStatus para badge estructurado.
+//   Elimina _statusLabel/_statusColor (inferencia desde strings) en UI.
 // ============================================================================
 
 import 'package:equatable/equatable.dart';
 
 import '../../../domain/entities/alerts/alert_code.dart';
 import '../../../domain/entities/alerts/alert_severity.dart';
+import 'alert_doc_status.dart';
 
 /// ViewModel de presentación de una alerta canónica.
 ///
@@ -100,6 +106,16 @@ final class AlertCardVm extends Equatable {
   /// Null si [actionLabel] es null.
   final String? actionRoute;
 
+  /// Estado documental/legal derivado desde [AlertCode] por el mapper.
+  ///
+  /// Canal ortogonal a [severity]:
+  /// - [severity] → urgencia operativa (barra de color lateral)
+  /// - [docStatus] → estado del documento o cobertura (badge textual)
+  ///
+  /// REGLA: la UI nunca infiere este valor desde [title] ni [subtitle].
+  /// Solo consume este campo para decidir label y color del badge.
+  final AlertDocStatus docStatus;
+
   const AlertCardVm({
     required this.title,
     this.subtitle,
@@ -111,6 +127,7 @@ final class AlertCardVm extends Equatable {
     this.assetType,
     this.actionLabel,
     this.actionRoute,
+    this.docStatus = AlertDocStatus.unknown,
   });
 
   @override
@@ -125,5 +142,6 @@ final class AlertCardVm extends Equatable {
         assetType,
         actionLabel,
         actionRoute,
+        docStatus,
       ];
 }

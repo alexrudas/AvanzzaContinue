@@ -198,8 +198,7 @@ class _VehicleInfoBody extends StatelessWidget {
           VehicleInfoSectionCard(
             title: 'Información del propietario',
             children: [
-              // Nombre no persiste en AssetVehiculoEntity (Fase futura).
-              const InfoRow(label: 'Nombre', value: null),
+              InfoRow(label: 'Nombre', value: vehiculo.ownerName),
               InfoRow(
                 label: 'Tipo de documento',
                 value: vehiculo.ownerDocumentType,

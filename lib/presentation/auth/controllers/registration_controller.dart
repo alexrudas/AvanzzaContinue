@@ -618,7 +618,7 @@ class RegistrationController extends GetxController {
         Get.offAllNamed(Routes.profile);
         break;
       case 5:
-        Get.offAllNamed(Routes.registerTerms);
+        Get.offAllNamed(Routes.registerSummary);
         break;
       case 6:
         Get.offAllNamed(Routes.registerSummary);

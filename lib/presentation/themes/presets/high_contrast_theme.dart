@@ -12,7 +12,6 @@ import '../components/custom/loading_theme.dart';
 import '../components/material/buttons.dart';
 import '../components/material/inputs.dart';
 import '../components/material/badge.dart';
-import '../components/material/cards.dart';
 import '../components/material/navigation.dart';
 import '../components/material/surfaces.dart';
 
@@ -40,7 +39,14 @@ final ThemeData highContrastTheme = ThemeData(
   iconButtonTheme: AppButtonThemes.iconButton(AppColorSchemes.highContrastLight),
 
   inputDecorationTheme: AppInputThemes.inputDecoration(AppColorSchemes.highContrastLight),
-  cardTheme: AppCardThemes.card(AppColorSchemes.highContrastLight),
+  cardTheme: CardThemeData(
+    color: AppColorSchemes.highContrastLight.surfaceContainerLow,
+    shadowColor: AppColorSchemes.highContrastLight.shadow,
+    surfaceTintColor: AppColorSchemes.highContrastLight.surfaceTint,
+    elevation: 1.0,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+    margin: const EdgeInsets.all(8.0),
+  ),
 
   appBarTheme: AppNavigationThemes.appBar(AppColorSchemes.highContrastLight),
   bottomNavigationBarTheme: AppNavigationThemes.bottomNavigationBar(AppColorSchemes.highContrastLight),
@@ -48,7 +54,11 @@ final ThemeData highContrastTheme = ThemeData(
   drawerTheme: AppNavigationThemes.drawer(AppColorSchemes.highContrastLight),
 
   bottomSheetTheme: AppSurfaceThemes.bottomSheet(AppColorSchemes.highContrastLight),
-  dialogTheme: AppSurfaceThemes.dialog(AppColorSchemes.highContrastLight),
+  dialogTheme: DialogThemeData(
+    backgroundColor: AppColorSchemes.highContrastLight.surface,
+    elevation: 6.0,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+  ),
   snackBarTheme: AppSurfaceThemes.snackBar(AppColorSchemes.highContrastLight),
   tooltipTheme: AppSurfaceThemes.tooltip(AppColorSchemes.highContrastLight),
 );

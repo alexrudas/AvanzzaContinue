@@ -12,7 +12,6 @@ import '../components/custom/loading_theme.dart';
 import '../components/material/buttons.dart';
 import '../components/material/inputs.dart';
 import '../components/material/badge.dart';
-import '../components/material/cards.dart';
 import '../components/material/navigation.dart';
 import '../components/material/surfaces.dart';
 import '../components/material/icon_sizes_pro.dart';
@@ -44,7 +43,14 @@ final ThemeData darkTheme = ThemeData(
   iconButtonTheme: AppButtonThemes.iconButton(AppColorSchemes.dark),
 
   inputDecorationTheme: AppInputThemes.inputDecoration(AppColorSchemes.dark),
-  cardTheme: AppCardThemes.card(AppColorSchemes.dark),
+  cardTheme: CardThemeData(
+    color: AppColorSchemes.dark.surfaceContainerLow,
+    shadowColor: AppColorSchemes.dark.shadow,
+    surfaceTintColor: AppColorSchemes.dark.surfaceTint,
+    elevation: 1.0,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+    margin: const EdgeInsets.all(8.0),
+  ),
 
   appBarTheme: AppNavigationThemes.appBar(AppColorSchemes.dark),
   bottomNavigationBarTheme:
@@ -53,7 +59,11 @@ final ThemeData darkTheme = ThemeData(
   drawerTheme: AppNavigationThemes.drawer(AppColorSchemes.dark),
 
   bottomSheetTheme: AppSurfaceThemes.bottomSheet(AppColorSchemes.dark),
-  dialogTheme: AppSurfaceThemes.dialog(AppColorSchemes.dark),
+  dialogTheme: DialogThemeData(
+    backgroundColor: AppColorSchemes.dark.surface,
+    elevation: 6.0,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+  ),
   snackBarTheme: AppSurfaceThemes.snackBar(AppColorSchemes.dark),
   tooltipTheme: AppSurfaceThemes.tooltip(AppColorSchemes.dark),
 );

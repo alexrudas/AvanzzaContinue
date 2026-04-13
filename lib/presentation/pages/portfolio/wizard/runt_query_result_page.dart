@@ -3,8 +3,18 @@
 //
 // RUNT QUERY RESULT PAGE — Enterprise 2026
 //
-// Propósito: Ficha RUNT previa al registro del vehículo en Avanzza.
-// Identifica el vehículo, muestra estado legal/documental y permite importarlo.
+// QUÉ HACE:
+// - Muestra la ficha técnica RUNT del vehículo consultado.
+// - Habilita "REGISTRAR VEHÍCULO EN AVANZZA" para persistir el activo.
+//
+// QUÉ NO HACE:
+// - No ejecuta consultas VRC ni interpreta businessDecision.
+// - No persiste la consulta RUNT entre sesiones.
+//
+// PRINCIPIOS:
+// - REGLA DE INMUTABILIDAD DEL UI RUNT BATCH: este archivo es frozen.
+//   No inyectar lógica VRC, ni señales de negocio externas al stack RUNT.
+// - El botón de registro llama directamente a AssetRegistrationController.
 //
 // ORDEN DE PANTALLA
 //   1.  Vehicle Summary             (header — no expandible)
@@ -29,9 +39,9 @@ import 'package:intl/intl.dart';
 import '../../../../domain/errors/asset_creation_exception.dart';
 import '../../../../domain/value/registration/asset_runt_snapshot.dart';
 import '../../../../routes/app_routes.dart';
+import '../../../controllers/asset/asset_registration_controller.dart';
 import '../../../controllers/runt/runt_query_controller.dart';
 import '../../../widgets/asset/vehicle/vehicle_summary_widget.dart';
-import '../../../controllers/asset/asset_registration_controller.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE
@@ -485,7 +495,7 @@ class _ResultViewState extends State<_ResultView> {
           ),
         ),
 
-        // 11. CTA
+        // 13. CTA
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
           sliver: SliverToBoxAdapter(child: _ActionFooter(ctrl: ctrl)),
@@ -1566,8 +1576,6 @@ class _ActionFooter extends StatelessWidget {
           width: double.infinity,
           height: 56,
           child: FilledButton.icon(
-            // [FIX-NAV] Antes: Get.until() navegaba de vuelta al formulario
-            // (loop). Corregido: persiste el activo y navega hacia Routes.home.
             onPressed: () => _registerVehicle(ctrl),
             icon: const Icon(Icons.check_rounded),
             label: const Text('REGISTRAR VEHÍCULO EN AVANZZA'),

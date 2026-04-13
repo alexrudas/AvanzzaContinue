@@ -44,6 +44,8 @@
 // Fail-open: si el check falla, la consulta procede normalmente.
 // ============================================================================
 
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -55,9 +57,13 @@ import '../../../domain/entities/asset/asset_entity.dart';
 import '../../../domain/entities/portfolio/portfolio_entity.dart';
 import '../../../domain/shared/enums/asset_type.dart';
 import '../../../domain/value/registration/asset_registration_context.dart';
+import '../../../domain/value/registration/asset_runt_snapshot.dart';
 import '../../../routes/app_routes.dart';
 import '../../controllers/asset/asset_registration_controller.dart';
 import '../../controllers/runt/runt_query_controller.dart';
+import '../../controllers/vrc/vrc_batch_controller.dart';
+import '../../controllers/vrc/vrc_controller.dart';
+import '../vrc/vrc_result_page.dart';
 
 class AssetRegistrationPage extends StatefulWidget {
   const AssetRegistrationPage({super.key});
@@ -71,6 +77,8 @@ class _AssetRegistrationPageState extends State<AssetRegistrationPage> {
 
   late final AssetRegistrationController _assetRegCtrl;
   late final RuntQueryController _runtQueryCtrl;
+  late final VrcController _vrcCtrl;
+  late final VrcBatchController _vrcBatchCtrl;
 
   final _plateController = TextEditingController();
   final _docNumberController = TextEditingController();
@@ -100,6 +108,8 @@ class _AssetRegistrationPageState extends State<AssetRegistrationPage> {
     super.initState();
     _assetRegCtrl = Get.find<AssetRegistrationController>();
     _runtQueryCtrl = Get.find<RuntQueryController>();
+    _vrcCtrl = Get.find<VrcController>()..reset();
+    _vrcBatchCtrl = Get.find<VrcBatchController>();
 
     _restoreFormFields();
     _wireFormListeners();
@@ -118,6 +128,15 @@ class _AssetRegistrationPageState extends State<AssetRegistrationPage> {
   // ──────────────────────────────────────────────────────────────────────────
 
   /// Restaura los campos del formulario desde el draft en memoria del controller.
+  /// Mapea el código interno del selector al código que espera el backend VRC.
+  /// El backend usa 'C' para cédula de ciudadanía, 'E' para extranjería.
+  String _mapDocTypeToVrc(String value) => switch (value.trim().toUpperCase()) {
+        'CC' => 'C',
+        'CE' => 'E',
+        'NIT' => 'NIT',
+        _ => value.trim().toUpperCase(),
+      };
+
   void _restoreFormFields() {
     _plateController.text = _assetRegCtrl.draftPlate.value;
     _selectedDocType = _assetRegCtrl.draftDocType.value;
@@ -370,6 +389,78 @@ class _AssetRegistrationPageState extends State<AssetRegistrationPage> {
     });
   }
 
+  /// Intenta agregar la placa del input a la lista de placas.
+  ///
+  /// Muestra un modal informativo si el límite de placas ya se alcanzó.
+  /// Delega la validación a [AssetRegistrationController.addPlate].
+  /// Si el controller no reporta error (placa agregada), limpia el TextController
+  /// para que el campo quede listo para la siguiente entrada.
+  void _handleAddPlate() {
+    // Verificar límite antes de intentar agregar — evita el error inline del
+    // controller y muestra un modal informativo más amigable.
+    if (_assetRegCtrl.plates.length >=
+        AssetRegistrationController.maxPlatesPerBatch) {
+      _showMaxPlatesModal();
+      return;
+    }
+    _assetRegCtrl.addPlate();
+    // Si no hay error, la placa fue agregada exitosamente — limpiar el campo.
+    if (_assetRegCtrl.plateInputError.value == null) {
+      _plateController.clear();
+    }
+  }
+
+  /// Muestra un bottom sheet informativo cuando el usuario intenta superar
+  /// el límite de [AssetRegistrationController.maxPlatesPerBatch] placas.
+  void _showMaxPlatesModal() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      useSafeArea: true,
+      builder: (ctx) {
+        final textTheme = Theme.of(ctx).textTheme;
+        final colors = Theme.of(ctx).colorScheme;
+        const max = AssetRegistrationController.maxPlatesPerBatch;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.info_outline_rounded,
+                    size: 48, color: colors.primary),
+                const SizedBox(height: 16),
+                Text(
+                  'Límite de vehículos alcanzado',
+                  style: textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'El máximo de vehículos a registrar por bloque de consulta '
+                  'es $max. Si necesitas registrar más, realiza una nueva '
+                  'consulta una vez que termines con este lote.',
+                  style: textTheme.bodyMedium?.copyWith(
+                      color: colors.onSurfaceVariant, height: 1.5),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  child: const Text('Entendido'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _handleConsult() async {
     FocusScope.of(context).unfocus();
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -377,10 +468,32 @@ class _AssetRegistrationPageState extends State<AssetRegistrationPage> {
     final ctx = _assetRegCtrl.registrationContext;
     if (ctx == null) return; // guard — build() ya muestra la pantalla de error
 
+    // Guard: debe haber al menos una placa en la lista.
+    if (_assetRegCtrl.plates.isEmpty) return;
+
+    // Multi-plate: flujo batch real.
+    // startBatch() se llama sin await — el controller gestiona el estado
+    // reactivamente y la página de progreso lo observa vía Obx.
+    if (_assetRegCtrl.plates.length > 1) {
+      HapticFeedback.lightImpact();
+
+      final docType  = _mapDocTypeToVrc(_selectedDocType!);
+      final docNumber = _docNumberController.text.trim();
+
+      unawaited(_vrcBatchCtrl.startBatch(
+        plates:             _assetRegCtrl.plates.toList(),
+        ownerDocumentType:  docType,
+        ownerDocument:      docNumber,
+      ));
+
+      Get.offNamed(Routes.portfolioAssetLive, arguments: ctx);
+      return;
+    }
+
     HapticFeedback.lightImpact();
 
-    // Pre-flight: verificar si la placa ya existe en el portafolio (offline-first).
-    final plate = _plateController.text.trim().toUpperCase();
+    // Single plate: flujo VRC existente.
+    final plate = _assetRegCtrl.plates.first.plate;
     final duplicate = await _findDuplicateVehicle(plate, ctx.portfolioId);
 
     if (!mounted) return;
@@ -404,22 +517,109 @@ class _AssetRegistrationPageState extends State<AssetRegistrationPage> {
       }
     }
 
-    await _runtQueryCtrl.startQuery(
-      draftId: ctx.registrationSessionId,
+    // Mapear el valor visible del selector al código que espera el backend VRC.
+    // El backend usa 'C' para cédula de ciudadanía, no 'CC'.
+    final docType = _mapDocTypeToVrc(_selectedDocType!);
+    final docNumber = _docNumberController.text.trim();
+
+    debugPrint('[FORM] plate=$plate');
+    debugPrint('[FORM] documentTypeVisible=${_docTypeOptions.where((o) => o.value == docType).firstOrNull?.title ?? docType}');
+    debugPrint('[FORM] documentTypeInternal=$docType');
+    debugPrint('[FORM] documentNumber=$docNumber');
+    debugPrint('[SUBMIT] plate=$plate documentType=$docType documentNumber=$docNumber');
+
+    // Disparar la consulta VRC directamente — sin pantalla intermedia.
+    // La navegación ocurre al completar, en el mismo frame del widget tree.
+    await _vrcCtrl.consultVehicle(
       plate: plate,
-      portfolioId: ctx.portfolioId,
-      portfolioName: ctx.portfolioName,
-      documentType: _selectedDocType!,
-      documentNumber: _docNumberController.text.trim(),
+      documentType: docType,
+      documentNumber: docNumber,
     );
 
     if (!mounted) return;
 
-    final state = _runtQueryCtrl.viewState.value;
-    if (state == RuntViewState.failed) return; // banner de error visible en UI
+    final state = _vrcCtrl.viewState;
+    if (state == VrcViewState.success || state == VrcViewState.degraded) {
+      // Navegar a resultado con callback de registro.
+      // AssetRegistrationPage queda en stack → controllers viven.
+      final vrcData = _vrcCtrl.result?.data;
+      final vehicle = vrcData?.vehicle;
+      final owner   = vrcData?.owner;
 
-    // toNamed: AssetRegistrationPage queda en stack → controller vive.
-    Get.toNamed(Routes.runtQueryProgress);
+      // LOG DIAGNÓSTICO — confirma qué campos llegan no-null desde VrcVehicleModel.
+      // REMOVER una vez confirmadas las claves JSON reales del backend.
+      assert(() {
+        debugPrint('[VRC_SNAPSHOT] vehicle parsed fields:');
+        debugPrint('  plate=${vehicle?.plate}');
+        debugPrint('  make=${vehicle?.make}');
+        debugPrint('  line=${vehicle?.line}');
+        debugPrint('  vehicleClass=${vehicle?.vehicleClass}');
+        debugPrint('  service=${vehicle?.service}');
+        debugPrint('  color=${vehicle?.color}');
+        debugPrint('  engineNumber=${vehicle?.engineNumber}');
+        debugPrint('  chassisNumber=${vehicle?.chassisNumber}');
+        debugPrint('  vin=${vehicle?.vin}');
+        debugPrint('  engineDisplacement=${vehicle?.engineDisplacement}');
+        debugPrint('  bodyType=${vehicle?.bodyType}');
+        debugPrint('  fuelType=${vehicle?.fuelType}');
+        debugPrint('  transitAuthority=${vehicle?.transitAuthority}');
+        debugPrint('  initialRegistrationDate=${vehicle?.initialRegistrationDate}');
+        debugPrint('[VRC_SNAPSHOT] owner parsed fields:');
+        debugPrint('  name=${owner?.name}');
+        debugPrint('  documentType=${owner?.documentType}');
+        debugPrint('  document=${owner?.document}');
+        return true;
+      }());
+
+      // Empaquetar todos los campos disponibles en la respuesta VRC en un
+      // AssetRuntSnapshot para que createAssetFromRuntAndLinkToPortfolio
+      // los persista en AssetVehiculoEntity (visible en VehicleInfoPage) y
+      // en InsurancePolicyModel (visible en SoatDetailPage / SegurosRcDetailPage).
+      final legal = vrcData?.legal;
+      final vrcSnapshot = AssetRuntSnapshot(
+        line:                    vehicle?.line,
+        serviceType:             vehicle?.service,
+        vehicleClass:            vehicle?.vehicleClass,
+        color:                   vehicle?.color,
+        engineNumber:            vehicle?.engineNumber,
+        chassisNumber:           vehicle?.chassisNumber,
+        vin:                     vehicle?.vin,
+        engineDisplacement:      vehicle?.engineDisplacement,
+        bodyType:                vehicle?.bodyType,
+        fuelType:                vehicle?.fuelType,
+        transitAuthority:        vehicle?.transitAuthority,
+        initialRegistrationDate: vehicle?.initialRegistrationDate,
+        passengerCapacity:       vehicle?.passengerCapacity,
+        grossWeightKg:           vehicle?.grossWeightKg,
+        axles:                   vehicle?.axles,
+        ownerName:               owner?.name,
+        ownerDocumentType:       owner?.documentType,
+        ownerDocument:           owner?.document,
+        // Bloques documentales VRC → persisten como InsurancePolicyModel (SOAT/RC)
+        // y como runtMetaJson (RTM, limitaciones, garantías).
+        soatRecords:  vrcData?.soat,
+        rcRecords:    vrcData?.rc,
+        rtmRecords:   vrcData?.rtm,
+        limitations:  legal?.limitations,
+        warranties:   legal?.warranties,
+        propertyLiens: legal?.propertyLiens,
+      );
+
+      await Get.to<void>(
+        () => VrcResultPage(
+          onRegister: () {
+            _assetRegCtrl.registerVehicle(
+              plate:        vehicle?.plate ?? plate,
+              marca:        vehicle?.make ?? '',
+              modelo:       vehicle?.line ?? '',
+              anio:         vehicle?.modelYear,
+              runtSnapshot: vrcSnapshot,
+            );
+          },
+        ),
+      );
+    }
+    // failed/timeout: el banner de error se muestra en esta misma página.
   }
 
   /// Busca un activo vehicular activo con la placa dada en el portafolio.
@@ -519,12 +719,14 @@ class _AssetRegistrationPageState extends State<AssetRegistrationPage> {
   Widget _buildBody(AssetRegistrationContext ctx) => switch (ctx.assetType) {
         AssetRegistrationType.vehiculo => _VehicleFormBody(
             formKey: _formKey,
-            plateController: _plateController,
+            plateInputController: _plateController,
             docNumberController: _docNumberController,
             selectedDocType: _selectedDocType,
             assetRegCtrl: _assetRegCtrl,
             runtQueryCtrl: _runtQueryCtrl,
+            vrcCtrl: _vrcCtrl,
             onOpenDocTypeSelector: _openDocTypeBottomSheet,
+            onAddPlate: _handleAddPlate,
             onConsult: _handleConsult,
           ),
         AssetRegistrationType.inmueble ||
@@ -541,22 +743,31 @@ class _AssetRegistrationPageState extends State<AssetRegistrationPage> {
 
 class _VehicleFormBody extends StatelessWidget {
   final GlobalKey<FormState> formKey;
-  final TextEditingController plateController;
+
+  /// Controller del campo de texto donde el usuario escribe la placa a agregar.
+  final TextEditingController plateInputController;
   final TextEditingController docNumberController;
   final String? selectedDocType;
   final AssetRegistrationController assetRegCtrl;
   final RuntQueryController runtQueryCtrl;
+  final VrcController vrcCtrl;
   final VoidCallback onOpenDocTypeSelector;
+
+  /// Callback invocado al pulsar "Agregar placa" o submit del teclado.
+  /// El caller valida la placa y limpia el TextController si fue exitoso.
+  final VoidCallback onAddPlate;
   final VoidCallback onConsult;
 
   const _VehicleFormBody({
     required this.formKey,
-    required this.plateController,
+    required this.plateInputController,
     required this.docNumberController,
     required this.selectedDocType,
     required this.assetRegCtrl,
     required this.runtQueryCtrl,
+    required this.vrcCtrl,
     required this.onOpenDocTypeSelector,
+    required this.onAddPlate,
     required this.onConsult,
   });
 
@@ -573,13 +784,13 @@ class _VehicleFormBody extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Consulta RUNT',
+              'Registrar vehículo',
               style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             Text(
-              'Ingresa la placa y los datos del propietario para verificar la '
-              'información del vehículo antes de registrarlo en Avanzza.',
+              'Agrega las placas a consultar e ingresa los datos del propietario '
+              'para verificar que los vehículos pueden ser registrados en Avanzza.',
               style: textTheme.bodyMedium?.copyWith(
                 color: colors.onSurfaceVariant,
                 height: 1.5,
@@ -587,34 +798,7 @@ class _VehicleFormBody extends StatelessWidget {
             ),
             const SizedBox(height: 32),
 
-            // ── Placa ─────────────────────────────────────────────────────────
-            const _SectionLabel(label: 'Placa del vehículo'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: plateController,
-              textCapitalization: TextCapitalization.characters,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
-                LengthLimitingTextInputFormatter(7),
-                _UpperCaseFormatter(),
-              ],
-              decoration: const InputDecoration(
-                hintText: 'ABC123',
-                prefixIcon: Icon(Icons.directions_car_outlined),
-              ),
-              validator: (val) {
-                if (val == null || val.trim().isEmpty) {
-                  return 'Ingresa la placa del vehículo';
-                }
-                if (val.trim().length < 5) {
-                  return 'La placa debe tener al menos 5 caracteres';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // ── Tipo de documento ─────────────────────────────────────────────
+            // ── SECCIÓN PROPIETARIO ────────────────────────────────────────────
             const _SectionLabel(label: 'Tipo de documento del propietario'),
             const SizedBox(height: 8),
             _BottomSheetSelectorField(
@@ -631,7 +815,6 @@ class _VehicleFormBody extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // ── Número de documento ───────────────────────────────────────────
             const _SectionLabel(label: 'Número de documento'),
             const SizedBox(height: 8),
             TextFormField(
@@ -655,30 +838,121 @@ class _VehicleFormBody extends StatelessWidget {
                 return null;
               },
             ),
+            const SizedBox(height: 32),
+
+            // ── SECCIÓN PLACAS ────────────────────────────────────────────────
+            // Encabezado reactivo: "Máximo 10" cuando vacío, "N vehículo(s)"
+            // cuando hay placas. Obx necesario para leer plates.length.
+            Obx(() {
+              final count = assetRegCtrl.plates.length;
+              final suffix = count == 0
+                  ? 'Max. ${AssetRegistrationController.maxPlatesPerBatch}'
+                  : '$count vehículo${count == 1 ? '' : 's'}';
+              return _SectionLabel(label: 'Placas a consultar ($suffix)');
+            }),
+            const SizedBox(height: 8),
+
+            // Input de placa + botón "Agregar"
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: plateInputController,
+                    textCapitalization: TextCapitalization.characters,
+                    textInputAction: TextInputAction.done,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+                      LengthLimitingTextInputFormatter(6),
+                      _UpperCaseFormatter(),
+                    ],
+                    decoration: const InputDecoration(
+                      hintText: 'ABC123',
+                      prefixIcon: Icon(Icons.directions_car_outlined),
+                    ),
+                    // Sin validator: la validación ocurre en addPlate(), no al submit.
+                    validator: (_) => null,
+                    onFieldSubmitted: (_) => onAddPlate(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Botón "Agregar" — deshabilitado si el campo está vacío.
+                Obx(() {
+                  final canAdd = assetRegCtrl.draftPlate.value.trim().isNotEmpty;
+                  return SizedBox(
+                    height: 56,
+                    child: OutlinedButton(
+                      onPressed: canAdd ? onAddPlate : null,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                      ),
+                      child: const Text('Agregar'),
+                    ),
+                  );
+                }),
+              ],
+            ),
+
+            // Error de validación de placa (inline, debajo del input).
+            Obx(() {
+              final err = assetRegCtrl.plateInputError.value;
+              if (err == null) return const SizedBox(height: 8);
+              return Padding(
+                padding: const EdgeInsets.only(top: 6, left: 12, bottom: 2),
+                child: Text(
+                  err,
+                  style: TextStyle(color: colors.error, fontSize: 12),
+                ),
+              );
+            }),
+
+            // Lista de placas agregadas.
+            Obx(() {
+              final items = assetRegCtrl.plates;
+              if (items.isEmpty) return const SizedBox(height: 4);
+              return Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: items.map((item) => _PlateChip(
+                    plate: item.plate,
+                    onRemove: () => assetRegCtrl.removePlate(item.id),
+                  )).toList(),
+                ),
+              );
+            }),
             const SizedBox(height: 36),
 
-            // ── Banner de error (si la consulta anterior falló) ───────────────
+            // ── Banner de error VRC (si la consulta falló) ───────────────────
             Obx(() {
-              if (runtQueryCtrl.viewState.value != RuntViewState.failed) {
+              final state = vrcCtrl.viewState;
+              if (state != VrcViewState.failed && state != VrcViewState.timeout) {
                 return const SizedBox.shrink();
               }
-              return _ErrorBanner(message: runtQueryCtrl.errorMessage.value);
+              return _ErrorBanner(
+                message: vrcCtrl.errorMessage ??
+                    (state == VrcViewState.timeout
+                        ? 'La verificación tardó demasiado. Intenta de nuevo.'
+                        : 'No se pudo verificar el vehículo. Intenta de nuevo.'),
+              );
             }),
 
             // ── Botón principal ───────────────────────────────────────────────
-            // Reactividad fina: Obx reconstruye solo este bloque cuando
-            // viewState o los observables de draft cambian. No requiere
-            // setState en los listeners de los TextEditingControllers.
             Obx(() {
-              final state = runtQueryCtrl.viewState.value;
-              final isLoading =
-                  state == RuntViewState.pending || state == RuntViewState.running;
+              final isLoading = vrcCtrl.viewState == VrcViewState.loading;
 
-              // canConsult se computa desde observables del controller.
+              // Habilitado solo si hay placas en la lista y el propietario está completo.
               final canConsult =
-                  assetRegCtrl.draftPlate.value.trim().isNotEmpty &&
+                  assetRegCtrl.plates.isNotEmpty &&
                   (assetRegCtrl.draftDocType.value?.trim().isNotEmpty ?? false) &&
                   assetRegCtrl.draftDocNumber.value.trim().isNotEmpty;
+
+              final label = isLoading
+                  ? 'Verificando vehículo...'
+                  : assetRegCtrl.plates.length > 1
+                      ? 'CONSULTAR VEHÍCULOS'
+                      : 'VERIFICAR VEHÍCULO';
 
               return SizedBox(
                 width: double.infinity,
@@ -694,8 +968,8 @@ class _VehicleFormBody extends StatelessWidget {
                             color: Colors.white,
                           ),
                         )
-                      : const Icon(Icons.search_rounded),
-                  label: Text(isLoading ? 'Consultando...' : 'CONSULTAR RUNT'),
+                      : const Icon(Icons.verified_outlined),
+                  label: Text(label),
                 ),
               );
             }),
@@ -709,8 +983,8 @@ class _VehicleFormBody extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Consulta oficial al sistema RUNT. La información se usa '
-                    'únicamente para validar el registro del activo.',
+                    'Consultamos fuentes oficiales para validar los vehículos y su propietario '
+                    'antes de registrarlos.',
                     style: textTheme.labelSmall?.copyWith(
                       color: colors.outline,
                       height: 1.45,
@@ -731,6 +1005,68 @@ class _VehicleFormBody extends StatelessWidget {
         'NIT' => 'NIT (empresa)',
         _ => 'Selecciona un tipo',
       };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CHIP DE PLACA
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Chip personalizado que muestra una placa agregada con botón de eliminar.
+///
+/// NO usa InputChip de Material: su delete button tiene un Tooltip interno que
+/// llama Overlay.of(context) y puede fallar dentro de contextos Obx de GetX.
+/// Esta implementación usa solo Container + InkWell, sin dependencia de Overlay.
+class _PlateChip extends StatelessWidget {
+  final String plate;
+  final VoidCallback onRemove;
+
+  const _PlateChip({required this.plate, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.only(left: 10, top: 6, bottom: 6, right: 4),
+      decoration: BoxDecoration(
+        color: colors.secondaryContainer,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.directions_car_outlined,
+            size: 14,
+            color: colors.onSecondaryContainer,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            plate,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              fontSize: 13,
+              color: colors.onSecondaryContainer,
+            ),
+          ),
+          const SizedBox(width: 4),
+          InkWell(
+            onTap: onRemove,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Icon(
+                Icons.close_rounded,
+                size: 16,
+                color: colors.onSecondaryContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

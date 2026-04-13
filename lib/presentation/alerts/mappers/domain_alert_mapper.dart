@@ -44,6 +44,7 @@ import '../../../domain/entities/alerts/alert_code.dart';
 import '../../../domain/entities/alerts/alert_fact_keys.dart';
 import '../../../domain/entities/alerts/domain_alert.dart';
 import '../viewmodels/alert_card_vm.dart';
+import '../viewmodels/alert_doc_status.dart';
 
 abstract final class DomainAlertMapper {
   DomainAlertMapper._();
@@ -58,10 +59,8 @@ abstract final class DomainAlertMapper {
   static AlertCardVm fromDomain(DomainAlert alert) {
     return AlertCardVm(
       title: _resolveTitle(alert.code),
-      // CAMBIO CLAVE:
-      // El subtítulo ahora conoce el código para poder renderizar correctamente
-      // casos especiales como RTM exenta, cuyo texto no debe sonar como una
-      // alerta de vencimiento normal.
+      // El subtítulo conoce el código para renderizar correctamente casos
+      // especiales como RTM exenta (no suena como alerta de vencimiento normal).
       subtitle: _resolveSubtitle(alert.code, alert.facts),
       severity: alert.severity,
       code: alert.code,
@@ -71,6 +70,9 @@ abstract final class DomainAlertMapper {
       assetType: _resolveAssetType(alert.facts),
       actionLabel: _resolveActionLabel(alert.code),
       actionRoute: _resolveActionRoute(alert.code, alert.sourceEntityId),
+      // Estado documental derivado desde AlertCode — fuente única de verdad.
+      // La UI consume este campo para el badge; no infiere estado desde strings.
+      docStatus: _resolveDocStatus(alert.code),
     );
   }
 
@@ -264,6 +266,45 @@ abstract final class DomainAlertMapper {
         AlertCode.legalLimitationActive =>
           '/asset/legal',
         _ => null,
+      };
+
+  /// Deriva el estado documental desde [AlertCode].
+  ///
+  /// Fuente única de verdad para el badge de estado en la UI.
+  /// Un código → un estado, sin ambigüedad, sin inferencia desde strings.
+  static AlertDocStatus _resolveDocStatus(AlertCode code) => switch (code) {
+        // Expirados — documento existió pero venció
+        AlertCode.soatExpired ||
+        AlertCode.rtmExpired ||
+        AlertCode.rcContractualExpired ||
+        AlertCode.rcExtracontractualExpired =>
+          AlertDocStatus.expired,
+
+        // Por vencer — dentro de la ventana de alerta
+        AlertCode.soatDueSoon ||
+        AlertCode.rtmDueSoon ||
+        AlertCode.rcContractualDueSoon ||
+        AlertCode.rcExtracontractualDueSoon =>
+          AlertDocStatus.dueSoon,
+
+        // Ausente — nunca contratado ni registrado
+        AlertCode.rcContractualMissing ||
+        AlertCode.rcExtracontractualMissing =>
+          AlertDocStatus.missing,
+
+        // Exento — por clasificación legal o regulatoria
+        AlertCode.rtmExempt => AlertDocStatus.exempt,
+
+        // Con restricción jurídica activa
+        AlertCode.legalLimitationActive ||
+        AlertCode.embargoActive =>
+          AlertDocStatus.restricted,
+
+        // Oportunidad comercial — no es alerta de cumplimiento
+        AlertCode.rcExtracontractualOpportunity => AlertDocStatus.opportunity,
+
+        // Reservados V1 — no deben llegar en producción
+        _ => AlertDocStatus.unknown,
       };
 
   /// Resuelve el label primario del activo desde facts.

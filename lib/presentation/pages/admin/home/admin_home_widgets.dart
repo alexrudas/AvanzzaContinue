@@ -1126,7 +1126,7 @@ class AdminPremiumFAB extends StatelessWidget {
                       Icon(Icons.add, color: cs.onPrimary, size: 22),
                       const SizedBox(width: 10),
                       Text(
-                        'Nuevo',
+                        'Registrar',
                         style: TextStyle(
                           color: cs.onPrimary,
                           fontSize: 15,

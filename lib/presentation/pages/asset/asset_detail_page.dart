@@ -208,6 +208,11 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
   /// Usado por [AppNavigator.backFromAssetDetail] para decidir el destino back.
   PortfolioEntity? _portfolio;
 
+  /// true cuando el origen fue [PortfolioAssetLivePage] (batch en curso).
+  /// En ese caso el back usa [Get.back()] en lugar de [Get.offAllNamed],
+  /// preservando el batch activo y ownerData sin destruir el stack.
+  bool _fromLiveBatch = false;
+
   /// Controller reactivo granular para el estado RUNT (freshness, connectivity).
   ///
   /// Instanciado en [initState] y eliminado en [dispose].
@@ -257,6 +262,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
       // Formato nuevo: recibe assetId + portfolio de origen para back explícito.
       resolvedId = arg.assetId;
       _portfolio = arg.portfolio;
+      _fromLiveBatch = arg.fromLiveBatch;
     } else if (arg is String && arg.isNotEmpty) {
       // Formato legacy: solo assetId. Back irá a Home como fallback seguro.
       resolvedId = arg;
@@ -415,7 +421,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
     // Guard: argumento de navegación inválido
     if (_assetId == null || _assetStream == null) {
       return _ErrorState(
-        onBack: () => AppNavigator.backFromAssetDetail(_portfolio),
+        onBack: () => AppNavigator.backFromAssetDetail(_portfolio, fromLiveBatch: _fromLiveBatch),
       );
     }
 
@@ -424,7 +430,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) AppNavigator.backFromAssetDetail(_portfolio);
+        if (!didPop) AppNavigator.backFromAssetDetail(_portfolio, fromLiveBatch: _fromLiveBatch);
       },
       child: StreamBuilder<AssetEntity?>(
         stream: _assetStream,
@@ -437,7 +443,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
           // ── Estado: error del stream ─────────────────────────────────────────
           if (snapshot.hasError) {
             return _ErrorState(
-              onBack: () => AppNavigator.backFromAssetDetail(_portfolio),
+              onBack: () => AppNavigator.backFromAssetDetail(_portfolio, fromLiveBatch: _fromLiveBatch),
             );
           }
 
@@ -642,7 +648,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
       scrolledUnderElevation: 1,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios_new_rounded),
-        onPressed: () => AppNavigator.backFromAssetDetail(_portfolio),
+        onPressed: () => AppNavigator.backFromAssetDetail(_portfolio, fromLiveBatch: _fromLiveBatch),
         tooltip: 'Volver',
       ),
       // Título colapsado: placa + marca/modelo en dos líneas.
@@ -1703,7 +1709,10 @@ class _QuickActionRow extends StatelessWidget {
     return InkWell(
       onTap: () {
         HapticFeedback.selectionClick();
-        Navigator.of(context).pop();
+        // Snackbar ANTES del pop: Get.snackbar necesita el Overlay del
+        // navigator global, que se registra en este frame. Si se llama
+        // después de pop(), el Overlay del bottom sheet ya fue removido
+        // y GetX no encuentra el widget → FlutterError "No Overlay found".
         Get.snackbar(
           snackTitle,
           'Módulo disponible próximamente',
@@ -1712,6 +1721,7 @@ class _QuickActionRow extends StatelessWidget {
           borderRadius: 12,
           duration: const Duration(seconds: 2),
         );
+        Navigator.of(context).pop();
       },
       borderRadius: BorderRadius.circular(10),
       child: Padding(
