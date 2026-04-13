@@ -162,7 +162,12 @@ class InsuranceRemoteDataSource {
       q = q.where('cityId', isEqualTo: cityId.trim());
     }
 
-    q = q.orderBy('createdAt', descending: true).limit(limit);
+    // Sin orderBy: el sort por createdAt requeriría un índice compuesto en
+    // Firestore que aún no existe. _syncPolicies() solo necesita los documentos
+    // para comparar por id + updatedAt — el orden no afecta la lógica de merge.
+    // Si se necesita paginación ordenada en el futuro, crear el índice en
+    // Firebase Console (assetId ASC + createdAt DESC) y restaurar el orderBy.
+    q = q.limit(limit);
 
     if (startAfter != null) {
       q = q.startAfterDocument(startAfter);
@@ -186,16 +191,6 @@ class InsuranceRemoteDataSource {
         );
         debugPrint('$st');
       }
-
-      // Evita que la app quede congelada por índice faltante.
-      if (e.code == 'failed-precondition') {
-        return const PaginatedResult(
-          items: <InsurancePolicyModel>[],
-          lastDocument: null,
-          hasMore: false,
-        );
-      }
-
       rethrow;
     }
   }

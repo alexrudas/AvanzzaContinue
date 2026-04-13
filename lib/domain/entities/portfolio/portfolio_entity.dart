@@ -1,3 +1,26 @@
+// ============================================================================
+// lib/domain/entities/portfolio/portfolio_entity.dart
+// PORTFOLIO ENTITY — Domain Layer / Freezed
+//
+// QUÉ HACE:
+// - Define la entidad de dominio de un portafolio de activos.
+// - Incluye un snapshot del propietario VRC, persistido al completar un batch.
+//
+// QUÉ NO HACE:
+// - No contiene lógica de negocio.
+// - No accede a Isar ni Firebase directamente.
+//
+// PRINCIPIOS:
+// - Campos del snapshot VRC son todos nullable (@Default(null)):
+//   null = portafolio que nunca pasó por batch VRC.
+// - Wire-stable: no renombrar campos owner* ni simit* — están en Isar.
+//
+// ENTERPRISE NOTES:
+// CREADO (original): Portafolio base con status DRAFT/ACTIVE.
+// ACTUALIZADO (2026-04): +10 campos de snapshot propietario VRC
+//   para persistencia entre sesiones (Problema B — Fase SIMIT-1).
+// ============================================================================
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'portfolio_entity.freezed.dart';
@@ -42,6 +65,28 @@ abstract class PortfolioEntity with _$PortfolioEntity {
     required String createdBy,
     DateTime? createdAt,
     DateTime? updatedAt,
+
+    // ── Snapshot del propietario VRC ────────────────────────────────────────
+    // Persistido al completar un batch VRC (completed | partially_completed).
+    // Null cuando el portafolio nunca pasó por un batch VRC.
+    // Wire-stable: no renombrar estos campos — están indexados en Isar.
+    @Default(null) String? ownerName,
+    @Default(null) String? ownerDocument,
+    @Default(null) String? ownerDocumentType,
+    @Default(null) String? licenseStatus,
+    /// Fecha de vencimiento de la licencia (formato "DD/MM/YYYY" del RUNT).
+    /// Derivada de la categoría con fecha más tardía en el batch VRC.
+    @Default(null) String? licenseExpiryDate,
+    @Default(null) bool? simitHasFines,
+    /// Conteo total de infracciones SIMIT (todos los tipos).
+    @Default(null) int? simitFinesCount,
+    /// Comparendos (infracciones de tránsito — dato firme del backend).
+    @Default(null) int? simitComparendosCount,
+    /// Multas confirmadas (puede ser null si el backend aún no las envía).
+    @Default(null) int? simitMultasCount,
+    @Default(null) String? simitFormattedTotal,
+    /// Timestamp de la consulta VRC que originó este snapshot.
+    @Default(null) DateTime? simitCheckedAt,
   }) = _PortfolioEntity;
 
   factory PortfolioEntity.fromJson(Map<String, dynamic> json) =>

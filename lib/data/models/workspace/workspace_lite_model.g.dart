@@ -69,7 +69,7 @@ const WorkspaceLiteModelSchema = CollectionSchema(
   getId: _workspaceLiteModelGetId,
   getLinks: _workspaceLiteModelGetLinks,
   attach: _workspaceLiteModelAttach,
-  version: '3.2.0-dev.2',
+  version: '3.3.0-dev.1',
 );
 
 int _workspaceLiteModelEstimateSize(

@@ -27,8 +27,11 @@
 //
 // ENTERPRISE NOTES:
 // CREADO (2026-03): Resuelve el bug de navegación post-registro donde
-// Get.offAllNamed(portfolioAssets) dejaba el stack vacío, haciendo que
-// Get.back() no tuviera a dónde ir.
+//   Get.offAllNamed(portfolioAssets) dejaba el stack vacío, haciendo que
+//   Get.back() no tuviera a dónde ir.
+// MODIFICADO (2026-04): openAssetDetail/backFromAssetDetail soportan
+//   fromLiveBatch=true para que el back desde un batch activo use Get.back()
+//   en lugar de Get.offAllNamed — preserva el VrcBatchController y ownerData.
 // ============================================================================
 
 import 'package:get/get.dart';
@@ -74,17 +77,22 @@ abstract class AppNavigator {
 
   /// Navega al detalle de un activo desde un portafolio (flujo normal).
   ///
-  /// Usa [Get.toNamed] (preserva el stack). El AppBar back de AssetDetailPage
-  /// igualmente irá al portafolio de forma explícita — no depende del stack.
+  /// Usa [Get.toNamed] (push — preserva el stack).
+  ///
+  /// [fromLiveBatch] debe ser true cuando el origen es [PortfolioAssetLivePage].
+  /// En ese caso el back desde [AssetDetailPage] usa [Get.back()] en lugar
+  /// de [Get.offAllNamed], preservando el batch en curso y ownerData.
   static void openAssetDetail({
     required String assetId,
     required PortfolioEntity portfolio,
+    bool fromLiveBatch = false,
   }) {
     Get.toNamed(
       Routes.assetDetail,
       arguments: AssetDetailArgs(
         assetId: assetId,
         portfolio: portfolio,
+        fromLiveBatch: fromLiveBatch,
       ),
     );
   }
@@ -115,11 +123,23 @@ abstract class AppNavigator {
 
   /// Back desde [AssetDetailPage].
   ///
-  /// Si tiene portfolio → va al portafolio.
-  /// Si no tiene portfolio (entry point legacy) → fallback a Home.
+  /// Modos de regreso:
+  /// - [fromLiveBatch] = true  → [Get.back()] — preserva [PortfolioAssetLivePage]
+  ///   y el batch en curso. La página no fue destruida (fue pushed, no replaced).
+  /// - portfolio != null        → [goToPortfolio] con [Get.offAllNamed]
+  /// - portfolio == null        → [goToHome] (entry point legacy)
   ///
-  /// Este método es el ÚNICO punto de decisión de back en AssetDetailPage.
-  static void backFromAssetDetail(PortfolioEntity? portfolio) {
+  /// Este método es el ÚNICO punto de decisión de back en [AssetDetailPage].
+  static void backFromAssetDetail(
+    PortfolioEntity? portfolio, {
+    bool fromLiveBatch = false,
+  }) {
+    if (fromLiveBatch) {
+      // El batch sigue corriendo en PortfolioAssetLivePage (no fue destruida).
+      // Get.back() desapila AssetDetailPage y regresa al batch sin disrupciones.
+      Get.back();
+      return;
+    }
     if (portfolio != null) {
       goToPortfolio(portfolio);
     } else {

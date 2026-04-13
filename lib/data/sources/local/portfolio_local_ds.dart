@@ -19,6 +19,18 @@
 //   llamar incrementAssetsCount() (con writeTxn propio) desde dentro de otra
 //   transacción Isar (Isar no soporta transacciones reentrantes en el mismo
 //   isolate).
+//
+// ENTERPRISE NOTES:
+// ACTUALIZADO (2026-04): Fix crítico — los 10 campos del snapshot propietario VRC
+//   (owner* y simit*) no se copiaban en ninguna rama de escritura (upsert UPDATE,
+//   incrementAssetsCountTx, decrementAssetsCount). Cada escritura sobreescribía
+//   esos campos con null, haciendo que _OwnerSnapshotBand nunca mostrara el grid.
+//   Fix: upsert usa model.*??existing.* para preservar; increment/decrement
+//   copian siempre de existing.* (no los modifican).
+// ACTUALIZADO (2026-04): +repairMissingOrgId() — recupera portafolios creados
+//   con orgId:'' por race condition de arranque (SessionContextController no
+//   tenía orgId disponible cuando createPortfolioStep1 llamó _resolveOrgId()).
+//   Llamado desde AdminHomeController._loadLocal() en cada arranque.
 // ============================================================================
 
 import 'package:isar_community/isar.dart';
@@ -51,6 +63,10 @@ class PortfolioLocalDataSource {
       final PortfolioModel toSave;
       if (existing != null) {
         // UPDATE: preservar isarId, createdAt y orgId (inmutable tras creación).
+        // Los campos del snapshot VRC (owner* y simit*) se toman de [model]:
+        // si [model] los trae no-null (llamada desde _persistOwnerSnapshot),
+        // se guardan; si son null se conserva lo que ya había en Isar
+        // (upsert desde otros paths que no tocan el snapshot).
         toSave = PortfolioModel(
           isarId: existing.isarId,
           id: model.id,
@@ -64,6 +80,18 @@ class PortfolioLocalDataSource {
           createdBy: model.createdBy,
           createdAt: existing.createdAt,
           updatedAt: DateTime.now().toUtc(),
+          // Snapshot propietario VRC: modelo gana si trae dato; fallback a Isar.
+          ownerName: model.ownerName ?? existing.ownerName,
+          ownerDocument: model.ownerDocument ?? existing.ownerDocument,
+          ownerDocumentType: model.ownerDocumentType ?? existing.ownerDocumentType,
+          licenseStatus: model.licenseStatus ?? existing.licenseStatus,
+          licenseExpiryDate: model.licenseExpiryDate ?? existing.licenseExpiryDate,
+          simitHasFines: model.simitHasFines ?? existing.simitHasFines,
+          simitFinesCount: model.simitFinesCount ?? existing.simitFinesCount,
+          simitComparendosCount: model.simitComparendosCount ?? existing.simitComparendosCount,
+          simitMultasCount: model.simitMultasCount ?? existing.simitMultasCount,
+          simitFormattedTotal: model.simitFormattedTotal ?? existing.simitFormattedTotal,
+          simitCheckedAt: model.simitCheckedAt ?? existing.simitCheckedAt,
         );
       } else {
         // INSERT: nuevo registro.
@@ -184,6 +212,18 @@ class PortfolioLocalDataSource {
       createdBy: existing.createdBy,
       createdAt: existing.createdAt,
       updatedAt: DateTime.now().toUtc(),
+      // Preservar snapshot VRC — solo se actualiza desde _persistOwnerSnapshot.
+      ownerName: existing.ownerName,
+      ownerDocument: existing.ownerDocument,
+      ownerDocumentType: existing.ownerDocumentType,
+      licenseStatus: existing.licenseStatus,
+      licenseExpiryDate: existing.licenseExpiryDate,
+      simitHasFines: existing.simitHasFines,
+      simitFinesCount: existing.simitFinesCount,
+      simitComparendosCount: existing.simitComparendosCount,
+      simitMultasCount: existing.simitMultasCount,
+      simitFormattedTotal: existing.simitFormattedTotal,
+      simitCheckedAt: existing.simitCheckedAt,
     ));
   }
 
@@ -232,6 +272,140 @@ class PortfolioLocalDataSource {
         .findAll();
   }
 
+  /// Stream reactivo de un portafolio específico por su String id.
+  ///
+  /// Isar emite un nuevo evento cada vez que el registro cambia.
+  /// Emite null si el portafolio no existe o es eliminado.
+  Stream<PortfolioModel?> watchById(String id) {
+    return _isar.portfolioModels
+        .filter()
+        .idEqualTo(id)
+        .watch(fireImmediately: true)
+        .map((list) => list.isNotEmpty ? list.first : null);
+  }
+
+  /// Actualiza solo los campos del snapshot propietario VRC (owner* + simit*).
+  ///
+  /// Lee el registro DENTRO de la writeTxn para capturar el status/assetsCount
+  /// más reciente, incluso si incrementAssetsCountTx está corriendo
+  /// concurrentemente. Isar serializa writeTxn: la que corre después siempre
+  /// ve el resultado de la anterior.
+  ///
+  /// NUNCA sobreescribe status, assetsCount ni ningún campo operativo —
+  /// solo los campos snapshot (owner* y simit*). Los campos snapshot se
+  /// fusionan: null incoming conserva el valor existente en Isar.
+  ///
+  /// Lanza excepción si el portafolio no existe (el caller puede reattempt).
+  Future<void> updateOwnerSnapshot(
+    String portfolioId, {
+    required String? ownerName,
+    required String? ownerDocument,
+    required String? ownerDocumentType,
+    required String? licenseStatus,
+    required String? licenseExpiryDate,
+    required bool? simitHasFines,
+    required int? simitFinesCount,
+    required int? simitComparendosCount,
+    required int? simitMultasCount,
+    required String? simitFormattedTotal,
+    required DateTime? simitCheckedAt,
+  }) async {
+    await _isar.writeTxn(() async {
+      final existing = await _isar.portfolioModels
+          .filter()
+          .idEqualTo(portfolioId)
+          .findFirst();
+
+      if (existing == null) {
+        throw Exception(
+            'Portfolio updateOwnerSnapshot: not found id=$portfolioId');
+      }
+
+      await _isar.portfolioModels.put(PortfolioModel(
+        isarId: existing.isarId,
+        id: existing.id,
+        portfolioType: existing.portfolioType,
+        portfolioName: existing.portfolioName,
+        countryId: existing.countryId,
+        cityId: existing.cityId,
+        orgId: existing.orgId,
+        // INMUTABLE en este contexto — solo incrementAssetsCountTx transiciona status.
+        status: existing.status,
+        assetsCount: existing.assetsCount,
+        createdBy: existing.createdBy,
+        createdAt: existing.createdAt,
+        updatedAt: DateTime.now().toUtc(),
+        // Snapshot VRC: merge — null conserva el valor existente.
+        ownerName: ownerName ?? existing.ownerName,
+        ownerDocument: ownerDocument ?? existing.ownerDocument,
+        ownerDocumentType: ownerDocumentType ?? existing.ownerDocumentType,
+        licenseStatus: licenseStatus ?? existing.licenseStatus,
+        licenseExpiryDate: licenseExpiryDate ?? existing.licenseExpiryDate,
+        simitHasFines: simitHasFines ?? existing.simitHasFines,
+        simitFinesCount: simitFinesCount ?? existing.simitFinesCount,
+        simitComparendosCount:
+            simitComparendosCount ?? existing.simitComparendosCount,
+        simitMultasCount: simitMultasCount ?? existing.simitMultasCount,
+        simitFormattedTotal: simitFormattedTotal ?? existing.simitFormattedTotal,
+        simitCheckedAt: simitCheckedAt ?? existing.simitCheckedAt,
+      ));
+    });
+  }
+
+  /// Repara portafolios huérfanos (orgId vacío) del usuario.
+  ///
+  /// Isar no admite UPDATE parcial — reescribe el registro completo preservando
+  /// todos los campos, incluidos los del snapshot VRC.
+  ///
+  /// Llamar desde AdminHomeController en onInit para recuperar portafolios
+  /// creados cuando SessionContextController aún no tenía orgId disponible
+  /// (race condition de arranque que asigna orgId: '' al portafolio).
+  ///
+  /// Retorna el número de portafolios reparados (0 si no había huérfanos).
+  Future<int> repairMissingOrgId(String userId, String correctOrgId) async {
+    // Buscar portafolios del usuario con orgId vacío
+    final orphans = await _isar.portfolioModels
+        .filter()
+        .createdByEqualTo(userId)
+        .orgIdEqualTo('')
+        .findAll();
+
+    if (orphans.isEmpty) return 0;
+
+    await _isar.writeTxn(() async {
+      for (final orphan in orphans) {
+        await _isar.portfolioModels.put(PortfolioModel(
+          isarId: orphan.isarId,
+          id: orphan.id,
+          portfolioType: orphan.portfolioType,
+          portfolioName: orphan.portfolioName,
+          countryId: orphan.countryId,
+          cityId: orphan.cityId,
+          orgId: correctOrgId, // ← REPAIR
+          status: orphan.status,
+          assetsCount: orphan.assetsCount,
+          createdBy: orphan.createdBy,
+          createdAt: orphan.createdAt,
+          updatedAt: DateTime.now().toUtc(),
+          // Preservar snapshot VRC — no se toca en este repair.
+          ownerName: orphan.ownerName,
+          ownerDocument: orphan.ownerDocument,
+          ownerDocumentType: orphan.ownerDocumentType,
+          licenseStatus: orphan.licenseStatus,
+          licenseExpiryDate: orphan.licenseExpiryDate,
+          simitHasFines: orphan.simitHasFines,
+          simitFinesCount: orphan.simitFinesCount,
+          simitComparendosCount: orphan.simitComparendosCount,
+          simitMultasCount: orphan.simitMultasCount,
+          simitFormattedTotal: orphan.simitFormattedTotal,
+          simitCheckedAt: orphan.simitCheckedAt,
+        ));
+      }
+    });
+
+    return orphans.length;
+  }
+
   /// Decrementar assetsCount (transacción atómica)
   Future<PortfolioModel> decrementAssetsCount(String id) async {
     return await _isar.writeTxn(() async {
@@ -259,6 +433,18 @@ class PortfolioLocalDataSource {
         createdBy: existing.createdBy,
         createdAt: existing.createdAt,
         updatedAt: DateTime.now().toUtc(),
+        // Preservar snapshot VRC — solo se actualiza desde _persistOwnerSnapshot.
+        ownerName: existing.ownerName,
+        ownerDocument: existing.ownerDocument,
+        ownerDocumentType: existing.ownerDocumentType,
+        licenseStatus: existing.licenseStatus,
+        licenseExpiryDate: existing.licenseExpiryDate,
+        simitHasFines: existing.simitHasFines,
+        simitFinesCount: existing.simitFinesCount,
+        simitComparendosCount: existing.simitComparendosCount,
+        simitMultasCount: existing.simitMultasCount,
+        simitFormattedTotal: existing.simitFormattedTotal,
+        simitCheckedAt: existing.simitCheckedAt,
       );
 
       await _isar.portfolioModels.put(updated);

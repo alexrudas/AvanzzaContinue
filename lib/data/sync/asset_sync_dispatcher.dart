@@ -550,6 +550,10 @@ class AssetSyncDispatcher {
 
       if (!_running) return _EntryResult.skippedStopped;
 
+      // Push exitoso. Actualizar fingerprint para cerrar ciclo anti-ping-pong.
+      // Si fromFirestoreMap falla: el dato YA está en Firestore; NO reintentar.
+      // El error se eleva como [ERROR] visible (no silencioso). El siguiente
+      // ciclo pullFromRemote() reconciliará el fingerprint vía SyncOrigin.remote.
       try {
         final model = _adapter.fromFirestoreMap(assetId, entry.payload);
         _syncService.markAsApplied(
@@ -557,8 +561,15 @@ class AssetSyncDispatcher {
           model: model,
           origin: SyncOrigin.local,
         );
-      } catch (e) {
-        _debugLog('markAsApplied SKIP (reconstrucción fallida: $e)');
+      } on Object catch (e, st) {
+        if (kDebugMode) {
+          debugPrint(
+            '[AssetSyncDispatcher][ERROR] markAsApplied post-push falló '
+            'para assetId=$assetId: $e\n$st\n'
+            '→ push completado, fingerprint desincronizado hasta próximo pull.',
+          );
+        }
+        // No relanzar: el push ya ocurrió. Continuar a markCompleted.
       }
 
       if (!_running) return _EntryResult.skippedStopped;
@@ -760,24 +771,32 @@ class AssetSyncDispatcher {
     // recovery durable desde este momento.
     _triggerArchivePostWrite(entry, assetId);
 
+    // Push v2 exitoso. Actualizar fingerprint anti-ping-pong.
+    // Mismo contrato que path legacy: si fromFirestoreMap falla, el dato ya
+    // está en Firestore. Error visible, NO retry, NO relanzar.
+    // DEPENDENCIA IMPLÍCITA: fromFirestoreMap auto-detecta v1.3.4 cuando el
+    // documento contiene 'domains' y delega a fromFullDocument() (plan §3).
+    assert(
+      firestorePayload.containsKey('domains'),
+      '[AssetSyncDispatcher] markAsApplied v2: firestorePayload debe ser '
+      'v1.3.4 (contener "domains") para que el adapter auto-detecte.',
+    );
     try {
-      // DEPENDENCIA IMPLÍCITA: fromFirestoreMap auto-detecta v1.3.4 cuando el
-      // documento contiene 'domains' y delega a fromFullDocument() (plan §3).
-      // Si el adapter no implementa auto-detección, este try/catch silencia el
-      // fallo y markAsApplied se pierde (anti-ping-pong roto para v2).
-      assert(
-        firestorePayload.containsKey('domains'),
-        '[AssetSyncDispatcher] markAsApplied v2: firestorePayload debe ser '
-        'v1.3.4 (contener "domains") para que el adapter auto-detecte.',
-      );
       final model = _adapter.fromFirestoreMap(assetId, firestorePayload);
       _syncService.markAsApplied(
         assetId: assetId,
         model: model,
         origin: SyncOrigin.local,
       );
-    } catch (e) {
-      _debugLog('markAsApplied v2 SKIP: $e');
+    } on Object catch (e, st) {
+      if (kDebugMode) {
+        debugPrint(
+          '[AssetSyncDispatcher][ERROR] markAsApplied v2 post-push falló '
+          'para assetId=$assetId: $e\n$st\n'
+          '→ push completado, fingerprint desincronizado hasta próximo pull.',
+        );
+      }
+      // No relanzar: el push ya ocurrió. Continuar a markCompleted.
     }
 
     await _outboxRepo.markCompleted(entryId: entry.id, now: now);

@@ -199,16 +199,35 @@ class AssetFirestoreAdapter {
       }
     }
 
-    // ── Fallback truncado: reconstruir desde identity ────────────────────────
+    // ── Fallback truncado: modelo degradado con campos mínimos ───────────────
+    // NO usar fromFirestore() / fromJson() aquí: el mapa incompleto causa
+    // TypeCastError en los campos required (marca, modelo, anio) del
+    // generado fromJson. Construir directamente con defaults seguros.
+    //
+    // INVARIANTE: Isar (fuente local) prevalece sobre este modelo degradado.
+    // El dispatcher NO debe persistir este resultado en Isar; solo sirve para
+    // actualizar el fingerprint en memoria vía markAsApplied().
     final identity = data['identity'];
     final refCode =
         identity is Map ? (identity['refCode'] as String?) ?? '' : '';
     final placa = identity is Map ? (identity['placa'] as String?) ?? '' : '';
 
-    return AssetVehiculoModel.fromFirestore(assetId, {
-      'refCode': refCode,
-      'placa': placa,
-    });
+    if (kDebugMode) {
+      debugPrint(
+        '[AssetFirestoreAdapter][WARN] fromFullDocument: rawSnapshots truncado. '
+        'Modelo degradado para assetId=$assetId placa=$placa. '
+        'Fuente Isar local prevalece — NO sobreescribir.',
+      );
+    }
+
+    return AssetVehiculoModel(
+      assetId: assetId,
+      refCode: refCode,
+      placa: placa,
+      marca: '',
+      modelo: '',
+      anio: 0,
+    );
   }
 
   // ==========================================================================

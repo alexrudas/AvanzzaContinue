@@ -348,7 +348,7 @@ class AssetModel {
   domain.AssetEntity toEntity() {
     final type = _parseAssetType(assetType);
     final state = _parseAssetState(estado);
-    final content = _createPlaceholderContent(type, id);
+    final content = _createBaseContent(type, id);
     final now = DateTime.now().toUtc();
 
     return domain.AssetEntity(
@@ -436,60 +436,59 @@ class AssetModel {
     return const [];
   }
 
-  /// Crea un AssetContent placeholder.
-  /// Los datos reales deben venir de modelos específicos de contenido.
-  /// Crea un AssetContent placeholder compatible con V2.
-  /// (Lossy mapping: llena obligatorios con defaults seguros).
-  static domain.AssetContent _createPlaceholderContent(
+  /// Crea una entidad base (sin datos de especialización) para uso exclusivo
+  /// como paso intermedio en [AssetRepositoryImpl._toEnrichedEntity()].
+  ///
+  /// VEHÍCULOS: assetKey es siempre '' — la placa real vive en
+  /// [AssetVehiculoModel] y solo puede resolverse async. El repositorio
+  /// reemplaza el content completo vía copyWith antes de exponer la entidad.
+  ///
+  /// NO-VEHÍCULOS: assetKey deriva del id del activo (identificador de negocio
+  /// real hasta que existan modelos específicos para inmuebles/maquinaria).
+  ///
+  /// INVARIANTE: ninguna ruta de código debe exponer la entidad base de un
+  /// vehículo como entidad final. Toda exposición pública DEBE pasar por
+  /// [_toEnrichedEntity()].
+  static domain.AssetContent _createBaseContent(
     domain.AssetType type,
     String assetId,
   ) {
-    final fullId = assetId.trim().toUpperCase();
-
-    // REGLA DE NEGOCIO:
-    // - Vehículos: derivar 6 chars tipo placa si hay longitud suficiente.
-    // - Otros tipos: usar el ID completo (longitud variable).
-    final placeholder = (type == domain.AssetType.vehicle && fullId.length >= 6)
-        ? fullId.substring(0, 6)
-        : fullId;
-
-    // ⚠️ AUDIT LOG: Este es el punto donde se genera la placa FALSA.
-    // placeholder = primeros 6 chars del UUID en mayúsculas.
-    // PlateWidget lo formateará como "XXX - XXX" → parece placa real pero es fake.
-    if (kDebugMode) {
-      debugPrint(
-        '[AUDIT][PLACEHOLDER] assetId=$assetId type=$type '
-        '→ assetKey(FALSO)="$placeholder" '
-        '(uuid[0:6] — la placa real está en AssetVehiculoModel)',
-      );
-    }
-
     const unknown = 'PENDIENTE';
 
     switch (type) {
       case domain.AssetType.vehicle:
+        // assetKey vacío: inequívocamente "pendiente de enriquecimiento".
+        // NO derivar del UUID — cualquier string tipo placa sería confuso.
+        if (kDebugMode) {
+          debugPrint(
+            '[ASSET_MODEL][BASE_ENTITY] assetId=$assetId type=vehicle '
+            '→ assetKey vacío, requiere _toEnrichedEntity() para placa real',
+          );
+        }
         return domain.AssetContent.vehicle(
-          assetKey: placeholder,
+          assetKey: '',
           brand: unknown,
-          model: unknown, // V2: String
-          color: unknown, // V2: required
-          engineDisplacement: 0, // V2: required
+          model: unknown,
+          color: unknown,
+          engineDisplacement: 0,
           mileage: 0,
         );
 
       case domain.AssetType.realEstate:
+        // Para inmuebles el id del activo es el identificador de negocio
+        // hasta que exista AssetInmuebleModel con matrícula real.
         return domain.AssetContent.realEstate(
-          assetKey: placeholder, // matrícula real: longitud variable
+          assetKey: assetId.trim().toUpperCase(),
           address: unknown,
           city: unknown,
           area: 0,
           usage: unknown,
-          propertyType: unknown, // opcional, pero útil si tu UI lo espera
+          propertyType: unknown,
         );
 
       case domain.AssetType.machinery:
         return domain.AssetContent.machinery(
-          assetKey: placeholder,
+          assetKey: assetId.trim().toUpperCase(),
           brand: unknown,
           model: unknown,
           category: unknown,
@@ -497,7 +496,7 @@ class AssetModel {
 
       case domain.AssetType.equipment:
         return domain.AssetContent.equipment(
-          assetKey: placeholder,
+          assetKey: assetId.trim().toUpperCase(),
           name: unknown,
           brand: unknown,
           model: unknown,

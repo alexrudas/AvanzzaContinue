@@ -84,6 +84,52 @@ class RuntApiException extends ApiException {
   }
 }
 
+// ==================== EXCEPCIONES VRC ====================
+
+/// Excepción específica para errores de la API VRC.
+///
+/// Se lanza cuando:
+/// - La respuesta HTTP no es 200
+/// - El parsing de la respuesta falla
+/// - La conexión falla o supera el timeout
+class VrcApiException extends ApiException {
+  /// Fuente del error: "network", "parsing"
+  final String? errorSource;
+
+  const VrcApiException({
+    required super.message,
+    super.statusCode,
+    super.requestId,
+    this.errorSource,
+  });
+
+  /// Constructor para errores de red (timeouts, sin conexión, HTTP 4xx/5xx).
+  factory VrcApiException.network(String message) {
+    return VrcApiException(
+      message: message,
+      errorSource: 'network',
+    );
+  }
+
+  /// Constructor para errores de parsing JSON.
+  factory VrcApiException.parsing(String message) {
+    return VrcApiException(
+      message: 'Error parseando respuesta VRC: $message',
+      errorSource: 'parsing',
+    );
+  }
+
+  @override
+  String toString() {
+    final buffer = StringBuffer('VrcApiException');
+    if (errorSource != null) buffer.write(' [$errorSource]');
+    buffer.write(': $message');
+    if (statusCode != null) buffer.write(' (HTTP $statusCode)');
+    if (requestId != null) buffer.write(' [RequestId: $requestId]');
+    return buffer.toString();
+  }
+}
+
 // ==================== EXCEPCIONES SIMIT ====================
 
 /// Excepción específica para errores de la API de SIMIT.

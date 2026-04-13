@@ -193,7 +193,7 @@ const OrganizationModelSchema = CollectionSchema(
   getId: _organizationModelGetId,
   getLinks: _organizationModelGetLinks,
   attach: _organizationModelAttach,
-  version: '3.2.0-dev.2',
+  version: '3.3.0-dev.1',
 );
 
 int _organizationModelEstimateSize(

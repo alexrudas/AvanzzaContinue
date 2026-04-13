@@ -125,7 +125,7 @@ const SupplierResponseModelSchema = CollectionSchema(
   getId: _supplierResponseModelGetId,
   getLinks: _supplierResponseModelGetLinks,
   attach: _supplierResponseModelAttach,
-  version: '3.2.0-dev.2',
+  version: '3.3.0-dev.1',
 );
 
 int _supplierResponseModelEstimateSize(

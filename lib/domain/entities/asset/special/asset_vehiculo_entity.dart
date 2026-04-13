@@ -36,6 +36,8 @@ abstract class AssetVehiculoEntity with _$AssetVehiculoEntity {
 
     // ── Propietario registrado en RUNT ───────────────────────────────────────
     // Null para activos registrados antes de la Fase Propietario (2026-03).
+    /// Nombre completo del propietario.
+    String? ownerName,
     /// Tipo de documento del propietario (ej. 'CC', 'CE').
     String? ownerDocumentType,
     /// Número de documento del propietario.

@@ -108,53 +108,58 @@ const AssetVehiculoModelSchema = CollectionSchema(
       name: r'ownerDocumentType',
       type: IsarType.string,
     ),
-    r'passengerCapacity': PropertySchema(
+    r'ownerName': PropertySchema(
       id: 18,
+      name: r'ownerName',
+      type: IsarType.string,
+    ),
+    r'passengerCapacity': PropertySchema(
+      id: 19,
       name: r'passengerCapacity',
       type: IsarType.long,
     ),
     r'placa': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'placa',
       type: IsarType.string,
     ),
     r'propertyLiens': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'propertyLiens',
       type: IsarType.string,
     ),
     r'refCode': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'refCode',
       type: IsarType.string,
     ),
     r'runtMetaJson': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'runtMetaJson',
       type: IsarType.string,
     ),
     r'serviceType': PropertySchema(
-      id: 23,
+      id: 24,
       name: r'serviceType',
       type: IsarType.string,
     ),
     r'transitAuthority': PropertySchema(
-      id: 24,
+      id: 25,
       name: r'transitAuthority',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 25,
+      id: 26,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'vehicleClass': PropertySchema(
-      id: 26,
+      id: 27,
       name: r'vehicleClass',
       type: IsarType.string,
     ),
     r'vin': PropertySchema(
-      id: 27,
+      id: 28,
       name: r'vin',
       type: IsarType.string,
     )
@@ -210,7 +215,7 @@ const AssetVehiculoModelSchema = CollectionSchema(
   getId: _assetVehiculoModelGetId,
   getLinks: _assetVehiculoModelGetLinks,
   attach: _assetVehiculoModelAttach,
-  version: '3.2.0-dev.2',
+  version: '3.3.0-dev.1',
 );
 
 int _assetVehiculoModelEstimateSize(
@@ -272,6 +277,12 @@ int _assetVehiculoModelEstimateSize(
   }
   {
     final value = object.ownerDocumentType;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.ownerName;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -341,16 +352,17 @@ void _assetVehiculoModelSerialize(
   writer.writeString(offsets[15], object.modelo);
   writer.writeString(offsets[16], object.ownerDocument);
   writer.writeString(offsets[17], object.ownerDocumentType);
-  writer.writeLong(offsets[18], object.passengerCapacity);
-  writer.writeString(offsets[19], object.placa);
-  writer.writeString(offsets[20], object.propertyLiens);
-  writer.writeString(offsets[21], object.refCode);
-  writer.writeString(offsets[22], object.runtMetaJson);
-  writer.writeString(offsets[23], object.serviceType);
-  writer.writeString(offsets[24], object.transitAuthority);
-  writer.writeDateTime(offsets[25], object.updatedAt);
-  writer.writeString(offsets[26], object.vehicleClass);
-  writer.writeString(offsets[27], object.vin);
+  writer.writeString(offsets[18], object.ownerName);
+  writer.writeLong(offsets[19], object.passengerCapacity);
+  writer.writeString(offsets[20], object.placa);
+  writer.writeString(offsets[21], object.propertyLiens);
+  writer.writeString(offsets[22], object.refCode);
+  writer.writeString(offsets[23], object.runtMetaJson);
+  writer.writeString(offsets[24], object.serviceType);
+  writer.writeString(offsets[25], object.transitAuthority);
+  writer.writeDateTime(offsets[26], object.updatedAt);
+  writer.writeString(offsets[27], object.vehicleClass);
+  writer.writeString(offsets[28], object.vin);
 }
 
 AssetVehiculoModel _assetVehiculoModelDeserialize(
@@ -379,16 +391,17 @@ AssetVehiculoModel _assetVehiculoModelDeserialize(
     modelo: reader.readString(offsets[15]),
     ownerDocument: reader.readStringOrNull(offsets[16]),
     ownerDocumentType: reader.readStringOrNull(offsets[17]),
-    passengerCapacity: reader.readLongOrNull(offsets[18]),
-    placa: reader.readString(offsets[19]),
-    propertyLiens: reader.readStringOrNull(offsets[20]),
-    refCode: reader.readString(offsets[21]),
-    runtMetaJson: reader.readStringOrNull(offsets[22]),
-    serviceType: reader.readStringOrNull(offsets[23]),
-    transitAuthority: reader.readStringOrNull(offsets[24]),
-    updatedAt: reader.readDateTimeOrNull(offsets[25]),
-    vehicleClass: reader.readStringOrNull(offsets[26]),
-    vin: reader.readStringOrNull(offsets[27]),
+    ownerName: reader.readStringOrNull(offsets[18]),
+    passengerCapacity: reader.readLongOrNull(offsets[19]),
+    placa: reader.readString(offsets[20]),
+    propertyLiens: reader.readStringOrNull(offsets[21]),
+    refCode: reader.readString(offsets[22]),
+    runtMetaJson: reader.readStringOrNull(offsets[23]),
+    serviceType: reader.readStringOrNull(offsets[24]),
+    transitAuthority: reader.readStringOrNull(offsets[25]),
+    updatedAt: reader.readDateTimeOrNull(offsets[26]),
+    vehicleClass: reader.readStringOrNull(offsets[27]),
+    vin: reader.readStringOrNull(offsets[28]),
   );
   return object;
 }
@@ -437,24 +450,26 @@ P _assetVehiculoModelDeserializeProp<P>(
     case 17:
       return (reader.readStringOrNull(offset)) as P;
     case 18:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 19:
-      return (reader.readString(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 20:
-      return (reader.readStringOrNull(offset)) as P;
-    case 21:
       return (reader.readString(offset)) as P;
-    case 22:
+    case 21:
       return (reader.readStringOrNull(offset)) as P;
+    case 22:
+      return (reader.readString(offset)) as P;
     case 23:
       return (reader.readStringOrNull(offset)) as P;
     case 24:
       return (reader.readStringOrNull(offset)) as P;
     case 25:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 26:
       return (reader.readStringOrNull(offset)) as P;
+    case 26:
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 27:
+      return (reader.readStringOrNull(offset)) as P;
+    case 28:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -3129,6 +3144,160 @@ extension AssetVehiculoModelQueryFilter
   }
 
   QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'ownerName',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'ownerName',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerNameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'ownerName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'ownerName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'ownerName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'ownerName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'ownerName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'ownerName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'ownerName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'ownerName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'ownerName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
+      ownerNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'ownerName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterFilterCondition>
       passengerCapacityIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -4734,6 +4903,20 @@ extension AssetVehiculoModelQuerySortBy
   }
 
   QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterSortBy>
+      sortByOwnerName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterSortBy>
+      sortByOwnerNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterSortBy>
       sortByPassengerCapacity() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'passengerCapacity', Sort.asc);
@@ -5143,6 +5326,20 @@ extension AssetVehiculoModelQuerySortThenBy
   }
 
   QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterSortBy>
+      thenByOwnerName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterSortBy>
+      thenByOwnerNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QAfterSortBy>
       thenByPassengerCapacity() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'passengerCapacity', Sort.asc);
@@ -5416,6 +5613,13 @@ extension AssetVehiculoModelQueryWhereDistinct
   }
 
   QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QDistinct>
+      distinctByOwnerName({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'ownerName', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AssetVehiculoModel, AssetVehiculoModel, QDistinct>
       distinctByPassengerCapacity() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'passengerCapacity');
@@ -5615,6 +5819,13 @@ extension AssetVehiculoModelQueryProperty
     });
   }
 
+  QueryBuilder<AssetVehiculoModel, String?, QQueryOperations>
+      ownerNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'ownerName');
+    });
+  }
+
   QueryBuilder<AssetVehiculoModel, int?, QQueryOperations>
       passengerCapacityProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -5714,6 +5925,7 @@ AssetVehiculoModel _$AssetVehiculoModelFromJson(Map<String, dynamic> json) =>
       initialRegistrationDate: json['initialRegistrationDate'] as String?,
       propertyLiens: json['propertyLiens'] as String?,
       ownerDocumentType: json['ownerDocumentType'] as String?,
+      ownerName: json['ownerName'] as String?,
       ownerDocument: json['ownerDocument'] as String?,
       runtMetaJson: json['runtMetaJson'] as String?,
       createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
@@ -5747,6 +5959,7 @@ Map<String, dynamic> _$AssetVehiculoModelToJson(AssetVehiculoModel instance) =>
       'initialRegistrationDate': instance.initialRegistrationDate,
       'propertyLiens': instance.propertyLiens,
       'ownerDocumentType': instance.ownerDocumentType,
+      'ownerName': instance.ownerName,
       'ownerDocument': instance.ownerDocument,
       'runtMetaJson': instance.runtMetaJson,
       'createdAt':

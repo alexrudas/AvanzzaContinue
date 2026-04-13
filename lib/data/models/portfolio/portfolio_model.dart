@@ -1,3 +1,28 @@
+// ============================================================================
+// lib/data/models/portfolio/portfolio_model.dart
+// PORTFOLIO MODEL — Data Layer / Isar + JSON
+//
+// QUÉ HACE:
+// - Persiste PortfolioEntity en Isar (colección local, offline-first).
+// - Incluye 10 campos opcionales de snapshot del propietario VRC,
+//   persistidos al completar un batch (completed | partially_completed).
+//
+// QUÉ NO HACE:
+// - No contiene lógica de negocio.
+// - No accede a Firebase directamente.
+//
+// PRINCIPIOS:
+// - Campos del snapshot VRC son todos nullable — null = sin batch VRC previo.
+// - La rama UPDATE de upsert() en PortfolioLocalDataSource copia model.*
+//   para los campos del snapshot, preservando los datos escritos.
+// - Wire-stable: no renombrar campos owner* ni simit*.
+//
+// ENTERPRISE NOTES:
+// CREADO (original): Portafolio base.
+// ACTUALIZADO (2026-04): +10 campos snapshot propietario VRC
+//   (Problema B — Fase SIMIT-1).
+// ============================================================================
+
 import 'package:isar_community/isar.dart' as isar;
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -43,6 +68,27 @@ class PortfolioModel {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
+  // ── Snapshot del propietario VRC ─────────────────────────────────────────
+  // Persistido al completar un batch VRC (completed | partially_completed).
+  // Null cuando el portafolio nunca pasó por un batch VRC.
+  // Sin @Index — campos de snapshot no se usan como filtro de query.
+  final String? ownerName;
+  final String? ownerDocument;
+  final String? ownerDocumentType;
+  final String? licenseStatus;
+  /// Fecha de vencimiento de la licencia (formato "DD/MM/YYYY").
+  final String? licenseExpiryDate;
+  final bool? simitHasFines;
+  /// Conteo total de infracciones SIMIT (todos los tipos).
+  final int? simitFinesCount;
+  /// Comparendos (infracciones de tránsito — dato firme del backend).
+  final int? simitComparendosCount;
+  /// Multas confirmadas (puede ser null si el backend aún no las envía).
+  final int? simitMultasCount;
+  final String? simitFormattedTotal;
+  /// Timestamp de la consulta VRC que originó este snapshot (UTC).
+  final DateTime? simitCheckedAt;
+
   PortfolioModel({
     this.isarId,
     required this.id,
@@ -56,6 +102,17 @@ class PortfolioModel {
     required this.createdBy,
     this.createdAt,
     this.updatedAt,
+    this.ownerName,
+    this.ownerDocument,
+    this.ownerDocumentType,
+    this.licenseStatus,
+    this.licenseExpiryDate,
+    this.simitHasFines,
+    this.simitFinesCount,
+    this.simitComparendosCount,
+    this.simitMultasCount,
+    this.simitFormattedTotal,
+    this.simitCheckedAt,
   });
 
   /// Mapper: Model -> Entity
@@ -72,6 +129,17 @@ class PortfolioModel {
       createdBy: createdBy,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      ownerName: ownerName,
+      ownerDocument: ownerDocument,
+      ownerDocumentType: ownerDocumentType,
+      licenseStatus: licenseStatus,
+      licenseExpiryDate: licenseExpiryDate,
+      simitHasFines: simitHasFines,
+      simitFinesCount: simitFinesCount,
+      simitComparendosCount: simitComparendosCount,
+      simitMultasCount: simitMultasCount,
+      simitFormattedTotal: simitFormattedTotal,
+      simitCheckedAt: simitCheckedAt,
     );
   }
 
@@ -89,6 +157,17 @@ class PortfolioModel {
       createdBy: entity.createdBy,
       createdAt: entity.createdAt?.toUtc(),
       updatedAt: entity.updatedAt?.toUtc(),
+      ownerName: entity.ownerName,
+      ownerDocument: entity.ownerDocument,
+      ownerDocumentType: entity.ownerDocumentType,
+      licenseStatus: entity.licenseStatus,
+      licenseExpiryDate: entity.licenseExpiryDate,
+      simitHasFines: entity.simitHasFines,
+      simitFinesCount: entity.simitFinesCount,
+      simitComparendosCount: entity.simitComparendosCount,
+      simitMultasCount: entity.simitMultasCount,
+      simitFormattedTotal: entity.simitFormattedTotal,
+      simitCheckedAt: entity.simitCheckedAt?.toUtc(),
     );
   }
 

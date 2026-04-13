@@ -78,7 +78,7 @@ const UserSessionModelSchema = CollectionSchema(
   getId: _userSessionModelGetId,
   getLinks: _userSessionModelGetLinks,
   attach: _userSessionModelAttach,
-  version: '3.2.0-dev.2',
+  version: '3.3.0-dev.1',
 );
 
 int _userSessionModelEstimateSize(
