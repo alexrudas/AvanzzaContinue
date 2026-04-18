@@ -1,4 +1,5 @@
 // lib/presentation/widgets/nav/workspace_drawer.dart
+import 'package:avanzza/core/session/org_switch_exceptions.dart';
 import 'package:avanzza/domain/entities/user/active_context.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -302,6 +303,26 @@ class WorkspaceDrawer extends StatelessWidget {
     }
   }
 
+  /// Mensaje de error legible para el usuario según la razón de fallo del switch.
+  static String _switchErrorMessage(SwitchOrganizationFailureReason reason) {
+    switch (reason) {
+      case SwitchOrganizationFailureReason.notAuthenticated:
+        return 'Tu sesión expiró. Inicia sesión de nuevo.';
+      case SwitchOrganizationFailureReason.backendError:
+        return 'El servidor rechazó el cambio. Intenta de nuevo.';
+      case SwitchOrganizationFailureReason.tokenRefreshFailed:
+        return 'No se pudo refrescar tu sesión. Intenta de nuevo.';
+      case SwitchOrganizationFailureReason.claimsPropagationFailed:
+        return 'No se pudo verificar tu acceso. Intenta de nuevo.';
+      case SwitchOrganizationFailureReason.membershipNotFound:
+        return 'No tienes membresía activa en esa organización.';
+      case SwitchOrganizationFailureReason.persistenceFailed:
+        return 'El cambio se aplicó, pero hubo un error local. Reinicia la app si persiste.';
+      case SwitchOrganizationFailureReason.unknown:
+        return 'No se pudo cambiar de organización. Intenta de nuevo.';
+    }
+  }
+
   Future<void> _waitDrawerClose(BuildContext ctx,
       {Duration timeout = const Duration(milliseconds: 500)}) async {
     final start = DateTime.now();
@@ -331,25 +352,70 @@ class WorkspaceDrawer extends StatelessWidget {
         }
 
         final current = session.userRx.value?.activeContext;
-        final nextCtx = (current == null)
-            ? ActiveContext(
-                orgId: membership.orgId,
-                orgName: membership.orgName,
-                rol: role,
-                providerType: providerType,
-              )
-            : current.copyWith(
-                orgId: membership.orgId,
-                orgName: membership.orgName,
-                rol: role,
-                providerType: providerType,
-              );
+        final isCrossOrg = current != null &&
+            current.orgId.isNotEmpty &&
+            membership.orgId != current.orgId;
 
-        await session.setActiveContext(nextCtx);
+        if (isCrossOrg) {
+          // Org switch real — pasa por backend + JWT sync.
+          try {
+            await session.switchOrganization(
+              organizationId: membership.orgId,
+              targetWorkspaceRole: role,
+            );
+          } on SwitchOrganizationException catch (e) {
+            debugPrint('[WorkspaceDrawer] switchOrganization failed: $e');
+            // Cerrar drawer primero, luego snackbar en post-frame.
+            // Get.snackbar() necesita que el overlayContext esté asentado —
+            // llamarlo durante la animación de cierre del drawer lanza
+            // "No Overlay widget found". addPostFrameCallback garantiza
+            // que el overlay ya está disponible (mismo patrón que la navegación
+            // en el path de éxito).
+            try { Get.back(); } catch (_) {}
+            final message = _switchErrorMessage(e.reason);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Get.snackbar(
+                'No se pudo cambiar de workspace',
+                message,
+                snackPosition: SnackPosition.BOTTOM,
+              );
+            });
+            return;
+          } catch (e) {
+            debugPrint('[WorkspaceDrawer] switchOrganization unexpected error: $e');
+            try { Get.back(); } catch (_) {}
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Get.snackbar(
+                'No se pudo cambiar de workspace',
+                'Error inesperado. Intenta de nuevo.',
+                snackPosition: SnackPosition.BOTTOM,
+              );
+            });
+            return;
+          }
+        } else {
+          // Cambio de workspace dentro de la misma org — local.
+          final nextCtx = (current == null)
+              ? ActiveContext(
+                  orgId: membership.orgId,
+                  orgName: membership.orgName,
+                  rol: role,
+                  providerType: providerType,
+                )
+              : current.copyWith(
+                  orgId: membership.orgId,
+                  orgName: membership.orgName,
+                  rol: role,
+                  providerType: providerType,
+                );
+          await session.setActiveContext(nextCtx);
+        }
       }
 
       final ctx = Get.context;
-      if (ctx != null && ctx.mounted && Scaffold.maybeOf(ctx)?.isDrawerOpen == true) {
+      if (ctx != null &&
+          ctx.mounted &&
+          Scaffold.maybeOf(ctx)?.isDrawerOpen == true) {
         Navigator.of(ctx).pop();
         await _waitDrawerClose(ctx);
       } else {
@@ -584,7 +650,8 @@ class _Header extends StatelessWidget {
                 CircleAvatar(
                   radius: 20,
                   child: Text(
-                    userName?.substring(0, 1).toUpperCase() ?? 'U',
+                    (userName?.isNotEmpty == true ? userName![0] : 'U')
+                        .toUpperCase(),
                     style: theme.textTheme.titleMedium,
                   ),
                 ),

@@ -163,6 +163,18 @@ abstract class Routes {
   /// CONTRACT: no requiere arguments — carga todas las alertas de la org activa.
   static const alertCenter = _Paths.alertCenter;
 
+  /// Lista de alertas agrupadas por vehículo (Nivel 1 del flujo de flota).
+  /// CONTRACT: no requiere arguments — FleetAlertController carga la org activa.
+  static const fleetAlerts = _Paths.fleetAlerts;
+
+  /// Detalle de alertas de un vehículo específico (Nivel 2).
+  /// CONTRACT: Get.toNamed(Routes.fleetAlertVehicle, arguments: FleetAlertGroupVm)
+  static const fleetAlertVehicle = _Paths.fleetAlertVehicle;
+
+  /// Detalle de una alerta individual con impacto y CTA (Nivel 3).
+  /// CONTRACT: Get.toNamed(Routes.fleetAlertDetail, arguments: AlertCardVm)
+  static const fleetAlertDetail = _Paths.fleetAlertDetail;
+
   // ══════════════════════════════════════════════════════════════════════════
   // FLUJO COTIZACIÓN SRCE (RC Extracontractual)
   // ══════════════════════════════════════════════════════════════════════════
@@ -179,6 +191,18 @@ abstract class Routes {
   /// Estado del lead de cotización SRCE creado.
   /// CONTRACT: Get.offNamed(Routes.rcQuoteStatus, arguments: InsuranceOpportunityLead)
   static const rcQuoteStatus = _Paths.rcQuoteStatus;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // RED OPERATIVA
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /// Listado de propietarios en "Mi red operativa".
+  /// CONTRACT: no requiere arguments — carga propietarios de la org activa.
+  static const networkOperational = _Paths.networkOperational;
+
+  /// Ficha de detalle de un propietario.
+  /// CONTRACT: Get.toNamed(Routes.ownerDetail, arguments: {'owner': OwnerNetworkVm})
+  static const ownerDetail = _Paths.ownerDetail;
 
   // ══════════════════════════════════════════════════════════════════════════
   // DEMO / DESARROLLO
@@ -264,10 +288,17 @@ abstract class _Paths {
 
   // Alertas
   static const alertCenter = '/alerts/center';
+  static const fleetAlerts = '/alerts/fleet';
+  static const fleetAlertVehicle = '/alerts/fleet/vehicle';
+  static const fleetAlertDetail = '/alerts/fleet/alert';
 
   // Flujo cotización SRCE
   static const rcQuoteRequest = '/insurance/rc/quote/request';
   static const rcQuoteStatus = '/insurance/rc/quote/status';
+
+  // Red operativa
+  static const networkOperational = '/network/operational';
+  static const ownerDetail = '/network/owner-detail';
 
   // Demo
   static const bottomNavDemo = '/demo/bottom-nav';

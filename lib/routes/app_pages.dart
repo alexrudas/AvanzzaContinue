@@ -34,6 +34,7 @@ import '../presentation/auth/pages/select_profile_page.dart';
 import '../presentation/auth/pages/summary_page.dart';
 import '../presentation/auth/pages/username_password_page.dart';
 import '../presentation/bindings/alert_center_binding.dart';
+import '../presentation/bindings/fleet_alert_binding.dart';
 import '../presentation/bindings/asset/asset_registration_binding.dart';
 import '../presentation/bindings/home_binding.dart';
 import '../presentation/bindings/insurance/rc_quote_request_binding.dart';
@@ -45,9 +46,13 @@ import '../presentation/bindings/runt/runt_query_binding.dart';
 import '../presentation/bindings/simit/simit_binding.dart';
 import '../presentation/bindings/splash_binding.dart';
 import '../presentation/bindings/tenant_home_binding.dart';
-import '../presentation/bindings/vrc/vrc_binding.dart';
+// LEGACY: import VrcBinding — desactivado junto con vrcConsult/vrcResult GetPages
+// import '../presentation/bindings/vrc/vrc_binding.dart';
 import '../presentation/home/pages/home_router.dart';
 import '../presentation/pages/alerts/alert_center_page.dart';
+import '../presentation/pages/alerts/fleet_alert_detail_page.dart';
+import '../presentation/pages/alerts/fleet_alert_list_page.dart';
+import '../presentation/pages/alerts/fleet_vehicle_alerts_page.dart';
 import '../presentation/pages/asset/asset_detail_page.dart';
 import '../presentation/pages/asset/asset_registration_page.dart';
 import '../presentation/pages/asset/driver_license_detail_page.dart';
@@ -70,14 +75,19 @@ import '../presentation/pages/portfolio/wizard/create_portfolio_step1_page.dart'
 import '../presentation/pages/portfolio/wizard/create_portfolio_step2_page.dart';
 import '../presentation/pages/portfolio/wizard/runt_query_progress_page.dart';
 import '../presentation/pages/portfolio/wizard/runt_query_result_page.dart';
+import '../presentation/bindings/purchase_request_binding.dart';
 import '../presentation/pages/purchase_request_page.dart';
 import '../presentation/pages/runt/runt_person_consult_page.dart';
 import '../presentation/pages/runt/runt_vehicle_consult_page.dart';
 import '../presentation/pages/simit/simit_consult_page.dart';
 import '../presentation/pages/splash/splash_bootstrap_page.dart';
 import '../presentation/pages/tenant/home/tenant_home_page.dart';
-import '../presentation/pages/vrc/vrc_consult_page.dart';
-import '../presentation/pages/vrc/vrc_result_page.dart';
+import '../presentation/bindings/admin/network_operational_binding.dart';
+import '../presentation/pages/admin/network/network_operational_screen.dart';
+import '../presentation/pages/admin/network/owner_detail_page.dart';
+// LEGACY: vrc_consult_page.dart y vrc_result_page.dart comentados — flujo VRC individual inactivo
+// import '../presentation/pages/vrc/vrc_consult_page.dart';
+// import '../presentation/pages/vrc/vrc_result_page.dart';
 import 'app_routes.dart';
 
 // TODO(cleanup): migrar imports a app_routes.dart donde solo se usan constantes
@@ -186,7 +196,11 @@ class AppPages {
       name: Routes.incidencia,
       page: () => _buildIncidenciaPage(),
     ),
-    GetPage(name: Routes.purchase, page: () => const PurchaseRequestPage()),
+    GetPage(
+      name: Routes.purchase,
+      page: () => const PurchaseRequestPage(),
+      binding: PurchaseRequestBinding(),
+    ),
     GetPage(name: Routes.assets, page: () => const AssetListPage()),
 
     // Tenant Home
@@ -215,23 +229,10 @@ class AppPages {
       binding: SimitBinding(),
     ),
 
-    // CONTRACT: Routes.vrcConsult acepta arguments opcionales:
-    //   {plate, documentType, documentNumber, fromRegistration: true} — modo registro.
-    //   Sin arguments → modo standalone (usuario ingresa datos manualmente).
-    // VrcBinding usa fenix:true → VrcController sobrevive la navegación a vrcResult.
-    GetPage(
-      name: Routes.vrcConsult,
-      page: () => VrcConsultPage(),
-      binding: VrcBinding(),
-    ),
-
-    // CONTRACT: Routes.vrcResult requiere VrcController activo (navegar desde vrcConsult).
-    // VrcBinding registrado aquí también para que el controller persista al navegar directamente.
-    GetPage(
-      name: Routes.vrcResult,
-      page: () => const VrcResultPage(),
-      binding: VrcBinding(),
-    ),
+    // LEGACY — vrc_consult_page.dart y vrc_result_page.dart comentados (flujo VRC individual
+    // inactivo tras unificación). GetPages desactivados hasta que se decida eliminar definitivamente.
+    // GetPage(name: Routes.vrcConsult, page: () => VrcConsultPage(), binding: VrcBinding()),
+    // GetPage(name: Routes.vrcResult, page: () => const VrcResultPage(), binding: VrcBinding()),
 
     // CONTRACT: Routes.vrcBatchProgress requiere VrcBatchController activo.
     // AssetRegistrationBinding lo registra antes de navegar aquí desde el flujo
@@ -384,6 +385,25 @@ class AppPages {
       binding: AlertCenterBinding(),
     ),
 
+    // CONTRACT: no requiere arguments — FleetAlertController carga la org activa.
+    GetPage(
+      name: Routes.fleetAlerts,
+      page: () => const FleetAlertListPage(),
+      binding: FleetAlertBinding(),
+    ),
+
+    // CONTRACT: Get.toNamed(Routes.fleetAlertVehicle, arguments: FleetAlertGroupVm)
+    GetPage(
+      name: Routes.fleetAlertVehicle,
+      page: () => const FleetVehicleAlertsPage(),
+    ),
+
+    // CONTRACT: Get.toNamed(Routes.fleetAlertDetail, arguments: AlertCardVm)
+    GetPage(
+      name: Routes.fleetAlertDetail,
+      page: () => const FleetAlertDetailPage(),
+    ),
+
     // ════════════════════════════════════════════════════════════════════════
     // FLUJO COTIZACIÓN SRCE (RC Extracontractual)
     // ════════════════════════════════════════════════════════════════════════
@@ -402,6 +422,25 @@ class AppPages {
       name: Routes.rcQuoteStatus,
       page: () => const RcQuoteStatusPage(),
       binding: RcQuoteStatusBinding(),
+    ),
+
+    // ════════════════════════════════════════════════════════════════════════
+    // RED OPERATIVA
+    // ════════════════════════════════════════════════════════════════════════
+
+    // CONTRACT: no requiere arguments — carga propietarios de la org activa.
+    GetPage(
+      name: Routes.networkOperational,
+      page: () => const NetworkOperationalScreen(),
+      binding: NetworkOperationalBinding(),
+    ),
+
+    // CONTRACT: Routes.ownerDetail requiere argument
+    //   Map{'owner': OwnerNetworkVm}
+    // Uso: Get.toNamed(Routes.ownerDetail, arguments: {'owner': ownerVm})
+    GetPage(
+      name: Routes.ownerDetail,
+      page: () => const OwnerDetailPage(),
     ),
 
     // ════════════════════════════════════════════════════════════════════════
