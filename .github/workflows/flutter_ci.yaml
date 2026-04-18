@@ -50,13 +50,5 @@ jobs:
       - name: Analyze (non-fatal legacy infos/warnings)
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      # SUSTITUCIÓN DE PREWARM POR DESCARGA NATIVA
-      - name: 🛠️ Install Isar Core Binary (Linux)
-        run: |
-          mkdir -p .dart_tool/isar
-          # Descargamos el binario directamente para evitar el bloqueo del HttpClient de Flutter
-          curl -L https://github.com/isar-community/isar-core/releases/download/4.0.0-dev.14/libisar_linux_x64.so -o .dart_tool/isar/libisar.so
-          chmod +x .dart_tool/isar/libisar.so
-
       - name: Test
         run: flutter test --no-pub -j 1
