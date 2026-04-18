@@ -26,25 +26,71 @@ import '../core_common/nestjs_exceptions.dart';
 /// Firebase ID token provider. null si no hay sesión activa.
 typedef GetIdToken = Future<String?> Function();
 
-/// Body de POST /v1/purchase-requests (espejo del DTO backend).
+/// Body de POST /v1/purchase-requests (espejo del DTO backend canónico).
+///
+/// Contrato backend vigente (avanzza-core-api — PurchaseRequest canonical fields):
+///   title, type?, category?, originType?, assetId?, notes?, delivery?,
+///   items[], vendorContactIds[].
+///
+/// type y originType son opcionales en el DTO (defaults backend PRODUCT/GENERAL);
+/// el cliente los envía siempre que vienen del controller — el backend hace
+/// cross-check `originType=ASSET ⇔ assetId`.
 class CreatePurchaseRequestBody {
   final String title;
+  final String? type; // 'PRODUCT' | 'SERVICE'
+  final String? category;
+  final String? originType; // 'ASSET' | 'INVENTORY' | 'GENERAL'
+  final String? assetId;
   final String? notes;
+  final CreatePurchaseRequestDelivery? delivery;
   final List<CreatePurchaseRequestItem> items;
   final List<String> vendorContactIds;
 
   const CreatePurchaseRequestBody({
     required this.title,
+    this.type,
+    this.category,
+    this.originType,
+    this.assetId,
     this.notes,
+    this.delivery,
     required this.items,
     required this.vendorContactIds,
   });
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'title': title,
+        if (type != null) 'type': type,
+        if (category != null) 'category': category,
+        if (originType != null) 'originType': originType,
+        if (assetId != null) 'assetId': assetId,
         if (notes != null) 'notes': notes,
+        if (delivery != null) 'delivery': delivery!.toJson(),
         'items': items.map((i) => i.toJson()).toList(),
         'vendorContactIds': vendorContactIds,
+      };
+}
+
+/// Delivery estructurada. Espejo del `CreateDeliveryDto` backend: cuando se
+/// envía, `city` y `address` son obligatorios; `department` e `info` opcionales.
+class CreatePurchaseRequestDelivery {
+  final String? department;
+  final String city;
+  final String address;
+  final String? info;
+
+  const CreatePurchaseRequestDelivery({
+    this.department,
+    required this.city,
+    required this.address,
+    this.info,
+  });
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (department != null) 'department': department,
+        'city': city,
+        'address': address,
+        if (info != null) 'info': info,
       };
 }
 
