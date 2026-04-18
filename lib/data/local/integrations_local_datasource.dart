@@ -201,6 +201,37 @@ class IntegrationsLocalDatasource {
 
   // ── Limpieza ───────────────────────────────────────────────────────────────
 
+  /// Elimina un registro RUNT Persona específico del cache por su clave.
+  ///
+  /// Usado por el flujo de refresh manual: al limpiar la entrada antes de
+  /// llamar consultRuntPerson, se fuerza una consulta fresca a la API
+  /// independientemente del TTL.
+  Future<void> deleteRuntPersonCacheByKey(String cacheKey) async {
+    final record = await _isar.integrationsRuntPersonCacheModels
+        .where()
+        .cacheKeyEqualTo(cacheKey)
+        .findFirst();
+    if (record == null) return;
+    await _isar.writeTxn(() async {
+      await _isar.integrationsRuntPersonCacheModels.delete(record.isarId);
+    });
+  }
+
+  /// Elimina un registro SIMIT específico del cache por su clave.
+  ///
+  /// Mismo patrón que [deleteRuntPersonCacheByKey] — fuerza refresh
+  /// bypass de TTL para el flujo de actualización manual.
+  Future<void> deleteSimitCacheByKey(String cacheKey) async {
+    final record = await _isar.integrationsSimitCacheModels
+        .where()
+        .cacheKeyEqualTo(cacheKey)
+        .findFirst();
+    if (record == null) return;
+    await _isar.writeTxn(() async {
+      await _isar.integrationsSimitCacheModels.delete(record.isarId);
+    });
+  }
+
   /// Elimina todos los registros de cache de integraciones en Isar.
   Future<void> clearAll() async {
     await _isar.writeTxn(() async {

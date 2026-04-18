@@ -32,6 +32,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/di/container.dart';
+import '../../../core/platform/owner_refresh_service.dart';
 import '../../../core/theme/spacing.dart';
 import '../../../data/vrc/models/vrc_models.dart';
 
@@ -48,15 +50,108 @@ DateTime? _parseDdMmYyyy(String? s) {
   return DateTime(year, month, day);
 }
 
-class DriverLicenseDetailPage extends StatelessWidget {
+class DriverLicenseDetailPage extends StatefulWidget {
   const DriverLicenseDetailPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<DriverLicenseDetailPage> createState() =>
+      _DriverLicenseDetailPageState();
+}
+
+class _DriverLicenseDetailPageState extends State<DriverLicenseDetailPage> {
+  VrcDataModel? _data;
+  DateTime _checkedAt = DateTime.now();
+  String? _portfolioId;
+  bool _isRefreshing = false;
+
+  @override
+  void initState() {
+    super.initState();
     final args = Get.arguments as Map<String, dynamic>?;
-    final data = args?['data'] as VrcDataModel?;
-    // checkedAt no se usa en esta página; el argumento existe por uniformidad
-    // con SimitPersonDetailPage — ambas reciben el mismo Map.
+    _data = args?['data'] as VrcDataModel?;
+    _checkedAt = args?['checkedAt'] as DateTime? ?? DateTime.now();
+    _portfolioId = args?['portfolioId'] as String?;
+  }
+
+  /// Refresh manual: invalida cache → consulta RUNT Persona → persiste → rebuild.
+  Future<void> _handleRefresh() async {
+    final owner = _data?.owner;
+    final document = owner?.document;
+    final documentType = owner?.documentType;
+    if (document == null ||
+        document.isEmpty ||
+        documentType == null ||
+        documentType.isEmpty ||
+        _portfolioId == null) return;
+
+    setState(() => _isRefreshing = true);
+
+    final result = await DIContainer().ownerRefreshService.refreshLicense(
+          portfolioId: _portfolioId!,
+          document: document,
+          documentType: documentType,
+        );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isRefreshing = false;
+      if (result is RefreshSuccess<VrcOwnerRuntModel>) {
+        _checkedAt = result.refreshedAt;
+        final currentOwner = _data?.owner;
+        _data = VrcDataModel(
+          owner: VrcOwnerModel(
+            name: currentOwner?.name,
+            document: currentOwner?.document,
+            documentType: currentOwner?.documentType,
+            runt: result.data,
+            simit: currentOwner?.simit,
+          ),
+        );
+      }
+    });
+
+    if (result is RefreshError) {
+      final err = result as RefreshError;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              err.isExternal
+                  ? 'No se pudo conectar con RUNT. Intenta más tarde.'
+                  : 'Error al actualizar datos de licencia.',
+            ),
+          ),
+        );
+      }
+    } else if (result is RefreshSuccess) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Datos de licencia actualizados')),
+        );
+      }
+    }
+  }
+
+  /// Formato amigable 12h: "16/04/2026, 12:52 p. m."
+  String _formatTimestamp(DateTime dt) {
+    final d = dt.toLocal();
+    final dd = d.day.toString().padLeft(2, '0');
+    final mm = d.month.toString().padLeft(2, '0');
+    final yyyy = d.year.toString();
+    final h = d.hour == 0
+        ? 12
+        : d.hour > 12
+            ? d.hour - 12
+            : d.hour;
+    final min = d.minute.toString().padLeft(2, '0');
+    final ampm = d.hour < 12 ? 'a. m.' : 'p. m.';
+    return '$dd/$mm/$yyyy, $h:$min $ampm';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final data = _data;
 
     if (data == null) {
       return const _ErrorScaffold(
@@ -89,6 +184,20 @@ class DriverLicenseDetailPage extends StatelessWidget {
           style: theme.textTheme.titleMedium
               ?.copyWith(fontWeight: FontWeight.w700),
         ),
+        actions: [
+          if (owner?.document != null && owner?.documentType != null)
+            IconButton(
+              onPressed: _isRefreshing ? null : _handleRefresh,
+              icon: _isRefreshing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh_rounded),
+              tooltip: 'Actualizar datos de licencia',
+            ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(
@@ -98,7 +207,17 @@ class DriverLicenseDetailPage extends StatelessWidget {
         children: [
           // Header: nombre y documento del propietario
           _OwnerBlock(owner: owner, theme: theme, cs: cs),
-          const SizedBox(height: AppSpacing.md),
+
+          // Timestamp de última actualización
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: AppSpacing.md),
+            child: Text(
+              'Última actualización: ${_formatTimestamp(_checkedAt)}',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
+            ),
+          ),
 
           // Banner de degradación — RUNT Persona falló
           if (runtError != null) ...[
@@ -144,14 +263,6 @@ class DriverLicenseDetailPage extends StatelessWidget {
     );
   }
 
-  /// Selecciona la licencia principal a mostrar en la tarjeta destacada.
-  ///
-  /// Prioridad:
-  ///   1. Vigente (status contiene 'vig' o 'activ') con expiryDate conocida.
-  ///   2. Con expiryDate conocida (cualquier estado).
-  ///   3. Primera de la lista (fallback cuando no hay fechas disponibles).
-  ///
-  /// No usa [index] directamente — el orden del backend no garantiza relevancia.
   VrcLicenseModel? _selectMainLicense(List<VrcLicenseModel> licenses) {
     if (licenses.isEmpty) return null;
 
@@ -160,17 +271,14 @@ class DriverLicenseDetailPage extends StatelessWidget {
       return s.contains('vig') || s.contains('activ');
     }
 
-    // 1. Vigente con fecha conocida
     final vigentes = licenses
         .where((l) => l.expiryDate != null && isActive(l))
         .toList();
     if (vigentes.isNotEmpty) return vigentes.first;
 
-    // 2. Cualquier estado con fecha conocida
     final conFecha = licenses.where((l) => l.expiryDate != null).toList();
     if (conFecha.isNotEmpty) return conFecha.first;
 
-    // 3. Fallback: primera de la lista
     return licenses.first;
   }
 }

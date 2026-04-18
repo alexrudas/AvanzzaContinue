@@ -92,6 +92,8 @@ class PortfolioLocalDataSource {
           simitMultasCount: model.simitMultasCount ?? existing.simitMultasCount,
           simitFormattedTotal: model.simitFormattedTotal ?? existing.simitFormattedTotal,
           simitCheckedAt: model.simitCheckedAt ?? existing.simitCheckedAt,
+          licenseCheckedAt: model.licenseCheckedAt ?? existing.licenseCheckedAt,
+          simitDetailJson: model.simitDetailJson ?? existing.simitDetailJson,
         );
       } else {
         // INSERT: nuevo registro.
@@ -224,6 +226,8 @@ class PortfolioLocalDataSource {
       simitMultasCount: existing.simitMultasCount,
       simitFormattedTotal: existing.simitFormattedTotal,
       simitCheckedAt: existing.simitCheckedAt,
+      licenseCheckedAt: existing.licenseCheckedAt,
+      simitDetailJson: existing.simitDetailJson,
     ));
   }
 
@@ -309,6 +313,8 @@ class PortfolioLocalDataSource {
     required int? simitMultasCount,
     required String? simitFormattedTotal,
     required DateTime? simitCheckedAt,
+    DateTime? licenseCheckedAt,
+    String? simitDetailJson,
   }) async {
     await _isar.writeTxn(() async {
       final existing = await _isar.portfolioModels
@@ -348,6 +354,119 @@ class PortfolioLocalDataSource {
         simitMultasCount: simitMultasCount ?? existing.simitMultasCount,
         simitFormattedTotal: simitFormattedTotal ?? existing.simitFormattedTotal,
         simitCheckedAt: simitCheckedAt ?? existing.simitCheckedAt,
+        licenseCheckedAt: licenseCheckedAt ?? existing.licenseCheckedAt,
+        simitDetailJson: simitDetailJson ?? existing.simitDetailJson,
+      ));
+    });
+  }
+
+  /// Actualiza SOLO campos SIMIT del snapshot. No toca licencia ni identidad.
+  ///
+  /// Mismo patrón read-modify-write que [updateOwnerSnapshot], pero con
+  /// firma enfocada — elimina necesidad de pasar nulls para campos de licencia.
+  Future<void> updateSimitSnapshot(
+    String portfolioId, {
+    required bool? hasFines,
+    required int? finesCount,
+    required int? comparendosCount,
+    required int? multasCount,
+    required String? formattedTotal,
+    required DateTime checkedAt,
+    String? detailJson,
+  }) async {
+    await _isar.writeTxn(() async {
+      final existing = await _isar.portfolioModels
+          .filter()
+          .idEqualTo(portfolioId)
+          .findFirst();
+
+      if (existing == null) {
+        throw Exception(
+            'Portfolio updateSimitSnapshot: not found id=$portfolioId');
+      }
+
+      await _isar.portfolioModels.put(PortfolioModel(
+        isarId: existing.isarId,
+        id: existing.id,
+        portfolioType: existing.portfolioType,
+        portfolioName: existing.portfolioName,
+        countryId: existing.countryId,
+        cityId: existing.cityId,
+        orgId: existing.orgId,
+        status: existing.status,
+        assetsCount: existing.assetsCount,
+        createdBy: existing.createdBy,
+        createdAt: existing.createdAt,
+        updatedAt: DateTime.now().toUtc(),
+        // Preservar campos de identidad y licencia — no tocar.
+        ownerName: existing.ownerName,
+        ownerDocument: existing.ownerDocument,
+        ownerDocumentType: existing.ownerDocumentType,
+        licenseStatus: existing.licenseStatus,
+        licenseExpiryDate: existing.licenseExpiryDate,
+        licenseCheckedAt: existing.licenseCheckedAt,
+        // SIMIT: merge — null incoming conserva existente.
+        simitHasFines: hasFines ?? existing.simitHasFines,
+        simitFinesCount: finesCount ?? existing.simitFinesCount,
+        simitComparendosCount:
+            comparendosCount ?? existing.simitComparendosCount,
+        simitMultasCount: multasCount ?? existing.simitMultasCount,
+        simitFormattedTotal: formattedTotal ?? existing.simitFormattedTotal,
+        simitCheckedAt: checkedAt,
+        simitDetailJson: detailJson ?? existing.simitDetailJson,
+      ));
+    });
+  }
+
+  /// Actualiza SOLO campos de licencia/identidad del snapshot. No toca SIMIT.
+  Future<void> updateLicenseSnapshot(
+    String portfolioId, {
+    required String? ownerName,
+    required String? ownerDocument,
+    required String? ownerDocumentType,
+    required String? licenseStatus,
+    required String? licenseExpiryDate,
+    required DateTime checkedAt,
+  }) async {
+    await _isar.writeTxn(() async {
+      final existing = await _isar.portfolioModels
+          .filter()
+          .idEqualTo(portfolioId)
+          .findFirst();
+
+      if (existing == null) {
+        throw Exception(
+            'Portfolio updateLicenseSnapshot: not found id=$portfolioId');
+      }
+
+      await _isar.portfolioModels.put(PortfolioModel(
+        isarId: existing.isarId,
+        id: existing.id,
+        portfolioType: existing.portfolioType,
+        portfolioName: existing.portfolioName,
+        countryId: existing.countryId,
+        cityId: existing.cityId,
+        orgId: existing.orgId,
+        status: existing.status,
+        assetsCount: existing.assetsCount,
+        createdBy: existing.createdBy,
+        createdAt: existing.createdAt,
+        updatedAt: DateTime.now().toUtc(),
+        // Licencia/identidad: merge — null incoming conserva existente.
+        ownerName: ownerName ?? existing.ownerName,
+        ownerDocument: ownerDocument ?? existing.ownerDocument,
+        ownerDocumentType: ownerDocumentType ?? existing.ownerDocumentType,
+        licenseStatus: licenseStatus ?? existing.licenseStatus,
+        licenseExpiryDate: licenseExpiryDate ?? existing.licenseExpiryDate,
+        licenseCheckedAt: checkedAt,
+        // Preservar campos SIMIT — no tocar.
+        simitHasFines: existing.simitHasFines,
+        simitFinesCount: existing.simitFinesCount,
+        simitComparendosCount: existing.simitComparendosCount,
+        simitMultasCount: existing.simitMultasCount,
+        simitFormattedTotal: existing.simitFormattedTotal,
+        simitCheckedAt: existing.simitCheckedAt,
+        simitDetailJson: existing.simitDetailJson,
       ));
     });
   }
@@ -399,6 +518,8 @@ class PortfolioLocalDataSource {
           simitMultasCount: orphan.simitMultasCount,
           simitFormattedTotal: orphan.simitFormattedTotal,
           simitCheckedAt: orphan.simitCheckedAt,
+          licenseCheckedAt: orphan.licenseCheckedAt,
+          simitDetailJson: orphan.simitDetailJson,
         ));
       }
     });
@@ -445,6 +566,8 @@ class PortfolioLocalDataSource {
         simitMultasCount: existing.simitMultasCount,
         simitFormattedTotal: existing.simitFormattedTotal,
         simitCheckedAt: existing.simitCheckedAt,
+        licenseCheckedAt: existing.licenseCheckedAt,
+        simitDetailJson: existing.simitDetailJson,
       );
 
       await _isar.portfolioModels.put(updated);

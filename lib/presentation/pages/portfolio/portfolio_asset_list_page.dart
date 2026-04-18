@@ -26,7 +26,13 @@
 // REFINADO (2026-03): Rename flow con bottom sheet y CTA único de creación.
 // ACTUALIZADO (2026-04): _OwnerContextBand — muestra snapshot del propietario VRC
 //   persistido en PortfolioEntity al completar un batch (Problema B — Fase SIMIT-1).
+// ACTUALIZADO (2026-04): Fuente de verdad reactiva desde Isar via watchPortfolioById.
+//   Elimina dependencia de Get.arguments congelado para owner/licencia/SIMIT.
+//   _OwnerContextBand y _OwnerInfoTile reemplazados por OwnerSnapshotBand compartido
+//   (widgets/portfolio/owner_snapshot_band.dart) — contrato único de visibilidad.
 // ============================================================================
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -35,7 +41,6 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/di/container.dart';
 import '../../../core/navigation/app_navigator.dart';
-import '../../../data/vrc/models/vrc_models.dart';
 import '../../../domain/entities/asset/asset_entity.dart';
 import '../../../domain/entities/portfolio/portfolio_entity.dart';
 import '../../../domain/shared/enums/asset_type.dart';
@@ -43,6 +48,7 @@ import '../../../domain/value/registration/asset_registration_context.dart';
 import '../../../routes/app_pages.dart';
 import '../../mappers/asset_summary_mapper.dart';
 import '../../widgets/asset/portfolio_asset_operational_tile.dart';
+import '../../widgets/portfolio/owner_snapshot_band.dart';
 
 class PortfolioAssetListPage extends StatefulWidget {
   const PortfolioAssetListPage({super.key});
@@ -56,6 +62,14 @@ class _PortfolioAssetListPageState extends State<PortfolioAssetListPage> {
   String? _portfolioName;
   late final Stream<List<AssetEntity>>? _assetsStream;
 
+  /// Suscripción reactiva al portfolio por ID.
+  ///
+  /// Fuente de verdad: Isar via watchPortfolioById. Garantiza que cualquier
+  /// cambio posterior a la navegación (ej. _persistOwnerSnapshot completando
+  /// después de que AdminHomeController emitió) actualice esta vista sin
+  /// depender de la entidad congelada de Get.arguments.
+  StreamSubscription<PortfolioEntity?>? _portfolioSub;
+
   String get _displayPortfolioName {
     final value = _portfolioName?.trim();
     if (value != null && value.isNotEmpty) return value;
@@ -68,13 +82,44 @@ class _PortfolioAssetListPageState extends State<PortfolioAssetListPage> {
     _initializeStream();
   }
 
+  @override
+  void dispose() {
+    _portfolioSub?.cancel();
+    super.dispose();
+  }
+
   void _initializeStream() {
     final arg = Get.arguments;
     if (arg is PortfolioEntity) {
+      // Snapshot inicial para render inmediato (sin esperar primer evento del stream).
       _portfolio = arg;
       _portfolioName = arg.portfolioName;
       _assetsStream =
           DIContainer().assetRepository.watchAssetsByPortfolio(arg.id);
+
+      // Suscripción reactiva: Isar como fuente de verdad para el portfolio.
+      // watchPortfolioById usa fireImmediately:true — el primer evento llega
+      // en el próximo microtask con los datos actuales de Isar, incluyendo
+      // cualquier owner snapshot que _persistOwnerSnapshot haya escrito
+      // después de que AdminHomeController capturó la entidad de navegación.
+      _portfolioSub = DIContainer()
+          .portfolioRepository
+          .watchPortfolioById(arg.id)
+          .listen((updated) {
+        if (updated != null && mounted) {
+          setState(() {
+            _portfolio = updated;
+            // Preservar rename manual del usuario en la sesión actual.
+            // Si el usuario renombró el portfolio via bottom sheet, el
+            // _portfolioName tiene el nuevo nombre y no debe sobrescribirse
+            // por el stream hasta que Isar refleje el cambio.
+            if (_portfolioName == null ||
+                _portfolioName == _portfolio?.portfolioName) {
+              _portfolioName = updated.portfolioName;
+            }
+          });
+        }
+      });
     } else {
       _assetsStream = null;
     }
@@ -172,9 +217,11 @@ class _PortfolioAssetListPageState extends State<PortfolioAssetListPage> {
           portfolio: portfolio,
           currentCount: assets.length,
         ),
-        // Snapshot del propietario — visible solo si fue persistido en un batch VRC previo.
-        if (portfolio.ownerName != null)
-          _OwnerContextBand(portfolio: portfolio),
+        // Snapshot del propietario — visible si al menos un campo del snapshot
+        // fue persistido en un batch VRC previo. Contrato canónico centralizado
+        // en OwnerSnapshotBand.isAvailable para evitar divergencia con live page.
+        if (OwnerSnapshotBand.isAvailable(portfolio))
+          OwnerSnapshotBand(portfolio: portfolio),
         Divider(
           height: 1,
           thickness: 1,
@@ -567,294 +614,9 @@ class _InlineErrorState extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// _OwnerContextBand — Snapshot del propietario VRC persistido
-//
-// Visible solo cuando portfolio.ownerName != null (batch VRC completado
-// en sesión anterior). Muestra 2 tiles/cards compactos read-only:
-// Licencia y SIMIT — coherentes visualmente con los cards de la live page.
-// No tappable: la navegación al detalle solo está disponible desde la live page.
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _OwnerContextBand extends StatelessWidget {
-  final PortfolioEntity portfolio;
-
-  const _OwnerContextBand({required this.portfolio});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
-    final docDisplay = _formatOwnerDoc(portfolio);
-
-    return Container(
-      color: cs.surfaceContainerLow,
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Nombre del propietario
-          Text(
-            portfolio.ownerName!,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          if (docDisplay != null) ...[
-            const SizedBox(height: 2),
-            Text(
-              docDisplay,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-            ),
-          ],
-          const SizedBox(height: 8),
-          // 2 tiles/cards compactos: Licencia y SIMIT
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _OwnerInfoTile(
-                  icon: Icons.credit_card_outlined,
-                  label: 'Licencia',
-                  value: portfolio.licenseStatus ?? 'Sin información',
-                  valueColor:
-                      _licenseColorFromStatus(cs, portfolio.licenseStatus),
-                  subtitle: portfolio.licenseExpiryDate != null
-                      ? 'Vence ${portfolio.licenseExpiryDate}'
-                      : null,
-                  onTap: () => Get.toNamed(
-                    Routes.driverLicenseDetail,
-                    arguments: {
-                      'data': _buildSnapshotVrcData(),
-                      'checkedAt': portfolio.simitCheckedAt,
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _OwnerInfoTile(
-                  icon: Icons.receipt_long_outlined,
-                  label: 'SIMIT',
-                  value: _simitValueText(portfolio),
-                  valueColor: portfolio.simitHasFines == true ? cs.error : null,
-                  subtitle: _simitSubtitleText(portfolio),
-                  onTap: () => Get.toNamed(
-                    Routes.simitPersonDetail,
-                    arguments: {
-                      'data': _buildSnapshotVrcData(),
-                      'checkedAt': portfolio.simitCheckedAt,
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-          // Nota de antigüedad del snapshot
-          if (portfolio.simitCheckedAt != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Última consulta · ${_formatCheckedAt(portfolio.simitCheckedAt!)}',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  String? _formatOwnerDoc(PortfolioEntity p) {
-    final type = p.ownerDocumentType?.trim().toUpperCase();
-    final number = p.ownerDocument?.trim();
-    if (type == null || type.isEmpty || number == null || number.isEmpty) {
-      return null;
-    }
-    return '$type $number';
-  }
-
-  Color? _licenseColorFromStatus(ColorScheme cs, String? status) {
-    if (status == null) return null;
-    final norm = status.toLowerCase();
-    if (norm.contains('vig') || norm.contains('activ')) {
-      return Colors.green.shade600;
-    }
-    if (norm.contains('venc') || norm.contains('suspend')) return cs.error;
-    return null;
-  }
-
-  String _simitValueText(PortfolioEntity p) {
-    if (p.simitHasFines == false) return 'Sin multas';
-    return p.simitFormattedTotal ?? 'Ver detalle';
-  }
-
-  /// Segunda línea del tile SIMIT: comparendos y multas si disponibles.
-  String? _simitSubtitleText(PortfolioEntity p) {
-    if (p.simitHasFines != true) return null;
-    final comparendos = p.simitComparendosCount;
-    final multas = p.simitMultasCount;
-    if (comparendos == null && multas == null) return null;
-    final parts = <String>[];
-    if (comparendos != null) {
-      parts.add('$comparendos comparendo${comparendos != 1 ? 's' : ''}');
-    }
-    if (multas != null) {
-      parts.add('$multas multa${multas != 1 ? 's' : ''}');
-    }
-    return parts.join(' · ');
-  }
-
-  String _formatCheckedAt(DateTime dt) {
-    final d = dt.toLocal();
-    final dd = d.day.toString().padLeft(2, '0');
-    final mm = d.month.toString().padLeft(2, '0');
-    final yy = d.year.toString().substring(2);
-    return '$dd/$mm/$yy';
-  }
-
-  /// Construye un [VrcDataModel] mínimo desde el snapshot de Isar.
-  ///
-  /// Solo incluye los campos persistidos en [PortfolioEntity]: nombre,
-  /// documento, estado de licencia y resumen SIMIT. Arrays de detalle
-  /// (categories, fines[]) quedan vacíos — las páginas de detalle los
-  /// manejan defensivamente.
-  ///
-  /// Se llama DENTRO de los lambdas onTap (no en cada build) → costo cero
-  /// en renders; el objeto se construye solo cuando el usuario toca.
-  VrcDataModel _buildSnapshotVrcData() {
-    return VrcDataModel(
-      owner: VrcOwnerModel(
-        name: portfolio.ownerName,
-        document: portfolio.ownerDocument,
-        documentType: portfolio.ownerDocumentType,
-        runt: portfolio.licenseStatus != null
-            ? VrcOwnerRuntModel(
-                licenses: [
-                  VrcLicenseModel(
-                    status: portfolio.licenseStatus,
-                    expiryDate: portfolio.licenseExpiryDate,
-                  ),
-                ],
-              )
-            : null,
-        simit: portfolio.simitHasFines != null
-            ? VrcOwnerSimitModel(summary: _buildSnapshotSimitSummary())
-            : null,
-      ),
-    );
-  }
-
-  /// Construye solo el [VrcSimitSummaryModel] desde el snapshot.
-  ///
-  /// Usado tanto por [_buildSnapshotVrcData] como directamente por el tile
-  /// SIMIT para el parámetro summary. Retorna null si no hay datos SIMIT.
-  VrcSimitSummaryModel? _buildSnapshotSimitSummary() {
-    if (portfolio.simitHasFines == null) return null;
-    return VrcSimitSummaryModel(
-      hasFines: portfolio.simitHasFines,
-      finesCount: portfolio.simitFinesCount,
-      comparendos: portfolio.simitComparendosCount,
-      multas: portfolio.simitMultasCount,
-      formattedTotal: portfolio.simitFormattedTotal,
-    );
-  }
-}
-
-// ── _OwnerInfoTile ─────────────────────────────────────────────────────────────
-// Tile/card compacto para el snapshot del propietario.
-// Misma caja visual que _LicenseCard/_SimitCard de portfolio_asset_live_page.
-// onTap opcional — cuando se proporciona, muestra chevron y efecto ripple.
-
-class _OwnerInfoTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color? valueColor;
-  final String? subtitle;
-  final VoidCallback? onTap;
-
-  const _OwnerInfoTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.valueColor,
-    this.subtitle,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
-    return Material(
-      color: cs.surfaceContainer,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Fila de etiqueta con ícono y chevron opcional
-              Row(
-                children: [
-                  Icon(icon, size: 13, color: cs.onSurfaceVariant),
-                  const SizedBox(width: 4),
-                  Text(
-                    label,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                    ),
-                  ),
-                  if (onTap != null) ...[
-                    const Spacer(),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: 16,
-                      color: cs.primary.withValues(alpha: 0.75),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 4),
-              // Valor principal
-              Text(
-                value,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: valueColor ?? cs.onSurface,
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              // Segunda línea opcional (comparendos/multas)
-              if (subtitle != null) ...[
-                const SizedBox(height: 2),
-                Text(
-                  subtitle!,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
+// _OwnerContextBand y _OwnerInfoTile ELIMINADOS (2026-04).
+// Unificados en OwnerSnapshotBand (widgets/portfolio/owner_snapshot_band.dart)
+// para eliminar divergencia de contrato con _OwnerSnapshotBand de live page.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ErrorState extends StatelessWidget {

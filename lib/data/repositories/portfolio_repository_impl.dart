@@ -143,6 +143,8 @@ class PortfolioRepositoryImpl implements PortfolioRepository {
     required int? simitMultasCount,
     required String? simitFormattedTotal,
     required DateTime? simitCheckedAt,
+    DateTime? licenseCheckedAt,
+    String? simitDetailJson,
   }) {
     return local.updateOwnerSnapshot(
       portfolioId,
@@ -157,6 +159,52 @@ class PortfolioRepositoryImpl implements PortfolioRepository {
       simitMultasCount: simitMultasCount,
       simitFormattedTotal: simitFormattedTotal,
       simitCheckedAt: simitCheckedAt,
+      licenseCheckedAt: licenseCheckedAt,
+      simitDetailJson: simitDetailJson,
+    );
+  }
+
+  @override
+  Future<void> updateSimitSnapshot(
+    String portfolioId, {
+    required bool? hasFines,
+    required int? finesCount,
+    required int? comparendosCount,
+    required int? multasCount,
+    required String? formattedTotal,
+    required DateTime checkedAt,
+    String? detailJson,
+  }) {
+    return local.updateSimitSnapshot(
+      portfolioId,
+      hasFines: hasFines,
+      finesCount: finesCount,
+      comparendosCount: comparendosCount,
+      multasCount: multasCount,
+      formattedTotal: formattedTotal,
+      checkedAt: checkedAt,
+      detailJson: detailJson,
+    );
+  }
+
+  @override
+  Future<void> updateLicenseSnapshot(
+    String portfolioId, {
+    required String? ownerName,
+    required String? ownerDocument,
+    required String? ownerDocumentType,
+    required String? licenseStatus,
+    required String? licenseExpiryDate,
+    required DateTime checkedAt,
+  }) {
+    return local.updateLicenseSnapshot(
+      portfolioId,
+      ownerName: ownerName,
+      ownerDocument: ownerDocument,
+      ownerDocumentType: ownerDocumentType,
+      licenseStatus: licenseStatus,
+      licenseExpiryDate: licenseExpiryDate,
+      checkedAt: checkedAt,
     );
   }
 

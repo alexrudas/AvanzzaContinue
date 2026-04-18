@@ -47,83 +47,93 @@ const PortfolioModelSchema = CollectionSchema(
       name: r'id',
       type: IsarType.string,
     ),
-    r'licenseExpiryDate': PropertySchema(
+    r'licenseCheckedAt': PropertySchema(
       id: 6,
+      name: r'licenseCheckedAt',
+      type: IsarType.dateTime,
+    ),
+    r'licenseExpiryDate': PropertySchema(
+      id: 7,
       name: r'licenseExpiryDate',
       type: IsarType.string,
     ),
     r'licenseStatus': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'licenseStatus',
       type: IsarType.string,
     ),
     r'orgId': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'orgId',
       type: IsarType.string,
     ),
     r'ownerDocument': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'ownerDocument',
       type: IsarType.string,
     ),
     r'ownerDocumentType': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'ownerDocumentType',
       type: IsarType.string,
     ),
     r'ownerName': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'ownerName',
       type: IsarType.string,
     ),
     r'portfolioName': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'portfolioName',
       type: IsarType.string,
     ),
     r'portfolioType': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'portfolioType',
       type: IsarType.string,
     ),
     r'simitCheckedAt': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'simitCheckedAt',
       type: IsarType.dateTime,
     ),
     r'simitComparendosCount': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'simitComparendosCount',
       type: IsarType.long,
     ),
+    r'simitDetailJson': PropertySchema(
+      id: 17,
+      name: r'simitDetailJson',
+      type: IsarType.string,
+    ),
     r'simitFinesCount': PropertySchema(
-      id: 16,
+      id: 18,
       name: r'simitFinesCount',
       type: IsarType.long,
     ),
     r'simitFormattedTotal': PropertySchema(
-      id: 17,
+      id: 19,
       name: r'simitFormattedTotal',
       type: IsarType.string,
     ),
     r'simitHasFines': PropertySchema(
-      id: 18,
+      id: 20,
       name: r'simitHasFines',
       type: IsarType.bool,
     ),
     r'simitMultasCount': PropertySchema(
-      id: 19,
+      id: 21,
       name: r'simitMultasCount',
       type: IsarType.long,
     ),
     r'status': PropertySchema(
-      id: 20,
+      id: 22,
       name: r'status',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 21,
+      id: 23,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -257,6 +267,12 @@ int _portfolioModelEstimateSize(
   bytesCount += 3 + object.portfolioName.length * 3;
   bytesCount += 3 + object.portfolioType.length * 3;
   {
+    final value = object.simitDetailJson;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.simitFormattedTotal;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -278,22 +294,24 @@ void _portfolioModelSerialize(
   writer.writeDateTime(offsets[3], object.createdAt);
   writer.writeString(offsets[4], object.createdBy);
   writer.writeString(offsets[5], object.id);
-  writer.writeString(offsets[6], object.licenseExpiryDate);
-  writer.writeString(offsets[7], object.licenseStatus);
-  writer.writeString(offsets[8], object.orgId);
-  writer.writeString(offsets[9], object.ownerDocument);
-  writer.writeString(offsets[10], object.ownerDocumentType);
-  writer.writeString(offsets[11], object.ownerName);
-  writer.writeString(offsets[12], object.portfolioName);
-  writer.writeString(offsets[13], object.portfolioType);
-  writer.writeDateTime(offsets[14], object.simitCheckedAt);
-  writer.writeLong(offsets[15], object.simitComparendosCount);
-  writer.writeLong(offsets[16], object.simitFinesCount);
-  writer.writeString(offsets[17], object.simitFormattedTotal);
-  writer.writeBool(offsets[18], object.simitHasFines);
-  writer.writeLong(offsets[19], object.simitMultasCount);
-  writer.writeString(offsets[20], object.status);
-  writer.writeDateTime(offsets[21], object.updatedAt);
+  writer.writeDateTime(offsets[6], object.licenseCheckedAt);
+  writer.writeString(offsets[7], object.licenseExpiryDate);
+  writer.writeString(offsets[8], object.licenseStatus);
+  writer.writeString(offsets[9], object.orgId);
+  writer.writeString(offsets[10], object.ownerDocument);
+  writer.writeString(offsets[11], object.ownerDocumentType);
+  writer.writeString(offsets[12], object.ownerName);
+  writer.writeString(offsets[13], object.portfolioName);
+  writer.writeString(offsets[14], object.portfolioType);
+  writer.writeDateTime(offsets[15], object.simitCheckedAt);
+  writer.writeLong(offsets[16], object.simitComparendosCount);
+  writer.writeString(offsets[17], object.simitDetailJson);
+  writer.writeLong(offsets[18], object.simitFinesCount);
+  writer.writeString(offsets[19], object.simitFormattedTotal);
+  writer.writeBool(offsets[20], object.simitHasFines);
+  writer.writeLong(offsets[21], object.simitMultasCount);
+  writer.writeString(offsets[22], object.status);
+  writer.writeDateTime(offsets[23], object.updatedAt);
 }
 
 PortfolioModel _portfolioModelDeserialize(
@@ -310,22 +328,24 @@ PortfolioModel _portfolioModelDeserialize(
     createdBy: reader.readString(offsets[4]),
     id: reader.readString(offsets[5]),
     isarId: id,
-    licenseExpiryDate: reader.readStringOrNull(offsets[6]),
-    licenseStatus: reader.readStringOrNull(offsets[7]),
-    orgId: reader.readStringOrNull(offsets[8]) ?? '',
-    ownerDocument: reader.readStringOrNull(offsets[9]),
-    ownerDocumentType: reader.readStringOrNull(offsets[10]),
-    ownerName: reader.readStringOrNull(offsets[11]),
-    portfolioName: reader.readString(offsets[12]),
-    portfolioType: reader.readString(offsets[13]),
-    simitCheckedAt: reader.readDateTimeOrNull(offsets[14]),
-    simitComparendosCount: reader.readLongOrNull(offsets[15]),
-    simitFinesCount: reader.readLongOrNull(offsets[16]),
-    simitFormattedTotal: reader.readStringOrNull(offsets[17]),
-    simitHasFines: reader.readBoolOrNull(offsets[18]),
-    simitMultasCount: reader.readLongOrNull(offsets[19]),
-    status: reader.readString(offsets[20]),
-    updatedAt: reader.readDateTimeOrNull(offsets[21]),
+    licenseCheckedAt: reader.readDateTimeOrNull(offsets[6]),
+    licenseExpiryDate: reader.readStringOrNull(offsets[7]),
+    licenseStatus: reader.readStringOrNull(offsets[8]),
+    orgId: reader.readStringOrNull(offsets[9]) ?? '',
+    ownerDocument: reader.readStringOrNull(offsets[10]),
+    ownerDocumentType: reader.readStringOrNull(offsets[11]),
+    ownerName: reader.readStringOrNull(offsets[12]),
+    portfolioName: reader.readString(offsets[13]),
+    portfolioType: reader.readString(offsets[14]),
+    simitCheckedAt: reader.readDateTimeOrNull(offsets[15]),
+    simitComparendosCount: reader.readLongOrNull(offsets[16]),
+    simitDetailJson: reader.readStringOrNull(offsets[17]),
+    simitFinesCount: reader.readLongOrNull(offsets[18]),
+    simitFormattedTotal: reader.readStringOrNull(offsets[19]),
+    simitHasFines: reader.readBoolOrNull(offsets[20]),
+    simitMultasCount: reader.readLongOrNull(offsets[21]),
+    status: reader.readString(offsets[22]),
+    updatedAt: reader.readDateTimeOrNull(offsets[23]),
   );
   return object;
 }
@@ -350,36 +370,40 @@ P _portfolioModelDeserializeProp<P>(
     case 5:
       return (reader.readString(offset)) as P;
     case 6:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 7:
       return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset) ?? '') as P;
-    case 9:
       return (reader.readStringOrNull(offset)) as P;
+    case 9:
+      return (reader.readStringOrNull(offset) ?? '') as P;
     case 10:
       return (reader.readStringOrNull(offset)) as P;
     case 11:
       return (reader.readStringOrNull(offset)) as P;
     case 12:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 13:
       return (reader.readString(offset)) as P;
     case 14:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 15:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 16:
       return (reader.readLongOrNull(offset)) as P;
     case 17:
       return (reader.readStringOrNull(offset)) as P;
     case 18:
-      return (reader.readBoolOrNull(offset)) as P;
-    case 19:
       return (reader.readLongOrNull(offset)) as P;
+    case 19:
+      return (reader.readStringOrNull(offset)) as P;
     case 20:
-      return (reader.readString(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 21:
+      return (reader.readLongOrNull(offset)) as P;
+    case 22:
+      return (reader.readString(offset)) as P;
+    case 23:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1544,6 +1568,80 @@ extension PortfolioModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'isarId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      licenseCheckedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'licenseCheckedAt',
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      licenseCheckedAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'licenseCheckedAt',
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      licenseCheckedAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'licenseCheckedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      licenseCheckedAtGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'licenseCheckedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      licenseCheckedAtLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'licenseCheckedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      licenseCheckedAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'licenseCheckedAt',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -2879,6 +2977,160 @@ extension PortfolioModelQueryFilter
   }
 
   QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      simitDetailJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'simitDetailJson',
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      simitDetailJsonIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'simitDetailJson',
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      simitDetailJsonEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'simitDetailJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      simitDetailJsonGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'simitDetailJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      simitDetailJsonLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'simitDetailJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      simitDetailJsonBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'simitDetailJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      simitDetailJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'simitDetailJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      simitDetailJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'simitDetailJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      simitDetailJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'simitDetailJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      simitDetailJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'simitDetailJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      simitDetailJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'simitDetailJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      simitDetailJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'simitDetailJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
       simitFinesCountIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -3506,6 +3758,20 @@ extension PortfolioModelQuerySortBy
   }
 
   QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy>
+      sortByLicenseCheckedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'licenseCheckedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy>
+      sortByLicenseCheckedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'licenseCheckedAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy>
       sortByLicenseExpiryDate() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'licenseExpiryDate', Sort.asc);
@@ -3639,6 +3905,20 @@ extension PortfolioModelQuerySortBy
       sortBySimitComparendosCountDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'simitComparendosCount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy>
+      sortBySimitDetailJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'simitDetailJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy>
+      sortBySimitDetailJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'simitDetailJson', Sort.desc);
     });
   }
 
@@ -3819,6 +4099,20 @@ extension PortfolioModelQuerySortThenBy
   }
 
   QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy>
+      thenByLicenseCheckedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'licenseCheckedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy>
+      thenByLicenseCheckedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'licenseCheckedAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy>
       thenByLicenseExpiryDate() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'licenseExpiryDate', Sort.asc);
@@ -3956,6 +4250,20 @@ extension PortfolioModelQuerySortThenBy
   }
 
   QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy>
+      thenBySimitDetailJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'simitDetailJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy>
+      thenBySimitDetailJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'simitDetailJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy>
       thenBySimitFinesCount() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'simitFinesCount', Sort.asc);
@@ -4083,6 +4391,13 @@ extension PortfolioModelQueryWhereDistinct
   }
 
   QueryBuilder<PortfolioModel, PortfolioModel, QDistinct>
+      distinctByLicenseCheckedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'licenseCheckedAt');
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QDistinct>
       distinctByLicenseExpiryDate({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'licenseExpiryDate',
@@ -4155,6 +4470,14 @@ extension PortfolioModelQueryWhereDistinct
       distinctBySimitComparendosCount() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'simitComparendosCount');
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QDistinct>
+      distinctBySimitDetailJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'simitDetailJson',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -4247,6 +4570,13 @@ extension PortfolioModelQueryProperty
     });
   }
 
+  QueryBuilder<PortfolioModel, DateTime?, QQueryOperations>
+      licenseCheckedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'licenseCheckedAt');
+    });
+  }
+
   QueryBuilder<PortfolioModel, String?, QQueryOperations>
       licenseExpiryDateProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -4312,6 +4642,13 @@ extension PortfolioModelQueryProperty
       simitComparendosCountProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'simitComparendosCount');
+    });
+  }
+
+  QueryBuilder<PortfolioModel, String?, QQueryOperations>
+      simitDetailJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'simitDetailJson');
     });
   }
 
@@ -4392,6 +4729,10 @@ PortfolioModel _$PortfolioModelFromJson(Map<String, dynamic> json) =>
       simitCheckedAt: json['simitCheckedAt'] == null
           ? null
           : DateTime.parse(json['simitCheckedAt'] as String),
+      licenseCheckedAt: json['licenseCheckedAt'] == null
+          ? null
+          : DateTime.parse(json['licenseCheckedAt'] as String),
+      simitDetailJson: json['simitDetailJson'] as String?,
     );
 
 Map<String, dynamic> _$PortfolioModelToJson(PortfolioModel instance) =>
@@ -4419,4 +4760,6 @@ Map<String, dynamic> _$PortfolioModelToJson(PortfolioModel instance) =>
       'simitMultasCount': instance.simitMultasCount,
       'simitFormattedTotal': instance.simitFormattedTotal,
       'simitCheckedAt': instance.simitCheckedAt?.toIso8601String(),
+      'licenseCheckedAt': instance.licenseCheckedAt?.toIso8601String(),
+      'simitDetailJson': instance.simitDetailJson,
     };

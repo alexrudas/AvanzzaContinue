@@ -79,6 +79,7 @@
 // ============================================================================
 
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -105,6 +106,7 @@ import '../../mappers/asset_summary_mapper.dart';
 import '../../viewmodels/asset/asset_summary_vm.dart';
 import '../../widgets/asset/portfolio_asset_operational_tile.dart';
 import '../../widgets/asset/vehicle/plate_widget.dart';
+import '../../widgets/portfolio/owner_snapshot_band.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MODELO SEALED: UnifiedAssetItem
@@ -519,12 +521,19 @@ class _PortfolioAssetLivePageState extends State<PortfolioAssetLivePage> {
     // Marcar antes del await para evitar concurrencia si ever() dispara de nuevo.
     _ownerSnapshotPersisted = true;
 
-    final simit = _batchCtrl.ownerData.value?.owner?.simit?.summary;
+    final simitModel = _batchCtrl.ownerData.value?.owner?.simit;
+    final simit = simitModel?.summary;
     final licenses = owner.runt?.licenses;
     final licStatus =
         licenses?.isNotEmpty == true ? licenses!.first.status : null;
     final licExpiryDate =
         licenses?.isNotEmpty == true ? licenses!.first.expiryDate : null;
+
+    // Serializar el bloque SIMIT completo (summary + fines[]) como JSON blob.
+    // Se deserializa bajo demanda en OwnerSnapshotBand al navegar al detalle.
+    // Si simitModel es null, no se persiste blob (campo queda null en Isar).
+    final String? simitBlob =
+        simitModel != null ? jsonEncode(simitModel.toJson()) : null;
 
     try {
       await DIContainer().portfolioRepository.updateOwnerSnapshot(
@@ -541,6 +550,8 @@ class _PortfolioAssetLivePageState extends State<PortfolioAssetLivePage> {
             simitMultasCount: simit?.byType?.multas?.count ?? simit?.multas,
             simitFormattedTotal: simit?.formattedTotal,
             simitCheckedAt: _simitCheckedAt,
+            licenseCheckedAt: _simitCheckedAt, // mismo timestamp del batch VRC
+            simitDetailJson: simitBlob,
           );
 
       // Leer de vuelta para sincronizar el cache en memoria.
@@ -758,18 +769,14 @@ class _PortfolioAssetLivePageState extends State<PortfolioAssetLivePage> {
                   data: ownerData,
                   simitCheckedAt: _simitCheckedAt,
                 );
-              } else if (portfolio != null &&
-                  (portfolio.ownerName != null ||
-                      portfolio.licenseStatus != null ||
-                      portfolio.simitHasFines != null)) {
+              } else if (OwnerSnapshotBand.isAvailable(portfolio)) {
                 // Fallback: snapshot persistido en Isar (ownerData=null porque
                 // el controller fue recreado al regresar desde Home).
-                // Condición amplia: cualquier campo del snapshot disponible
-                // es suficiente para mostrar la banda — no depender solo de
-                // ownerName, que puede ser null si VRC no devolvió el nombre.
-                headerChild = _OwnerSnapshotBand(
+                // Contrato canónico centralizado en OwnerSnapshotBand.isAvailable
+                // — mismo criterio que portfolio_asset_list_page.
+                headerChild = OwnerSnapshotBand(
                   key: const ValueKey('owner-snapshot'),
-                  portfolio: portfolio,
+                  portfolio: portfolio!,
                 );
               } else {
                 headerChild =
@@ -1299,170 +1306,10 @@ class _OwnerHeader extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// _OwnerSnapshotBand — Header de propietario desde snapshot persistido en Isar
+// _OwnerSnapshotBand ELIMINADO (2026-04).
+// Unificado en OwnerSnapshotBand (widgets/portfolio/owner_snapshot_band.dart)
+// para contrato único de visibilidad y render compartido con list page.
 // ─────────────────────────────────────────────────────────────────────────────
-//
-// Fallback de _OwnerHeader cuando VrcBatchController fue recreado (ownerData=null).
-// Ocurre cuando el usuario navega a Home entre batches: dispose() deleta el
-// controller → AssetRegistrationBinding crea uno nuevo → ownerData=null.
-// Muestra los datos del último snapshot válido persistido en PortfolioEntity.
-//
-// Sin onTap en las cards: sin VrcDataModel no se puede navegar al detalle.
-// Sin badge de riesgo: campo businessDecision no persiste en el snapshot.
-
-class _OwnerSnapshotBand extends StatelessWidget {
-  final PortfolioEntity portfolio;
-
-  const _OwnerSnapshotBand({super.key, required this.portfolio});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
-    final name = portfolio.ownerName ?? 'Propietario';
-    final docDisplay = _formatDoc();
-
-    return Container(
-      color: cs.surfaceContainerLow,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            name,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          if (docDisplay != null) ...[
-            const SizedBox(height: 2),
-            Text(
-              docDisplay,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-            ),
-          ],
-          const SizedBox(height: 8),
-          // Grid 2-up: Licencia y SIMIT — navegación habilitada desde el
-          // snapshot Isar cuando hay datos suficientes. Se construye un
-          // VrcDataModel mínimo con los campos planos disponibles; las páginas
-          // de detalle manejan defensivamente los arrays vacíos.
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _LicenseCard(
-                  licenseStatus: portfolio.licenseStatus,
-                  licenseColor:
-                      _licenseColorFromStatus(context, portfolio.licenseStatus),
-                  expiryDate: portfolio.licenseExpiryDate,
-                  onTap: portfolio.licenseStatus != null
-                      ? () => Get.toNamed(
-                            Routes.driverLicenseDetail,
-                            arguments: {
-                              'data': _buildSnapshotVrcData(),
-                              'checkedAt': portfolio.simitCheckedAt,
-                            },
-                          )
-                      : null,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _SimitCard(
-                  summary: _buildSnapshotSimitSummary(),
-                  checkedAt: portfolio.simitCheckedAt,
-                  onTap: portfolio.simitHasFines != null
-                      ? () => Get.toNamed(
-                            Routes.simitPersonDetail,
-                            arguments: {
-                              'data': _buildSnapshotVrcData(),
-                              'checkedAt': portfolio.simitCheckedAt,
-                            },
-                          )
-                      : null,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String? _formatDoc() {
-    final type = portfolio.ownerDocumentType?.trim().toUpperCase();
-    final number = portfolio.ownerDocument?.trim();
-    if (type == null || type.isEmpty || number == null || number.isEmpty) {
-      return null;
-    }
-    return '$type $number';
-  }
-
-  Color? _licenseColorFromStatus(BuildContext context, String? status) {
-    if (status == null) return null;
-    final cs = Theme.of(context).colorScheme;
-    final norm = status.toLowerCase();
-    if (norm.contains('vig') || norm.contains('activ')) {
-      return Colors.green.shade600;
-    }
-    if (norm.contains('venc') || norm.contains('suspend')) return cs.error;
-    return cs.onSurfaceVariant;
-  }
-
-  /// Construye un [VrcDataModel] mínimo desde los campos del snapshot Isar.
-  ///
-  /// Solo incluye los campos que el snapshot persiste: `licenseStatus`,
-  /// `licenseExpiryDate`, `simitHasFines`, `simitFinesCount`, conteos y
-  /// `simitFormattedTotal`. Los arrays (`licenses.categories`, `simit.fines`)
-  /// quedan vacíos — las páginas de detalle los manejan defensivamente.
-  ///
-  /// Se llama DENTRO de los lambdas `onTap` (no en cada build) → costo cero
-  /// en renders. El `VrcDataModel` se construye solo cuando el usuario toca.
-  VrcDataModel _buildSnapshotVrcData() {
-    return VrcDataModel(
-      owner: VrcOwnerModel(
-        name: portfolio.ownerName,
-        document: portfolio.ownerDocument,
-        documentType: portfolio.ownerDocumentType,
-        runt: portfolio.licenseStatus != null
-            ? VrcOwnerRuntModel(
-                licenses: [
-                  VrcLicenseModel(
-                    status: portfolio.licenseStatus,
-                    expiryDate: portfolio.licenseExpiryDate,
-                    // category, issueDate, categories: null/vacío — no persiste
-                  ),
-                ],
-              )
-            : null,
-        simit: portfolio.simitHasFines != null
-            ? VrcOwnerSimitModel(
-                summary: _buildSnapshotSimitSummary(),
-                // fines[]: no persiste en snapshot — lista vacía por defecto
-              )
-            : null,
-      ),
-    );
-  }
-
-  /// Construye solo el [VrcSimitSummaryModel] desde el snapshot — usado tanto
-  /// por [_buildSnapshotVrcData] como directamente por [_SimitCard.summary].
-  VrcSimitSummaryModel? _buildSnapshotSimitSummary() {
-    if (portfolio.simitHasFines == null) return null;
-    return VrcSimitSummaryModel(
-      hasFines: portfolio.simitHasFines,
-      finesCount: portfolio.simitFinesCount,
-      comparendos: portfolio.simitComparendosCount,
-      multas: portfolio.simitMultasCount,
-      formattedTotal: portfolio.simitFormattedTotal,
-    );
-  }
-}
 
 // ── _RiskBadge ───────────────────────────────────────────────────────────────
 
@@ -1883,7 +1730,7 @@ class _BatchStatusBar extends StatelessWidget {
             ),
             const SizedBox(height: 3),
             Text(
-              '$done de $total placas',
+              total == 1 ? '1 placa' : '$done de $total placas',
               style: theme.textTheme.labelSmall?.copyWith(
                 color: cs.onSecondaryContainer.withValues(alpha: 0.75),
               ),
@@ -1896,7 +1743,7 @@ class _BatchStatusBar extends StatelessWidget {
 
   String _statusLabel(String status) => switch (status.toLowerCase()) {
         'queued' => 'En cola...',
-        'running' => 'Consultando vehículos...',
+        'running' => total == 1 ? 'Consultando vehículo...' : 'Consultando vehículos...',
         'completed' => 'Consulta completada',
         'partially_completed' => 'Consulta parcial',
         'failed' => 'Consulta fallida',
@@ -2157,7 +2004,7 @@ class _IsarErrorState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'No se pudo leer la base de datos local. '
-              'Los activos del batch siguen procesándose.',
+              'El activo sigue procesándose.',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: cs.onSurfaceVariant,

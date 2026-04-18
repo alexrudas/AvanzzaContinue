@@ -89,6 +89,18 @@ class PortfolioModel {
   /// Timestamp de la consulta VRC que originó este snapshot (UTC).
   final DateTime? simitCheckedAt;
 
+  /// Timestamp del último refresh exitoso de licencia (RUNT Persona, UTC).
+  final DateTime? licenseCheckedAt;
+
+  /// JSON blob del bloque owner.simit completo (summary + fines[]).
+  ///
+  /// Fuente de verdad para el detalle itemizado SIMIT. Se serializa desde
+  /// VrcOwnerSimitModel.toJson() al persistir el snapshot y se deserializa
+  /// bajo demanda solo al navegar a SimitPersonDetailPage.
+  /// Null para registros creados antes de esta feature — Isar asigna null
+  /// automáticamente a campos nuevos (backward-compatible, sin migración).
+  final String? simitDetailJson;
+
   PortfolioModel({
     this.isarId,
     required this.id,
@@ -113,6 +125,8 @@ class PortfolioModel {
     this.simitMultasCount,
     this.simitFormattedTotal,
     this.simitCheckedAt,
+    this.licenseCheckedAt,
+    this.simitDetailJson,
   });
 
   /// Mapper: Model -> Entity
@@ -140,6 +154,8 @@ class PortfolioModel {
       simitMultasCount: simitMultasCount,
       simitFormattedTotal: simitFormattedTotal,
       simitCheckedAt: simitCheckedAt,
+      licenseCheckedAt: licenseCheckedAt,
+      simitDetailJson: simitDetailJson,
     );
   }
 
@@ -168,6 +184,8 @@ class PortfolioModel {
       simitMultasCount: entity.simitMultasCount,
       simitFormattedTotal: entity.simitFormattedTotal,
       simitCheckedAt: entity.simitCheckedAt?.toUtc(),
+      licenseCheckedAt: entity.licenseCheckedAt?.toUtc(),
+      simitDetailJson: entity.simitDetailJson,
     );
   }
 

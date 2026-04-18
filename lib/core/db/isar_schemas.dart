@@ -15,6 +15,15 @@ import 'package:avanzza/data/models/cache/user_profile_cache_model.dart';
 import 'package:avanzza/data/models/campaign/campaign_frequency_model.dart';
 import 'package:avanzza/data/models/chat/broadcast_message_model.dart';
 import 'package:avanzza/data/models/chat/chat_message_model.dart';
+// Core Common v1 — red local + actor de plataforma + relaciones/solicitudes/flows.
+import 'package:avanzza/data/models/core_common/coordination_flow_model.dart';
+import 'package:avanzza/data/models/core_common/local_contact_model.dart';
+import 'package:avanzza/data/models/core_common/local_organization_model.dart';
+import 'package:avanzza/data/models/core_common/match_candidate_model.dart';
+import 'package:avanzza/data/models/core_common/operational_relationship_model.dart';
+import 'package:avanzza/data/models/core_common/operational_request_model.dart';
+import 'package:avanzza/data/models/core_common/platform_actor_model.dart';
+import 'package:avanzza/data/models/core_common/request_delivery_model.dart';
 import 'package:avanzza/data/models/geo/city_model.dart';
 import 'package:avanzza/data/models/geo/country_model.dart';
 import 'package:avanzza/data/models/geo/local_regulation_model.dart';
@@ -73,6 +82,17 @@ final allIsarSchemas = [
   IncidenciaModelSchema,
   InsurancePolicyModelSchema,
   InsurancePurchaseModelSchema,
+
+  // Core Common v1 — red local + relaciones + solicitudes + flows (8 colecciones).
+  CoordinationFlowModelSchema,
+  LocalContactModelSchema,
+  LocalOrganizationModelSchema,
+  MatchCandidateModelSchema,
+  OperationalRelationshipModelSchema,
+  OperationalRequestModelSchema,
+  PlatformActorModelSchema,
+  RequestDeliveryModelSchema,
+
   LocalRegulationModelSchema,
   MaintenanceFinishedModelSchema,
   MaintenanceProcessModelSchema,

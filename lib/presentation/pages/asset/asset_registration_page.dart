@@ -52,18 +52,17 @@ import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/di/container.dart';
-import '../../../domain/entities/asset/asset_content.dart';
-import '../../../domain/entities/asset/asset_entity.dart';
+// LEGACY: import asset_content.dart, asset_entity.dart — solo usados por flujo VRC individual inactivo
 import '../../../domain/entities/portfolio/portfolio_entity.dart';
 import '../../../domain/shared/enums/asset_type.dart';
 import '../../../domain/value/registration/asset_registration_context.dart';
-import '../../../domain/value/registration/asset_runt_snapshot.dart';
+// LEGACY: import asset_runt_snapshot.dart — solo usado por el flujo VRC individual inactivo
 import '../../../routes/app_routes.dart';
 import '../../controllers/asset/asset_registration_controller.dart';
 import '../../controllers/runt/runt_query_controller.dart';
 import '../../controllers/vrc/vrc_batch_controller.dart';
 import '../../controllers/vrc/vrc_controller.dart';
-import '../vrc/vrc_result_page.dart';
+// LEGACY: import '../vrc/vrc_result_page.dart'; — archivo comentado, flujo inactivo
 
 class AssetRegistrationPage extends StatefulWidget {
   const AssetRegistrationPage({super.key});
@@ -471,10 +470,13 @@ class _AssetRegistrationPageState extends State<AssetRegistrationPage> {
     // Guard: debe haber al menos una placa en la lista.
     if (_assetRegCtrl.plates.isEmpty) return;
 
-    // Multi-plate: flujo batch real.
+    // Flujo unificado batch/live — aplica para 1 o N placas.
     // startBatch() se llama sin await — el controller gestiona el estado
     // reactivamente y la página de progreso lo observa vía Obx.
-    if (_assetRegCtrl.plates.length > 1) {
+    // UNIFICADO: antes `plates.length > 1` mandaba 1 placa al flujo viejo
+    // (VrcController → VrcResultPage) que NO persistía el snapshot del propietario
+    // en PortfolioEntity. Ahora todo pasa por portfolioAssetLive → _persistOwnerSnapshot().
+    if (_assetRegCtrl.plates.isNotEmpty) {
       HapticFeedback.lightImpact();
 
       final docType  = _mapDocTypeToVrc(_selectedDocType!);
@@ -490,184 +492,22 @@ class _AssetRegistrationPageState extends State<AssetRegistrationPage> {
       return;
     }
 
-    HapticFeedback.lightImpact();
-
-    // Single plate: flujo VRC existente.
-    final plate = _assetRegCtrl.plates.first.plate;
-    final duplicate = await _findDuplicateVehicle(plate, ctx.portfolioId);
-
-    if (!mounted) return;
-
-    if (duplicate != null) {
-      // Existe un activo con esta placa — mostrar bottom sheet de opciones.
-      final action = await _showDuplicateVehicleSheet(duplicate);
-      if (!mounted) return;
-
-      switch (action) {
-        case _DuplicateVehicleAction.view:
-          // Navegar al detalle del activo existente.
-          Get.toNamed(Routes.assetDetail, arguments: duplicate.id);
-          return;
-        case _DuplicateVehicleAction.update:
-          // Proceder con la consulta RUNT de todos modos (modo actualización).
-          break;
-        case _DuplicateVehicleAction.cancel:
-        case null:
-          return;
-      }
-    }
-
-    // Mapear el valor visible del selector al código que espera el backend VRC.
-    // El backend usa 'C' para cédula de ciudadanía, no 'CC'.
-    final docType = _mapDocTypeToVrc(_selectedDocType!);
-    final docNumber = _docNumberController.text.trim();
-
-    debugPrint('[FORM] plate=$plate');
-    debugPrint('[FORM] documentTypeVisible=${_docTypeOptions.where((o) => o.value == docType).firstOrNull?.title ?? docType}');
-    debugPrint('[FORM] documentTypeInternal=$docType');
-    debugPrint('[FORM] documentNumber=$docNumber');
-    debugPrint('[SUBMIT] plate=$plate documentType=$docType documentNumber=$docNumber');
-
-    // Disparar la consulta VRC directamente — sin pantalla intermedia.
-    // La navegación ocurre al completar, en el mismo frame del widget tree.
-    await _vrcCtrl.consultVehicle(
-      plate: plate,
-      documentType: docType,
-      documentNumber: docNumber,
-    );
-
-    if (!mounted) return;
-
-    final state = _vrcCtrl.viewState;
-    if (state == VrcViewState.success || state == VrcViewState.degraded) {
-      // Navegar a resultado con callback de registro.
-      // AssetRegistrationPage queda en stack → controllers viven.
-      final vrcData = _vrcCtrl.result?.data;
-      final vehicle = vrcData?.vehicle;
-      final owner   = vrcData?.owner;
-
-      // LOG DIAGNÓSTICO — confirma qué campos llegan no-null desde VrcVehicleModel.
-      // REMOVER una vez confirmadas las claves JSON reales del backend.
-      assert(() {
-        debugPrint('[VRC_SNAPSHOT] vehicle parsed fields:');
-        debugPrint('  plate=${vehicle?.plate}');
-        debugPrint('  make=${vehicle?.make}');
-        debugPrint('  line=${vehicle?.line}');
-        debugPrint('  vehicleClass=${vehicle?.vehicleClass}');
-        debugPrint('  service=${vehicle?.service}');
-        debugPrint('  color=${vehicle?.color}');
-        debugPrint('  engineNumber=${vehicle?.engineNumber}');
-        debugPrint('  chassisNumber=${vehicle?.chassisNumber}');
-        debugPrint('  vin=${vehicle?.vin}');
-        debugPrint('  engineDisplacement=${vehicle?.engineDisplacement}');
-        debugPrint('  bodyType=${vehicle?.bodyType}');
-        debugPrint('  fuelType=${vehicle?.fuelType}');
-        debugPrint('  transitAuthority=${vehicle?.transitAuthority}');
-        debugPrint('  initialRegistrationDate=${vehicle?.initialRegistrationDate}');
-        debugPrint('[VRC_SNAPSHOT] owner parsed fields:');
-        debugPrint('  name=${owner?.name}');
-        debugPrint('  documentType=${owner?.documentType}');
-        debugPrint('  document=${owner?.document}');
-        return true;
-      }());
-
-      // Empaquetar todos los campos disponibles en la respuesta VRC en un
-      // AssetRuntSnapshot para que createAssetFromRuntAndLinkToPortfolio
-      // los persista en AssetVehiculoEntity (visible en VehicleInfoPage) y
-      // en InsurancePolicyModel (visible en SoatDetailPage / SegurosRcDetailPage).
-      final legal = vrcData?.legal;
-      final vrcSnapshot = AssetRuntSnapshot(
-        line:                    vehicle?.line,
-        serviceType:             vehicle?.service,
-        vehicleClass:            vehicle?.vehicleClass,
-        color:                   vehicle?.color,
-        engineNumber:            vehicle?.engineNumber,
-        chassisNumber:           vehicle?.chassisNumber,
-        vin:                     vehicle?.vin,
-        engineDisplacement:      vehicle?.engineDisplacement,
-        bodyType:                vehicle?.bodyType,
-        fuelType:                vehicle?.fuelType,
-        transitAuthority:        vehicle?.transitAuthority,
-        initialRegistrationDate: vehicle?.initialRegistrationDate,
-        passengerCapacity:       vehicle?.passengerCapacity,
-        grossWeightKg:           vehicle?.grossWeightKg,
-        axles:                   vehicle?.axles,
-        ownerName:               owner?.name,
-        ownerDocumentType:       owner?.documentType,
-        ownerDocument:           owner?.document,
-        // Bloques documentales VRC → persisten como InsurancePolicyModel (SOAT/RC)
-        // y como runtMetaJson (RTM, limitaciones, garantías).
-        soatRecords:  vrcData?.soat,
-        rcRecords:    vrcData?.rc,
-        rtmRecords:   vrcData?.rtm,
-        limitations:  legal?.limitations,
-        warranties:   legal?.warranties,
-        propertyLiens: legal?.propertyLiens,
-      );
-
-      await Get.to<void>(
-        () => VrcResultPage(
-          onRegister: () {
-            _assetRegCtrl.registerVehicle(
-              plate:        vehicle?.plate ?? plate,
-              marca:        vehicle?.make ?? '',
-              modelo:       vehicle?.line ?? '',
-              anio:         vehicle?.modelYear,
-              runtSnapshot: vrcSnapshot,
-            );
-          },
-        ),
-      );
-    }
-    // failed/timeout: el banner de error se muestra en esta misma página.
-  }
-
-  /// Busca un activo vehicular activo con la placa dada en el portafolio.
-  ///
-  /// Usa [AssetRepository.getAssetsByPortfolio] — datos Isar (offline-first).
-  /// Normaliza la placa igual que [AssetContent._normalizeAssetKey]:
-  /// uppercase + strip de caracteres no alfanuméricos (excepto guión).
-  ///
-  /// Fail-open: si el repositorio lanza, retorna null y la consulta procede.
-  Future<AssetEntity?> _findDuplicateVehicle(
-    String plate,
-    String portfolioId,
-  ) async {
-    try {
-      final normalized = plate.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9-]'), '');
-      if (normalized.isEmpty) return null;
-
-      final assets = await DIContainer().assetRepository.getAssetsByPortfolio(portfolioId);
-      return assets.where((a) => !a.isArchived && a.assetKey == normalized).firstOrNull;
-    } catch (_) {
-      // Fail-open: ante cualquier error el flujo de consulta RUNT continúa.
-      return null;
-    }
-  }
-
-  /// Muestra el bottom sheet de vehículo duplicado y retorna la acción elegida.
-  ///
-  /// null si el usuario descarta el sheet sin elegir (drag-to-dismiss).
-  Future<_DuplicateVehicleAction?> _showDuplicateVehicleSheet(
-    AssetEntity asset,
-  ) async {
-    if (!mounted) return null;
-
-    return showModalBottomSheet<_DuplicateVehicleAction>(
-      context: context,
-      showDragHandle: true,
-      useSafeArea: true,
-      builder: (ctx) => _DuplicateVehicleBottomSheet(
-        asset: asset,
-        onView: () => Navigator.of(ctx).pop(_DuplicateVehicleAction.view),
-        onUpdate: () => Navigator.of(ctx).pop(_DuplicateVehicleAction.update),
-        onCancel: () => Navigator.of(ctx).pop(_DuplicateVehicleAction.cancel),
-      ),
-    );
+    // LEGACY — inalcanzable tras unificación del flujo VRC (plates.isNotEmpty siempre
+    // entra al bloque batch arriba). Se conserva como referencia histórica del flujo
+    // individual VRC. Eliminar una vez validado el flujo unificado en producción.
+    //
+    // ignore_for_file: dead_code
+    //
+    // [INICIO BLOQUE LEGACY — NO EJECUTADO]
+    // final plate = _assetRegCtrl.plates.first.plate;
+    // ... (ver historial git para el bloque completo)
+    // [FIN BLOQUE LEGACY]
   }
 
   // ──────────────────────────────────────────────────────────────────────────
   // Build
+  // LEGACY removido: _findDuplicateVehicle y _showDuplicateVehicleSheet
+  // Solo usados por el flujo VRC individual inactivo. Ver historial git.
   // ──────────────────────────────────────────────────────────────────────────
 
   @override
@@ -1489,118 +1329,5 @@ class _CrossPortfolioBottomSheet extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DUPLICATE VEHICLE DETECTION
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Acciones disponibles cuando se detecta un vehículo duplicado en el portafolio.
-enum _DuplicateVehicleAction {
-  /// Navegar al detalle del activo existente.
-  view,
-
-  /// Proceder con la consulta RUNT de todos modos (modo actualización).
-  update,
-
-  /// Cancelar — permanecer en el formulario.
-  cancel,
-}
-
-/// Bottom sheet que se muestra cuando la placa ingresada ya existe en el portafolio.
-///
-/// Presenta el nombre del activo existente y tres opciones:
-/// - Ver vehículo (navega a AssetDetailPage).
-/// - Actualizar información (procede con la consulta RUNT).
-/// - Cancelar (permanece en el formulario).
-///
-/// No gestiona navegación — delega todas las acciones al caller.
-class _DuplicateVehicleBottomSheet extends StatelessWidget {
-  final AssetEntity asset;
-  final VoidCallback onView;
-  final VoidCallback onUpdate;
-  final VoidCallback onCancel;
-
-  const _DuplicateVehicleBottomSheet({
-    required this.asset,
-    required this.onView,
-    required this.onUpdate,
-    required this.onCancel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Icon(
-              Icons.directions_car_rounded,
-              size: 52,
-              color: colors.tertiary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Vehículo ya registrado',
-              style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'La placa ${asset.assetKey} ya existe en este portafolio '
-              'como "${asset.content.displayName}". '
-              '¿Qué deseas hacer?',
-              style: textTheme.bodyMedium?.copyWith(
-                color: colors.onSurfaceVariant,
-                height: 1.55,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 28),
-
-            // Ver vehículo
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: FilledButton.icon(
-                onPressed: onView,
-                icon: const Icon(Icons.visibility_outlined),
-                label: const Text('VER VEHÍCULO'),
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Actualizar información
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: OutlinedButton.icon(
-                onPressed: onUpdate,
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('ACTUALIZAR INFORMACIÓN'),
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Cancelar
-            SizedBox(
-              width: double.infinity,
-              height: 44,
-              child: TextButton(
-                onPressed: onCancel,
-                child: Text(
-                  'Cancelar',
-                  style: TextStyle(color: colors.onSurfaceVariant),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// LEGACY REMOVIDO: _DuplicateVehicleAction, _DuplicateVehicleBottomSheet
+// Solo usados por el flujo VRC individual inactivo. Ver historial git.

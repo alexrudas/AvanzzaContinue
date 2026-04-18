@@ -38,6 +38,10 @@ _PortfolioEntity _$PortfolioEntityFromJson(Map<String, dynamic> json) =>
       simitCheckedAt: json['simitCheckedAt'] == null
           ? null
           : DateTime.parse(json['simitCheckedAt'] as String),
+      licenseCheckedAt: json['licenseCheckedAt'] == null
+          ? null
+          : DateTime.parse(json['licenseCheckedAt'] as String),
+      simitDetailJson: json['simitDetailJson'] as String? ?? null,
     );
 
 Map<String, dynamic> _$PortfolioEntityToJson(_PortfolioEntity instance) =>
@@ -64,6 +68,8 @@ Map<String, dynamic> _$PortfolioEntityToJson(_PortfolioEntity instance) =>
       'simitMultasCount': instance.simitMultasCount,
       'simitFormattedTotal': instance.simitFormattedTotal,
       'simitCheckedAt': instance.simitCheckedAt?.toIso8601String(),
+      'licenseCheckedAt': instance.licenseCheckedAt?.toIso8601String(),
+      'simitDetailJson': instance.simitDetailJson,
     };
 
 const _$PortfolioTypeEnumMap = {

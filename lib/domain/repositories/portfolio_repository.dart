@@ -85,6 +85,37 @@ abstract class PortfolioRepository {
     required int? simitMultasCount,
     required String? simitFormattedTotal,
     required DateTime? simitCheckedAt,
+    DateTime? licenseCheckedAt,
+    String? simitDetailJson,
+  });
+
+  /// Actualiza SOLO los campos SIMIT del snapshot (escalares + blob JSON).
+  ///
+  /// No toca campos de licencia ni de identidad del propietario.
+  /// Usado por [OwnerRefreshService.refreshSimit] para evitar pasar nulls
+  /// a campos de otro concern.
+  Future<void> updateSimitSnapshot(
+    String portfolioId, {
+    required bool? hasFines,
+    required int? finesCount,
+    required int? comparendosCount,
+    required int? multasCount,
+    required String? formattedTotal,
+    required DateTime checkedAt,
+    String? detailJson,
+  });
+
+  /// Actualiza SOLO los campos de licencia/identidad del snapshot.
+  ///
+  /// No toca campos SIMIT. Usado por [OwnerRefreshService.refreshLicense].
+  Future<void> updateLicenseSnapshot(
+    String portfolioId, {
+    required String? ownerName,
+    required String? ownerDocument,
+    required String? ownerDocumentType,
+    required String? licenseStatus,
+    required String? licenseExpiryDate,
+    required DateTime checkedAt,
   });
 
   /// Repara portafolios del usuario que fueron creados con orgId vacío.

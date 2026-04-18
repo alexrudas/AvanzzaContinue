@@ -87,6 +87,18 @@ abstract class PortfolioEntity with _$PortfolioEntity {
     @Default(null) String? simitFormattedTotal,
     /// Timestamp de la consulta VRC que originó este snapshot.
     @Default(null) DateTime? simitCheckedAt,
+
+    /// Timestamp del último refresh exitoso de licencia (RUNT Persona).
+    /// Separado de simitCheckedAt — cada fuente tiene su propio ciclo de refresh.
+    @Default(null) DateTime? licenseCheckedAt,
+
+    /// JSON blob del bloque owner.simit completo (summary + fines[]).
+    ///
+    /// Fuente de verdad para el detalle itemizado SIMIT. Se serializa desde
+    /// VrcOwnerSimitModel.toJson() al persistir el snapshot y se deserializa
+    /// bajo demanda (lazy) solo al navegar a SimitPersonDetailPage.
+    /// Null para portfolios creados antes de esta feature (fallback: escalares).
+    @Default(null) String? simitDetailJson,
   }) = _PortfolioEntity;
 
   factory PortfolioEntity.fromJson(Map<String, dynamic> json) =>

@@ -92,6 +92,18 @@ class IntegrationsRepositoryImpl implements IntegrationsRepository {
     await _local.clearAll();
   }
 
+  @override
+  Future<void> invalidateRuntPersonCache(String document, String type) async {
+    final cacheKey = '${document.trim()}_${type.trim().toUpperCase()}';
+    await _local.deleteRuntPersonCacheByKey(cacheKey);
+  }
+
+  @override
+  Future<void> invalidateSimitCache(String query) async {
+    final cacheKey = query.trim().toUpperCase();
+    await _local.deleteSimitCacheByKey(cacheKey);
+  }
+
   // ── Mappers Model → Entity ─────────────────────────────────────────────────
 
   /// Convierte [RuntPersonDataModel] (DTO) a [RuntPersonEntity] (dominio).

@@ -27,6 +27,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/di/container.dart';
+import '../../../core/platform/owner_refresh_service.dart';
 import '../../../core/theme/spacing.dart';
 import '../../../core/utils/simit_freshness_policy.dart';
 import '../../../data/vrc/models/vrc_models.dart';
@@ -46,11 +48,83 @@ class _SimitPersonDetailPageState extends State<SimitPersonDetailPage> {
   // 0 = Todos, 1 = Comparendos, 2 = Multas, 3 = Acuerdos
   int _tabIndex = 0;
 
+  // Estado mutable para refresh — se inicializa desde Get.arguments,
+  // se actualiza in-place tras refresh exitoso.
+  VrcDataModel? _data;
+  DateTime _checkedAt = DateTime.now();
+  String? _portfolioId;
+  bool _isRefreshing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final args = Get.arguments as Map<String, dynamic>?;
+    _data = args?['data'] as VrcDataModel?;
+    _checkedAt = args?['checkedAt'] as DateTime? ?? DateTime.now();
+    _portfolioId = args?['portfolioId'] as String?;
+  }
+
+  /// Refresh manual: invalida cache → consulta API fresca → persiste → rebuild.
+  ///
+  /// El OwnerRefreshService se ejecuta como singleton en DIContainer —
+  /// si el usuario navega fuera, la persistencia completa igualmente.
+  /// Al volver, los datos frescos se leen desde el portfolio snapshot.
+  Future<void> _handleRefresh() async {
+    final document = _data?.owner?.document;
+    if (document == null || document.isEmpty || _portfolioId == null) return;
+
+    setState(() => _isRefreshing = true);
+
+    final result = await DIContainer().ownerRefreshService.refreshSimit(
+          portfolioId: _portfolioId!,
+          document: document,
+        );
+
+    if (!mounted) return; // Widget destruido — datos ya persistidos.
+
+    setState(() {
+      _isRefreshing = false;
+      if (result is RefreshSuccess<VrcOwnerSimitModel>) {
+        // Actualizar datos locales para rebuild inmediato.
+        _checkedAt = result.refreshedAt;
+        final currentOwner = _data?.owner;
+        _data = VrcDataModel(
+          owner: VrcOwnerModel(
+            name: currentOwner?.name,
+            document: currentOwner?.document,
+            documentType: currentOwner?.documentType,
+            runt: currentOwner?.runt,
+            simit: result.data,
+          ),
+        );
+      }
+    });
+
+    if (result is RefreshError) {
+      final err = result as RefreshError;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              err.isExternal
+                  ? 'No se pudo conectar con SIMIT. Intenta más tarde.'
+                  : 'Error al actualizar datos SIMIT.',
+            ),
+          ),
+        );
+      }
+    } else if (result is RefreshSuccess) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Datos SIMIT actualizados')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final args = Get.arguments as Map<String, dynamic>?;
-    final data = args?['data'] as VrcDataModel?;
-    final checkedAt = args?['checkedAt'] as DateTime? ?? DateTime.now();
+    final data = _data;
 
     if (data == null) {
       return const _ErrorScaffold(
@@ -79,6 +153,13 @@ class _SimitPersonDetailPageState extends State<SimitPersonDetailPage> {
 
     final filteredFines = _filterFines(_tabIndex, allFines);
 
+    // Escenario "solo resumen" — registro legacy sin simitDetailJson blob:
+    // summary existe con hasFines=true pero fines[] vacío porque el blob
+    // no fue persistido (portfolio creado antes del campo simitDetailJson).
+    // Portfolios nuevos tienen blob → fines[] rehidratado → nunca llegan aquí.
+    final isSummaryOnly =
+        summary != null && (summary.hasFines ?? false) && allFines.isEmpty;
+
     return Scaffold(
       backgroundColor: cs.surface,
       appBar: AppBar(
@@ -96,6 +177,21 @@ class _SimitPersonDetailPageState extends State<SimitPersonDetailPage> {
           style: theme.textTheme.titleMedium
               ?.copyWith(fontWeight: FontWeight.w700),
         ),
+        actions: [
+          // Botón de refresh manual — usa identidad ya conocida del propietario.
+          if (owner?.document != null)
+            IconButton(
+              onPressed: _isRefreshing ? null : _handleRefresh,
+              icon: _isRefreshing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh_rounded),
+              tooltip: 'Actualizar datos SIMIT',
+            ),
+        ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,59 +200,95 @@ class _SimitPersonDetailPageState extends State<SimitPersonDetailPage> {
           _SummaryHeader(
             owner: owner,
             summary: summary,
-            checkedAt: checkedAt,
+            checkedAt: _checkedAt,
             theme: theme,
             cs: cs,
           ),
 
-          // ── Tabs de filtro fijos ────────────────────────────────────────────
+          // ── Timestamp de última actualización ─────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md, vertical: 4),
+            child: Text(
+              'Última actualización: ${_formatTimestamp(_checkedAt)}',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
+            ),
+          ),
+
+          // ── Tabs de filtro ─────────────────────────────────────────────────
+          // En modo summary-only (legacy sin blob) los tabs muestran conteos
+          // reales pero no son interactivos (no hay lista que filtrar).
           if (summary != null) ...[
             _FilterTabBar(
-              selected: _tabIndex,
+              selected: isSummaryOnly ? -1 : _tabIndex,
               countTotal: countTotal,
               countComp: countComp,
               countMultas: countMultas,
               countAcuerdos: countAcuerdos,
-              onSelected: (i) => setState(() => _tabIndex = i),
+              onSelected: isSummaryOnly
+                  ? (_) {}
+                  : (i) => setState(() => _tabIndex = i),
               theme: theme,
               cs: cs,
             ),
             const Divider(height: 1),
           ],
 
-          // ── Lista scrollable ────────────────────────────────────────────────
+          // ── Body ───────────────────────────────────────────────────────────
           Expanded(
             child: summary == null
                 ? _NoDataState(theme: theme, cs: cs)
-                : filteredFines.isEmpty
-                    ? _EmptyFilter(tabIndex: _tabIndex, theme: theme, cs: cs)
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.md,
-                        ),
-                        itemCount: filteredFines.length + 1, // +1 for CTA
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: AppSpacing.sm),
-                        itemBuilder: (context, i) {
-                          if (i == filteredFines.length) {
-                            return Padding(
-                              padding: const EdgeInsets.only(
-                                  top: AppSpacing.md),
-                              child: _SimitCta(theme: theme, cs: cs),
-                            );
-                          }
-                          return _FineItemCard(
-                            fine: filteredFines[i],
-                            theme: theme,
-                            cs: cs,
-                          );
-                        },
-                      ),
+                : isSummaryOnly
+                    ? _SummaryOnlyState(theme: theme, cs: cs)
+                    : filteredFines.isEmpty
+                        ? _EmptyFilter(
+                            tabIndex: _tabIndex, theme: theme, cs: cs)
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                              vertical: AppSpacing.md,
+                            ),
+                            itemCount:
+                                filteredFines.length + 1, // +1 for CTA
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: AppSpacing.sm),
+                            itemBuilder: (context, i) {
+                              if (i == filteredFines.length) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(
+                                      top: AppSpacing.md),
+                                  child: _SimitCta(theme: theme, cs: cs),
+                                );
+                              }
+                              return _FineItemCard(
+                                fine: filteredFines[i],
+                                theme: theme,
+                                cs: cs,
+                              );
+                            },
+                          ),
           ),
         ],
       ),
     );
+  }
+
+  /// Formato amigable 12h: "16/04/2026, 12:52 p. m."
+  String _formatTimestamp(DateTime dt) {
+    final d = dt.toLocal();
+    final dd = d.day.toString().padLeft(2, '0');
+    final mm = d.month.toString().padLeft(2, '0');
+    final yyyy = d.year.toString();
+    final h = d.hour == 0
+        ? 12
+        : d.hour > 12
+            ? d.hour - 12
+            : d.hour;
+    final min = d.minute.toString().padLeft(2, '0');
+    final ampm = d.hour < 12 ? 'a. m.' : 'p. m.';
+    return '$dd/$mm/$yyyy, $h:$min $ampm';
   }
 
   // ── Filtro de fines por tab ───────────────────────────────────────────────
@@ -558,6 +690,65 @@ class _NoDataState extends StatelessWidget {
               'No fue posible obtener información SIMIT para este propietario.',
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: cs.onSurfaceVariant.withValues(alpha: 0.7)),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUMMARY ONLY — snapshot Isar con agregados pero sin detalle itemizado
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Escenario: el usuario navega al detalle SIMIT desde un snapshot persistido
+// en Isar (OwnerSnapshotBand). Isar solo guarda resumen (hasFines, conteos,
+// formattedTotal) — NO el array fines[]. El header ya muestra el total/conteos
+// correctamente; este widget reemplaza la zona de lista con un desglose por
+// tipo coherente con los datos disponibles, sin pretender mostrar detalle
+// itemizado que no existe.
+
+class _SummaryOnlyState extends StatelessWidget {
+  final ThemeData theme;
+  final ColorScheme cs;
+
+  const _SummaryOnlyState({
+    required this.theme,
+    required this.cs,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Zona de lista reemplazada por nota informativa. El header ya muestra
+    // total/conteos y los tabs/chips arriba muestran desglose por tipo.
+    // No hay datos itemizados que renderizar — solo se deja claro que el
+    // desglose individual requiere una nueva consulta.
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.receipt_long_outlined,
+                size: 48, color: cs.onSurfaceVariant.withValues(alpha: 0.3)),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Detalle itemizado no disponible',
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'El resumen y los conteos por tipo se muestran arriba. '
+              'Para ver el desglose individual de cada infracción, '
+              'realiza una nueva consulta desde el portafolio.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+              ),
               textAlign: TextAlign.center,
             ),
           ],
