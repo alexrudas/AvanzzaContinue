@@ -180,6 +180,21 @@ class CreatePortfolioController extends GetxController {
       return;
     }
 
+    final orgId = _resolveOrgId();
+    if (orgId.isEmpty) {
+      // La sesión aún no tiene orgId — abortar para evitar portafolio huérfano
+      // (orgId:'') que nunca aparecería en Home.
+      // El AdminHomeController tiene un repair automático, pero es mejor
+      // prevenir que curar.
+      Get.snackbar(
+        'Sesión incompleta',
+        'La organización no está disponible aún. Intenta de nuevo en un momento.',
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 4),
+      );
+      return;
+    }
+
     try {
       isLoading.value = true;
 
@@ -189,7 +204,7 @@ class CreatePortfolioController extends GetxController {
         portfolioName: portfolioName,
         countryId: countryId,
         cityId: cityId,
-        orgId: _resolveOrgId(),
+        orgId: orgId,
         status: PortfolioStatus.draft,
         assetsCount: 0,
         createdBy: currentUserId,

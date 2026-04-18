@@ -130,6 +130,7 @@ showBottomSheetScanner(
         onTap: () async {
           Get.back();
           print("[showBottomSheetScanner] OnTap");
+          final messenger = ScaffoldMessenger.of(context);
 
           try {
             final result = await userDocument.scanDocumentFromCamera();
@@ -138,7 +139,7 @@ showBottomSheetScanner(
             onResult(result, null);
           } catch (e) {
             onResult(null, e.toString());
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               SnackBar(
                   content: Text(
                       "Escaner ${userDocument.getTitle()} \n ${e.toString()}")),
@@ -158,6 +159,7 @@ showBottomSheetScanner(
         ),
         onTap: () async {
           Get.back();
+          final messenger = ScaffoldMessenger.of(context);
 
           try {
             final result = await userDocument.scanDocumentFromGallery();
@@ -165,7 +167,7 @@ showBottomSheetScanner(
           } catch (e) {
             onResult(null, e.toString());
 
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               SnackBar(
                   content: Text(
                       "Escaner ${userDocument.getTitle()} \n ${e.toString()}")),

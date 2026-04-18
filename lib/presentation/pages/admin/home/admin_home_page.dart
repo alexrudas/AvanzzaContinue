@@ -22,7 +22,6 @@ import '../../../../core/auth/auth_state_observer.dart';
 import '../../../../domain/entities/accounting/accounting_event.dart';
 import '../../../../domain/entities/portfolio/portfolio_entity.dart';
 import '../../../../infrastructure/isar/repositories/isar_accounting_event_repository.dart';
-import '../../../../routes/app_pages.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../config/empty_state_config.dart';
 import '../../../controllers/activation/activation_gate_controller.dart';
@@ -400,9 +399,9 @@ class _AdminHomePageState extends State<AdminHomePage> {
                 total: controller.totalAlertsCount,
                 critical: controller.criticalAlertsCount,
                 affectedAssets: controller.affectedAssetsCount,
-                onTap: () => Get.toNamed(Routes.alertCenter),
+                onTap: () => Get.toNamed(Routes.fleetAlerts),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
             ],
           );
         }),
@@ -450,7 +449,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
         // PORTAFOLIOS — lista dinámica desde AdminHomeController.portfolios
         // Reactivo a cambios en Isar vía watchActivePortfoliosByOrg(orgId).
         // ────────────────────────────────────────────────────────────────────
-        const AdminSectionTitle(title: 'Portafolios de activos'),
+        const AdminSectionTitle(title: 'Mis Portafolios de activos'),
         const SizedBox(height: 14),
         Obx(() {
           final portfolioList = controller.portfolios;
@@ -504,11 +503,15 @@ class _AdminHomePageState extends State<AdminHomePage> {
           ),
         ),
         const SizedBox(height: 14),
-        AdminPersonasDashboard(
-          onPropietariosTap: () => _handlePersonaTap('Propietarios'),
+        Obx(() => AdminPersonasDashboard(
+          onPropietariosTap: () {
+            HapticFeedback.lightImpact();
+            Get.toNamed(Routes.networkOperational);
+          },
           onArrendatariosTap: () => _handlePersonaTap('Arrendatarios'),
           onDirectorioTap: () => _showDirectorioSheet(context),
-        ),
+          ownersCount: controller.uniqueOwnersCount,
+        )),
 
         // DEBUG ONLY — smoke test del pipeline Outbox
         if (kDebugMode) ...[
@@ -567,18 +570,22 @@ class _AdminHomePageState extends State<AdminHomePage> {
   // ============================================================================
 
   void _handleUiEvent(AdminUiEvent? event) {
-    if (event == null) return;
+    if (event == null || !mounted) return;
+
+    final messenger = ScaffoldMessenger.maybeOf(context);
 
     switch (event.type) {
       case AdminUiEventType.snackbar:
-        Get.snackbar(
-          event.title!,
-          event.message!,
-          snackPosition: SnackPosition.BOTTOM,
-          margin: const EdgeInsets.all(16),
-          borderRadius: 12,
-          duration: const Duration(seconds: 3),
-        );
+        messenger
+          ?..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(event.message ?? ''),
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(16),
+            ),
+          );
         break;
 
       case AdminUiEventType.redirect:
@@ -586,21 +593,24 @@ class _AdminHomePageState extends State<AdminHomePage> {
         break;
 
       case AdminUiEventType.snackbarAndRedirect:
-        Get.snackbar(
-          event.title!,
-          event.message!,
-          snackPosition: SnackPosition.BOTTOM,
-          margin: const EdgeInsets.all(16),
-          borderRadius: 12,
-          duration: const Duration(seconds: 2),
-        );
+        messenger
+          ?..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(event.message ?? ''),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+
         Future.delayed(const Duration(milliseconds: 500), () {
+          if (!mounted) return;
           Get.toNamed(event.route!, arguments: event.arguments);
         });
         break;
     }
 
-    // Limpiar evento después de manejarlo (evita re-ejecución)
     controller.uiEvent.value = null;
   }
 
@@ -1098,21 +1108,35 @@ class _AdminHomePageState extends State<AdminHomePage> {
                 const SizedBox(height: 16),
 
                 // Header
+                // Header
                 Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Nuevo',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '¿Qué deseas registrar?',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () => Navigator.of(ctx).pop(),
+                          ),
+                        ],
                       ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded),
-                        onPressed: () => Navigator.of(ctx).pop(),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Selecciona una opción para registrar.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -1121,6 +1145,15 @@ class _AdminHomePageState extends State<AdminHomePage> {
                 Divider(height: 1, color: cs.outline.withValues(alpha: 0.12)),
 
                 // Opciones
+                _DirectoryOption(
+                  icon: Icons.commute,
+                  title: 'Activos',
+                  subtitle: 'Registra activos tipo vehículos, inmuebes, etc',
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _showAssetTypeSelectorSheet(context);
+                  },
+                ),
                 _DirectoryOption(
                   icon: Icons.build_outlined,
                   title: 'Mantenimiento',
@@ -1248,7 +1281,7 @@ class _AdminAlertsSummaryCard extends StatelessWidget {
                   Text(
                     total == 0
                         ? 'Sin alertas'
-                        : '$total ${total == 1 ? 'alerta' : 'alertas'}',
+                        : '$total ${total == 1 ? 'ALERTA' : 'ALERTAS'}',
                     style: theme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: hasCritical ? cs.error : cs.onSurface,
@@ -1351,7 +1384,7 @@ class _AdminOpportunitiesCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '$count ${count == 1 ? 'Oportunidad' : 'Oportunidades'}',
+                    '$count ${count == 1 ? 'RIESGO PATRIMONIAL' : 'RIESGO PATRIMONIAL'}',
                     style: theme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: indigo,

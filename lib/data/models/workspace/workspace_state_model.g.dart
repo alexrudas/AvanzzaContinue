@@ -45,7 +45,7 @@ const WorkspaceStateModelSchema = CollectionSchema(
   getId: _workspaceStateModelGetId,
   getLinks: _workspaceStateModelGetLinks,
   attach: _workspaceStateModelAttach,
-  version: '3.2.0-dev.2',
+  version: '3.3.0-dev.1',
 );
 
 int _workspaceStateModelEstimateSize(

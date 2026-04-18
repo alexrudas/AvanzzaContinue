@@ -59,7 +59,7 @@ const IntegrationsRuntPersonCacheModelSchema = CollectionSchema(
   getId: _integrationsRuntPersonCacheModelGetId,
   getLinks: _integrationsRuntPersonCacheModelGetLinks,
   attach: _integrationsRuntPersonCacheModelAttach,
-  version: '3.2.0-dev.2',
+  version: '3.3.0-dev.1',
 );
 
 int _integrationsRuntPersonCacheModelEstimateSize(
@@ -984,7 +984,7 @@ const IntegrationsSimitCacheModelSchema = CollectionSchema(
   getId: _integrationsSimitCacheModelGetId,
   getLinks: _integrationsSimitCacheModelGetLinks,
   attach: _integrationsSimitCacheModelAttach,
-  version: '3.2.0-dev.2',
+  version: '3.3.0-dev.1',
 );
 
 int _integrationsSimitCacheModelEstimateSize(

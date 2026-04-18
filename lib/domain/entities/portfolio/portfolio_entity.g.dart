@@ -24,6 +24,24 @@ _PortfolioEntity _$PortfolioEntityFromJson(Map<String, dynamic> json) =>
       updatedAt: json['updatedAt'] == null
           ? null
           : DateTime.parse(json['updatedAt'] as String),
+      ownerName: json['ownerName'] as String? ?? null,
+      ownerDocument: json['ownerDocument'] as String? ?? null,
+      ownerDocumentType: json['ownerDocumentType'] as String? ?? null,
+      licenseStatus: json['licenseStatus'] as String? ?? null,
+      licenseExpiryDate: json['licenseExpiryDate'] as String? ?? null,
+      simitHasFines: json['simitHasFines'] as bool? ?? null,
+      simitFinesCount: (json['simitFinesCount'] as num?)?.toInt() ?? null,
+      simitComparendosCount:
+          (json['simitComparendosCount'] as num?)?.toInt() ?? null,
+      simitMultasCount: (json['simitMultasCount'] as num?)?.toInt() ?? null,
+      simitFormattedTotal: json['simitFormattedTotal'] as String? ?? null,
+      simitCheckedAt: json['simitCheckedAt'] == null
+          ? null
+          : DateTime.parse(json['simitCheckedAt'] as String),
+      licenseCheckedAt: json['licenseCheckedAt'] == null
+          ? null
+          : DateTime.parse(json['licenseCheckedAt'] as String),
+      simitDetailJson: json['simitDetailJson'] as String? ?? null,
     );
 
 Map<String, dynamic> _$PortfolioEntityToJson(_PortfolioEntity instance) =>
@@ -39,6 +57,19 @@ Map<String, dynamic> _$PortfolioEntityToJson(_PortfolioEntity instance) =>
       'createdBy': instance.createdBy,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
+      'ownerName': instance.ownerName,
+      'ownerDocument': instance.ownerDocument,
+      'ownerDocumentType': instance.ownerDocumentType,
+      'licenseStatus': instance.licenseStatus,
+      'licenseExpiryDate': instance.licenseExpiryDate,
+      'simitHasFines': instance.simitHasFines,
+      'simitFinesCount': instance.simitFinesCount,
+      'simitComparendosCount': instance.simitComparendosCount,
+      'simitMultasCount': instance.simitMultasCount,
+      'simitFormattedTotal': instance.simitFormattedTotal,
+      'simitCheckedAt': instance.simitCheckedAt?.toIso8601String(),
+      'licenseCheckedAt': instance.licenseCheckedAt?.toIso8601String(),
+      'simitDetailJson': instance.simitDetailJson,
     };
 
 const _$PortfolioTypeEnumMap = {

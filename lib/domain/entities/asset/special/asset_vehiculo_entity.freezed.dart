@@ -41,6 +41,9 @@ mixin _$AssetVehiculoEntity {
   String?
       get propertyLiens; // ── Propietario registrado en RUNT ───────────────────────────────────────
 // Null para activos registrados antes de la Fase Propietario (2026-03).
+  /// Nombre completo del propietario.
+  String? get ownerName;
+
   /// Tipo de documento del propietario (ej. 'CC', 'CE').
   String? get ownerDocumentType;
 
@@ -109,6 +112,8 @@ mixin _$AssetVehiculoEntity {
                 other.initialRegistrationDate == initialRegistrationDate) &&
             (identical(other.propertyLiens, propertyLiens) ||
                 other.propertyLiens == propertyLiens) &&
+            (identical(other.ownerName, ownerName) ||
+                other.ownerName == ownerName) &&
             (identical(other.ownerDocumentType, ownerDocumentType) ||
                 other.ownerDocumentType == ownerDocumentType) &&
             (identical(other.ownerDocument, ownerDocument) ||
@@ -148,6 +153,7 @@ mixin _$AssetVehiculoEntity {
         transitAuthority,
         initialRegistrationDate,
         propertyLiens,
+        ownerName,
         ownerDocumentType,
         ownerDocument,
         runtMetaJson,
@@ -157,7 +163,7 @@ mixin _$AssetVehiculoEntity {
 
   @override
   String toString() {
-    return 'AssetVehiculoEntity(assetId: $assetId, refCode: $refCode, placa: $placa, marca: $marca, modelo: $modelo, anio: $anio, color: $color, engineDisplacement: $engineDisplacement, vin: $vin, engineNumber: $engineNumber, chassisNumber: $chassisNumber, line: $line, serviceType: $serviceType, vehicleClass: $vehicleClass, bodyType: $bodyType, fuelType: $fuelType, passengerCapacity: $passengerCapacity, loadCapacityKg: $loadCapacityKg, grossWeightKg: $grossWeightKg, axles: $axles, transitAuthority: $transitAuthority, initialRegistrationDate: $initialRegistrationDate, propertyLiens: $propertyLiens, ownerDocumentType: $ownerDocumentType, ownerDocument: $ownerDocument, runtMetaJson: $runtMetaJson, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'AssetVehiculoEntity(assetId: $assetId, refCode: $refCode, placa: $placa, marca: $marca, modelo: $modelo, anio: $anio, color: $color, engineDisplacement: $engineDisplacement, vin: $vin, engineNumber: $engineNumber, chassisNumber: $chassisNumber, line: $line, serviceType: $serviceType, vehicleClass: $vehicleClass, bodyType: $bodyType, fuelType: $fuelType, passengerCapacity: $passengerCapacity, loadCapacityKg: $loadCapacityKg, grossWeightKg: $grossWeightKg, axles: $axles, transitAuthority: $transitAuthority, initialRegistrationDate: $initialRegistrationDate, propertyLiens: $propertyLiens, ownerName: $ownerName, ownerDocumentType: $ownerDocumentType, ownerDocument: $ownerDocument, runtMetaJson: $runtMetaJson, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -191,6 +197,7 @@ abstract mixin class $AssetVehiculoEntityCopyWith<$Res> {
       String? transitAuthority,
       String? initialRegistrationDate,
       String? propertyLiens,
+      String? ownerName,
       String? ownerDocumentType,
       String? ownerDocument,
       String? runtMetaJson,
@@ -234,6 +241,7 @@ class _$AssetVehiculoEntityCopyWithImpl<$Res>
     Object? transitAuthority = freezed,
     Object? initialRegistrationDate = freezed,
     Object? propertyLiens = freezed,
+    Object? ownerName = freezed,
     Object? ownerDocumentType = freezed,
     Object? ownerDocument = freezed,
     Object? runtMetaJson = freezed,
@@ -332,6 +340,10 @@ class _$AssetVehiculoEntityCopyWithImpl<$Res>
       propertyLiens: freezed == propertyLiens
           ? _self.propertyLiens
           : propertyLiens // ignore: cast_nullable_to_non_nullable
+              as String?,
+      ownerName: freezed == ownerName
+          ? _self.ownerName
+          : ownerName // ignore: cast_nullable_to_non_nullable
               as String?,
       ownerDocumentType: freezed == ownerDocumentType
           ? _self.ownerDocumentType
@@ -474,6 +486,7 @@ extension AssetVehiculoEntityPatterns on AssetVehiculoEntity {
             String? transitAuthority,
             String? initialRegistrationDate,
             String? propertyLiens,
+            String? ownerName,
             String? ownerDocumentType,
             String? ownerDocument,
             String? runtMetaJson,
@@ -509,6 +522,7 @@ extension AssetVehiculoEntityPatterns on AssetVehiculoEntity {
             _that.transitAuthority,
             _that.initialRegistrationDate,
             _that.propertyLiens,
+            _that.ownerName,
             _that.ownerDocumentType,
             _that.ownerDocument,
             _that.runtMetaJson,
@@ -558,6 +572,7 @@ extension AssetVehiculoEntityPatterns on AssetVehiculoEntity {
             String? transitAuthority,
             String? initialRegistrationDate,
             String? propertyLiens,
+            String? ownerName,
             String? ownerDocumentType,
             String? ownerDocument,
             String? runtMetaJson,
@@ -592,6 +607,7 @@ extension AssetVehiculoEntityPatterns on AssetVehiculoEntity {
             _that.transitAuthority,
             _that.initialRegistrationDate,
             _that.propertyLiens,
+            _that.ownerName,
             _that.ownerDocumentType,
             _that.ownerDocument,
             _that.runtMetaJson,
@@ -640,6 +656,7 @@ extension AssetVehiculoEntityPatterns on AssetVehiculoEntity {
             String? transitAuthority,
             String? initialRegistrationDate,
             String? propertyLiens,
+            String? ownerName,
             String? ownerDocumentType,
             String? ownerDocument,
             String? runtMetaJson,
@@ -674,6 +691,7 @@ extension AssetVehiculoEntityPatterns on AssetVehiculoEntity {
             _that.transitAuthority,
             _that.initialRegistrationDate,
             _that.propertyLiens,
+            _that.ownerName,
             _that.ownerDocumentType,
             _that.ownerDocument,
             _that.runtMetaJson,
@@ -712,6 +730,7 @@ class _AssetVehiculoEntity implements AssetVehiculoEntity {
       this.transitAuthority,
       this.initialRegistrationDate,
       this.propertyLiens,
+      this.ownerName,
       this.ownerDocumentType,
       this.ownerDocument,
       this.runtMetaJson,
@@ -772,6 +791,10 @@ class _AssetVehiculoEntity implements AssetVehiculoEntity {
   final String? propertyLiens;
 // ── Propietario registrado en RUNT ───────────────────────────────────────
 // Null para activos registrados antes de la Fase Propietario (2026-03).
+  /// Nombre completo del propietario.
+  @override
+  final String? ownerName;
+
   /// Tipo de documento del propietario (ej. 'CC', 'CE').
   @override
   final String? ownerDocumentType;
@@ -850,6 +873,8 @@ class _AssetVehiculoEntity implements AssetVehiculoEntity {
                 other.initialRegistrationDate == initialRegistrationDate) &&
             (identical(other.propertyLiens, propertyLiens) ||
                 other.propertyLiens == propertyLiens) &&
+            (identical(other.ownerName, ownerName) ||
+                other.ownerName == ownerName) &&
             (identical(other.ownerDocumentType, ownerDocumentType) ||
                 other.ownerDocumentType == ownerDocumentType) &&
             (identical(other.ownerDocument, ownerDocument) ||
@@ -889,6 +914,7 @@ class _AssetVehiculoEntity implements AssetVehiculoEntity {
         transitAuthority,
         initialRegistrationDate,
         propertyLiens,
+        ownerName,
         ownerDocumentType,
         ownerDocument,
         runtMetaJson,
@@ -898,7 +924,7 @@ class _AssetVehiculoEntity implements AssetVehiculoEntity {
 
   @override
   String toString() {
-    return 'AssetVehiculoEntity(assetId: $assetId, refCode: $refCode, placa: $placa, marca: $marca, modelo: $modelo, anio: $anio, color: $color, engineDisplacement: $engineDisplacement, vin: $vin, engineNumber: $engineNumber, chassisNumber: $chassisNumber, line: $line, serviceType: $serviceType, vehicleClass: $vehicleClass, bodyType: $bodyType, fuelType: $fuelType, passengerCapacity: $passengerCapacity, loadCapacityKg: $loadCapacityKg, grossWeightKg: $grossWeightKg, axles: $axles, transitAuthority: $transitAuthority, initialRegistrationDate: $initialRegistrationDate, propertyLiens: $propertyLiens, ownerDocumentType: $ownerDocumentType, ownerDocument: $ownerDocument, runtMetaJson: $runtMetaJson, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'AssetVehiculoEntity(assetId: $assetId, refCode: $refCode, placa: $placa, marca: $marca, modelo: $modelo, anio: $anio, color: $color, engineDisplacement: $engineDisplacement, vin: $vin, engineNumber: $engineNumber, chassisNumber: $chassisNumber, line: $line, serviceType: $serviceType, vehicleClass: $vehicleClass, bodyType: $bodyType, fuelType: $fuelType, passengerCapacity: $passengerCapacity, loadCapacityKg: $loadCapacityKg, grossWeightKg: $grossWeightKg, axles: $axles, transitAuthority: $transitAuthority, initialRegistrationDate: $initialRegistrationDate, propertyLiens: $propertyLiens, ownerName: $ownerName, ownerDocumentType: $ownerDocumentType, ownerDocument: $ownerDocument, runtMetaJson: $runtMetaJson, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -934,6 +960,7 @@ abstract mixin class _$AssetVehiculoEntityCopyWith<$Res>
       String? transitAuthority,
       String? initialRegistrationDate,
       String? propertyLiens,
+      String? ownerName,
       String? ownerDocumentType,
       String? ownerDocument,
       String? runtMetaJson,
@@ -977,6 +1004,7 @@ class __$AssetVehiculoEntityCopyWithImpl<$Res>
     Object? transitAuthority = freezed,
     Object? initialRegistrationDate = freezed,
     Object? propertyLiens = freezed,
+    Object? ownerName = freezed,
     Object? ownerDocumentType = freezed,
     Object? ownerDocument = freezed,
     Object? runtMetaJson = freezed,
@@ -1075,6 +1103,10 @@ class __$AssetVehiculoEntityCopyWithImpl<$Res>
       propertyLiens: freezed == propertyLiens
           ? _self.propertyLiens
           : propertyLiens // ignore: cast_nullable_to_non_nullable
+              as String?,
+      ownerName: freezed == ownerName
+          ? _self.ownerName
+          : ownerName // ignore: cast_nullable_to_non_nullable
               as String?,
       ownerDocumentType: freezed == ownerDocumentType
           ? _self.ownerDocumentType

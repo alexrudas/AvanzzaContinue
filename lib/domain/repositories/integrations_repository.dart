@@ -49,4 +49,15 @@ abstract class IntegrationsRepository {
   ///
   /// Útil para forzar actualización manual de datos.
   Future<void> clearCache();
+
+  /// Invalida el cache de RUNT Persona para una clave específica.
+  ///
+  /// Llamar antes de [consultRuntPerson] para forzar consulta fresca a la API
+  /// independientemente del TTL. Usado por el flujo de refresh manual.
+  Future<void> invalidateRuntPersonCache(String document, String type);
+
+  /// Invalida el cache de SIMIT para una clave específica.
+  ///
+  /// Llamar antes de [consultSimit] para forzar consulta fresca.
+  Future<void> invalidateSimitCache(String query);
 }

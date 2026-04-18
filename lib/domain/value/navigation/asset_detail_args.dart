@@ -23,7 +23,10 @@
 //
 // ENTERPRISE NOTES:
 // CREADO (2026-03): Parte de la política de navegación determinística
-// que elimina la dependencia del stack implícito de GetX.
+//   que elimina la dependencia del stack implícito de GetX.
+// MODIFICADO (2026-04): fromLiveBatch permite a AssetDetailPage usar Get.back()
+//   en lugar de Get.offAllNamed cuando el origen es PortfolioAssetLivePage —
+//   evita destruir el batch en curso al navegar temporalmente al detalle.
 // ============================================================================
 
 import 'package:flutter/foundation.dart';
@@ -40,6 +43,7 @@ class AssetDetailArgs {
   const AssetDetailArgs({
     required this.assetId,
     this.portfolio,
+    this.fromLiveBatch = false,
   });
 
   /// ID del activo a mostrar.
@@ -51,4 +55,11 @@ class AssetDetailArgs {
   /// Null solo en rutas legacy donde el PortfolioEntity no está disponible
   /// en el punto de entrada (fallback: navegar a Home).
   final PortfolioEntity? portfolio;
+
+  /// true cuando el origen es [PortfolioAssetLivePage] (batch en curso).
+  ///
+  /// Cuando es true, el back usa [Get.back()] en lugar de
+  /// [AppNavigator.goToPortfolio] para preservar el batch activo en el stack.
+  /// El timer de polling y ownerData NO se destruyen al volver.
+  final bool fromLiveBatch;
 }

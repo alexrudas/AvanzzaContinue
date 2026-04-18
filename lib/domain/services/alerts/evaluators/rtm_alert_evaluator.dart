@@ -2,6 +2,8 @@
 // lib/domain/services/alerts/evaluators/rtm_alert_evaluator.dart
 // ============================================================================
 
+import 'dart:developer' as dev;
+
 import 'package:uuid/uuid.dart';
 
 import '../../../entities/alerts/alert_audience.dart';
@@ -12,6 +14,9 @@ import '../../../entities/alerts/alert_scope.dart';
 import '../../../entities/alerts/alert_severity.dart';
 import '../../../entities/alerts/domain_alert.dart';
 import '../asset_alert_snapshot.dart';
+
+// Placas bajo diagnóstico activo — remover tras validar WPV583/WPV585/WGA960.
+const _kRtmDebugTargets = {'WPV583', 'WPV585', 'WGA960'};
 
 DomainAlert? buildRtmAlert(AssetAlertSnapshot snapshot) {
   final nowUtc = DateTime.now().toUtc();
@@ -60,6 +65,13 @@ DomainAlert? buildRtmAlert(AssetAlertSnapshot snapshot) {
   final vigencia = snapshot.rtmVigencia;
 
   if (vigencia == null) {
+    if (_kRtmDebugTargets.contains(snapshot.assetPrimaryLabel.toUpperCase())) {
+      dev.log(
+        '[${snapshot.assetPrimaryLabel}] rtmVigencia=NULL → '
+        'generando rtmExpired FALSO (revisar runtMetaJson del assembler)',
+        name: 'RTM_EVALUATOR',
+      );
+    }
     final dedupeKey = '${AlertCode.rtmExpired.wireName}:${snapshot.assetId}';
 
     return DomainAlert(
@@ -91,6 +103,16 @@ DomainAlert? buildRtmAlert(AssetAlertSnapshot snapshot) {
   final vigenciaDay = DateTime.utc(vigencia.year, vigencia.month, vigencia.day);
 
   final diasRestantes = vigenciaDay.difference(today).inDays;
+
+  if (_kRtmDebugTargets.contains(snapshot.assetPrimaryLabel.toUpperCase())) {
+    final codePreview = diasRestantes < 0 ? 'rtmExpired' : 'rtmDueSoon';
+    dev.log(
+      '[${snapshot.assetPrimaryLabel}] '
+      'vigencia_raw=$vigencia vigenciaDay=$vigenciaDay today=$today '
+      'diasRestantes=$diasRestantes → code=$codePreview',
+      name: 'RTM_EVALUATOR',
+    );
+  }
 
   if (diasRestantes > 30) return null;
 

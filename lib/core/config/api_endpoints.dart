@@ -92,6 +92,28 @@ class ApiEndpoints {
   /// Los servicios Core NO usan X-API-Key — son recursos internos del backend.
   static String get coreBaseUrl => _baseApiUrl;
 
+  /// URL base para Firebase Cloud Functions del backend de Avanzza.
+  ///
+  /// Diferente de [coreBaseUrl] — apunta directamente al host de Cloud Functions
+  /// (no al servidor Core API de Node.js). Usa Bearer token de Firebase Auth.
+  ///
+  /// **Desarrollo con emulador Firebase:**
+  /// ```bash
+  /// flutter run --dart-define=AVANZZA_FUNCTIONS_URL=http://10.0.2.2:5001/avanzzaplus-98e47/southamerica-east1
+  /// # iOS/Web:
+  /// flutter run --dart-define=AVANZZA_FUNCTIONS_URL=http://localhost:5001/avanzzaplus-98e47/southamerica-east1
+  /// ```
+  ///
+  /// **Producción (default):**
+  /// `https://southamerica-east1-avanzzaplus-98e47.cloudfunctions.net`
+  static String get firebaseBackendUrl {
+    return const String.fromEnvironment(
+      'AVANZZA_FUNCTIONS_URL',
+      defaultValue:
+          'https://southamerica-east1-avanzzaplus-98e47.cloudfunctions.net',
+    );
+  }
+
   /// URL base para el servicio de SIMIT (Sistema Integrado de Multas de Tránsito).
   ///
   /// Proporciona acceso a información sobre:

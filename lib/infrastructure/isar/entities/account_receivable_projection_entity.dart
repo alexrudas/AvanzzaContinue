@@ -10,6 +10,7 @@
 // - updatedAtIso indexado para queries de proyecciones recientes.
 // - Mappers top-level: infra pura, sin lógica de negocio.
 // - La proyección NO tiene integridad propia: el hash lo valida la chain de eventos.
+// - MAPPING enum ↔ estadoWire: único lugar autorizado → ARProjectionEstadoCodec.
 //
 // NOTA:
 // build_runner genera el .g.dart.
@@ -19,6 +20,7 @@
 import 'package:isar_community/isar.dart';
 
 import '../../../domain/entities/accounting/account_receivable_projection.dart';
+import '../codecs/ar_projection_estado_codec.dart';
 
 part 'account_receivable_projection_entity.g.dart';
 
@@ -58,8 +60,9 @@ class AccountReceivableProjectionEntity {
   // ESTADO
   // ==========================================================================
 
-  /// Estado wire: 'abierta' | 'cerrada' | 'ajustada'.
-  /// Almacenado como String para independencia del generador de enums.
+  /// Estado wire: 'abierta' | 'cerrada' | 'ajustada' (codificado por
+  /// ARProjectionEstadoCodec). Almacenado como String para independencia
+  /// del generador de enums.
   @Index()
   late String estadoWire;
 
@@ -93,8 +96,16 @@ class AccountReceivableProjectionEntity {
   DateTime get updatedAt => DateTime.parse(updatedAtIso);
   set updatedAt(DateTime v) => updatedAtIso = v.toUtc().toIso8601String();
 
+  /// Proyección al enum de dominio. Delega al codec canónico para mantener
+  /// una única fuente del mapping enum ↔ string.
+  ///
+  /// ⚠️ Puede lanzar [FormatException] si `estadoWire` está corrupto
+  ///    (valor desconocido, vacío o casing distinto). Este comportamiento
+  ///    es INTENCIONAL (fail-hard): corrupción en persistencia debe
+  ///    propagarse, no enmascararse con un fallback silencioso.
+  ///    NO "arreglar" esto con try/catch o defaulting a ARProjectionEstado.abierta.
   ARProjectionEstado get estadoEnum =>
-      ARProjectionEstadoX.fromWire(estadoWire);
+      ARProjectionEstadoCodec.decode(estadoWire);
 }
 
 // ============================================================================
@@ -123,7 +134,7 @@ AccountReceivableProjectionEntity projectionToEntity(
     ..entityId = projection.entityId
     ..saldoActualCop = projection.saldoActualCop
     ..totalRecaudadoCop = projection.totalRecaudadoCop
-    ..estadoWire = projection.estado.wire
+    ..estadoWire = ARProjectionEstadoCodec.encode(projection.estado)
     ..lastEventHash = projection.lastEventHash
     ..updatedAtIso = projection.updatedAt.toUtc().toIso8601String();
 }
@@ -155,8 +166,8 @@ AccountReceivableProjection projectionFromEntity(
     );
   }
 
-  // fromWire lanza FormatException si el wire es inválido.
-  final estado = ARProjectionEstadoX.fromWire(entity.estadoWire);
+  // Codec.decode lanza FormatException si el wire es inválido.
+  final estado = ARProjectionEstadoCodec.decode(entity.estadoWire);
 
   return AccountReceivableProjection(
     entityId: entity.entityId,

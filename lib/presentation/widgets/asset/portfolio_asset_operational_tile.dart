@@ -70,9 +70,13 @@ class _VehicleOperationalTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final textTheme = theme.textTheme;
     final radius = BorderRadius.circular(AppRadius.lg);
+
+    final brandModel = '${vm.brand} ${vm.model}'.trim();
+    final hasYear = vm.modelYear?.trim().isNotEmpty ?? false;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -85,7 +89,7 @@ class _VehicleOperationalTile extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm + 4,
+              vertical: AppSpacing.md,
             ),
             decoration: BoxDecoration(
               borderRadius: radius,
@@ -94,48 +98,53 @@ class _VehicleOperationalTile extends StatelessWidget {
               ),
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _PlateChip(plate: vm.plate),
-                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      _PlateChip(plate: vm.plate),
+                      const SizedBox(height: AppSpacing.sm),
                       Text(
-                        '${vm.brand} ${vm.model}'.trim(),
-                        style: textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
+                        brandModel.isEmpty
+                            ? 'Vehículo sin identificación'
+                            : brandModel,
+                        style: textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
                           color: cs.onSurface,
+                          height: 1.15,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (vm.modelYear?.isNotEmpty ?? false)
+                      if (hasYear) ...[
+                        const SizedBox(height: 2),
                         Text(
                           vm.modelYear!,
                           style: textTheme.bodySmall?.copyWith(
                             color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      if (vm.ownerName != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: _OwnerRow(
-                            name: vm.ownerName!,
-                            document: vm.ownerDocument,
-                          ),
+                      ],
+                      if (vm.ownerName != null) ...[
+                        const SizedBox(height: 6),
+                        _OwnerRow(
+                          name: vm.ownerName!,
+                          document: vm.ownerDocument,
                         ),
+                      ],
                     ],
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: AppSpacing.md),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     _AssetStateBadge(stateLabel: vm.stateLabel),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 10),
                     Icon(
                       Icons.chevron_right_rounded,
                       size: 20,

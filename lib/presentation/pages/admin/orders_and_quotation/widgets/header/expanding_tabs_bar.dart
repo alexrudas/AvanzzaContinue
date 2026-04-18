@@ -107,17 +107,18 @@ class ExpandingTab extends StatelessWidget {
             border: Border.all(color: isActive ? brand : idle.withValues(alpha: 0.3), width: 1.1),
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                style: TextStyle(color: fg, fontWeight: isActive ? FontWeight.w800 : FontWeight.w500, fontSize: isActive ? 18 : 14),
-                child: Text(label, overflow: TextOverflow.fade),
+              Expanded(
+                child: AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  style: TextStyle(color: fg, fontWeight: isActive ? FontWeight.w800 : FontWeight.w500, fontSize: isActive ? 18 : 14),
+                  child: Text(label, overflow: TextOverflow.ellipsis, maxLines: 1),
+                ),
               ),
               if (isActive)
                 IconTheme(
                   data: const IconThemeData(color: Colors.white),
-                  child: Row(children: actions),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: actions),
                 )
             ],
           ),

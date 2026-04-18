@@ -677,12 +677,22 @@ class AdminPersonasDashboard extends StatelessWidget {
   final VoidCallback? onArrendatariosTap;
   final VoidCallback? onDirectorioTap;
 
+  /// Cuenta de propietarios únicos derivada de los portafolios activos.
+  /// null → no hay datos aún (muestra placeholder); 0 → sin registros.
+  final int? ownersCount;
+
   const AdminPersonasDashboard({
     super.key,
     this.onPropietariosTap,
     this.onArrendatariosTap,
     this.onDirectorioTap,
+    this.ownersCount,
   });
+
+  String get _ownersSubtitle {
+    if (ownersCount == null || ownersCount == 0) return 'Sin registros';
+    return '$ownersCount ${ownersCount == 1 ? 'propietario' : 'propietarios'}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -693,7 +703,7 @@ class AdminPersonasDashboard extends StatelessWidget {
             icon: Icons.person_outline_rounded,
             borderColor: AdminHomeDS.networkOwners,
             title: 'Propietarios',
-            subtitle: '12 registrados',
+            subtitle: _ownersSubtitle,
             onTap: onPropietariosTap,
           ),
         ),
@@ -1126,7 +1136,7 @@ class AdminPremiumFAB extends StatelessWidget {
                       Icon(Icons.add, color: cs.onPrimary, size: 22),
                       const SizedBox(width: 10),
                       Text(
-                        'Nuevo',
+                        'Registrar',
                         style: TextStyle(
                           color: cs.onPrimary,
                           fontSize: 15,

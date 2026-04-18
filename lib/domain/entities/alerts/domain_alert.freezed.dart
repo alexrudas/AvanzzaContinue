@@ -111,7 +111,8 @@ mixin _$DomainAlert {
             (identical(other.code, code) || other.code == code) &&
             (identical(other.severity, severity) ||
                 other.severity == severity) &&
-            const DeepCollectionEquality().equals(other.alertKind, alertKind) &&
+            (identical(other.alertKind, alertKind) ||
+                other.alertKind == alertKind) &&
             (identical(other.scope, scope) || other.scope == scope) &&
             (identical(other.audience, audience) ||
                 other.audience == audience) &&
@@ -141,7 +142,7 @@ mixin _$DomainAlert {
       id,
       code,
       severity,
-      const DeepCollectionEquality().hash(alertKind),
+      alertKind,
       scope,
       audience,
       promotionPolicy,
@@ -201,7 +202,7 @@ class _$DomainAlertCopyWithImpl<$Res> implements $DomainAlertCopyWith<$Res> {
     Object? id = null,
     Object? code = null,
     Object? severity = null,
-    Object? alertKind = freezed,
+    Object? alertKind = null,
     Object? scope = null,
     Object? audience = null,
     Object? promotionPolicy = null,
@@ -228,7 +229,7 @@ class _$DomainAlertCopyWithImpl<$Res> implements $DomainAlertCopyWith<$Res> {
           ? _self.severity
           : severity // ignore: cast_nullable_to_non_nullable
               as AlertSeverity,
-      alertKind: freezed == alertKind
+      alertKind: null == alertKind
           ? _self.alertKind
           : alertKind // ignore: cast_nullable_to_non_nullable
               as AlertKind,
@@ -706,7 +707,8 @@ class _DomainAlert implements DomainAlert {
             (identical(other.code, code) || other.code == code) &&
             (identical(other.severity, severity) ||
                 other.severity == severity) &&
-            const DeepCollectionEquality().equals(other.alertKind, alertKind) &&
+            (identical(other.alertKind, alertKind) ||
+                other.alertKind == alertKind) &&
             (identical(other.scope, scope) || other.scope == scope) &&
             (identical(other.audience, audience) ||
                 other.audience == audience) &&
@@ -736,7 +738,7 @@ class _DomainAlert implements DomainAlert {
       id,
       code,
       severity,
-      const DeepCollectionEquality().hash(alertKind),
+      alertKind,
       scope,
       audience,
       promotionPolicy,
@@ -798,7 +800,7 @@ class __$DomainAlertCopyWithImpl<$Res> implements _$DomainAlertCopyWith<$Res> {
     Object? id = null,
     Object? code = null,
     Object? severity = null,
-    Object? alertKind = freezed,
+    Object? alertKind = null,
     Object? scope = null,
     Object? audience = null,
     Object? promotionPolicy = null,
@@ -825,7 +827,7 @@ class __$DomainAlertCopyWithImpl<$Res> implements _$DomainAlertCopyWith<$Res> {
           ? _self.severity
           : severity // ignore: cast_nullable_to_non_nullable
               as AlertSeverity,
-      alertKind: freezed == alertKind
+      alertKind: null == alertKind
           ? _self.alertKind
           : alertKind // ignore: cast_nullable_to_non_nullable
               as AlertKind,

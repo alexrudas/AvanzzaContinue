@@ -46,6 +46,9 @@ class AssetRuntSnapshot {
   // PROPIETARIO — del documento usado en la consulta RUNT
   // ──────────────────────────────────────────────────────────────────────────
 
+  /// Nombre completo del propietario registrado en RUNT / VRC.
+  final String? ownerName;
+
   /// Tipo de documento del propietario registrado en RUNT (ej. 'CC', 'CE').
   final String? ownerDocumentType;
 
@@ -89,6 +92,7 @@ class AssetRuntSnapshot {
     this.transitAuthority,
     this.initialRegistrationDate,
     this.propertyLiens,
+    this.ownerName,
     this.ownerDocumentType,
     this.ownerDocument,
     List<Map<String, dynamic>>? soatRecords,
@@ -161,6 +165,7 @@ class AssetRuntSnapshot {
     String? transitAuthority,
     String? initialRegistrationDate,
     String? propertyLiens,
+    String? ownerName,
     String? ownerDocumentType,
     String? ownerDocument,
     List<Map<String, dynamic>>? soatRecords,
@@ -188,6 +193,7 @@ class AssetRuntSnapshot {
       initialRegistrationDate:
           initialRegistrationDate ?? this.initialRegistrationDate,
       propertyLiens: propertyLiens ?? this.propertyLiens,
+      ownerName: ownerName ?? this.ownerName,
       ownerDocumentType: ownerDocumentType ?? this.ownerDocumentType,
       ownerDocument: ownerDocument ?? this.ownerDocument,
       soatRecords: soatRecords ?? this.soatRecords,

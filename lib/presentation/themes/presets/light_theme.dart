@@ -23,7 +23,6 @@ import '../components/custom/loading_theme.dart';
 import '../components/material/buttons.dart';
 import '../components/material/inputs.dart';
 import '../components/material/badge.dart';
-import '../components/material/cards.dart';
 import '../components/material/navigation.dart';
 import '../components/material/surfaces.dart';
 import '../components/material/icon_sizes_pro.dart';
@@ -59,7 +58,14 @@ final ThemeData lightTheme = ThemeData(
   inputDecorationTheme: AppInputThemes.inputDecoration(AppColorSchemes.light),
 
   // Cards
-  cardTheme: AppCardThemes.card(AppColorSchemes.light),
+  cardTheme: CardThemeData(
+    color: AppColorSchemes.light.surfaceContainerLow,
+    shadowColor: AppColorSchemes.light.shadow,
+    surfaceTintColor: AppColorSchemes.light.surfaceTint,
+    elevation: 1.0,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+    margin: const EdgeInsets.all(8.0),
+  ),
 
   // Navigation
   appBarTheme: AppNavigationThemes.appBar(AppColorSchemes.light),
@@ -71,7 +77,11 @@ final ThemeData lightTheme = ThemeData(
 
   // Surfaces
   bottomSheetTheme: AppSurfaceThemes.bottomSheet(AppColorSchemes.light),
-  dialogTheme: AppSurfaceThemes.dialog(AppColorSchemes.light),
+  dialogTheme: DialogThemeData(
+    backgroundColor: AppColorSchemes.light.surface,
+    elevation: 6.0,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+  ),
   snackBarTheme: AppSurfaceThemes.snackBar(AppColorSchemes.light),
   tooltipTheme: AppSurfaceThemes.tooltip(AppColorSchemes.light),
 );

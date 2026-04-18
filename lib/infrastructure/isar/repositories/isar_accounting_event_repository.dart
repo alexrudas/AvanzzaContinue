@@ -40,6 +40,7 @@ import '../../../domain/entities/accounting/account_receivable_projection.dart';
 import '../../../domain/entities/accounting/accounting_event.dart';
 import '../../../domain/entities/accounting/outbox_event.dart';
 import '../../../domain/repositories/accounting_event_repository.dart';
+import '../codecs/outbox_status_codec.dart';
 import '../entities/account_receivable_projection_entity.dart';
 import '../entities/accounting_event_entity.dart';
 import '../entities/outbox_event_entity.dart';
@@ -200,7 +201,7 @@ class IsarAccountingEventRepository implements AccountingEventRepository {
         ..eventId = event.id
         ..entityId = event.entityId
         ..entityType = event.entityType
-        ..statusWire = OutboxStatus.pending.wire
+        ..statusWire = OutboxStatusCodec.encode(OutboxStatus.pending)
         ..retryCount = 0
         ..idempotencyKey = event.hash
         ..createdAtIso = nowIso
@@ -564,9 +565,9 @@ class IsarAccountingEventRepository implements AccountingEventRepository {
       //    Limitamos a 250 para evitar load masivo.
       final candidates = await _isar.outboxEventEntitys
           .filter()
-          .statusWireEqualTo(OutboxStatus.pending.wire)
+          .statusWireEqualTo(OutboxStatusCodec.encode(OutboxStatus.pending))
           .or()
-          .statusWireEqualTo(OutboxStatus.error.wire)
+          .statusWireEqualTo(OutboxStatusCodec.encode(OutboxStatus.error))
           .limit(250)
           .findAll();
 
@@ -577,8 +578,9 @@ class IsarAccountingEventRepository implements AccountingEventRepository {
         final until = e.lockedUntilIso;
         if (until != null && until.compareTo(nowIso) > 0) continue;
 
-        // Backoff solo aplica a status=error
-        if (e.statusWire == OutboxStatus.error.wire) {
+        // Backoff solo aplica a status=error. Comparación por identidad de
+        // enum para no mantener comparaciones de strings en lógica de negocio.
+        if (OutboxStatusCodec.decode(e.statusWire) == OutboxStatus.error) {
           final lastAttemptIso = e.lastAttemptAtIso;
           if (lastAttemptIso != null) {
             try {
@@ -588,7 +590,7 @@ class IsarAccountingEventRepository implements AccountingEventRepository {
               // lastAttemptAtIso corrupto → marcar error DENTRO de esta txn.
               // No se llama markOutboxError (abriría otra writeTxn).
               e
-                ..statusWire = OutboxStatus.error.wire
+                ..statusWire = OutboxStatusCodec.encode(OutboxStatus.error)
                 ..retryCount = e.retryCount + 1
                 ..lastAttemptAtIso = nowIso
                 ..lastError =
@@ -630,7 +632,7 @@ class IsarAccountingEventRepository implements AccountingEventRepository {
         final seq = seqByEventId[e.eventId];
         if (seq == null) {
           e
-            ..statusWire = OutboxStatus.error.wire
+            ..statusWire = OutboxStatusCodec.encode(OutboxStatus.error)
             ..retryCount = e.retryCount + 1
             ..lastAttemptAtIso = nowIso
             ..lastError = _truncate(
@@ -718,7 +720,7 @@ class IsarAccountingEventRepository implements AccountingEventRepository {
         }
 
         entity
-          ..statusWire = OutboxStatus.synced.wire
+          ..statusWire = OutboxStatusCodec.encode(OutboxStatus.synced)
           ..workerLockedBy = null
           ..lockedUntilIso = null
           ..lastError = null
@@ -764,7 +766,7 @@ class IsarAccountingEventRepository implements AccountingEventRepository {
       }
 
       entity
-        ..statusWire = OutboxStatus.error.wire
+        ..statusWire = OutboxStatusCodec.encode(OutboxStatus.error)
         ..retryCount = entity.retryCount + 1
         ..lastAttemptAtIso = nowIso
         ..lastError = truncated
@@ -813,7 +815,7 @@ class IsarAccountingEventRepository implements AccountingEventRepository {
       // Obtener solo los Isar Ids (int) — evita cargar objetos completos.
       final ids = await _isar.outboxEventEntitys
           .filter()
-          .statusWireEqualTo(OutboxStatus.synced.wire)
+          .statusWireEqualTo(OutboxStatusCodec.encode(OutboxStatus.synced))
           .and()
           .createdAtIsoLessThan(beforeIso)
           .idProperty()

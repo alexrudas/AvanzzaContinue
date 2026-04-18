@@ -578,6 +578,7 @@ class AssetRepositoryImpl implements AssetRepository {
       initialRegistrationDate: runtSnapshot.initialRegistrationDate,
       propertyLiens: runtSnapshot.propertyLiens,
       ownerDocumentType: runtSnapshot.ownerDocumentType,
+      ownerName: runtSnapshot.ownerName,
       ownerDocument: runtSnapshot.ownerDocument,
       runtMetaJson: runtMetaJson,
       createdAt: now,
@@ -944,11 +945,13 @@ class AssetRepositoryImpl implements AssetRepository {
 
     // ── SOAT ────────────────────────────────────────────────────────────────
     for (final rec in snapshot.soatRecords) {
-      final fechaFin = _parseDate(rec['fechaFinVigencia']);
+      // El backend VRC envía claves en inglés camelCase.
+      // Fallback a claves en español para compatibilidad con flujos legados.
+      final fechaFin = _parseDate(rec['endDate'] ?? rec['fechaFinVigencia']);
       if (fechaFin == null) continue;
       final fechaInicio =
-          _parseDate(rec['fechaInicioVigencia']) ?? fechaFin.subtract(const Duration(days: 365));
-      final aseguradora = _strVal(rec['entidadExpide']) ?? 'Sin datos';
+          _parseDate(rec['startDate'] ?? rec['fechaInicioVigencia']) ?? fechaFin.subtract(const Duration(days: 365));
+      final aseguradora = _strVal(rec['insurer']) ?? _strVal(rec['entidadExpide']) ?? 'Sin datos';
       result.add(InsurancePolicyModel(
         id: const Uuid().v4(),
         assetId: assetId,
@@ -968,19 +971,23 @@ class AssetRepositoryImpl implements AssetRepository {
 
     // ── RC (Responsabilidad Civil) ───────────────────────────────────────────
     for (final rec in snapshot.rcRecords) {
-      final fechaFin = _parseDate(rec['fechaFinVigencia']);
+      // El backend VRC envía claves en inglés camelCase.
+      // Fallback a claves en español para compatibilidad con flujos legados.
+      final fechaFin = _parseDate(rec['endDate'] ?? rec['fechaFinVigencia']);
       if (fechaFin == null) continue;
       final fechaInicio =
-          _parseDate(rec['fechaInicioVigencia']) ?? fechaFin.subtract(const Duration(days: 365));
-      final aseguradora =
-          _strVal(rec['aseguradora']) ?? _strVal(rec['entidadExpide']) ?? 'Sin datos';
+          _parseDate(rec['startDate'] ?? rec['fechaInicioVigencia']) ?? fechaFin.subtract(const Duration(days: 365));
+      final aseguradora = _strVal(rec['insurer']) ??
+          _strVal(rec['aseguradora']) ??
+          _strVal(rec['entidadExpide']) ??
+          'Sin datos';
       result.add(InsurancePolicyModel(
         id: const Uuid().v4(),
         assetId: assetId,
-        // rec['tipoPoliza'] contiene "Responsabilidad Civil Contractual" /
-        // "Responsabilidad Civil Extracontractual" — _mapRcTipoPoliza() lo
-        // clasifica correctamente. NUNCA produce 'todo_riesgo'.
-        tipo: _mapRcTipoPoliza(rec['tipoPoliza'] as String?),
+        // Backend VRC envía "policyType"; fallback a "tipoPoliza" para legado.
+        // Contiene "Responsabilidad Civil Contractual/Extracontractual".
+        // _mapRcTipoPoliza() clasifica correctamente. NUNCA produce 'todo_riesgo'.
+        tipo: _mapRcTipoPoliza((rec['policyType'] ?? rec['tipoPoliza']) as String?),
         aseguradora: aseguradora,
         tarifaBase: 0.0,
         currencyCode: 'COP',
@@ -1033,12 +1040,52 @@ class AssetRepositoryImpl implements AssetRepository {
 
   // ── Helpers privados de fecha y estado ───────────────────────────────────
 
-  /// Parsea un string ISO a DateTime; retorna null si es inválido.
+  /// Parsea un valor de fecha proveniente de los registros SOAT/RC del VRC.
+  ///
+  /// Soporta tres formatos que el backend colombiano emite históricamente:
+  /// - ISO 8601:    `YYYY-MM-DD`  →  `DateTime.tryParse` nativo.
+  /// - Colombiano:  `DD/MM/YYYY`  →  reordenado antes de tryParse.
+  /// - Guión:       `DD-MM-YYYY`  →  detectado por longitud + posición del '-'.
+  ///
+  /// Retorna null si el valor es null, vacío o no coincide con ningún formato.
+  /// Fail-silent: nunca lanza excepción.
   DateTime? _parseDate(dynamic raw) {
     if (raw == null) return null;
     final s = raw.toString().trim();
     if (s.isEmpty) return null;
-    return DateTime.tryParse(s);
+
+    // 1. Intento directo ISO 8601 (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ssZ…).
+    final iso = DateTime.tryParse(s);
+    if (iso != null) return iso;
+
+    // 2. Formato colombiano DD/MM/YYYY  (separador '/').
+    if (s.contains('/')) {
+      final parts = s.split('/');
+      if (parts.length == 3) {
+        // Puede venir tanto como DD/MM/YYYY como MM/DD/YYYY según la fuente.
+        // El sistema RUNT colombiano usa DD/MM/YYYY como estándar.
+        final reordered = '${parts[2]}-${parts[1]}-${parts[0]}';
+        final parsed = DateTime.tryParse(reordered);
+        if (parsed != null) return parsed;
+      }
+    }
+
+    // 3. Formato DD-MM-YYYY con guión (distinguible de ISO porque el año
+    //    está al final: la parte[0] tiene 2 dígitos, no 4).
+    if (s.contains('-')) {
+      final parts = s.split('-');
+      if (parts.length == 3 && parts[0].length == 2 && parts[2].length == 4) {
+        final reordered = '${parts[2]}-${parts[1]}-${parts[0]}';
+        final parsed = DateTime.tryParse(reordered);
+        if (parsed != null) return parsed;
+      }
+    }
+
+    if (kDebugMode) {
+      debugPrint('[AssetRepositoryImpl][_parseDate] '
+          'Formato de fecha no reconocido: "$s" — registro SOAT/RC descartado.');
+    }
+    return null;
   }
 
   /// Extrae un String no vacío de un valor dinámico; null si vacío o null.

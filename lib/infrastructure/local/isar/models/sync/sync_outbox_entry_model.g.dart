@@ -248,7 +248,7 @@ const SyncOutboxEntryModelSchema = CollectionSchema(
   getId: _syncOutboxEntryModelGetId,
   getLinks: _syncOutboxEntryModelGetLinks,
   attach: _syncOutboxEntryModelAttach,
-  version: '3.2.0-dev.2',
+  version: '3.3.0-dev.1',
 );
 
 int _syncOutboxEntryModelEstimateSize(

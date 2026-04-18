@@ -1,6 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 
-import '../../../core/config/api_endpoints.dart';
+import '../../../core/config/integrations_api_config.dart';
+import '../../../data/remote/interceptors/api_key_interceptor.dart';
 import '../../../data/runt/runt_repository.dart';
 import '../../../data/runt/runt_service.dart';
 import '../../controllers/runt/runt_controller.dart';
@@ -12,18 +14,28 @@ import '../../controllers/runt/runt_controller.dart';
 /// - RuntRepository (capa de repositorio)
 /// - RuntController (controlador GetX)
 ///
-/// IMPORTANTE: Este binding NO registra Dio. El cliente HTTP global
-/// ya está registrado en AppBindings y se reutiliza mediante Get.find<Dio>().
+/// NOTA: Usa un Dio aislado con ApiKeyInterceptor y baseUrl correcto
+/// (incluye /api). NO reutiliza el Dio global de AppBindings porque ese
+/// Dio no incluye autenticación por API key.
 class RuntBinding extends Bindings {
   @override
   void dependencies() {
     // Servicio RUNT (lazy singleton)
-    // Usa el Dio global registrado en AppBindings
-    // y obtiene el baseUrl desde ApiEndpoints
+    // Dio aislado: incluye X-API-Key y apunta a la URL correcta con /api.
     Get.lazyPut<RuntService>(
       () => RuntService(
-        Get.find(), // Reutiliza el Dio global de AppBindings
-        baseUrl: ApiEndpoints.runtBaseUrl,
+        Dio(
+          BaseOptions(
+            connectTimeout: IntegrationsApiConfig.connectTimeout,
+            receiveTimeout: IntegrationsApiConfig.receiveTimeout,
+            sendTimeout: IntegrationsApiConfig.sendTimeout,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+          ),
+        )..interceptors.add(ApiKeyInterceptor()),
+        baseUrl: IntegrationsApiConfig.baseUrl,
       ),
     );
 

@@ -116,6 +116,8 @@ class ActionSheetPro {
 
     await HapticFeedback.selectionClick();
 
+    if (!context.mounted) return;
+
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -277,7 +279,7 @@ class _SheetScaffold extends StatelessWidget {
     return hsl
         .withLightness((hsl.lightness - amount).clamp(0.0, 1.0))
         .toColor()
-        .withValues(alpha: base.opacity);
+        .withValues(alpha: base.a);
   }
 }
 

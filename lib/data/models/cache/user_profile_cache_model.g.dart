@@ -89,7 +89,7 @@ const UserProfileCacheModelSchema = CollectionSchema(
   getId: _userProfileCacheModelGetId,
   getLinks: _userProfileCacheModelGetLinks,
   attach: _userProfileCacheModelAttach,
-  version: '3.2.0-dev.2',
+  version: '3.3.0-dev.1',
 );
 
 int _userProfileCacheModelEstimateSize(

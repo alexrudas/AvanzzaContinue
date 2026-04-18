@@ -30,7 +30,6 @@ class OtpInputWidget extends StatefulWidget {
 class _OtpInputWidgetState extends State<OtpInputWidget> {
   late List<TextEditingController> _controllers;
   late List<FocusNode> _focusNodes;
-  String _currentOtp = '';
 
   @override
   void initState() {
@@ -85,7 +84,6 @@ class _OtpInputWidgetState extends State<OtpInputWidget> {
 
   void _updateCurrentOtp() {
     final otp = _controllers.map((c) => c.text).join();
-    _currentOtp = otp;
 
     // Callback de cambio
     widget.onChanged?.call(otp);

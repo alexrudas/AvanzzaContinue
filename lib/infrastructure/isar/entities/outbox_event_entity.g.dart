@@ -204,7 +204,7 @@ const OutboxEventEntitySchema = CollectionSchema(
   getId: _outboxEventEntityGetId,
   getLinks: _outboxEventEntityGetLinks,
   attach: _outboxEventEntityAttach,
-  version: '3.2.0-dev.2',
+  version: '3.3.0-dev.1',
 );
 
 int _outboxEventEntityEstimateSize(

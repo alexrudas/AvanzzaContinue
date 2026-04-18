@@ -40,7 +40,7 @@ const ThemePreferenceModelSchema = CollectionSchema(
   getId: _themePreferenceModelGetId,
   getLinks: _themePreferenceModelGetLinks,
   attach: _themePreferenceModelAttach,
-  version: '3.2.0-dev.2',
+  version: '3.3.0-dev.1',
 );
 
 int _themePreferenceModelEstimateSize(

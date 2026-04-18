@@ -569,13 +569,18 @@ class _RuntTile extends StatelessWidget {
           if (def.onTap != null) {
             def.onTap!();
           } else {
-            Get.snackbar(
-              'Próximamente',
-              '${def.title} estará disponible pronto',
-              snackPosition: SnackPosition.BOTTOM,
-              margin: const EdgeInsets.all(_kHPad),
-              borderRadius: 12,
-              duration: const Duration(seconds: 2),
+            // ScaffoldMessenger es context-safe — evita "No Overlay found"
+            // que ocurre con Get.snackbar() durante transiciones de navegación.
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${def.title} estará disponible pronto'),
+                behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.all(_kHPad),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                duration: const Duration(seconds: 2),
+              ),
             );
           }
         },

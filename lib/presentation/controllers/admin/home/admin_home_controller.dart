@@ -35,6 +35,9 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/di/container.dart';
+import '../../../../domain/entities/alerts/alert_code.dart';
+import '../../../../domain/entities/alerts/alert_kind.dart';
+import '../../../../domain/entities/alerts/alert_severity.dart';
 import '../../../../domain/entities/portfolio/portfolio_entity.dart';
 import '../../../../domain/repositories/accounting_repository.dart';
 import '../../../../domain/repositories/asset_repository.dart';
@@ -47,9 +50,6 @@ import '../../../alerts/mappers/domain_alert_mapper.dart';
 import '../../../alerts/viewmodels/alert_card_vm.dart';
 import '../../../common/ensure_registered_guard.dart';
 import '../../session_context_controller.dart';
-import '../../../../domain/entities/alerts/alert_code.dart';
-import '../../../../domain/entities/alerts/alert_kind.dart';
-import '../../../../domain/entities/alerts/alert_severity.dart';
 
 // ============================================================================
 // UI EVENT PATTERN (data-only)
@@ -189,6 +189,19 @@ class AdminHomeController extends GetxController {
   final Rxn<AdminUiEvent> uiEvent = Rxn<AdminUiEvent>();
 
   // ──────────────────────────────────────────────────────────────────────────
+  // NETWORK GETTERS
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /// Cuenta de propietarios únicos derivada de los portafolios activos.
+  /// Agrupa por ownerDocument (trim + lowercase). Portafolios sin documento
+  /// se excluyen silenciosamente — misma regla que OwnerNetworkVm.fromPortfolios.
+  int get uniqueOwnersCount => portfolios
+      .where((p) => p.ownerDocument?.trim().isNotEmpty == true)
+      .map((p) => p.ownerDocument!.trim().toLowerCase())
+      .toSet()
+      .length;
+
+  // ──────────────────────────────────────────────────────────────────────────
   // ALERTS GETTERS
   // ──────────────────────────────────────────────────────────────────────────
   int get pendingAlertsCount => alerts.length;
@@ -206,8 +219,9 @@ class AdminHomeController extends GetxController {
   int get totalAlertsCount => promotedAlertVms.length;
 
   /// Total de alertas con severidad CRITICAL.
-  int get criticalAlertsCount =>
-      promotedAlertVms.where((v) => v.severity == AlertSeverity.critical).length;
+  int get criticalAlertsCount => promotedAlertVms
+      .where((v) => v.severity == AlertSeverity.critical)
+      .length;
 
   /// Número de activos únicos con al menos una alerta de compliance.
   int get affectedAssetsCount =>
@@ -227,8 +241,7 @@ class AdminHomeController extends GetxController {
         .toSet()
         .length;
     if (count == 0) return '';
-    return 'RC extracontractual recomendada para $count '
-        '${count == 1 ? "vehículo" : "vehículos"}';
+    return '$count ${count == 1 ? "activo compromete tu patrimonio" : "activos comprometen tu patrimonio"}';
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -453,6 +466,28 @@ class AdminHomeController extends GetxController {
       }
 
       final orgId = _orgId!;
+
+      // Reparar portafolios huérfanos antes de suscribirse al stream.
+      // Race condition de arranque: si _resolveOrgId() devolvió '' cuando
+      // el usuario creó el portafolio, este call parchea esos registros con
+      // el orgId correcto. Debe ejecutarse antes de watchActiveByOrg para
+      // que el primer evento del stream ya incluya los portafolios reparados.
+      try {
+        final userId = Get.find<SessionContextController>().user?.uid;
+        if (userId != null && userId.isNotEmpty) {
+          final repaired =
+              await _portfolioRepo.repairMissingOrgId(userId, orgId);
+          if (repaired > 0) {
+            _debugLog(
+              '_loadLocal',
+              '⚠️ $repaired portafolio(s) reparados: orgId:\'\'→$orgId',
+            );
+          }
+        }
+      } catch (e) {
+        _debugLog('_loadLocal', 'repairMissingOrgId ERROR: $e');
+      }
+
       _subscribeToPortfolios(orgId);
 
       final assets = await _assetRepo.fetchAssetsByOrg(orgId);
@@ -710,8 +745,12 @@ class AdminHomeController extends GetxController {
     });
   }
 
+  // M-2: prevención de ejecución concurrente de changeWorkspace
+  bool _isChangingWorkspace = false;
+
   Future<void> changeWorkspace(String newRole) async {
-    if (newRole == activeWorkspace) return;
+    if (newRole == activeWorkspace || _isChangingWorkspace) return;
+    _isChangingWorkspace = true;
 
     try {
       final session = Get.find<SessionContextController>();
@@ -731,22 +770,39 @@ class AdminHomeController extends GetxController {
 
       if (targetMembership != null) {
         // ignore: avoid_dynamic_calls
-        final newContext = user.activeContext?.copyWith(
-          orgId: targetMembership.orgId,
-          orgName: targetMembership.orgName,
-          rol: newRole,
-        );
+        final targetOrgId = targetMembership.orgId as String;
+        final currentOrgId = user.activeContext?.orgId ?? '';
+        final isCrossOrg =
+            currentOrgId.isNotEmpty && targetOrgId != currentOrgId;
 
-        if (newContext != null) {
-          await session.setActiveContext(newContext);
-          uiEvent.value = const AdminUiEvent.redirect(route: Routes.home);
+        if (isCrossOrg) {
+          // Org switch real — pasa por backend + JWT sync.
+          await session.switchOrganization(
+            organizationId: targetOrgId,
+            targetWorkspaceRole: newRole,
+          );
+        } else {
+          // Cambio de rol dentro de la misma org — local.
+          // ignore: avoid_dynamic_calls
+          final newContext = user.activeContext?.copyWith(
+            orgId: targetOrgId,
+            orgName: targetMembership.orgName as String,
+            rol: newRole,
+          );
+          if (newContext != null) {
+            await session.setActiveContext(newContext);
+          }
         }
+
+        uiEvent.value = const AdminUiEvent.redirect(route: Routes.home);
       }
     } catch (_) {
       uiEvent.value = const AdminUiEvent.snackbar(
         title: 'Error',
         message: 'No se pudo cambiar el espacio de trabajo',
       );
+    } finally {
+      _isChangingWorkspace = false;
     }
   }
 

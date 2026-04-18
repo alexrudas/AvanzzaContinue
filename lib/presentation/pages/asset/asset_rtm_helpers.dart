@@ -110,10 +110,18 @@ Map<String, dynamic> _normalizeRtmRecord(Map<String, dynamic> raw) {
     }
   }
 
-  adopt('fechaVigencia', 'fecha_vigencia');
-  adopt('fechaExpedicion', 'fecha_expedicion');
-  adopt('numeroCertificado', 'nro_certificado');
-  adopt('cdaExpide', 'cda_expide_rtm');
+  // Claves del backend VRC (inglés camelCase) — tienen prioridad sobre las
+  // claves legado en español. adopt() no sobreescribe si snake ya existe.
+  adopt('expirationDate',    'fecha_vigencia');    // "2026-08-16" → convertido a DD/MM/YYYY por el loop
+  adopt('issueDate',         'fecha_expedicion');  // "2025-08-16" → convertido a DD/MM/YYYY
+  adopt('certificateNumber', 'nro_certificado');   // "183290562"
+  adopt('cda',               'cda_expide_rtm');    // "DIAGNOSTICAR 3555555"
+
+  // Claves legado (español camelCase) — actúan solo si las inglesas no matchearon.
+  adopt('fechaVigencia',    'fecha_vigencia');
+  adopt('fechaExpedicion',  'fecha_expedicion');
+  adopt('numeroCertificado','nro_certificado');
+  adopt('cdaExpide',        'cda_expide_rtm');
 
   // Convierte fechas ISO → DD/MM/YYYY en todas las claves que resolveRtm() lee.
   // Si ya son DD/MM/YYYY (legado), _isoToRuntDate las retorna intactas.

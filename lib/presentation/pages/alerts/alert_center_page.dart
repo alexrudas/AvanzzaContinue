@@ -30,6 +30,7 @@ import 'package:get/get.dart';
 
 import '../../../domain/entities/alerts/alert_severity.dart';
 import '../../alerts/viewmodels/alert_card_vm.dart';
+import '../../alerts/viewmodels/alert_doc_status.dart';
 import '../../controllers/alerts/alert_center_controller.dart';
 
 class AlertCenterPage extends GetView<AlertCenterController> {
@@ -147,8 +148,9 @@ class _FilterChip extends StatelessWidget {
         label: Text(filter.label),
         selected: isSelected,
         onSelected: enabled ? (_) => onTap() : null,
-        backgroundColor:
-            enabled ? null : colors.surfaceContainerHighest.withValues(alpha: 0.5),
+        backgroundColor: enabled
+            ? null
+            : colors.surfaceContainerHighest.withValues(alpha: 0.5),
         labelStyle: TextStyle(
           color: !enabled ? colors.onSurface.withValues(alpha: 0.38) : null,
         ),
@@ -167,9 +169,8 @@ class _AlertList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final criticals = alerts
-        .where((a) => a.severity == AlertSeverity.critical)
-        .toList();
+    final criticals =
+        alerts.where((a) => a.severity == AlertSeverity.critical).toList();
     final rest =
         alerts.where((a) => a.severity != AlertSeverity.critical).toList();
 
@@ -270,106 +271,103 @@ class _AlertCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.5)),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Indicador de severidad
-              Container(
-                width: 4,
-                height: 44,
-                margin: const EdgeInsets.only(right: 12),
-                decoration: BoxDecoration(
-                  color: severityColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              // Contenido
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Identidad del activo
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: colors.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            vm.assetPrimaryLabel,
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: colors.onSurface,
-                                ),
-                          ),
-                        ),
-                        if (vm.assetSecondaryLabel != null) ...[
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              vm.assetSecondaryLabel!,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(
-                                    color: colors.onSurfaceVariant,
-                                  ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      vm.title,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    if (vm.subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        vm.subtitle!,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: colors.onSurfaceVariant,
-                            ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              // CTA de acción
-              if (vm.actionLabel != null && vm.actionRoute != null)
-                TextButton(
-                  onPressed: () => Get.toNamed(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: (vm.actionRoute != null)
+              ? () => Get.toNamed(
                     vm.actionRoute!,
                     arguments: {
                       'assetId': vm.sourceEntityId,
                       'primaryLabel': vm.assetPrimaryLabel,
                       'secondaryLabel': vm.assetSecondaryLabel,
                     },
-                  ),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text(
-                    vm.actionLabel!,
-                    style: TextStyle(fontSize: 12, color: severityColor),
+                  )
+              : null,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Barra de severidad (SE MANTIENE)
+                Container(
+                  width: 4,
+                  height: 56,
+                  margin: const EdgeInsets.only(right: 12),
+                  decoration: BoxDecoration(
+                    color: severityColor,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-            ],
+
+                // Contenido principal
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ───────── HEADER (PLACA + BADGE ESTADO) ─────────
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Placa (IDENTIDAD PRINCIPAL)
+                          Expanded(
+                            child: Text(
+                              vm.assetPrimaryLabel,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.5,
+                                  ),
+                            ),
+                          ),
+
+                          // Badge de estado documental.
+                          // Ocultar cuando el estado no aporta información
+                          // accionable (unknown).
+                          if (vm.docStatus != AlertDocStatus.unknown)
+                            _DocStatusBadge(status: vm.docStatus),
+                        ],
+                      ),
+
+                      // Marca + modelo
+                      if (vm.assetSecondaryLabel != null) ...[
+                        Text(
+                          vm.assetSecondaryLabel!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: colors.onSurfaceVariant,
+                                  ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 6),
+
+                      // Título alerta
+                      Text(
+                        vm.title,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+
+                      // Subtítulo (tiempo / detalle)
+                      if (vm.subtitle != null) ...[
+                        Text(
+                          vm.subtitle!,
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: colors.onSurfaceVariant,
+                                  ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -382,6 +380,55 @@ class _AlertCard extends StatelessWidget {
         AlertSeverity.high => const Color(0xFFF97316), // naranja
         AlertSeverity.medium => const Color(0xFFF59E0B), // ámbar
         AlertSeverity.low => colors.primary,
+      };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DOC STATUS BADGE
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Badge de estado documental/legal.
+///
+/// Consume [AlertDocStatus] directamente — no infiere estado desde strings.
+/// Solo se renderiza cuando [status] != [AlertDocStatus.unknown].
+class _DocStatusBadge extends StatelessWidget {
+  final AlertDocStatus status;
+  const _DocStatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = _resolve(status);
+    return Container(
+      margin: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+      ),
+    );
+  }
+
+  static (String, Color) _resolve(AlertDocStatus status) => switch (status) {
+        AlertDocStatus.expired => ('VENCIDO', const Color(0xFFEF4444)),
+        AlertDocStatus.dueSoon => ('POR VENCER', const Color(0xFFF59E0B)),
+        AlertDocStatus.missing => ('AUSENTE', const Color(0xFFF97316)),
+        AlertDocStatus.exempt => ('EXENTO', const Color(0xFF22C55E)),
+        AlertDocStatus.restricted => (
+            'CON RESTRICCIÓN',
+            const Color(0xFFB91C1C)
+          ),
+        AlertDocStatus.opportunity => (
+            'RIESGO PATRIMONIAL',
+            const Color(0xFF6366F1)
+          ),
+        AlertDocStatus.unknown => ('', Colors.transparent),
       };
 }
 

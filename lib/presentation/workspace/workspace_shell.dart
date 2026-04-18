@@ -297,7 +297,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         ),
         drawer: const WorkspaceDrawer(),
         resizeToAvoidBottomInset: false,
-        body: IndexedStack(
+        body: _LazyIndexedStack(
           index: idx,
           children: [for (final t in tabs) t.page],
         ),
@@ -412,6 +412,55 @@ class CustomFloatingNavBar extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ============================================================================
+// NAV BAR ITEM — Item individual con animaciones y accesibilidad
+// ============================================================================
+
+// ============================================================================
+// LAZY INDEXED STACK — Construcción diferida de tabs
+// ============================================================================
+// Reemplaza IndexedStack para evitar construir todos los tabs al montar el shell.
+// Un tab solo se construye la primera vez que el usuario lo selecciona.
+// Una vez construido, se mantiene vivo (state preservado) vía IndexedStack interno.
+// Esto evita que controllers/streams/sync de tabs no visitados se disparen al arranque.
+
+class _LazyIndexedStack extends StatefulWidget {
+  final int index;
+  final List<Widget> children;
+
+  const _LazyIndexedStack({required this.index, required this.children});
+
+  @override
+  State<_LazyIndexedStack> createState() => _LazyIndexedStackState();
+}
+
+class _LazyIndexedStackState extends State<_LazyIndexedStack> {
+  /// Conjunto de índices que ya fueron visitados al menos una vez.
+  /// El tab 0 (Inicio) siempre se construye desde el arranque.
+  late final Set<int> _activated = {widget.index};
+
+  @override
+  void didUpdateWidget(_LazyIndexedStack old) {
+    super.didUpdateWidget(old);
+    // Marcar el nuevo índice como activado si es la primera visita.
+    _activated.add(widget.index);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IndexedStack(
+      index: widget.index,
+      children: [
+        for (int i = 0; i < widget.children.length; i++)
+          if (_activated.contains(i))
+            widget.children[i]
+          else
+            const SizedBox.shrink(),
+      ],
     );
   }
 }

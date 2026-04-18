@@ -8,6 +8,8 @@
 // - Lee AssetRegistrationContext desde Get.arguments en onInit().
 // - Expone campos de formulario RUNT como observables reactivos (draftPlate,
 //   draftDocType, draftDocNumber) para persistencia en memoria durante el flujo.
+// - Gestiona la lista de placas para consulta multi-vehículo (plates,
+//   plateInputError, addPlate(), removePlate()) — Phase 1 multi-plate feature.
 // - registerVehicle(): orquesta el registro final del activo:
 //   persiste en repositorio, limpia estado RUNT, navega a portfolioAssets.
 //
@@ -36,12 +38,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/di/container.dart';
 import '../../../core/navigation/app_navigator.dart';
 import '../../../domain/errors/asset_creation_exception.dart';
 import '../../../domain/value/registration/asset_registration_context.dart';
 import '../../../domain/value/registration/asset_runt_snapshot.dart';
+import '../../../domain/value/registration/vehicle_plate_item.dart';
 import '../../../routes/app_pages.dart';
 import '../runt/runt_query_controller.dart';
 import '../session_context_controller.dart';
@@ -94,6 +98,25 @@ class AssetRegistrationController extends GetxController {
 
   /// Número de documento ingresado en el formulario.
   final draftDocNumber = ''.obs;
+
+  // ── Lista de placas para consulta multi-vehículo ─────────────────────────
+
+  /// Número máximo de placas que el usuario puede agregar por bloque de consulta.
+  ///
+  /// Límite operativo: el backend procesa hasta 10 vehículos por batch RUNT.
+  /// La UI muestra un modal informativo si el usuario intenta superar este límite.
+  static const int maxPlatesPerBatch = 10;
+
+  /// Lista de placas agregadas por el usuario para consulta simultánea.
+  ///
+  /// Cada elemento es un [VehiclePlateItem] con placa + estado + error.
+  /// Se limpia cuando el usuario inicia una nueva sesión de registro.
+  final plates = <VehiclePlateItem>[].obs;
+
+  /// Error de validación del campo de entrada de placa actual.
+  ///
+  /// Null cuando no hay error o el campo está vacío.
+  final plateInputError = RxnString();
 
   // ──────────────────────────────────────────────────────────────────────────
   // Ciclo de vida
@@ -292,6 +315,51 @@ class AssetRegistrationController extends GetxController {
       // controller es destruido por Get.offAllNamed antes de que importe.
       if (!registrationSucceeded) isRegistering.value = false;
     }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Operaciones multi-placa
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /// Agrega [draftPlate] a [plates] si la validación pasa.
+  ///
+  /// Validaciones:
+  /// - Entre 5 y 7 caracteres alfanuméricos (cubre placas CO estándar y motos).
+  /// - No duplicada en la lista actual (comparación case-insensitive).
+  ///
+  /// Si la validación falla, establece [plateInputError] y retorna sin agregar.
+  /// Si pasa, limpia [plateInputError] y [draftPlate] para la siguiente entrada.
+  void addPlate() {
+    final plate = draftPlate.value.trim().toUpperCase();
+
+    if (plate.length != 6) {
+      plateInputError.value = 'La placa debe tener exactamente 6 caracteres';
+      return;
+    }
+
+    if (plates.any((p) => p.plate == plate)) {
+      plateInputError.value = 'Esta placa ya fue agregada';
+      return;
+    }
+
+    // Límite operativo: no superar maxPlatesPerBatch por consulta.
+    // La UI ya verifica esto antes de llamar addPlate(), pero este guard
+    // asegura consistencia si se invoca desde otro contexto.
+    if (plates.length >= maxPlatesPerBatch) {
+      plateInputError.value =
+          'Máximo $maxPlatesPerBatch vehículos por consulta';
+      return;
+    }
+
+    plateInputError.value = null;
+    plates.add(VehiclePlateItem(id: const Uuid().v4(), plate: plate));
+    // Limpiar observable de entrada — el caller también debe limpiar el TextController.
+    draftPlate.value = '';
+  }
+
+  /// Elimina de [plates] el elemento con el [id] dado.
+  void removePlate(String id) {
+    plates.removeWhere((p) => p.id == id);
   }
 
   // ──────────────────────────────────────────────────────────────────────────

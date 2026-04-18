@@ -14,10 +14,13 @@ export 'widgets/orders/savings_hero_card.dart';
 export 'widgets/orders/kpi_triad_row.dart';
 export 'widgets/orders/orders_status_chips.dart';
 export 'widgets/orders/order_card.dart';
+export 'widgets/orders/purchase_request_card.dart';
+export 'widgets/orders/purchase_request_detail_sheet.dart';
 export 'widgets/orders/orders_tab_body.dart';
 
 // Quotes
 export 'widgets/quotes/quote_request_card.dart';
 export 'widgets/quotes/quote_details_sheet.dart';
 export 'widgets/quotes/quotes_compare_sheet.dart';
+export 'widgets/quotes/supplier_responses_sheet.dart';
 export 'widgets/quotes/quotes_tab_body.dart';

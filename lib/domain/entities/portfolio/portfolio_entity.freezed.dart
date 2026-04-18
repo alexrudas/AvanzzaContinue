@@ -28,7 +28,45 @@ mixin _$PortfolioEntity {
   int get assetsCount;
   String get createdBy;
   DateTime? get createdAt;
-  DateTime? get updatedAt;
+  DateTime?
+      get updatedAt; // ── Snapshot del propietario VRC ────────────────────────────────────────
+// Persistido al completar un batch VRC (completed | partially_completed).
+// Null cuando el portafolio nunca pasó por un batch VRC.
+// Wire-stable: no renombrar estos campos — están indexados en Isar.
+  String? get ownerName;
+  String? get ownerDocument;
+  String? get ownerDocumentType;
+  String? get licenseStatus;
+
+  /// Fecha de vencimiento de la licencia (formato "DD/MM/YYYY" del RUNT).
+  /// Derivada de la categoría con fecha más tardía en el batch VRC.
+  String? get licenseExpiryDate;
+  bool? get simitHasFines;
+
+  /// Conteo total de infracciones SIMIT (todos los tipos).
+  int? get simitFinesCount;
+
+  /// Comparendos (infracciones de tránsito — dato firme del backend).
+  int? get simitComparendosCount;
+
+  /// Multas confirmadas (puede ser null si el backend aún no las envía).
+  int? get simitMultasCount;
+  String? get simitFormattedTotal;
+
+  /// Timestamp de la consulta VRC que originó este snapshot.
+  DateTime? get simitCheckedAt;
+
+  /// Timestamp del último refresh exitoso de licencia (RUNT Persona).
+  /// Separado de simitCheckedAt — cada fuente tiene su propio ciclo de refresh.
+  DateTime? get licenseCheckedAt;
+
+  /// JSON blob del bloque owner.simit completo (summary + fines[]).
+  ///
+  /// Fuente de verdad para el detalle itemizado SIMIT. Se serializa desde
+  /// VrcOwnerSimitModel.toJson() al persistir el snapshot y se deserializa
+  /// bajo demanda (lazy) solo al navegar a SimitPersonDetailPage.
+  /// Null para portfolios creados antes de esta feature (fallback: escalares).
+  String? get simitDetailJson;
 
   /// Create a copy of PortfolioEntity
   /// with the given fields replaced by the non-null parameter values.
@@ -63,28 +101,68 @@ mixin _$PortfolioEntity {
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
-                other.updatedAt == updatedAt));
+                other.updatedAt == updatedAt) &&
+            (identical(other.ownerName, ownerName) ||
+                other.ownerName == ownerName) &&
+            (identical(other.ownerDocument, ownerDocument) ||
+                other.ownerDocument == ownerDocument) &&
+            (identical(other.ownerDocumentType, ownerDocumentType) ||
+                other.ownerDocumentType == ownerDocumentType) &&
+            (identical(other.licenseStatus, licenseStatus) ||
+                other.licenseStatus == licenseStatus) &&
+            (identical(other.licenseExpiryDate, licenseExpiryDate) ||
+                other.licenseExpiryDate == licenseExpiryDate) &&
+            (identical(other.simitHasFines, simitHasFines) ||
+                other.simitHasFines == simitHasFines) &&
+            (identical(other.simitFinesCount, simitFinesCount) ||
+                other.simitFinesCount == simitFinesCount) &&
+            (identical(other.simitComparendosCount, simitComparendosCount) ||
+                other.simitComparendosCount == simitComparendosCount) &&
+            (identical(other.simitMultasCount, simitMultasCount) ||
+                other.simitMultasCount == simitMultasCount) &&
+            (identical(other.simitFormattedTotal, simitFormattedTotal) ||
+                other.simitFormattedTotal == simitFormattedTotal) &&
+            (identical(other.simitCheckedAt, simitCheckedAt) ||
+                other.simitCheckedAt == simitCheckedAt) &&
+            (identical(other.licenseCheckedAt, licenseCheckedAt) ||
+                other.licenseCheckedAt == licenseCheckedAt) &&
+            (identical(other.simitDetailJson, simitDetailJson) ||
+                other.simitDetailJson == simitDetailJson));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      portfolioType,
-      portfolioName,
-      countryId,
-      cityId,
-      orgId,
-      status,
-      assetsCount,
-      createdBy,
-      createdAt,
-      updatedAt);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        portfolioType,
+        portfolioName,
+        countryId,
+        cityId,
+        orgId,
+        status,
+        assetsCount,
+        createdBy,
+        createdAt,
+        updatedAt,
+        ownerName,
+        ownerDocument,
+        ownerDocumentType,
+        licenseStatus,
+        licenseExpiryDate,
+        simitHasFines,
+        simitFinesCount,
+        simitComparendosCount,
+        simitMultasCount,
+        simitFormattedTotal,
+        simitCheckedAt,
+        licenseCheckedAt,
+        simitDetailJson
+      ]);
 
   @override
   String toString() {
-    return 'PortfolioEntity(id: $id, portfolioType: $portfolioType, portfolioName: $portfolioName, countryId: $countryId, cityId: $cityId, orgId: $orgId, status: $status, assetsCount: $assetsCount, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'PortfolioEntity(id: $id, portfolioType: $portfolioType, portfolioName: $portfolioName, countryId: $countryId, cityId: $cityId, orgId: $orgId, status: $status, assetsCount: $assetsCount, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt, ownerName: $ownerName, ownerDocument: $ownerDocument, ownerDocumentType: $ownerDocumentType, licenseStatus: $licenseStatus, licenseExpiryDate: $licenseExpiryDate, simitHasFines: $simitHasFines, simitFinesCount: $simitFinesCount, simitComparendosCount: $simitComparendosCount, simitMultasCount: $simitMultasCount, simitFormattedTotal: $simitFormattedTotal, simitCheckedAt: $simitCheckedAt, licenseCheckedAt: $licenseCheckedAt, simitDetailJson: $simitDetailJson)';
   }
 }
 
@@ -105,7 +183,20 @@ abstract mixin class $PortfolioEntityCopyWith<$Res> {
       int assetsCount,
       String createdBy,
       DateTime? createdAt,
-      DateTime? updatedAt});
+      DateTime? updatedAt,
+      String? ownerName,
+      String? ownerDocument,
+      String? ownerDocumentType,
+      String? licenseStatus,
+      String? licenseExpiryDate,
+      bool? simitHasFines,
+      int? simitFinesCount,
+      int? simitComparendosCount,
+      int? simitMultasCount,
+      String? simitFormattedTotal,
+      DateTime? simitCheckedAt,
+      DateTime? licenseCheckedAt,
+      String? simitDetailJson});
 }
 
 /// @nodoc
@@ -132,6 +223,19 @@ class _$PortfolioEntityCopyWithImpl<$Res>
     Object? createdBy = null,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
+    Object? ownerName = freezed,
+    Object? ownerDocument = freezed,
+    Object? ownerDocumentType = freezed,
+    Object? licenseStatus = freezed,
+    Object? licenseExpiryDate = freezed,
+    Object? simitHasFines = freezed,
+    Object? simitFinesCount = freezed,
+    Object? simitComparendosCount = freezed,
+    Object? simitMultasCount = freezed,
+    Object? simitFormattedTotal = freezed,
+    Object? simitCheckedAt = freezed,
+    Object? licenseCheckedAt = freezed,
+    Object? simitDetailJson = freezed,
   }) {
     return _then(_self.copyWith(
       id: null == id
@@ -178,6 +282,58 @@ class _$PortfolioEntityCopyWithImpl<$Res>
           ? _self.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      ownerName: freezed == ownerName
+          ? _self.ownerName
+          : ownerName // ignore: cast_nullable_to_non_nullable
+              as String?,
+      ownerDocument: freezed == ownerDocument
+          ? _self.ownerDocument
+          : ownerDocument // ignore: cast_nullable_to_non_nullable
+              as String?,
+      ownerDocumentType: freezed == ownerDocumentType
+          ? _self.ownerDocumentType
+          : ownerDocumentType // ignore: cast_nullable_to_non_nullable
+              as String?,
+      licenseStatus: freezed == licenseStatus
+          ? _self.licenseStatus
+          : licenseStatus // ignore: cast_nullable_to_non_nullable
+              as String?,
+      licenseExpiryDate: freezed == licenseExpiryDate
+          ? _self.licenseExpiryDate
+          : licenseExpiryDate // ignore: cast_nullable_to_non_nullable
+              as String?,
+      simitHasFines: freezed == simitHasFines
+          ? _self.simitHasFines
+          : simitHasFines // ignore: cast_nullable_to_non_nullable
+              as bool?,
+      simitFinesCount: freezed == simitFinesCount
+          ? _self.simitFinesCount
+          : simitFinesCount // ignore: cast_nullable_to_non_nullable
+              as int?,
+      simitComparendosCount: freezed == simitComparendosCount
+          ? _self.simitComparendosCount
+          : simitComparendosCount // ignore: cast_nullable_to_non_nullable
+              as int?,
+      simitMultasCount: freezed == simitMultasCount
+          ? _self.simitMultasCount
+          : simitMultasCount // ignore: cast_nullable_to_non_nullable
+              as int?,
+      simitFormattedTotal: freezed == simitFormattedTotal
+          ? _self.simitFormattedTotal
+          : simitFormattedTotal // ignore: cast_nullable_to_non_nullable
+              as String?,
+      simitCheckedAt: freezed == simitCheckedAt
+          ? _self.simitCheckedAt
+          : simitCheckedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      licenseCheckedAt: freezed == licenseCheckedAt
+          ? _self.licenseCheckedAt
+          : licenseCheckedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      simitDetailJson: freezed == simitDetailJson
+          ? _self.simitDetailJson
+          : simitDetailJson // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -286,7 +442,20 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             int assetsCount,
             String createdBy,
             DateTime? createdAt,
-            DateTime? updatedAt)?
+            DateTime? updatedAt,
+            String? ownerName,
+            String? ownerDocument,
+            String? ownerDocumentType,
+            String? licenseStatus,
+            String? licenseExpiryDate,
+            bool? simitHasFines,
+            int? simitFinesCount,
+            int? simitComparendosCount,
+            int? simitMultasCount,
+            String? simitFormattedTotal,
+            DateTime? simitCheckedAt,
+            DateTime? licenseCheckedAt,
+            String? simitDetailJson)?
         $default, {
     required TResult orElse(),
   }) {
@@ -304,7 +473,20 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             _that.assetsCount,
             _that.createdBy,
             _that.createdAt,
-            _that.updatedAt);
+            _that.updatedAt,
+            _that.ownerName,
+            _that.ownerDocument,
+            _that.ownerDocumentType,
+            _that.licenseStatus,
+            _that.licenseExpiryDate,
+            _that.simitHasFines,
+            _that.simitFinesCount,
+            _that.simitComparendosCount,
+            _that.simitMultasCount,
+            _that.simitFormattedTotal,
+            _that.simitCheckedAt,
+            _that.licenseCheckedAt,
+            _that.simitDetailJson);
       case _:
         return orElse();
     }
@@ -336,7 +518,20 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             int assetsCount,
             String createdBy,
             DateTime? createdAt,
-            DateTime? updatedAt)
+            DateTime? updatedAt,
+            String? ownerName,
+            String? ownerDocument,
+            String? ownerDocumentType,
+            String? licenseStatus,
+            String? licenseExpiryDate,
+            bool? simitHasFines,
+            int? simitFinesCount,
+            int? simitComparendosCount,
+            int? simitMultasCount,
+            String? simitFormattedTotal,
+            DateTime? simitCheckedAt,
+            DateTime? licenseCheckedAt,
+            String? simitDetailJson)
         $default,
   ) {
     final _that = this;
@@ -353,7 +548,20 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             _that.assetsCount,
             _that.createdBy,
             _that.createdAt,
-            _that.updatedAt);
+            _that.updatedAt,
+            _that.ownerName,
+            _that.ownerDocument,
+            _that.ownerDocumentType,
+            _that.licenseStatus,
+            _that.licenseExpiryDate,
+            _that.simitHasFines,
+            _that.simitFinesCount,
+            _that.simitComparendosCount,
+            _that.simitMultasCount,
+            _that.simitFormattedTotal,
+            _that.simitCheckedAt,
+            _that.licenseCheckedAt,
+            _that.simitDetailJson);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -384,7 +592,20 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             int assetsCount,
             String createdBy,
             DateTime? createdAt,
-            DateTime? updatedAt)?
+            DateTime? updatedAt,
+            String? ownerName,
+            String? ownerDocument,
+            String? ownerDocumentType,
+            String? licenseStatus,
+            String? licenseExpiryDate,
+            bool? simitHasFines,
+            int? simitFinesCount,
+            int? simitComparendosCount,
+            int? simitMultasCount,
+            String? simitFormattedTotal,
+            DateTime? simitCheckedAt,
+            DateTime? licenseCheckedAt,
+            String? simitDetailJson)?
         $default,
   ) {
     final _that = this;
@@ -401,7 +622,20 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             _that.assetsCount,
             _that.createdBy,
             _that.createdAt,
-            _that.updatedAt);
+            _that.updatedAt,
+            _that.ownerName,
+            _that.ownerDocument,
+            _that.ownerDocumentType,
+            _that.licenseStatus,
+            _that.licenseExpiryDate,
+            _that.simitHasFines,
+            _that.simitFinesCount,
+            _that.simitComparendosCount,
+            _that.simitMultasCount,
+            _that.simitFormattedTotal,
+            _that.simitCheckedAt,
+            _that.licenseCheckedAt,
+            _that.simitDetailJson);
       case _:
         return null;
     }
@@ -422,7 +656,20 @@ class _PortfolioEntity implements PortfolioEntity {
       this.assetsCount = 0,
       required this.createdBy,
       this.createdAt,
-      this.updatedAt});
+      this.updatedAt,
+      this.ownerName = null,
+      this.ownerDocument = null,
+      this.ownerDocumentType = null,
+      this.licenseStatus = null,
+      this.licenseExpiryDate = null,
+      this.simitHasFines = null,
+      this.simitFinesCount = null,
+      this.simitComparendosCount = null,
+      this.simitMultasCount = null,
+      this.simitFormattedTotal = null,
+      this.simitCheckedAt = null,
+      this.licenseCheckedAt = null,
+      this.simitDetailJson = null});
   factory _PortfolioEntity.fromJson(Map<String, dynamic> json) =>
       _$PortfolioEntityFromJson(json);
 
@@ -455,6 +702,70 @@ class _PortfolioEntity implements PortfolioEntity {
   final DateTime? createdAt;
   @override
   final DateTime? updatedAt;
+// ── Snapshot del propietario VRC ────────────────────────────────────────
+// Persistido al completar un batch VRC (completed | partially_completed).
+// Null cuando el portafolio nunca pasó por un batch VRC.
+// Wire-stable: no renombrar estos campos — están indexados en Isar.
+  @override
+  @JsonKey()
+  final String? ownerName;
+  @override
+  @JsonKey()
+  final String? ownerDocument;
+  @override
+  @JsonKey()
+  final String? ownerDocumentType;
+  @override
+  @JsonKey()
+  final String? licenseStatus;
+
+  /// Fecha de vencimiento de la licencia (formato "DD/MM/YYYY" del RUNT).
+  /// Derivada de la categoría con fecha más tardía en el batch VRC.
+  @override
+  @JsonKey()
+  final String? licenseExpiryDate;
+  @override
+  @JsonKey()
+  final bool? simitHasFines;
+
+  /// Conteo total de infracciones SIMIT (todos los tipos).
+  @override
+  @JsonKey()
+  final int? simitFinesCount;
+
+  /// Comparendos (infracciones de tránsito — dato firme del backend).
+  @override
+  @JsonKey()
+  final int? simitComparendosCount;
+
+  /// Multas confirmadas (puede ser null si el backend aún no las envía).
+  @override
+  @JsonKey()
+  final int? simitMultasCount;
+  @override
+  @JsonKey()
+  final String? simitFormattedTotal;
+
+  /// Timestamp de la consulta VRC que originó este snapshot.
+  @override
+  @JsonKey()
+  final DateTime? simitCheckedAt;
+
+  /// Timestamp del último refresh exitoso de licencia (RUNT Persona).
+  /// Separado de simitCheckedAt — cada fuente tiene su propio ciclo de refresh.
+  @override
+  @JsonKey()
+  final DateTime? licenseCheckedAt;
+
+  /// JSON blob del bloque owner.simit completo (summary + fines[]).
+  ///
+  /// Fuente de verdad para el detalle itemizado SIMIT. Se serializa desde
+  /// VrcOwnerSimitModel.toJson() al persistir el snapshot y se deserializa
+  /// bajo demanda (lazy) solo al navegar a SimitPersonDetailPage.
+  /// Null para portfolios creados antes de esta feature (fallback: escalares).
+  @override
+  @JsonKey()
+  final String? simitDetailJson;
 
   /// Create a copy of PortfolioEntity
   /// with the given fields replaced by the non-null parameter values.
@@ -493,28 +804,68 @@ class _PortfolioEntity implements PortfolioEntity {
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
-                other.updatedAt == updatedAt));
+                other.updatedAt == updatedAt) &&
+            (identical(other.ownerName, ownerName) ||
+                other.ownerName == ownerName) &&
+            (identical(other.ownerDocument, ownerDocument) ||
+                other.ownerDocument == ownerDocument) &&
+            (identical(other.ownerDocumentType, ownerDocumentType) ||
+                other.ownerDocumentType == ownerDocumentType) &&
+            (identical(other.licenseStatus, licenseStatus) ||
+                other.licenseStatus == licenseStatus) &&
+            (identical(other.licenseExpiryDate, licenseExpiryDate) ||
+                other.licenseExpiryDate == licenseExpiryDate) &&
+            (identical(other.simitHasFines, simitHasFines) ||
+                other.simitHasFines == simitHasFines) &&
+            (identical(other.simitFinesCount, simitFinesCount) ||
+                other.simitFinesCount == simitFinesCount) &&
+            (identical(other.simitComparendosCount, simitComparendosCount) ||
+                other.simitComparendosCount == simitComparendosCount) &&
+            (identical(other.simitMultasCount, simitMultasCount) ||
+                other.simitMultasCount == simitMultasCount) &&
+            (identical(other.simitFormattedTotal, simitFormattedTotal) ||
+                other.simitFormattedTotal == simitFormattedTotal) &&
+            (identical(other.simitCheckedAt, simitCheckedAt) ||
+                other.simitCheckedAt == simitCheckedAt) &&
+            (identical(other.licenseCheckedAt, licenseCheckedAt) ||
+                other.licenseCheckedAt == licenseCheckedAt) &&
+            (identical(other.simitDetailJson, simitDetailJson) ||
+                other.simitDetailJson == simitDetailJson));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      portfolioType,
-      portfolioName,
-      countryId,
-      cityId,
-      orgId,
-      status,
-      assetsCount,
-      createdBy,
-      createdAt,
-      updatedAt);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        portfolioType,
+        portfolioName,
+        countryId,
+        cityId,
+        orgId,
+        status,
+        assetsCount,
+        createdBy,
+        createdAt,
+        updatedAt,
+        ownerName,
+        ownerDocument,
+        ownerDocumentType,
+        licenseStatus,
+        licenseExpiryDate,
+        simitHasFines,
+        simitFinesCount,
+        simitComparendosCount,
+        simitMultasCount,
+        simitFormattedTotal,
+        simitCheckedAt,
+        licenseCheckedAt,
+        simitDetailJson
+      ]);
 
   @override
   String toString() {
-    return 'PortfolioEntity(id: $id, portfolioType: $portfolioType, portfolioName: $portfolioName, countryId: $countryId, cityId: $cityId, orgId: $orgId, status: $status, assetsCount: $assetsCount, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'PortfolioEntity(id: $id, portfolioType: $portfolioType, portfolioName: $portfolioName, countryId: $countryId, cityId: $cityId, orgId: $orgId, status: $status, assetsCount: $assetsCount, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt, ownerName: $ownerName, ownerDocument: $ownerDocument, ownerDocumentType: $ownerDocumentType, licenseStatus: $licenseStatus, licenseExpiryDate: $licenseExpiryDate, simitHasFines: $simitHasFines, simitFinesCount: $simitFinesCount, simitComparendosCount: $simitComparendosCount, simitMultasCount: $simitMultasCount, simitFormattedTotal: $simitFormattedTotal, simitCheckedAt: $simitCheckedAt, licenseCheckedAt: $licenseCheckedAt, simitDetailJson: $simitDetailJson)';
   }
 }
 
@@ -537,7 +888,20 @@ abstract mixin class _$PortfolioEntityCopyWith<$Res>
       int assetsCount,
       String createdBy,
       DateTime? createdAt,
-      DateTime? updatedAt});
+      DateTime? updatedAt,
+      String? ownerName,
+      String? ownerDocument,
+      String? ownerDocumentType,
+      String? licenseStatus,
+      String? licenseExpiryDate,
+      bool? simitHasFines,
+      int? simitFinesCount,
+      int? simitComparendosCount,
+      int? simitMultasCount,
+      String? simitFormattedTotal,
+      DateTime? simitCheckedAt,
+      DateTime? licenseCheckedAt,
+      String? simitDetailJson});
 }
 
 /// @nodoc
@@ -564,6 +928,19 @@ class __$PortfolioEntityCopyWithImpl<$Res>
     Object? createdBy = null,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
+    Object? ownerName = freezed,
+    Object? ownerDocument = freezed,
+    Object? ownerDocumentType = freezed,
+    Object? licenseStatus = freezed,
+    Object? licenseExpiryDate = freezed,
+    Object? simitHasFines = freezed,
+    Object? simitFinesCount = freezed,
+    Object? simitComparendosCount = freezed,
+    Object? simitMultasCount = freezed,
+    Object? simitFormattedTotal = freezed,
+    Object? simitCheckedAt = freezed,
+    Object? licenseCheckedAt = freezed,
+    Object? simitDetailJson = freezed,
   }) {
     return _then(_PortfolioEntity(
       id: null == id
@@ -610,6 +987,58 @@ class __$PortfolioEntityCopyWithImpl<$Res>
           ? _self.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      ownerName: freezed == ownerName
+          ? _self.ownerName
+          : ownerName // ignore: cast_nullable_to_non_nullable
+              as String?,
+      ownerDocument: freezed == ownerDocument
+          ? _self.ownerDocument
+          : ownerDocument // ignore: cast_nullable_to_non_nullable
+              as String?,
+      ownerDocumentType: freezed == ownerDocumentType
+          ? _self.ownerDocumentType
+          : ownerDocumentType // ignore: cast_nullable_to_non_nullable
+              as String?,
+      licenseStatus: freezed == licenseStatus
+          ? _self.licenseStatus
+          : licenseStatus // ignore: cast_nullable_to_non_nullable
+              as String?,
+      licenseExpiryDate: freezed == licenseExpiryDate
+          ? _self.licenseExpiryDate
+          : licenseExpiryDate // ignore: cast_nullable_to_non_nullable
+              as String?,
+      simitHasFines: freezed == simitHasFines
+          ? _self.simitHasFines
+          : simitHasFines // ignore: cast_nullable_to_non_nullable
+              as bool?,
+      simitFinesCount: freezed == simitFinesCount
+          ? _self.simitFinesCount
+          : simitFinesCount // ignore: cast_nullable_to_non_nullable
+              as int?,
+      simitComparendosCount: freezed == simitComparendosCount
+          ? _self.simitComparendosCount
+          : simitComparendosCount // ignore: cast_nullable_to_non_nullable
+              as int?,
+      simitMultasCount: freezed == simitMultasCount
+          ? _self.simitMultasCount
+          : simitMultasCount // ignore: cast_nullable_to_non_nullable
+              as int?,
+      simitFormattedTotal: freezed == simitFormattedTotal
+          ? _self.simitFormattedTotal
+          : simitFormattedTotal // ignore: cast_nullable_to_non_nullable
+              as String?,
+      simitCheckedAt: freezed == simitCheckedAt
+          ? _self.simitCheckedAt
+          : simitCheckedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      licenseCheckedAt: freezed == licenseCheckedAt
+          ? _self.licenseCheckedAt
+          : licenseCheckedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      simitDetailJson: freezed == simitDetailJson
+          ? _self.simitDetailJson
+          : simitDetailJson // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }

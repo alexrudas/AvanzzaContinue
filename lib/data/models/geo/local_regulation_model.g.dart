@@ -121,7 +121,7 @@ const LocalRegulationModelSchema = CollectionSchema(
   getId: _localRegulationModelGetId,
   getLinks: _localRegulationModelGetLinks,
   attach: _localRegulationModelAttach,
-  version: '3.2.0-dev.2',
+  version: '3.3.0-dev.1',
 );
 
 int _localRegulationModelEstimateSize(

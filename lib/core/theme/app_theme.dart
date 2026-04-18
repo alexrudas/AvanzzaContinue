@@ -145,16 +145,16 @@ OutlinedButtonThemeData _buildOutlinedButtonTheme() {
   );
 }
 
-TabBarTheme _buildTabBarTheme(ColorScheme cs) {
-  return TabBarTheme(
+TabBarThemeData _buildTabBarTheme(ColorScheme cs) {
+  return TabBarThemeData(
     indicatorColor: cs.primary,
     labelColor: cs.primary,
     unselectedLabelColor: cs.onSurface.withValues(alpha: 0.7),
   );
 }
 
-CardTheme _buildCardTheme(ColorScheme cs) {
-  return CardTheme(
+CardThemeData _buildCardTheme(ColorScheme cs) {
+  return CardThemeData(
     color: cs.surface,
     elevation: 0,
     shape: RoundedRectangleBorder(

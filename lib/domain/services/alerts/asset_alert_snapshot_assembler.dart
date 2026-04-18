@@ -41,9 +41,18 @@
 // ACTUALIZADO (2026-03): V5 — _computeRtmExemption() usa VehicleServiceCategory
 //   (no raw string). Fix bug: PÚBLICO con tilde caía en rama de 5 años.
 //   _joinLabels() previene strings "null Brand" cuando brand/model son null.
+// ACTUALIZADO (2026-04): FIX CRÍTICO — _parseRtmFromMeta() reconoce ahora la clave
+//   'expirationDate' (English camelCase, wizard async backend, ISO YYYY-MM-DD).
+//   Raíz de inconsistencia: alert list mostraba "Vencido hace 1 día" mientras la
+//   vista detalle mostraba "Vigente" para WPV583, WPV585, WGA960.
+//   Causa: el wizard persiste los registros con 'expirationDate' como clave; el
+//   assembler solo buscaba 'fecha_vigencia'/'fechaVigencia'. Los registros nuevos
+//   eran descartados silenciosamente → rtmVigencia=null → falsa alerta rtmExpired.
+//   _parseRtmDate() ya soportaba YYYY-MM-DD; solo faltaba la clave.
 // ============================================================================
 
 import 'dart:convert';
+import 'dart:developer' as dev;
 
 import '../../entities/alerts/vehicle_service_category.dart';
 import '../../entities/asset/asset_content.dart';
@@ -94,7 +103,10 @@ class AssetAlertSnapshotAssembler {
         _selectRelevantPolicy(policies, InsurancePolicyType.rcExtracontractual);
 
     // 3. Parseos
-    final rtmResult = _parseRtmFromMeta(vehiculo?.runtMetaJson);
+    final rtmResult = _parseRtmFromMeta(
+      vehiculo?.runtMetaJson,
+      debugPlaca: vehiculo?.placa,
+    );
     final legalResult = _parseLegalFromMeta(
       vehiculo?.runtMetaJson,
       propertyLiens: vehiculo?.propertyLiens,
@@ -272,10 +284,18 @@ class AssetAlertSnapshotAssembler {
   // PARSEO RTM
   // ─────────────────────────────────────────────────────────────────────────
 
-  _RtmParseResult _parseRtmFromMeta(String? runtMetaJson) {
+  _RtmParseResult _parseRtmFromMeta(
+    String? runtMetaJson, {
+    String? debugPlaca,
+  }) {
     if (runtMetaJson == null || runtMetaJson.trim().isEmpty) {
       return const _RtmParseResult();
     }
+
+    // Placas bajo diagnóstico activo — remover tras validar WPV583/WPV585/WGA960.
+    const debugTargets = {'WPV583', 'WPV585', 'WGA960'};
+    final isDebug =
+        debugPlaca != null && debugTargets.contains(debugPlaca.toUpperCase());
 
     try {
       final decoded = jsonDecode(runtMetaJson) as Map<String, dynamic>;
@@ -291,14 +311,29 @@ class AssetAlertSnapshotAssembler {
         if (entry is! Map) continue;
         final m = Map<String, dynamic>.from(entry);
 
+        // FIX (2026-04): 'expirationDate' es la clave usada por el wizard async
+        // backend (camelCase inglés, ISO YYYY-MM-DD). Antes solo se buscaban
+        // 'fecha_vigencia' y 'fechaVigencia', causando que los registros nuevos
+        // fueran descartados silenciosamente → falsa alerta rtmExpired.
+        // _parseRtmDate() ya soporta YYYY-MM-DD; solo faltaba esta clave.
         final vigenciaStr = _strKey(m, [
           'fecha_vigencia',
           'fechaVigencia',
+          'expirationDate', // wizard async backend — ISO YYYY-MM-DD
         ]);
 
-        if (vigenciaStr == null) continue;
+        final vigencia =
+            vigenciaStr != null ? _parseRtmDate(vigenciaStr) : null;
 
-        final vigencia = _parseRtmDate(vigenciaStr);
+        if (isDebug) {
+          dev.log(
+            '[$debugPlaca] keys=${m.keys.toList()} '
+            'vigenciaStr=$vigenciaStr vigenciaParsed=$vigencia',
+            name: 'RTM_ASSEMBLER',
+          );
+        }
+
+        if (vigenciaStr == null) continue;
         if (vigencia == null) continue;
 
         if (bestVigencia == null || vigencia.isAfter(bestVigencia)) {
@@ -306,6 +341,7 @@ class AssetAlertSnapshotAssembler {
           bestCertificado = _strKey(m, [
             'nro_certificado',
             'numeroCertificado',
+            'certificateNumber', // wizard async backend
           ]);
         }
       }
