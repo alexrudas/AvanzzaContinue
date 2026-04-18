@@ -14,6 +14,11 @@
 // - ISO8601 UTC strings (orden lexicográfico estable).
 // - Mappers top-level (infra pura).
 //
+// MAPPING enum ↔ statusWire:
+//   Único lugar autorizado → OutboxStatusCodec. Ningún mapping local aquí.
+//   El campo `statusWire` en Isar conserva su nombre para no romper datos
+//   persistidos (DOMAIN_CONTRACTS v1.1.3 no obliga a renombrar columnas).
+//
 // NOTA:
 // build_runner genera el .g.dart.
 // NO modificar manualmente el archivo generado.
@@ -22,6 +27,7 @@
 import 'package:isar_community/isar.dart';
 
 import '../../../domain/entities/accounting/outbox_event.dart';
+import '../codecs/outbox_status_codec.dart';
 
 part 'outbox_event_entity.g.dart';
 
@@ -66,7 +72,7 @@ class OutboxEventEntity {
   // STATUS + CLAIM OPTIMIZATION
   // ===========================================================================
 
-  /// statusWire: 'pending' | 'synced' | 'error'
+  /// statusWire: 'pending' | 'synced' | 'error' (codificado por OutboxStatusCodec).
   /// Índice compuesto con lockedUntilIso para claim eficiente.
   @Index(composite: [CompositeIndex('lockedUntilIso')])
   late String statusWire;
@@ -136,7 +142,15 @@ class OutboxEventEntity {
 
   set lockedUntil(DateTime? v) => lockedUntilIso = v?.toUtc().toIso8601String();
 
-  OutboxStatus get statusEnum => OutboxStatusX.fromWire(statusWire);
+  /// Proyección al enum de dominio. Delega al codec canónico para no duplicar
+  /// el mapping enum ↔ string fuera de OutboxStatusCodec.
+  ///
+  /// ⚠️ Puede lanzar [FormatException] si `statusWire` está corrupto
+  ///    (valor desconocido, vacío o casing distinto). Este comportamiento
+  ///    es INTENCIONAL (fail-hard): corrupción en persistencia debe
+  ///    propagarse, no enmascararse con un fallback silencioso.
+  ///    NO "arreglar" esto con try/catch o defaulting a OutboxStatus.error.
+  OutboxStatus get statusEnum => OutboxStatusCodec.decode(statusWire);
 }
 
 // ============================================================================
@@ -164,7 +178,7 @@ OutboxEventEntity outboxEventToEntity(OutboxEvent event) {
     ..eventId = event.eventId
     ..entityType = event.entityType
     ..entityId = event.entityId
-    ..statusWire = event.status.wire
+    ..statusWire = OutboxStatusCodec.encode(event.status)
     ..retryCount = event.retryCount
     ..createdAtIso = event.createdAt.toUtc().toIso8601String()
     ..updatedAtIso = event.updatedAt.toUtc().toIso8601String()
@@ -183,7 +197,7 @@ OutboxEvent outboxEventFromEntity(
       entity.lastAttemptAtIso, 'lastAttemptAtIso', entity.outboxId);
   _guardIsoNullable(entity.lockedUntilIso, 'lockedUntilIso', entity.outboxId);
 
-  if (!_isValidStatus(entity.statusWire)) {
+  if (!OutboxStatusCodec.isValid(entity.statusWire)) {
     throw FormatException(
       'OutboxEventEntity invalid statusWire="${entity.statusWire}" '
       '(outboxId=${entity.outboxId})',
@@ -209,7 +223,7 @@ OutboxEvent outboxEventFromEntity(
     eventId: entity.eventId,
     entityType: entity.entityType,
     entityId: entity.entityId,
-    status: OutboxStatusX.fromWire(entity.statusWire),
+    status: OutboxStatusCodec.decode(entity.statusWire),
     retryCount: entity.retryCount,
     createdAt: DateTime.parse(entity.createdAtIso),
     updatedAt: DateTime.parse(entity.updatedAtIso),
@@ -244,8 +258,4 @@ void _guardIsoNullable(String? iso, String field, String id) {
       '(outboxId=$id, raw="$iso")',
     );
   }
-}
-
-bool _isValidStatus(String wire) {
-  return wire == 'pending' || wire == 'synced' || wire == 'error';
 }
