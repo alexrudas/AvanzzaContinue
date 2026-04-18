@@ -189,6 +189,19 @@ class AdminHomeController extends GetxController {
   final Rxn<AdminUiEvent> uiEvent = Rxn<AdminUiEvent>();
 
   // ──────────────────────────────────────────────────────────────────────────
+  // NETWORK GETTERS
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /// Cuenta de propietarios únicos derivada de los portafolios activos.
+  /// Agrupa por ownerDocument (trim + lowercase). Portafolios sin documento
+  /// se excluyen silenciosamente — misma regla que OwnerNetworkVm.fromPortfolios.
+  int get uniqueOwnersCount => portfolios
+      .where((p) => p.ownerDocument?.trim().isNotEmpty == true)
+      .map((p) => p.ownerDocument!.trim().toLowerCase())
+      .toSet()
+      .length;
+
+  // ──────────────────────────────────────────────────────────────────────────
   // ALERTS GETTERS
   // ──────────────────────────────────────────────────────────────────────────
   int get pendingAlertsCount => alerts.length;
@@ -732,8 +745,12 @@ class AdminHomeController extends GetxController {
     });
   }
 
+  // M-2: prevención de ejecución concurrente de changeWorkspace
+  bool _isChangingWorkspace = false;
+
   Future<void> changeWorkspace(String newRole) async {
-    if (newRole == activeWorkspace) return;
+    if (newRole == activeWorkspace || _isChangingWorkspace) return;
+    _isChangingWorkspace = true;
 
     try {
       final session = Get.find<SessionContextController>();
@@ -753,22 +770,39 @@ class AdminHomeController extends GetxController {
 
       if (targetMembership != null) {
         // ignore: avoid_dynamic_calls
-        final newContext = user.activeContext?.copyWith(
-          orgId: targetMembership.orgId,
-          orgName: targetMembership.orgName,
-          rol: newRole,
-        );
+        final targetOrgId = targetMembership.orgId as String;
+        final currentOrgId = user.activeContext?.orgId ?? '';
+        final isCrossOrg =
+            currentOrgId.isNotEmpty && targetOrgId != currentOrgId;
 
-        if (newContext != null) {
-          await session.setActiveContext(newContext);
-          uiEvent.value = const AdminUiEvent.redirect(route: Routes.home);
+        if (isCrossOrg) {
+          // Org switch real — pasa por backend + JWT sync.
+          await session.switchOrganization(
+            organizationId: targetOrgId,
+            targetWorkspaceRole: newRole,
+          );
+        } else {
+          // Cambio de rol dentro de la misma org — local.
+          // ignore: avoid_dynamic_calls
+          final newContext = user.activeContext?.copyWith(
+            orgId: targetOrgId,
+            orgName: targetMembership.orgName as String,
+            rol: newRole,
+          );
+          if (newContext != null) {
+            await session.setActiveContext(newContext);
+          }
         }
+
+        uiEvent.value = const AdminUiEvent.redirect(route: Routes.home);
       }
     } catch (_) {
       uiEvent.value = const AdminUiEvent.snackbar(
         title: 'Error',
         message: 'No se pudo cambiar el espacio de trabajo',
       );
+    } finally {
+      _isChangingWorkspace = false;
     }
   }
 

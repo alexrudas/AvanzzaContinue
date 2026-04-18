@@ -399,7 +399,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
                 total: controller.totalAlertsCount,
                 critical: controller.criticalAlertsCount,
                 affectedAssets: controller.affectedAssetsCount,
-                onTap: () => Get.toNamed(Routes.alertCenter),
+                onTap: () => Get.toNamed(Routes.fleetAlerts),
               ),
               const SizedBox(height: 12),
             ],
@@ -503,11 +503,15 @@ class _AdminHomePageState extends State<AdminHomePage> {
           ),
         ),
         const SizedBox(height: 14),
-        AdminPersonasDashboard(
-          onPropietariosTap: () => _handlePersonaTap('Propietarios'),
+        Obx(() => AdminPersonasDashboard(
+          onPropietariosTap: () {
+            HapticFeedback.lightImpact();
+            Get.toNamed(Routes.networkOperational);
+          },
           onArrendatariosTap: () => _handlePersonaTap('Arrendatarios'),
           onDirectorioTap: () => _showDirectorioSheet(context),
-        ),
+          ownersCount: controller.uniqueOwnersCount,
+        )),
 
         // DEBUG ONLY — smoke test del pipeline Outbox
         if (kDebugMode) ...[
@@ -566,18 +570,22 @@ class _AdminHomePageState extends State<AdminHomePage> {
   // ============================================================================
 
   void _handleUiEvent(AdminUiEvent? event) {
-    if (event == null) return;
+    if (event == null || !mounted) return;
+
+    final messenger = ScaffoldMessenger.maybeOf(context);
 
     switch (event.type) {
       case AdminUiEventType.snackbar:
-        Get.snackbar(
-          event.title!,
-          event.message!,
-          snackPosition: SnackPosition.BOTTOM,
-          margin: const EdgeInsets.all(16),
-          borderRadius: 12,
-          duration: const Duration(seconds: 3),
-        );
+        messenger
+          ?..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(event.message ?? ''),
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(16),
+            ),
+          );
         break;
 
       case AdminUiEventType.redirect:
@@ -585,21 +593,24 @@ class _AdminHomePageState extends State<AdminHomePage> {
         break;
 
       case AdminUiEventType.snackbarAndRedirect:
-        Get.snackbar(
-          event.title!,
-          event.message!,
-          snackPosition: SnackPosition.BOTTOM,
-          margin: const EdgeInsets.all(16),
-          borderRadius: 12,
-          duration: const Duration(seconds: 2),
-        );
+        messenger
+          ?..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(event.message ?? ''),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+
         Future.delayed(const Duration(milliseconds: 500), () {
+          if (!mounted) return;
           Get.toNamed(event.route!, arguments: event.arguments);
         });
         break;
     }
 
-    // Limpiar evento después de manejarlo (evita re-ejecución)
     controller.uiEvent.value = null;
   }
 
