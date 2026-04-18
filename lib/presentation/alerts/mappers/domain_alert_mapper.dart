@@ -6,6 +6,8 @@
 // - Convierte DomainAlert en AlertCardVm: traduce AlertCode a texto español (V1).
 // - Genera subtitle contextual desde facts (daysRemaining, expirationDate, sourceName).
 // - Resuelve sourceEntityId, actionLabel y actionRoute para cada alerta.
+// - Propaga daysRemaining (int?) y expiryDate (DateTime?) como campos estructurados
+//   para que FleetAlertGrouper pueda ordenar sin parsear strings de presentación.
 // - Soporta códigos operativos vigentes del pipeline RTM/RC/SOAT/Jurídico,
 //   incluyendo RTM exenta (rtmExempt).
 //
@@ -24,6 +26,10 @@
 // - Prioridad de subtitle:
 //     * RTM exenta: expirationDate > daysRemaining > sourceName > null
 //     * Resto:      daysRemaining > expirationDate > sourceName > null
+// - daysRemaining es la fuente de verdad para lógica temporal y sort.
+//   expiryDate es solo display — puede ser null si el backend envía formato inesperado.
+// - _safeParseDateOnly acepta solo YYYY-MM-DD (o ISO completo truncado a 10 chars).
+//   Descarta timezone. Loguea en debug ante formato inválido.
 // - actionRoute fallback: null para alertas sin navegación implementada en V1.
 //   El caller decide si renderiza CTA.
 //
@@ -38,6 +44,9 @@
 //   BUG FIX: mapper sin este case lanzaba AssertionError en debug → loadAlerts()
 //   capturaba la excepción y vaciaba la lista → "No hay alertas activas".
 //   Subtitle canónico: "Cobertura recomendada para protección patrimonial".
+// ACTUALIZADO (2026-04): Fase 6 UX — daysRemaining y expiryDate propagados como
+//   campos estructurados en AlertCardVm. _safeParseDateOnly + _parseExpiryDate
+//   con logging defensivo debug-only.
 // ============================================================================
 
 import '../../../domain/entities/alerts/alert_code.dart';
@@ -73,6 +82,11 @@ abstract final class DomainAlertMapper {
       // Estado documental derivado desde AlertCode — fuente única de verdad.
       // La UI consume este campo para el badge; no infiere estado desde strings.
       docStatus: _resolveDocStatus(alert.code),
+      // Campos estructurados para lógica temporal y sort (FleetAlertGrouper).
+      // daysRemaining: fuente de verdad (int del evaluador, no parseo de strings).
+      // expiryDate: solo display — puede ser null si el formato es inesperado.
+      daysRemaining: _resolveDaysRemaining(alert.facts),
+      expiryDate: _parseExpiryDate(alert.facts, alert.code),
     );
   }
 
@@ -211,60 +225,96 @@ abstract final class DomainAlertMapper {
 
   /// Resuelve la etiqueta del CTA de acción para el [AlertCode].
   ///
-  /// Null para alertas cuya pantalla de destino no está implementada en V1.
+  /// CRITERIO: CTA que inicia resolución real, no solo navegación informativa.
+  ///
+  /// OPERATIVO (flujo de resolución existente hoy):
+  ///   rcExtracontractual* → 'Solicitar cotización' → /insurance/rc/quote/request
+  ///
+  /// INFORMATIVO (ruta de detalle, flujo de resolución pendiente):
+  ///   soat*         → 'Cotizar SOAT'          → pendiente flujo cotización SOAT
+  ///   rtm*          → 'Solicitar gestión RTM'  → pendiente flujo servicio RTM
+  ///   rcContractual → 'Solicitar cotización'   → pendiente flujo RC contractual
+  ///   legal*        → 'Solicitar revisión'     → pendiente flujo acompañamiento legal
+  ///
+  /// Null para códigos reservados sin ruta implementada en V1.
   static String? _resolveActionLabel(AlertCode code) => switch (code) {
-        AlertCode.soatExpired || AlertCode.soatDueSoon => 'Ver SOAT',
+        // INFORMATIVO — pendiente flujo cotización SOAT
+        AlertCode.soatExpired || AlertCode.soatDueSoon => 'Ver estado SOAT',
+
+        // INFORMATIVO — pendiente flujo servicio RTM
         AlertCode.rtmExpired ||
         AlertCode.rtmDueSoon ||
-        // NUEVO:
-        // RTM exenta sigue navegando al mismo detalle RTM; cambia el estado,
-        // no el destino.
         AlertCode.rtmExempt =>
-          'Ver RTM',
+          'Ver estado RTM',
+
+        // INFORMATIVO — pendiente flujo RC contractual
         AlertCode.rcContractualExpired ||
         AlertCode.rcContractualDueSoon ||
-        AlertCode.rcContractualMissing ||
+        AlertCode.rcContractualMissing =>
+          'Ver póliza RC contractual',
+
+        // OPERATIVO — flujo SRCE activo (/insurance/rc/quote/request)
         AlertCode.rcExtracontractualExpired ||
         AlertCode.rcExtracontractualDueSoon ||
         AlertCode.rcExtracontractualMissing ||
         AlertCode.rcExtracontractualOpportunity =>
-          'Ver RC',
+          'Solicitar cotización RC',
+
+        // INFORMATIVO — pendiente flujo acompañamiento legal
         AlertCode.embargoActive ||
         AlertCode.legalLimitationActive =>
-          'Ver estado jurídico',
+          'Ver estado legal',
+
         _ => null,
       };
 
   /// Resuelve la ruta canónica de navegación para el CTA de acción.
   ///
-  /// Retorna la ruta sin assetId embebido — el assetId se pasa como
-  /// `arguments: vm.sourceEntityId` en el caller (AlertCenterPage).
-  /// Coincide con las constantes de Routes.* en app_routes.dart.
+  /// OPERATIVO hoy (flujo de resolución real abierto desde el CTA):
+  ///   rcExtracontractual* → /insurance/rc/quote/request
+  ///     Arguments: {assetId, primaryLabel, secondaryLabel} (sin vehicleSnapshot)
+  ///     Compatible con el contrato de RcQuoteRequestPage.
+  ///
+  /// INFORMATIVO hoy (página de detalle — flujo de resolución pendiente):
+  ///   soat*         → /asset/insurance/soat  (PENDIENTE: flujo cotización SOAT)
+  ///   rtm*          → /asset/rtm/detail      (PENDIENTE: flujo servicio RTM)
+  ///   rcContractual → /asset/insurance/rc    (PENDIENTE: flujo RC contractual)
+  ///   legal*        → /asset/legal           (PENDIENTE: flujo legal)
   ///
   /// Null solo si [_resolveActionLabel] retorna null.
   static String? _resolveActionRoute(AlertCode code, String sourceEntityId) =>
       switch (code) {
+        // INFORMATIVO — detalle SOAT (pendiente flujo cotización)
         AlertCode.soatExpired ||
         AlertCode.soatDueSoon =>
           '/asset/insurance/soat',
+
+        // INFORMATIVO — detalle RTM (pendiente flujo servicio)
         AlertCode.rtmExpired ||
         AlertCode.rtmDueSoon ||
-        // NUEVO:
-        // Mismo racional que el actionLabel: la exención RTM debe llevar al
-        // detalle RTM del activo.
         AlertCode.rtmExempt =>
           '/asset/rtm/detail',
+
+        // INFORMATIVO — detalle RC contractual (pendiente flujo cotización)
         AlertCode.rcContractualExpired ||
         AlertCode.rcContractualDueSoon ||
-        AlertCode.rcContractualMissing ||
+        AlertCode.rcContractualMissing =>
+          '/asset/insurance/rc',
+
+        // OPERATIVO — flujo SRCE activo
+        // Arguments pasados por AlertCenterPage y FleetAlertDetailPage:
+        //   {assetId, primaryLabel, secondaryLabel} — compatibles con RcQuoteRequestPage
         AlertCode.rcExtracontractualExpired ||
         AlertCode.rcExtracontractualDueSoon ||
         AlertCode.rcExtracontractualMissing ||
         AlertCode.rcExtracontractualOpportunity =>
-          '/asset/insurance/rc',
+          '/insurance/rc/quote/request',
+
+        // INFORMATIVO — detalle legal (pendiente flujo acompañamiento)
         AlertCode.embargoActive ||
         AlertCode.legalLimitationActive =>
           '/asset/legal',
+
         _ => null,
       };
 
@@ -334,5 +384,105 @@ abstract final class DomainAlertMapper {
     final v = facts[AlertFactKeys.assetType];
     if (v is String && v.isNotEmpty) return v;
     return null;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // CAMPOS TEMPORALES ESTRUCTURADOS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Extrae daysRemaining desde facts como int nullable.
+  ///
+  /// Fuente de verdad para lógica temporal y sort (FleetAlertGrouper).
+  /// Calculado por los evaluadores de dominio — no depende de formato de fecha.
+  /// Negativo si ya venció. Null si no aplica (legal, oportunidades, etc.).
+  static int? _resolveDaysRemaining(Map<String, Object?> facts) {
+    final v = facts[AlertFactKeys.daysRemaining];
+    return v is int ? v : null;
+  }
+
+  /// Parsea expiryDate desde facts de forma defensiva.
+  ///
+  /// Solo acepta YYYY-MM-DD (primeros 10 chars de ISO 8601).
+  /// Descarta timezone para evitar off-by-one UTC vs local.
+  /// Retorna null (sin lanzar) ante cualquier formato inválido.
+  /// Loguea en debug si el formato es inesperado o hay desalineación con
+  /// daysRemaining.
+  ///
+  /// REGLA: solo usar para display — para lógica usar [_resolveDaysRemaining].
+  static DateTime? _parseExpiryDate(
+    Map<String, Object?> facts,
+    AlertCode code,
+  ) {
+    final rawDate = facts[AlertFactKeys.expirationDate];
+    final rawDays = facts[AlertFactKeys.daysRemaining];
+
+    final parsed = _safeParseDateOnly(
+      rawDate is String ? rawDate : null,
+      code,
+    );
+
+    // DEBUG: detectar desalineación entre daysRemaining y expiryDate.
+    // daysRemaining es la fuente de verdad — este check detecta inconsistencias
+    // del backend que podrían afectar la coherencia visual.
+    assert(() {
+      if (parsed != null && rawDays is int) {
+        final today = DateTime.now();
+        final todayDate = DateTime(today.year, today.month, today.day);
+        final dateIsFuture = parsed.isAfter(todayDate);
+        if (dateIsFuture && rawDays < 0) {
+          // ignore: avoid_print
+          print(
+            '[DomainAlertMapper] desalineación temporal: '
+            'code=${code.wireName}, expiryDate=$rawDate (futura) '
+            'pero daysRemaining=$rawDays (negativo). '
+            'daysRemaining es la fuente de verdad.',
+          );
+        }
+        if (!dateIsFuture && rawDays > 0) {
+          // ignore: avoid_print
+          print(
+            '[DomainAlertMapper] desalineación temporal: '
+            'code=${code.wireName}, expiryDate=$rawDate (pasada) '
+            'pero daysRemaining=$rawDays (positivo). '
+            'daysRemaining es la fuente de verdad.',
+          );
+        }
+      }
+      return true;
+    }());
+
+    return parsed;
+  }
+
+  /// Parsea un string de fecha aceptando solo el formato YYYY-MM-DD.
+  ///
+  /// Si el string tiene zona horaria o parte de tiempo (ISO completo), toma
+  /// solo los primeros 10 caracteres. Valida el patrón antes de parsear.
+  /// Retorna null y loguea en debug ante cualquier formato no reconocible.
+  static DateTime? _safeParseDateOnly(String? raw, AlertCode code) {
+    if (raw == null || raw.isEmpty) return null;
+
+    // Normalizar: tomar solo los primeros 10 chars para descartar timezone/hora.
+    final datePart = raw.length >= 10 ? raw.substring(0, 10) : raw;
+
+    // Validar que el fragmento sea exactamente YYYY-MM-DD.
+    final isValidFormat =
+        RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(datePart);
+
+    assert(() {
+      if (!isValidFormat) {
+        // ignore: avoid_print
+        print(
+          '[DomainAlertMapper] expirationDate formato inesperado: '
+          'code=${code.wireName}, raw="$raw" (se esperaba YYYY-MM-DD)',
+        );
+      }
+      return true;
+    }());
+
+    if (!isValidFormat) return null;
+
+    // DateTime.tryParse nunca lanza — retorna null ante error residual.
+    return DateTime.tryParse(datePart);
   }
 }

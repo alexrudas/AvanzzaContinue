@@ -9,6 +9,8 @@
 //   la alerta hacia la pantalla correspondiente del activo.
 // - Expone docStatus (AlertDocStatus) para el badge de estado documental,
 //   eliminando la necesidad de inferir estado desde strings en la UI.
+// - Expone daysRemaining y expiryDate como campos estructurados para lógica
+//   de sort y ordenamiento sin parsear strings de presentación.
 //
 // QUÉ NO HACE:
 // - No depende de package:flutter (sin widgets, sin colores, sin IconData).
@@ -25,6 +27,10 @@
 //   para alertas cuya ruta destino aún no está implementada).
 // - docStatus: canal ortogonal a severity — estado del documento/cobertura.
 //   La UI consume docStatus para el badge; no infiere estado desde texto.
+// - daysRemaining: fuente de verdad para lógica temporal y sort. int negativo
+//   si ya venció. La UI NUNCA parsea subtitle para derivar este valor.
+// - expiryDate: solo para display. Puede ser null si el formato del backend
+//   no es reconocible. NUNCA usar para lógica — usar daysRemaining.
 //
 // ENTERPRISE NOTES:
 // CREADO (2026-03): Fase 3 — Consumo contextual V1. Ver ALERTS_SYSTEM_V4.md §13.
@@ -32,6 +38,8 @@
 //   para navegación desde AlertCenterPage y card de métricas en Home.
 // ACTUALIZADO (2026-03): Fase 5.5 — docStatus para badge estructurado.
 //   Elimina _statusLabel/_statusColor (inferencia desde strings) en UI.
+// ACTUALIZADO (2026-04): Fase 6 UX — daysRemaining y expiryDate como campos
+//   estructurados para FleetAlertGrouper (sort intra-grupo sin parsear strings).
 // ============================================================================
 
 import 'package:equatable/equatable.dart';
@@ -116,6 +124,23 @@ final class AlertCardVm extends Equatable {
   /// Solo consume este campo para decidir label y color del badge.
   final AlertDocStatus docStatus;
 
+  /// Días restantes hasta el vencimiento del documento/póliza.
+  ///
+  /// Negativo si ya venció (ej: -3 = venció hace 3 días).
+  /// Null si no aplica (legal, oportunidades comerciales, códigos reservados).
+  ///
+  /// FUENTE DE VERDAD para lógica temporal y sort.
+  /// Calculado por los evaluadores de dominio directamente desde fechas reales.
+  /// REGLA: la UI NUNCA parsea [subtitle] para derivar este valor.
+  final int? daysRemaining;
+
+  /// Fecha de vencimiento del documento/póliza.
+  ///
+  /// Solo para display — puede ser null si el formato del backend no es
+  /// reconocible (ver _safeParseDateOnly en DomainAlertMapper).
+  /// REGLA: NUNCA usar para lógica ni sort — usar [daysRemaining].
+  final DateTime? expiryDate;
+
   const AlertCardVm({
     required this.title,
     this.subtitle,
@@ -128,6 +153,8 @@ final class AlertCardVm extends Equatable {
     this.actionLabel,
     this.actionRoute,
     this.docStatus = AlertDocStatus.unknown,
+    this.daysRemaining,
+    this.expiryDate,
   });
 
   @override
@@ -143,5 +170,7 @@ final class AlertCardVm extends Equatable {
         actionLabel,
         actionRoute,
         docStatus,
+        daysRemaining,
+        expiryDate,
       ];
 }
