@@ -12,6 +12,12 @@
 // - NO persiste datos.
 // - NO depende de Flutter ni GetX.
 // - NO usa double.
+// - NO expone mapping enum ↔ string (DOMAIN_CONTRACTS.md v1.1.3 §C). El
+//   mapping canónico de `ARProjectionEstado` ↔ persistencia vive únicamente
+//   en `infrastructure/isar/codecs/ar_projection_estado_codec.dart`.
+// - NO define toJson/fromJson: sin callers vivos; la serialización hoy pasa
+//   por los mappers Isar dedicados. Reintroducirla aquí duplicaría el
+//   mapping enum ↔ string.
 //
 // CONTRATO DE PAYLOAD (alineado a P2-B):
 //
@@ -49,32 +55,6 @@ enum ARProjectionEstado {
   abierta,
   cerrada,
   ajustada,
-}
-
-extension ARProjectionEstadoX on ARProjectionEstado {
-  String get wire {
-    switch (this) {
-      case ARProjectionEstado.abierta:
-        return 'abierta';
-      case ARProjectionEstado.cerrada:
-        return 'cerrada';
-      case ARProjectionEstado.ajustada:
-        return 'ajustada';
-    }
-  }
-
-  static ARProjectionEstado fromWire(String v) {
-    switch (v) {
-      case 'abierta':
-        return ARProjectionEstado.abierta;
-      case 'cerrada':
-        return ARProjectionEstado.cerrada;
-      case 'ajustada':
-        return ARProjectionEstado.ajustada;
-      default:
-        throw FormatException('ARProjectionEstado invalid: $v');
-    }
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -253,30 +233,6 @@ class AccountReceivableProjection {
       estado: estado ?? this.estado,
       lastEventHash: lastEventHash ?? this.lastEventHash,
       updatedAt: updatedAt ?? this.updatedAt,
-    );
-  }
-
-  // ===========================================================================
-  // SERIALIZACIÓN
-  // ===========================================================================
-
-  Map<String, dynamic> toJson() => {
-        'entityId': entityId,
-        'saldoActualCop': saldoActualCop,
-        'totalRecaudadoCop': totalRecaudadoCop,
-        'estado': estado.wire,
-        if (lastEventHash != null) 'lastEventHash': lastEventHash,
-        'updatedAt': updatedAt.toUtc().toIso8601String(),
-      };
-
-  factory AccountReceivableProjection.fromJson(Map<String, dynamic> json) {
-    return AccountReceivableProjection(
-      entityId: json['entityId'] as String,
-      saldoActualCop: json['saldoActualCop'] as int,
-      totalRecaudadoCop: json['totalRecaudadoCop'] as int,
-      estado: ARProjectionEstadoX.fromWire(json['estado'] as String),
-      lastEventHash: json['lastEventHash'] as String?,
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
   }
 }

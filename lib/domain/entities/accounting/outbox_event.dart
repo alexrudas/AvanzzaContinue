@@ -12,6 +12,12 @@
 // - NO persiste datos (repositorio).
 // - NO ejecuta reintentos/backoff (servicio de sync).
 // - NO depende de Flutter ni GetX.
+// - NO expone mapping enum ↔ string (DOMAIN_CONTRACTS.md v1.1.3 §C). El
+//   mapping canónico de `OutboxStatus` ↔ persistencia vive únicamente en
+//   `infrastructure/isar/codecs/outbox_status_codec.dart`.
+// - NO define toJson/fromJson: sin callers vivos y cualquier serialización
+//   actual pasa por los mappers Isar dedicados. Agregar serialización aquí
+//   reintroduciría una segunda fuente del mapping.
 //
 // NOTAS ENTERPRISE:
 // - status es enum (no strings sueltas).
@@ -26,32 +32,6 @@ enum OutboxStatus {
   pending,
   synced,
   error,
-}
-
-extension OutboxStatusX on OutboxStatus {
-  String get wire {
-    switch (this) {
-      case OutboxStatus.pending:
-        return 'pending';
-      case OutboxStatus.synced:
-        return 'synced';
-      case OutboxStatus.error:
-        return 'error';
-    }
-  }
-
-  static OutboxStatus fromWire(String v) {
-    switch (v) {
-      case 'pending':
-        return OutboxStatus.pending;
-      case 'synced':
-        return OutboxStatus.synced;
-      case 'error':
-        return OutboxStatus.error;
-      default:
-        throw FormatException('OutboxStatus invalid: $v');
-    }
-  }
 }
 
 class OutboxEvent {
@@ -149,42 +129,4 @@ class OutboxEvent {
       lockedUntil: clearLock ? null : (lockedUntil ?? this.lockedUntil),
     );
   }
-
-  // ---------------------------------------------------------------------------
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'eventId': eventId,
-        'entityType': entityType,
-        'entityId': entityId,
-        'status': status.wire,
-        'retryCount': retryCount,
-        'createdAt': createdAt.toUtc().toIso8601String(),
-        'updatedAt': updatedAt.toUtc().toIso8601String(),
-        if (lastAttemptAt != null)
-          'lastAttemptAt': lastAttemptAt!.toUtc().toIso8601String(),
-        if (lastError != null) 'lastError': lastError,
-        if (lockedBy != null) 'lockedBy': lockedBy,
-        if (lockedUntil != null)
-          'lockedUntil': lockedUntil!.toUtc().toIso8601String(),
-      };
-
-  factory OutboxEvent.fromJson(Map<String, dynamic> json) => OutboxEvent(
-        id: json['id'] as String,
-        eventId: json['eventId'] as String,
-        entityType: json['entityType'] as String,
-        entityId: json['entityId'] as String,
-        status: OutboxStatusX.fromWire(json['status'] as String),
-        retryCount: (json['retryCount'] as int?) ?? 0,
-        createdAt: DateTime.parse(json['createdAt'] as String),
-        updatedAt: DateTime.parse(json['updatedAt'] as String),
-        lastAttemptAt: json['lastAttemptAt'] == null
-            ? null
-            : DateTime.parse(json['lastAttemptAt'] as String),
-        lastError: json['lastError'] as String?,
-        lockedBy: json['lockedBy'] as String?,
-        lockedUntil: json['lockedUntil'] == null
-            ? null
-            : DateTime.parse(json['lockedUntil'] as String),
-      );
 }

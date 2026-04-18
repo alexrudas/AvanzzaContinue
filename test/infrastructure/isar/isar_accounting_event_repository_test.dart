@@ -94,11 +94,13 @@ AccountingEvent _event({
 // ============================================================================
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
   late Isar isar;
   late IsarAccountingEventRepository repo;
   late DateTime now;
+
+  setUpAll(() async {
+    await Isar.initializeIsarCore(download: true);
+  });
 
   setUp(() async {
     isar = await openTestIsar();
@@ -122,7 +124,8 @@ void main() {
   //   → writeTxn hace rollback completo: event, projection y outbox de E2 desaparecen.
 
   group('appendAtomic_is_transactional_all_or_nothing', () {
-    test('rollback elimina evento, outbox y no modifica proyección cuando apply() falla',
+    test(
+        'rollback elimina evento, outbox y no modifica proyección cuando apply() falla',
         () async {
       const entityId = 'AR-T1';
 
@@ -161,7 +164,8 @@ void main() {
 
       // Debe lanzar FormatException desde _applyCollection (splits is! List)
       expect(caught, isA<FormatException>(),
-          reason: 'appendAtomic debe lanzar FormatException cuando apply() falla');
+          reason:
+              'appendAtomic debe lanzar FormatException cuando apply() falla');
 
       // ── ROLLBACK: E2 NO debe existir en el event store ───────────────────
       final e2Entity = await isar.accountingEventEntitys
@@ -187,7 +191,8 @@ void main() {
       expect(projEntity, isNotNull,
           reason: 'La proyección de E1 debe seguir existiendo');
       expect(projEntity!.lastEventHash, equals(e1.hash),
-          reason: 'Proyección debe apuntar al hash de E1 (sin cambio por rollback)');
+          reason:
+              'Proyección debe apuntar al hash de E1 (sin cambio por rollback)');
       expect(projEntity.saldoActualCop, equals(100000),
           reason: 'Saldo debe ser el mismo que después de E1 (sin cambio)');
 
@@ -200,7 +205,8 @@ void main() {
           .entityIdEqualTo(entityId)
           .count();
       expect(totalEvents, equals(1),
-          reason: 'Exactamente 1 event entity en store — rollback de E2 confirmado');
+          reason:
+              'Exactamente 1 event entity en store — rollback de E2 confirmado');
 
       final totalOutboxes = await isar.outboxEventEntitys
           .filter()
@@ -215,9 +221,12 @@ void main() {
   // TEST 2 — IDEMPOTENCIA ESTRICTA
   // ==========================================================================
 
-  group('appendAtomic_is_idempotent_same_id_same_hash_and_rejects_hash_collision', () {
+  group(
+      'appendAtomic_is_idempotent_same_id_same_hash_and_rejects_hash_collision',
+      () {
     // ── Caso A: re-append del mismo evento es no-op ────────────────────────
-    test('Caso A: re-append de evento idéntico es no-op (count=1, seq=1)', () async {
+    test('Caso A: re-append de evento idéntico es no-op (count=1, seq=1)',
+        () async {
       const entityId = 'AR-T2A';
 
       final e1 = _event(
@@ -256,7 +265,8 @@ void main() {
     });
 
     // ── Caso B: mismo id, hash distinto → StateError ───────────────────────
-    test('Caso B: mismo id con payload distinto (hash diferente) lanza StateError',
+    test(
+        'Caso B: mismo id con payload distinto (hash diferente) lanza StateError',
         () async {
       const entityId = 'AR-T2B';
 
@@ -293,7 +303,8 @@ void main() {
       }
 
       expect(caught, isNotNull,
-          reason: 'Debe lanzar StateError ante colisión de id con hash distinto');
+          reason:
+              'Debe lanzar StateError ante colisión de id con hash distinto');
       expect(caught!.message, contains('collision'),
           reason: 'El mensaje debe mencionar "collision"');
 
@@ -326,7 +337,8 @@ void main() {
   //   E2_badPrev con prevHash arbitrario incorrecto → misma excepción.
 
   group('appendAtomic_enforces_prevHash_and_detects_sequence_gaps', () {
-    test('rechaza evento cuando prevHash apunta a evento eliminado (cadena rota)',
+    test(
+        'rechaza evento cuando prevHash apunta a evento eliminado (cadena rota)',
         () async {
       const entityId = 'AR-T3';
 
@@ -395,7 +407,8 @@ void main() {
       expect(e3Outbox, isNull, reason: 'No debe crearse outbox para E3');
     });
 
-    test('subcaso: prevHash incorrecto (sin borrar nada) lanza StateError', () async {
+    test('subcaso: prevHash incorrecto (sin borrar nada) lanza StateError',
+        () async {
       const entityId = 'AR-T3B';
 
       final e1 = _event(
@@ -436,7 +449,8 @@ void main() {
           reason: 'E2_badPrev no debe existir en el event store');
     });
 
-    test('gap detection: lanza StateError cuando faltan eventos intermedios en la cadena',
+    test(
+        'gap detection: lanza StateError cuando faltan eventos intermedios en la cadena',
         () async {
       const entityId = 'AR-T3C';
 
@@ -512,7 +526,8 @@ void main() {
   // ==========================================================================
 
   group('appendAtomic_sets_outbox_idempotencyKey_equals_event_hash', () {
-    test('outbox tiene idempotencyKey=event.hash, status=pending, y timestamps UTC válidos',
+    test(
+        'outbox tiene idempotencyKey=event.hash, status=pending, y timestamps UTC válidos',
         () async {
       const entityId = 'AR-T4';
 
@@ -558,10 +573,8 @@ void main() {
           reason: 'createdAtIso debe ser ISO8601 parseable');
       expect(updatedAt, isNotNull,
           reason: 'updatedAtIso debe ser ISO8601 parseable');
-      expect(createdAt!.isUtc, isTrue,
-          reason: 'createdAt debe estar en UTC');
-      expect(updatedAt!.isUtc, isTrue,
-          reason: 'updatedAt debe estar en UTC');
+      expect(createdAt!.isUtc, isTrue, reason: 'createdAt debe estar en UTC');
+      expect(updatedAt!.isUtc, isTrue, reason: 'updatedAt debe estar en UTC');
 
       // No debe tener lock ni error inicial
       expect(outbox.workerLockedBy, isNull,
@@ -606,7 +619,8 @@ void main() {
             .eventIdEqualTo(e1.id)
             .findFirst();
 
-        expect(entity, isNotNull, reason: 'Pre-condición: entidad debe existir');
+        expect(entity, isNotNull,
+            reason: 'Pre-condición: entidad debe existir');
 
         // Decodificar, alterar un valor, re-codificar
         final tampered =
@@ -634,7 +648,8 @@ void main() {
           reason: 'El mensaje debe indicar "hash mismatch"');
     });
 
-    test('accountingEventFromEntity lanza FormatException en lectura directa con payload alterado',
+    test(
+        'accountingEventFromEntity lanza FormatException en lectura directa con payload alterado',
         () async {
       const entityId = 'AR-T6B';
 
@@ -684,7 +699,8 @@ void main() {
   // todos los campos) y permite detectar corrupción de disco en reposo.
 
   group('accounting_event_entity_stores_correct_payloadHash_checksum', () {
-    test('entity.payloadHash == SHA-256(payloadJson) para evento de inicialización',
+    test(
+        'entity.payloadHash == SHA-256(payloadJson) para evento de inicialización',
         () async {
       const entityId = 'AR-T7';
 
@@ -718,7 +734,8 @@ void main() {
           reason: 'SHA-256 hex digest debe tener 64 caracteres');
     });
 
-    test('payloadHash difiere entre dos eventos con payloads distintos', () async {
+    test('payloadHash difiere entre dos eventos con payloads distintos',
+        () async {
       const entityId = 'AR-T7B';
 
       final e1 = _event(
@@ -752,7 +769,8 @@ void main() {
 
       // Payloads distintos → payloadHash distintos
       expect(ent1!.payloadHash, isNot(equals(ent2!.payloadHash)),
-          reason: 'Eventos con payloads distintos deben tener payloadHash distintos');
+          reason:
+              'Eventos con payloads distintos deben tener payloadHash distintos');
 
       // Verificar consistencia individual de cada uno
       expect(ent1.payloadHash,

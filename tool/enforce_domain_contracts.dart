@@ -5,8 +5,14 @@ import 'dart:io';
 
 /// Enforces DOMAIN_CONTRACTS.md v1.1.3 — ENUM SERIALIZATION STANDARD.
 ///
-/// Scans [lib/] and [test/] for any usage of the deprecated `.wire` getter.
+/// Scans only [lib/] for any usage of the deprecated `.wire` getter.
 /// Excludes generated files (*.g.dart, *.freezed.dart).
+///
+/// Why only [lib/]?
+/// - This guardrail is for production sources.
+/// - Tests and docs may legitimately mention `.wire` as text when validating
+///   architecture rules or documenting migrations.
+/// - Architecture tests belong in `test/` and must not be flagged by this tool.
 ///
 /// Detection rules (high-level):
 /// - Detects member access `.wire` but NOT `.wireName`.
@@ -18,7 +24,7 @@ import 'dart:io';
 /// - 0 = no violations.
 /// - 1 = violations found.
 void main() {
-  const scanDirs = ['lib', 'test'];
+  const scanDirs = ['lib'];
 
   // Matches `.wire` accessor but NOT `.wireName`.
   // - \b ensures we do not match `.wireframe`, `.wireup`, etc.
@@ -42,9 +48,6 @@ void main() {
       // Exclusions: generated sources
       if (normalizedPath.endsWith('.g.dart')) continue;
       if (normalizedPath.endsWith('.freezed.dart')) continue;
-
-      // Optional: skip hidden/irrelevant folders if they appear under lib/test
-      // (kept minimal on purpose; avoid surprising skips)
 
       final lines = entity.readAsLinesSync();
       var inBlockComment = false;
@@ -82,7 +85,7 @@ void main() {
 
   print(
     '\n🛑 VIOLACIÓN DE DOMAIN_CONTRACTS.md v1.1.3: '
-    'Uso de .wire detectado. '
+    'Uso de .wire detectado en código de producción. '
     'Use .wireName para logs/debug o @JsonValue (codegen) para JSON.',
   );
 
