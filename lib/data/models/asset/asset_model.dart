@@ -457,16 +457,19 @@ class AssetModel {
 
     switch (type) {
       case domain.AssetType.vehicle:
-        // assetKey vacío: inequívocamente "pendiente de enriquecimiento".
-        // NO derivar del UUID — cualquier string tipo placa sería confuso.
+        final fallbackAssetKey = assetId.trim().toUpperCase();
+
+        // Para vehículos, cuando todavía no existe placa enriquecida,
+        // usamos el assetId como placeholder estable y no vacío.
         if (kDebugMode) {
           debugPrint(
             '[ASSET_MODEL][BASE_ENTITY] assetId=$assetId type=vehicle '
-            '→ assetKey vacío, requiere _toEnrichedEntity() para placa real',
+            '→ assetKey fallback=$fallbackAssetKey mientras llega enriquecimiento real',
           );
         }
+
         return domain.AssetContent.vehicle(
-          assetKey: '',
+          assetKey: fallbackAssetKey,
           brand: unknown,
           model: unknown,
           color: unknown,

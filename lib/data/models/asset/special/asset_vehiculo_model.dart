@@ -114,8 +114,66 @@ class AssetVehiculoModel {
       _$AssetVehiculoModelFromJson(json);
   Map<String, dynamic> toJson() => _$AssetVehiculoModelToJson(this);
   factory AssetVehiculoModel.fromFirestore(
-          String docId, Map<String, dynamic> json) =>
-      AssetVehiculoModel.fromJson({...json, 'assetId': docId});
+    String docId,
+    Map<String, dynamic> json,
+  ) {
+    String? nullableString(Object? value) {
+      final text = value?.toString().trim();
+      if (text == null || text.isEmpty) return null;
+      return text;
+    }
+
+    String requiredString(
+      Object? value, {
+      required String fallback,
+    }) {
+      final text = value?.toString().trim();
+      if (text == null || text.isEmpty) return fallback;
+      return text;
+    }
+
+    int requiredInt(
+      Object? value, {
+      int fallback = 0,
+    }) {
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      if (value is String) return int.tryParse(value.trim()) ?? fallback;
+      return fallback;
+    }
+
+    final normalized = <String, dynamic>{
+      ...json,
+      'assetId': docId,
+      'refCode': requiredString(json['refCode'], fallback: docId),
+      'placa': requiredString(
+        json['placa'],
+        fallback: docId.trim().toUpperCase(),
+      ),
+      'marca': requiredString(json['marca'], fallback: 'PENDIENTE'),
+      'modelo': requiredString(json['modelo'], fallback: 'PENDIENTE'),
+      'anio': requiredInt(json['anio']),
+      'color': nullableString(json['color']),
+      'vin': nullableString(json['vin']),
+      'engineNumber': nullableString(json['engineNumber']),
+      'chassisNumber': nullableString(json['chassisNumber']),
+      'line': nullableString(json['line']),
+      'serviceType': nullableString(json['serviceType']),
+      'vehicleClass': nullableString(json['vehicleClass']),
+      'bodyType': nullableString(json['bodyType']),
+      'fuelType': nullableString(json['fuelType']),
+      'transitAuthority': nullableString(json['transitAuthority']),
+      'initialRegistrationDate':
+          nullableString(json['initialRegistrationDate']),
+      'propertyLiens': nullableString(json['propertyLiens']),
+      'ownerDocumentType': nullableString(json['ownerDocumentType']),
+      'ownerName': nullableString(json['ownerName']),
+      'ownerDocument': nullableString(json['ownerDocument']),
+      'runtMetaJson': nullableString(json['runtMetaJson']),
+    };
+
+    return AssetVehiculoModel.fromJson(normalized);
+  }
 
   factory AssetVehiculoModel.fromEntity(domain.AssetVehiculoEntity e) =>
       AssetVehiculoModel(
