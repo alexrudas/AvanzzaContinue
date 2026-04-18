@@ -1,13 +1,18 @@
-/// Tab de pedidos con KPIs, chips de estado, historial y FAB.
+/// Tab de solicitudes de compra con KPIs, filtros y listado real.
+///
+/// Fase 1: conectado a AdminPurchaseController.requests (datos reales).
+/// Reemplaza la versión mock anterior que usaba OrderCard con datos hardcoded.
+/// SavingsHeroCard se oculta — no hay dato de ahorro disponible en la entidad.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import 'package:avanzza/presentation/controllers/admin/purchase/admin_purchase_controller.dart';
-import 'savings_hero_card.dart';
 import 'kpi_triad_row.dart';
 import 'orders_status_chips.dart';
-import 'order_card.dart';
+import 'purchase_request_card.dart';
+import 'purchase_request_detail_sheet.dart';
 
 class OrdersTabBody extends StatefulWidget {
   final AdminPurchaseController controller;
@@ -22,89 +27,124 @@ class _OrdersTabBodyState extends State<OrdersTabBody> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(children: [
-      ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-        children: [
-          const SavingsHeroCard(savingsPct: 8.4),
-          const SizedBox(height: 12),
-          const KpiTriadRow(total: 12, open: 3, processing: 5),
-          const SizedBox(height: 16),
-          OrdersStatusChips(
-            index: _statusIndex,
-            onChanged: (i) => setState(() => _statusIndex = i),
-          ),
-          const SizedBox(height: 12),
-          Row(
+    final c = widget.controller;
+
+    return Obx(() {
+      // ── Loading ──────────────────────────────────────────────────────────
+      if (c.loading.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      // ── Error ────────────────────────────────────────────────────────────
+      if (c.error.value != null) {
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: Text('Historial',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w900)),
-              ),
-              IconButton(
-                tooltip: 'Filtro',
-                icon: const Icon(Icons.filter_list),
-                onPressed: () => Get.snackbar('Filtro', 'En desarrollo'),
-              ),
-              TextButton(
-                onPressed: () => Get.snackbar('Historial', 'Ver todo'),
-                child: const Text('Ver todo'),
-              ),
+              const Icon(Icons.error_outline, size: 48, color: Colors.black38),
+              const SizedBox(height: 12),
+              Text(c.error.value!,
+                  style: Theme.of(context).textTheme.bodyMedium),
             ],
           ),
-          const SizedBox(height: 8),
-          OrderCard(
-            orderSeq: '240103',
-            assetType: 'Vehículo',
-            assetID: 'WPV584',
-            assetDescription: 'Hyundai Grand i10 · 2025',
-            status: OrderStatus.delivered,
-            total: 1980000,
-            vendor: 'PartesYa',
-            receivedAt: DateTime(2025, 10, 23, 16, 19),
-            items: const [
-              OrderItem('Punta semieje lado rueda - izq.', 1, 650000),
-              OrderItem('Brazo axial derecho', 1, 720000),
-              OrderItem('Buje puño tijera izquierda', 1, 610000),
-              OrderItem('Arandela seguridad', 2, 5000),
-            ],
-            payments: const [
-              Payment(amount: 980000, date: '2025-10-24 09:20'),
-            ],
+        );
+      }
+
+      // ── Filtrar por estado seleccionado ───────────────────────────────
+      final estadoFilter = OrdersStatusChips.estadoForIndex(_statusIndex);
+      final filtered = estadoFilter == null
+          ? c.requests.toList()
+          : c.requests.where((r) => r.estado == estadoFilter).toList();
+
+      return Stack(children: [
+        ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+          children: [
+            // KPIs reales desde el controller
+            KpiTriadRow(
+              total: c.totalCount,
+              open: c.openCount,
+              processing: c.withResponsesCount,
+              totalLabel: 'Total solicitudes',
+              openLabel: 'Abiertas',
+              processingLabel: 'Con respuestas',
+            ),
+            const SizedBox(height: 16),
+            OrdersStatusChips(
+              index: _statusIndex,
+              onChanged: (i) => setState(() => _statusIndex = i),
+            ),
+            const SizedBox(height: 12),
+
+            // ── Lista o empty state ────────────────────────────────────────
+            if (filtered.isEmpty)
+              _EmptyState(hasFilter: estadoFilter != null)
+            else
+              ...filtered.map((r) => PurchaseRequestCard(
+                    id: r.id,
+                    tipoRepuesto: r.tipoRepuesto,
+                    cantidad: r.cantidad,
+                    estado: r.estado,
+                    ciudadEntrega: r.ciudadEntrega,
+                    respuestasCount: r.respuestasCount,
+                    assetId: r.assetId,
+                    createdAt: r.createdAt,
+                    onTap: () => showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (_) => PurchaseRequestDetailSheet(request: r),
+                    ),
+                  )),
+          ],
+        ),
+
+        // FAB — creación diferida a Fase 2.
+        // bottom: 16 estándar. El Scaffold del shell ya posiciona el body ARRIBA
+        // del bottomNavigationBar (SafeArea + CustomFloatingNavBar), así que no
+        // hace falta compensar manualmente la altura del nav bar.
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: FloatingActionButton.extended(
+            onPressed: () => c.createRequest(),
+            icon: const Icon(Icons.add_shopping_cart),
+            label: const Text('Nueva solicitud'),
           ),
+        ),
+      ]);
+    });
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final bool hasFilter;
+  const _EmptyState({required this.hasFilter});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 48),
+      child: Column(
+        children: [
+          Icon(Icons.inbox_outlined,
+              size: 56, color: t.hintColor.withValues(alpha: 0.4)),
           const SizedBox(height: 12),
-          OrderCard(
-            orderSeq: '240104',
-            assetType: 'Vehículo',
-            assetID: 'KPV412',
-            assetDescription: 'Kia Picanto · 2024',
-            status: OrderStatus.delivered,
-            total: 450000,
-            vendor: 'AutoMax',
-            receivedAt: DateTime(2025, 10, 25, 11, 5),
-            items: const [
-              OrderItem('Filtro de aire motor', 1, 120000),
-              OrderItem('Pastillas de freno', 1, 180000),
-              OrderItem('Servicio montaje', 1, 150000),
-            ],
-            payments: const [
-              Payment(amount: 450000, date: '2025-10-25 12:15'),
-            ],
+          Text(
+            hasFilter
+                ? 'Sin solicitudes con este estado'
+                : 'Sin solicitudes de compra',
+            style: t.textTheme.bodyMedium?.copyWith(color: t.hintColor),
           ),
+          if (!hasFilter) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Crea tu primera solicitud con el botón +',
+              style: t.textTheme.bodySmall?.copyWith(color: t.hintColor),
+            ),
+          ],
         ],
       ),
-      Positioned(
-        right: 16,
-        bottom: 16,
-        child: FloatingActionButton.extended(
-          onPressed: () => Get.snackbar('Nueva compra', 'Abrir wizard'),
-          icon: const Icon(Icons.add_shopping_cart),
-          label: const Text('Nueva compra'),
-        ),
-      )
-    ]);
+    );
   }
 }

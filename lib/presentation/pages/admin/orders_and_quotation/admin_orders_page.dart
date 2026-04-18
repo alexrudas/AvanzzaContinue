@@ -1,5 +1,7 @@
 /// lib/presentation/pages/admin/orders_and_quotation/admin_orders_page.dart
 library;
+
+import 'package:avanzza/presentation/controllers/admin/purchase/admin_purchase_controller.dart';
 // ============================================================================
 // AdminOrdersPage — Pedidos/Cotizaciones PRO 2025 (Refactorizado)
 // ----------------------------------------------------------------------------
@@ -14,7 +16,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:avanzza/presentation/controllers/admin/purchase/admin_purchase_controller.dart';
+
 import 'widgets.dart';
 
 // ============================================================================
@@ -49,22 +51,21 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                     children: [
                       AddressCapsule(
                         address: 'Cra 43 #79-135, Barranquilla',
-                        onTap: () => openAddressPicker(
-                            initial: 'Cra 43 #79-135, Barranquilla'),
+                        // Acción de dirección: no implementada aún (Fase 2).
+                        // No usar Get.snackbar() — causa Overlay crash en este contexto.
+                        onTap: () => debugPrint('[AdminOrders] address picker: no implementado'),
                       ),
                       Row(
                         children: [
                           IconButton(
                             icon: const Icon(Icons.location_on),
                             tooltip: 'Direcciones favoritas',
-                            onPressed: () =>
-                                Get.snackbar('Direcciones', 'En desarrollo'),
+                            onPressed: () => debugPrint('[AdminOrders] direcciones favoritas: no implementado'),
                           ),
                           IconButton(
                             icon: const Icon(Icons.add_business),
                             tooltip: 'Proveedores favoritos',
-                            onPressed: () =>
-                                Get.snackbar('Proveedores', 'En desarrollo'),
+                            onPressed: () => debugPrint('[AdminOrders] proveedores favoritos: no implementado'),
                           ),
                         ],
                       ),
@@ -77,8 +78,8 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                   child: ExpandingTabsBar(
                     index: _tabIndex,
                     onChanged: (i) => setState(() => _tabIndex = i),
-                    onSearch: () => Get.snackbar('Buscar', 'En desarrollo'),
-                    onFilter: () => Get.snackbar('Filtros', 'En desarrollo'),
+                    onSearch: () => debugPrint('[AdminOrders] buscar: no implementado'),
+                    onFilter: () => debugPrint('[AdminOrders] filtros: no implementado'),
                   ),
                 ),
               ],

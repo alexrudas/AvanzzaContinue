@@ -1,4 +1,7 @@
-/// Fila de tres KPIs: Total órdenes, Abiertas, Procesando.
+/// Fila de tres KPIs con labels y valores configurables.
+///
+/// Fase 1: parametrizado para soportar tanto solicitudes como pedidos.
+/// Labels como parámetro — el caller decide la semántica.
 library;
 
 import 'package:flutter/material.dart';
@@ -7,21 +10,28 @@ class KpiTriadRow extends StatelessWidget {
   final int total;
   final int open;
   final int processing;
+  final String totalLabel;
+  final String openLabel;
+  final String processingLabel;
+
   const KpiTriadRow({
     super.key,
     required this.total,
     required this.open,
     required this.processing,
+    this.totalLabel = 'Total',
+    this.openLabel = 'Abiertas',
+    this.processingLabel = 'Procesando',
   });
 
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      Expanded(child: KpiCard(label: 'Total órdenes', value: '$total')),
+      Expanded(child: KpiCard(label: totalLabel, value: '$total')),
       const SizedBox(width: 12),
-      Expanded(child: KpiCard(label: 'Abiertas', value: '$open')),
+      Expanded(child: KpiCard(label: openLabel, value: '$open')),
       const SizedBox(width: 12),
-      Expanded(child: KpiCard(label: 'Procesando', value: '$processing')),
+      Expanded(child: KpiCard(label: processingLabel, value: '$processing')),
     ]);
   }
 }

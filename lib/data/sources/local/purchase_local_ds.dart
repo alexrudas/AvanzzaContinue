@@ -17,6 +17,16 @@ class PurchaseLocalDataSource {
     return q.findAll();
   }
 
+  /// Stream reactivo de solicitudes por org.
+  /// Emite automáticamente cuando la colección cambia en Isar.
+  /// Mismo patrón que portfolio_local_ds.watchActiveByOrg().
+  Stream<List<PurchaseRequestModel>> watchRequestsByOrg(String orgId) {
+    return isar.purchaseRequestModels
+        .filter()
+        .orgIdEqualTo(orgId)
+        .watch(fireImmediately: true);
+  }
+
   Future<void> upsertRequest(PurchaseRequestModel m) async =>
       isar.writeTxn(() async => isar.purchaseRequestModels.put(m));
 
