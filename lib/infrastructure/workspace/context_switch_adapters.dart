@@ -110,6 +110,12 @@ class LegacyActiveContextBridgeImpl implements LegacyActiveContextBridge {
       providerType: context.providerType,
     );
 
-    await _session.setActiveContext(legacyContext);
+    // Type C bridge — usa setActiveContextFromLegacyBridge, no setActiveContext().
+    // Justificación: este bridge es invocado SOLO por ContextSwitchService.switchTo(),
+    // que ya validó el WorkspaceContext objetivo contra memberships antes de llamar aquí.
+    // El bridge es formato-only (WorkspaceContext → ActiveContext legacy); no origina
+    // el cambio de org. Verificado con grep 2026-04: ContextSwitchService no tiene
+    // callers externos de producción — este path no ejecuta hoy en producción.
+    await _session.setActiveContextFromLegacyBridge(legacyContext);
   }
 }

@@ -328,9 +328,33 @@ class FirebaseAuthDS {
 
   User? currentUser() => _auth.currentUser;
 
+  /// Obtiene el JWT string del usuario actual.
+  ///
+  /// Usar para inyectar como Bearer en headers HTTP (Authorization: Bearer <token>).
+  /// Si [forceRefresh] es true, el SDK contacta a Firebase Auth servers para obtener
+  /// un token nuevo, invalidando el token anterior en cache.
   Future<String?> getIdToken({bool forceRefresh = false}) async {
     final user = _auth.currentUser;
     if (user == null) return null;
     return user.getIdToken(forceRefresh);
+  }
+
+  /// Obtiene el [IdTokenResult] del usuario actual, que incluye los custom claims
+  /// decodificados en el map [IdTokenResult.claims].
+  ///
+  /// Diferencia clave respecto a [getIdToken]:
+  /// - [getIdToken]: retorna el JWT string opaco para enviar como Bearer header.
+  /// - [getIdTokenResult]: retorna el resultado decodificado para LEER campos
+  ///   como activeContext.organizationId, role, membershipStatus.
+  ///
+  /// Usar [forceRefresh: true] obligatoriamente después de llamar al backend
+  /// switchActiveOrganization, para garantizar que los claims reflejen el nuevo
+  /// orgId escrito por Firebase Admin setCustomUserClaims().
+  ///
+  /// Sin [forceRefresh], el SDK puede devolver claims del token cacheado (viejo).
+  Future<IdTokenResult?> getIdTokenResult({bool forceRefresh = false}) async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+    return user.getIdTokenResult(forceRefresh);
   }
 }

@@ -6,6 +6,9 @@ import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../application/services/session/switch_active_organization_uc.dart';
+import '../../data/datasources/organizations/switch_active_organization_remote_ds.dart';
+import '../../data/remote/firebase_backend_client.dart';
 import '../../data/repositories/accounting_repository_impl.dart';
 import '../../data/repositories/ai_repository_impl.dart';
 import '../../data/repositories/asset_registration_draft_repository_impl.dart';
@@ -16,8 +19,14 @@ import '../../data/repositories/geo_repository_impl.dart';
 import '../../data/repositories/insurance_repository_impl.dart';
 import '../../data/repositories/maintenance_repository_impl.dart';
 import '../../data/repositories/org_repository_impl.dart';
+import '../../data/datasources/integrations_remote_datasource.dart';
+import '../../data/local/integrations_local_datasource.dart';
+import '../../data/remote/integrations_api_client.dart';
+import '../../data/repositories/integrations_repository_impl.dart';
 import '../../data/repositories/portfolio_repository_impl.dart';
 import '../../data/repositories/purchase_repository_impl.dart';
+import '../../domain/repositories/integrations_repository.dart';
+import '../platform/owner_refresh_service.dart';
 import '../../data/repositories/sync_outbox_repository_impl.dart';
 import '../../data/repositories/user_repository_impl.dart';
 import '../../data/repositories/workspace_repository_impl.dart';
@@ -41,7 +50,7 @@ import '../../data/sources/remote/geo_remote_ds.dart';
 import '../../data/sources/remote/insurance_remote_ds.dart';
 import '../../data/sources/remote/maintenance_remote_ds.dart';
 import '../../data/sources/remote/org_remote_ds.dart';
-import '../../data/sources/remote/purchase_remote_ds.dart';
+import '../../data/sources/remote/purchase/purchase_api_client.dart';
 import '../../data/sources/remote/user_remote_ds.dart';
 import '../../data/sync/asset_audit_service.dart';
 import '../../data/sync/asset_firestore_adapter.dart';
@@ -87,6 +96,41 @@ import '../../infrastructure/sync/system_now_provider.dart';
 import '../network/connectivity_service.dart';
 import '../platform/offline_sync_service.dart';
 import '../utils/firestore_paths.dart';
+
+// ── Core Common v1 imports ───────────────────────────────────────────────────
+import 'package:firebase_auth/firebase_auth.dart';
+
+import '../../application/core_common/use_cases/resolve_match_candidate.dart';
+import '../../application/core_common/use_cases/start_operational_request.dart';
+import '../../application/core_common/use_cases/save_local_contact_with_probe.dart';
+import '../../application/core_common/use_cases/save_local_organization_with_probe.dart';
+import '../../data/remote/core_api_client.dart';
+import '../../data/repositories/core_common/local_contact_repository_impl.dart';
+import '../../data/repositories/core_common/local_organization_repository_impl.dart';
+import '../../data/repositories/core_common/coordination_flow_repository_impl.dart';
+import '../../data/repositories/core_common/match_candidate_repository_impl.dart';
+import '../../data/repositories/core_common/operational_relationship_repository_impl.dart';
+import '../../data/repositories/core_common/operational_request_repository_impl.dart';
+import '../../data/repositories/core_common/request_delivery_repository_impl.dart';
+import '../../data/sources/local/core_common/local_contact_local_ds.dart';
+import '../../data/sources/local/core_common/local_organization_local_ds.dart';
+import '../../data/sources/local/core_common/coordination_flow_local_ds.dart';
+import '../../data/sources/local/core_common/match_candidate_local_ds.dart';
+import '../../data/sources/local/core_common/operational_relationship_local_ds.dart';
+import '../../data/sources/local/core_common/operational_request_local_ds.dart';
+import '../../data/sources/local/core_common/request_delivery_local_ds.dart';
+import '../../data/sources/remote/core_common/local_contact_firestore_ds.dart';
+import '../../data/sources/remote/core_common/local_organization_firestore_ds.dart';
+import '../../data/sources/remote/core_common/coordination_flow_api_client.dart';
+import '../../data/sources/remote/core_common/match_candidate_nestjs_ds.dart';
+import '../../data/sources/remote/core_common/match_candidate_nestjs_ds_impl.dart';
+import '../../domain/repositories/core_common/local_contact_repository.dart';
+import '../../domain/repositories/core_common/local_organization_repository.dart';
+import '../../domain/repositories/core_common/coordination_flow_repository.dart';
+import '../../domain/repositories/core_common/match_candidate_repository.dart';
+import '../../domain/repositories/core_common/operational_relationship_repository.dart';
+import '../../domain/repositories/core_common/operational_request_repository.dart';
+import '../../domain/repositories/core_common/request_delivery_repository.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DI CONTAINER — Singleton global de infraestructura
@@ -153,7 +197,7 @@ class DIContainer {
   late final MaintenanceRemoteDataSource maintenanceRemote;
 
   late final PurchaseLocalDataSource purchaseLocal;
-  late final PurchaseRemoteDataSource purchaseRemote;
+  late final PurchaseApiClient purchaseRemote;
 
   late final AccountingLocalDataSource accountingLocal;
   late final AccountingRemoteDataSource accountingRemote;
@@ -184,6 +228,8 @@ class DIContainer {
   late final CatalogRepository catalogRepository;
   late final WorkspaceRepository workspaceRepository;
   late final PortfolioRepository portfolioRepository;
+  late final IntegrationsRepository integrationsRepository;
+  late final OwnerRefreshService ownerRefreshService;
   late final AssetRegistrationDraftRepository assetRegistrationDraftRepository;
 
   // ── Sync Engine V2 (genérico) ─────────────────────────────────────────────
@@ -221,6 +267,42 @@ class DIContainer {
   // ── Connectivity ──────────────────────────────────────────────────────────
   late final ConnectivityService connectivityService;
 
+  // ── Session / Org Switch Stack ────────────────────────────────────────────
+  late final SwitchActiveOrganizationRemoteDS switchActiveOrganizationRemoteDs;
+  late final SwitchActiveOrganizationUC switchActiveOrganizationUc;
+
+  // ── Core Common v1 — Data sources (local) ─────────────────────────────────
+  late final LocalOrganizationLocalDataSource localOrganizationLocal;
+  late final LocalContactLocalDataSource localContactLocal;
+  late final OperationalRelationshipLocalDataSource operationalRelationshipLocal;
+  late final OperationalRequestLocalDataSource operationalRequestLocal;
+  late final RequestDeliveryLocalDataSource requestDeliveryLocal;
+  late final MatchCandidateLocalDataSource matchCandidateLocal;
+  late final CoordinationFlowLocalDataSource coordinationFlowLocal;
+
+  // ── Core Common v1 — Data sources (remote) ────────────────────────────────
+  // Tras la inversión de D4, Core API es fuente de verdad. Los DS Firestore y
+  // los mirrors fueron eliminados; solo queda el stack NestJS real.
+  late final LocalOrganizationFirestoreDataSource localOrganizationFirestore;
+  late final LocalContactFirestoreDataSource localContactFirestore;
+  late final MatchCandidateNestJsDataSource matchCandidateNestJs;
+  late final CoordinationFlowApiClient coordinationFlowApi;
+
+  // ── Core Common v1 — Repositories ─────────────────────────────────────────
+  late final LocalOrganizationRepository localOrganizationRepository;
+  late final LocalContactRepository localContactRepository;
+  late final OperationalRelationshipRepository operationalRelationshipRepository;
+  late final OperationalRequestRepository operationalRequestRepository;
+  late final RequestDeliveryRepository requestDeliveryRepository;
+  late final MatchCandidateRepository matchCandidateRepository;
+  late final CoordinationFlowRepository coordinationFlowRepository;
+
+  // ── Core Common v1 — Casos de uso ─────────────────────────────────────────
+  late final SaveLocalContactWithProbe saveLocalContactWithProbe;
+  late final SaveLocalOrganizationWithProbe saveLocalOrganizationWithProbe;
+  late final ResolveMatchCandidate resolveMatchCandidate;
+  late final StartOperationalRequest startOperationalRequest;
+
   // ── Getters públicos de infraestructura base ──────────────────────────────
   Isar get isar => _isar;
   FirebaseFirestore get firestore => _firestore;
@@ -256,6 +338,17 @@ Future<void> initDI({
   c._syncService = OfflineSyncService();
   c.connectivityService = connectivity;
 
+  // ── Session / Org Switch Stack ────────────────────────────────────────────
+  // FirebaseBackendClient: Dio con Bearer token automático para Firebase Functions.
+  // SwitchActiveOrganizationRemoteDS: HTTP datasource para el endpoint switchActiveOrganization.
+  // SwitchActiveOrganizationUC: orquestador único del flujo de cambio de org activa.
+  c.switchActiveOrganizationRemoteDs = SwitchActiveOrganizationRemoteDS(
+    dio: FirebaseBackendClient.create(),
+  );
+  // userRepository se asigna abajo — se completa antes de que el UC sea usado.
+  // La inicialización lazy de late final garantiza que userRepository ya existe
+  // cuando switchActiveOrganizationUc.execute() sea invocado en runtime.
+
   if (!Get.isRegistered<OfflineSyncService>()) {
     Get.put<OfflineSyncService>(c.syncService, permanent: true);
   }
@@ -279,7 +372,17 @@ Future<void> initDI({
   c.maintenanceRemote = MaintenanceRemoteDataSource(firestore);
 
   c.purchaseLocal = PurchaseLocalDataSource(isar);
-  c.purchaseRemote = PurchaseRemoteDataSource(firestore);
+  // Compras: Core API es la única fuente remota (F5 Hito 17). Firestore
+  // retirado. JWT bearer se extrae del mismo helper que usan los otros
+  // ApiClients de Core Common.
+  c.purchaseRemote = PurchaseApiClient(
+    dio: CoreApiClient.create(),
+    getIdToken: () async {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return null;
+      return user.getIdToken();
+    },
+  );
 
   c.accountingLocal = AccountingLocalDataSource(isar);
   c.accountingRemote = AccountingRemoteDataSource(firestore);
@@ -312,6 +415,12 @@ Future<void> initDI({
   c.userRepository = UserRepositoryImpl(
     local: c.userLocal,
     remote: c.userRemote,
+  );
+
+  // UC requiere userRepository — se inicializa aquí donde ya está disponible.
+  c.switchActiveOrganizationUc = SwitchActiveOrganizationUC(
+    remoteDs: c.switchActiveOrganizationRemoteDs,
+    userRepository: c.userRepository,
   );
 
   c.assetRepository = AssetRepositoryImpl(
@@ -360,6 +469,19 @@ Future<void> initDI({
 
   c.portfolioRepository = PortfolioRepositoryImpl(
     local: c.portfolioLocal,
+  );
+
+  // ── Integrations (RUNT Persona + SIMIT) ─────────────────────────────────
+  // Dio aislado del global de AppBindings, configurado con baseUrl + API key
+  // específica del módulo. Reutiliza la instancia de Isar del container.
+  c.integrationsRepository = IntegrationsRepositoryImpl(
+    remote: IntegrationsRemoteDatasource(IntegrationsApiClient.create()),
+    local: IntegrationsLocalDatasource(isar),
+  );
+
+  c.ownerRefreshService = OwnerRefreshService(
+    integrations: c.integrationsRepository,
+    portfolio: c.portfolioRepository,
   );
 
   c.assetRegistrationDraftRepository = AssetRegistrationDraftRepositoryImpl(
@@ -486,6 +608,105 @@ Future<void> initDI({
   c.homeAlertAggregationService = HomeAlertAggregationService(
     orchestrator: c.assetComplianceAlertOrchestrator,
     assetRepository: c.assetRepository,
+  );
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // CORE COMMON v1 — DATA SOURCES + MIRROR SERVICES + REPOSITORIES
+  // ───────────────────────────────────────────────────────────────────────────
+  // DS locales (Isar)
+  c.localOrganizationLocal = LocalOrganizationLocalDataSource(isar);
+  c.localContactLocal = LocalContactLocalDataSource(isar);
+  c.operationalRelationshipLocal =
+      OperationalRelationshipLocalDataSource(isar);
+  c.operationalRequestLocal = OperationalRequestLocalDataSource(isar);
+  c.requestDeliveryLocal = RequestDeliveryLocalDataSource(isar);
+  c.matchCandidateLocal = MatchCandidateLocalDataSource(isar);
+  c.coordinationFlowLocal = CoordinationFlowLocalDataSource(isar);
+
+  // DS remotos Firestore (SOLO para entidades que Flutter crea: locales del
+  // workspace — LocalOrganization y LocalContact viven en el cliente).
+  c.localOrganizationFirestore =
+      LocalOrganizationFirestoreDataSource(firestore);
+  c.localContactFirestore = LocalContactFirestoreDataSource(firestore);
+
+  // DS remotos NestJS (impl HTTP real contra avanzza-core-api).
+  // getIdToken extrae el Firebase ID Token y el DS lo inyecta como
+  // Authorization: Bearer. Sin sesión activa → UnauthorizedException.
+  Future<String?> currentIdToken() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+    return user.getIdToken();
+  }
+  c.matchCandidateNestJs = MatchCandidateNestJsDataSourceImpl(
+    dio: CoreApiClient.create(),
+    getIdToken: currentIdToken,
+  );
+  c.coordinationFlowApi = CoordinationFlowApiClient(
+    dio: CoreApiClient.create(),
+    getIdToken: currentIdToken,
+  );
+
+  // Repositories
+  c.localOrganizationRepository = LocalOrganizationRepositoryImpl(
+    local: c.localOrganizationLocal,
+    remote: c.localOrganizationFirestore,
+    sync: c._syncService,
+  );
+  c.localContactRepository = LocalContactRepositoryImpl(
+    local: c.localContactLocal,
+    remote: c.localContactFirestore,
+    sync: c._syncService,
+  );
+  // Cache-only (Core API es SSOT tras inversión de D4).
+  c.operationalRelationshipRepository = OperationalRelationshipRepositoryImpl(
+    local: c.operationalRelationshipLocal,
+  );
+  // Cache-only. Escrituras solo por hydrateFromRemote (invocado por
+  // CoordinationFlowRepository tras HTTP).
+  c.operationalRequestRepository = OperationalRequestRepositoryImpl(
+    local: c.operationalRequestLocal,
+  );
+  c.requestDeliveryRepository = RequestDeliveryRepositoryImpl(
+    local: c.requestDeliveryLocal,
+  );
+  c.matchCandidateRepository = MatchCandidateRepositoryImpl(
+    local: c.matchCandidateLocal,
+    remote: c.matchCandidateNestJs,
+    relationshipRepo: c.operationalRelationshipRepository,
+  );
+  // CoordinationFlow repo — crea flow+request vía HTTP y hidrata en cache.
+  // Core API es fuente de verdad; Isar solo cachea la respuesta.
+  c.coordinationFlowRepository = CoordinationFlowRepositoryImpl(
+    local: c.coordinationFlowLocal,
+    remote: c.coordinationFlowApi,
+    requestRepo: c.operationalRequestRepository,
+  );
+
+  // Caso de uso F5 Hito 1 — único camino autorizado para crear/actualizar
+  // LocalContact disparando probe del matcher remoto.
+  c.saveLocalContactWithProbe = SaveLocalContactWithProbe(
+    contactRepository: c.localContactRepository,
+    matchCandidateRepository: c.matchCandidateRepository,
+  );
+
+  // Caso de uso F5 Hito 2 — mismo patrón para LocalOrganization.
+  c.saveLocalOrganizationWithProbe = SaveLocalOrganizationWithProbe(
+    organizationRepository: c.localOrganizationRepository,
+    matchCandidateRepository: c.matchCandidateRepository,
+  );
+
+  // Caso de uso F5 Hito 3 — resolución (confirm/dismiss) de un MatchCandidate
+  // expuesto. Delegado por MatchResolutionSheet desde los indicadores de UI.
+  c.resolveMatchCandidate = ResolveMatchCandidate(
+    repo: c.matchCandidateRepository,
+  );
+
+  // Caso de uso F5 Hito 11 — primera OperationalRequest real creada desde el
+  // badge "Vinculado" (RelationshipActionsSheet → start request dialog).
+  // Tras la inversión de D4 llama a Core API (POST /v1/coordination-flows) y
+  // queda flow+request hidratados en Isar como cache.
+  c.startOperationalRequest = StartOperationalRequest(
+    repo: c.coordinationFlowRepository,
   );
 
   c._isInitialized = true;

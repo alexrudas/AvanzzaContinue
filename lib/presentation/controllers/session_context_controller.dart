@@ -20,12 +20,15 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
 import '../../application/factories/product_access_context_factory.dart';
 import '../../core/di/container.dart';
+import '../../core/session/org_switch_exceptions.dart';
+import '../../core/session/org_switch_state.dart';
 import '../../core/network/connectivity_service.dart';
 import '../../core/utils/workspace_normalizer.dart';
 import '../../domain/adapters/workspace_context_adapter.dart';
@@ -59,6 +62,14 @@ class SessionContextController extends GetxController {
   final Rxn<UserEntity> _user = Rxn<UserEntity>();
   UserEntity? get user => _user.value;
 
+  /// Estado reactivo del cambio de organización activa.
+  ///
+  /// Delegado al [OrgSwitchStateHolder] singleton — el mismo estado que
+  /// observa [OrgSwitchInterceptor] en CoreApiClient.
+  /// La UI puede observar este valor con Obx() para mostrar indicadores de
+  /// switching/failed sin polling.
+  Rx<OrgSwitchState> get orgSwitchState => OrgSwitchStateHolder().state;
+
   final RxList<MembershipEntity> _memberships = <MembershipEntity>[].obs;
   List<MembershipEntity> get memberships => _memberships;
 
@@ -82,6 +93,23 @@ class SessionContextController extends GetxController {
 
   // Anti-race lock para eliminación de workspace
   bool _isRemovingWorkspace = false;
+
+  // C-2: guard contra switches concurrentes. Seteado síncronamente al inicio de
+  // switchOrganization() — antes del primer await — para que no haya gap de interleave.
+  bool _switchInProgress = false;
+
+  /// Último error tipado de org switch.
+  ///
+  /// Publicado ANTES de relanzar en [switchOrganization()] — canal secundario de error.
+  /// Reseteado a null al inicio de cada nuevo intento, antes del primer await.
+  ///
+  /// Complementa la excepción tipada: callers que no hacen try/catch pueden observar
+  /// este valor con ever() o Obx() y mostrar feedback al usuario sin depender solo
+  /// de [orgSwitchState] (que no distingue entre éxito y persistenceFailed).
+  ///
+  /// Patrón de uso:
+  ///   ever(session.lastSwitchError, (e) { if (e != null) showErrorSnackbar(e); })
+  final Rxn<SwitchOrganizationException> lastSwitchError = Rxn();
 
   /// Snapshot de acceso a producto para la sesión activa.
   /// null = sin sesión autenticada (deslogueado o userId aún no disponible).
@@ -144,6 +172,9 @@ class SessionContextController extends GetxController {
         _user.value = localUser;
         hydrationState.value = HydrationState.authOkProfileReady;
         debugPrint('[SessionContext] Hydration: perfil local encontrado → authOkProfileReady');
+        // Zero Trust: validar en background que el contexto Isar sea coherente
+        // con los claims JWT actuales. Bloquea escrituras hasta completar.
+        _startContextValidation(uid);
       } else {
         hydrationState.value = HydrationState.authOkProfileEmpty;
         debugPrint('[SessionContext] Hydration: sin perfil local → authOkProfileEmpty');
@@ -282,7 +313,42 @@ class SessionContextController extends GetxController {
     }
   }
 
+  /// Actualiza el contexto activo del usuario para cambios de workspace DENTRO
+  /// de la misma organización (cambio de rol, providerType, etc.).
+  ///
+  /// M-2 HARD THROW: lanza [StateError] si [ctx.orgId] difiere del orgId actual.
+  /// Para cambiar de organización usa [switchOrganization], que ejecuta la
+  /// secuencia completa de backend + JWT sync antes de persistir.
+  ///
+  /// CASOS VÁLIDOS para esta API:
+  /// - Cambio de workspace role dentro de la misma org.
+  /// - Actualización de providerType/categories dentro de la misma org.
+  /// - Setup inicial de contexto cuando no hay org activa aún (currentOrgId vacío).
   Future<void> setActiveContext(ActiveContext ctx) async {
+    // M-2: hard throw — org change requires switchOrganization().
+    // El throw protege contra rutas laterales que cambiarían tenancy sin JWT sync.
+    // Callers legítimos que cambian orgId deben usar switchOrganization().
+    // Callers internos validados usan _setActiveContextInternal() directamente.
+    final currentOrgId = user?.activeContext?.orgId ?? '';
+    if (currentOrgId.isNotEmpty && ctx.orgId.isNotEmpty && ctx.orgId != currentOrgId) {
+      throw StateError(
+        'setActiveContext: cannot change orgId ($currentOrgId → ${ctx.orgId}) '
+        'without JWT sync. Use switchOrganization() instead.',
+      );
+    }
+    await _setActiveContextInternal(ctx);
+  }
+
+  /// Implementación interna de persistencia de contexto activo.
+  ///
+  /// NO tiene guard de orgId — llamar solo desde rutas que ya garantizan
+  /// que el cambio de org fue validado (JWT claims, backend confirmado) o
+  /// que son same-org por diseño:
+  /// - [_applyValidatedContext]: post-switch validado contra JWT claims.
+  /// - [appendWorkspaceToActiveOrg]: mismo-org por diseño (busca membership activo).
+  /// - [removeWorkspaceFromActiveOrg] rol-clear: mismo-org (copyWith preserva orgId).
+  /// - [setActiveContextFromLegacyBridge]: bridge transicional Type C.
+  Future<void> _setActiveContextInternal(ActiveContext ctx) async {
     final uid = user?.uid;
     if (uid == null) return;
     // Repository will persist to Isar and mirror to Firestore (write-through)
@@ -292,8 +358,308 @@ class SessionContextController extends GetxController {
     if (current != null) {
       _user.value = current.copyWith(
           activeContext: ctx, updatedAt: DateTime.now().toUtc());
-      _user.refresh(); // fuerza notificación
+      _user.refresh();
     }
+  }
+
+  /// API exclusiva para [LegacyActiveContextBridgeImpl].
+  ///
+  /// El bridge traduce WorkspaceContext → ActiveContext legacy. Es llamado
+  /// únicamente por [ContextSwitchService.switchTo()], que ya validó el
+  /// contexto objetivo contra memberships antes de invocar el bridge.
+  /// [ContextSwitchService] actualmente no tiene callers externos de producción
+  /// (verificado con grep 2026-04), por lo que esta ruta no ejecuta hoy.
+  ///
+  /// Usa [_setActiveContextInternal] — no dispara el hard throw de [setActiveContext].
+  /// Documentado explícitamente para que cualquier nuevo caller tenga evidencia
+  /// de por qué no usa [setActiveContext] directamente.
+  ///
+  /// Cuando el sistema opere 100% sobre WorkspaceContext (sin legacy ActiveContext),
+  /// este método y [LegacyActiveContextBridgeImpl] deben eliminarse juntos.
+  Future<void> setActiveContextFromLegacyBridge(ActiveContext ctx) async {
+    // TRIP WIRE — vigilancia del bypass Type C.
+    //
+    // Este bridge está justificado SOLO mientras ContextSwitchService.switchTo()
+    // tenga CERO callers externos de producción (verificado con grep 2026-04).
+    // Si alguien añade un caller real a ContextSwitchService y ese caller cruza org,
+    // este guard lo detecta antes de ejecutar el bypass sin JWT sync.
+    //
+    // En debug: assert(false) explota inmediatamente — el desarrollador lo ve en tests.
+    // En release: log crítico + return — no ejecuta el bypass cross-org, no rompe producción.
+    // Si dispara: revisar qué caller originó el switchTo() y migrar a switchOrganization().
+    final currentOrgId = user?.activeContext?.orgId ?? '';
+    if (currentOrgId.isNotEmpty && ctx.orgId.isNotEmpty && ctx.orgId != currentOrgId) {
+      assert(
+        false,
+        '[SessionContext] setActiveContextFromLegacyBridge TRIP WIRE: '
+        'cross-org switch detectado ($currentOrgId → ${ctx.orgId}). '
+        'El bridge Type C no está justificado para cross-org. '
+        'Migrar a switchOrganization().',
+      );
+      debugPrint(
+        '[SessionContext][CRITICAL] setActiveContextFromLegacyBridge: '
+        'cross-org detectado ($currentOrgId → ${ctx.orgId}) — abortando. '
+        'Reportar bug: este path no debe ejecutar en producción.',
+      );
+      return;
+    }
+    debugPrint(
+      '[SessionContext] setActiveContextFromLegacyBridge: '
+      'orgId=${ctx.orgId} rol=${ctx.rol} (bridge transicional Type C)',
+    );
+    await _setActiveContextInternal(ctx);
+  }
+
+  // ---------------------------------------------------------------------------
+  // ORG SWITCH — Flujo remoto + JWT refresh + rehidratación de sesión
+  // ---------------------------------------------------------------------------
+
+  /// Cambia la organización activa del usuario con Zero Trust.
+  ///
+  /// Secuencia completa:
+  ///   1. Llama Firebase backend switchActiveOrganization.
+  ///   2. Valida claims frescos contra orgId confirmado.
+  ///   3. Resuelve orgName desde memberships locales.
+  ///   4. Persiste y actualiza sesión en memoria.
+  ///
+  /// Estados de [orgSwitchState] durante y después del switch:
+  ///   - Durante el proceso: `switching` → requests Core API bloqueados.
+  ///   - En éxito: `idle`.
+  ///   - En fallo de backend/claims (UC falla): `failed`, contexto previo intacto.
+  ///     Persiste hasta el próximo intento de switch.
+  ///   - En fallo de persistencia local: `idle` (JWT claims son correctos;
+  ///     startup validation repara la divergencia Isar/claims en el próximo arranque).
+  ///   - En fallo `notAuthenticated` (sin uid): `idle` vía finally (switching fue seteado
+  ///     por el controller antes del uid-check; el UC nunca corrió).
+  ///
+  /// CONTRATO DEL CALLER — CRÍTICO:
+  /// Siempre envolver en try-catch. Hay dos canales de error complementarios:
+  ///   1. La excepción [SwitchOrganizationException] (fiable en todos los casos).
+  ///   2. [lastSwitchError] observable: publicado antes del rethrow — permite reaccionar
+  ///      al error con ever() o Obx() aunque el caller no haga try-catch explícito.
+  /// Observar solo [orgSwitchState] es insuficiente: termina en `idle` tanto en éxito
+  /// como en fallo de persistencia.
+  ///
+  /// [organizationId]: org destino.
+  /// [targetWorkspaceRole]: workspace role con el que entra a la nueva org (elección UX).
+  ///
+  /// Lanza [SwitchOrganizationException] con razón tipada en caso de fallo.
+  Future<void> switchOrganization({
+    required String organizationId,
+    required String targetWorkspaceRole,
+  }) async {
+    // C-2: guard contra switches concurrentes.
+    // Seteado antes del primer await — no hay gap de interleave en Dart single-thread.
+    if (_switchInProgress) {
+      throw const SwitchOrganizationException(
+        'Switch already in progress — wait for current switch to complete',
+        SwitchOrganizationFailureReason.unknown,
+      );
+    }
+    _switchInProgress = true;
+    lastSwitchError.value = null; // reset — nuevo intento limpio
+    // Transición explícita a `switching` antes de cualquier await.
+    // El controller es dueño de este estado — no depende de que el UC lo haga primero.
+    // Garantiza que `failed` del switch anterior nunca sea observable durante el arranque
+    // del nuevo intento, independientemente del orden interno del UC.
+    // El UC también setea `switching` en su primera línea (idempotente, sin efecto aquí).
+    OrgSwitchStateHolder().state.value = OrgSwitchState.switching;
+
+    try {
+      final uid = user?.uid;
+      if (uid == null) {
+        throw const SwitchOrganizationException(
+          'No authenticated user',
+          SwitchOrganizationFailureReason.notAuthenticated,
+        );
+      }
+
+      final useCase = DIContainer().switchActiveOrganizationUc;
+      final result = await useCase.execute(
+        organizationId: organizationId,
+        targetWorkspaceRole: targetWorkspaceRole,
+        uid: uid,
+      );
+
+      // C-1: persistencia tipada — si falla, estado termina en idle pero la excepción
+      // tipada se propaga. El caller DEBE hacer try-catch; no confiar solo en orgSwitchState.
+      try {
+        await _applyValidatedContext(result.newContext);
+      } catch (e) {
+        debugPrint(
+          '[SessionContext] switchOrganization: persistence failed after '
+          'successful backend switch (orgId=$organizationId): $e',
+        );
+        // Relanzar como excepción tipada con razón persistenceFailed.
+        // El estado irá a idle en el finally — no a failed — porque JWT claims son correctos.
+        throw SwitchOrganizationException(
+          'Local persistence failed after backend switch confirmed: $e',
+          SwitchOrganizationFailureReason.persistenceFailed,
+        );
+      }
+
+      debugPrint('[SessionContext] switchOrganization completed → orgId=$organizationId');
+    } on SwitchOrganizationException catch (e) {
+      // F-3: publicar al observable ANTES de relanzar.
+      // Callers que no hacen try/catch pueden observar lastSwitchError con ever() o Obx()
+      // sin depender del estado de orgSwitchState.
+      lastSwitchError.value = e;
+      rethrow;
+    } finally {
+      // C-1: reset condicional — solo resetear a idle si el estado aún es `switching`.
+      //
+      // Por qué condicional y no siempre idle:
+      // - Si el UC falló (backend/claims), ya seteó `failed` antes de lanzar.
+      //   Preservar ese `failed` para que la UI pueda reaccionar al estado de error.
+      // - Si el fallo fue en persistencia local, el UC completó y el estado sigue
+      //   siendo `switching` → resetear a `idle` (JWT claims son válidos).
+      // - Si el fallo fue `notAuthenticated`, el controller ya había seteado `switching`
+      //   (línea explícita antes del try) → el finally lo resetea correctamente a `idle`.
+      // - En éxito: el UC nunca setea `idle` (responsabilidad del controller) → `idle` aquí.
+      if (OrgSwitchStateHolder().state.value == OrgSwitchState.switching) {
+        OrgSwitchStateHolder().state.value = OrgSwitchState.idle;
+      }
+      // C-2: liberar flag de concurrent guard.
+      _switchInProgress = false;
+    }
+  }
+
+  /// Aplica un [ActiveContext] ya validado contra JWT claims.
+  ///
+  /// Idempotente: si el contexto en memoria ya es equivalente (mismo orgId + rol),
+  /// no dispara escrituras ni notificaciones innecesarias.
+  ///
+  /// Uso exclusivo del flujo de org switch y startup validation.
+  /// Para cambios de workspace dentro de la misma org, usar [setActiveContext].
+  Future<void> _applyValidatedContext(ActiveContext ctx) async {
+    final current = user?.activeContext;
+
+    // Idempotency check: evitar escrituras/notificaciones si el contexto no cambió
+    if (current?.orgId == ctx.orgId && current?.rol == ctx.rol) {
+      debugPrint('[SessionContext] _applyValidatedContext: no-op (context unchanged)');
+      return;
+    }
+
+    // Delegar a _setActiveContextInternal — el contexto ya fue validado contra JWT claims.
+    // No pasa por setActiveContext() para no disparar el hard throw de M-2.
+    await _setActiveContextInternal(ctx);
+    debugPrint(
+      '[SessionContext] _applyValidatedContext: applied orgId=${ctx.orgId} rol=${ctx.rol}',
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // STARTUP CONTEXT VALIDATION — Zero Trust: Isar tentativo hasta validar claims
+  // ---------------------------------------------------------------------------
+
+  /// Valida en background que el contexto cargado desde Isar sea coherente
+  /// con los claims JWT actuales.
+  ///
+  /// Zero Trust startup:
+  /// - Marca [OrgSwitchState.validating] → [OrgSwitchInterceptor] bloquea escrituras.
+  /// - Lecturas (GET) se permiten para no degradar UX de arranque.
+  /// - Si claims y Isar divergen: corrige silenciosamente desde claims.
+  /// - Si falla la validación: libera el lock (no bloquea al usuario por error).
+  ///
+  /// Fire-and-forget — no bloquea el arranque de la UI.
+  void _startContextValidation(String uid) {
+    OrgSwitchStateHolder().state.value = OrgSwitchState.validating;
+    debugPrint('[SessionContext] Startup validation started');
+
+    Future.microtask(() async {
+      // C-3: snapshot del orgId local al inicio del microtask.
+      // Si un switch concurrente modifica el contexto mientras la validación corre,
+      // el guard posterior lo detecta y aborta la corrección para no sobrescribir
+      // el contexto recién switchiado con datos stale de la validación.
+      final snapshotOrgId = user?.activeContext?.orgId;
+
+      try {
+        final firebaseUser = FirebaseAuth.instance.currentUser;
+        if (firebaseUser == null) {
+          debugPrint('[SessionContext] Startup validation: no Firebase user — skipping');
+          return;
+        }
+
+        // Usar token cacheado (sin force refresh) — no bloqueante ni costoso
+        final idTokenResult = await firebaseUser.getIdTokenResult(false);
+        final claims = idTokenResult.claims ?? {};
+        final activeCtxClaims = claims['activeContext'] as Map<String, dynamic>?;
+        final claimsOrgId = activeCtxClaims?['organizationId'] as String?;
+
+        final localOrgId = user?.activeContext?.orgId;
+
+        if (claimsOrgId == null || claimsOrgId.isEmpty) {
+          // Sin org en claims — el usuario no ha seleccionado org aún; OK
+          debugPrint('[SessionContext] Startup validation: no org in claims — OK');
+          return;
+        }
+
+        if (localOrgId == claimsOrgId) {
+          debugPrint('[SessionContext] Startup validation: context OK (orgId match)');
+          return;
+        }
+
+        // Divergencia detectada — forzar refresh y corregir desde claims
+        debugPrint(
+          '[SessionContext] Startup validation: mismatch '
+          '(local=$localOrgId, claims=$claimsOrgId) — correcting',
+        );
+
+        final freshResult = await firebaseUser.getIdTokenResult(true);
+        final freshClaims = freshResult.claims ?? {};
+        final freshActive = freshClaims['activeContext'] as Map<String, dynamic>?;
+        final freshOrgId = freshActive?['organizationId'] as String?;
+
+        if (freshOrgId != null && freshOrgId.isNotEmpty && freshOrgId != localOrgId) {
+          final memberships = await userRepository.fetchMemberships(uid);
+          final membership = memberships.firstWhereOrNull(
+            (m) => m.orgId == freshOrgId,
+          );
+
+          if (membership != null) {
+            // Preservar workspace rol si existe; si no, usar el primer rol disponible
+            final preservedRol = user?.activeContext?.rol;
+            final resolvedRol = (preservedRol != null && preservedRol.isNotEmpty)
+                ? preservedRol
+                : (membership.roles.firstOrNull ?? '');
+
+            final correctedContext = ActiveContext(
+              orgId: freshOrgId,
+              orgName: membership.orgName,
+              rol: resolvedRol,
+            );
+
+            // C-3: abort si el contexto cambió mientras la validación corría.
+            // Un switch concurrente ya aplicó el contexto correcto — no sobrescribir.
+            if (user?.activeContext?.orgId != snapshotOrgId) {
+              debugPrint(
+                '[SessionContext] Startup validation: context changed during validation '
+                '(snapshot=$snapshotOrgId, current=${user?.activeContext?.orgId}) '
+                '— aborting correction to avoid overwriting concurrent switch',
+              );
+              return;
+            }
+
+            await _applyValidatedContext(correctedContext);
+            debugPrint('[SessionContext] Startup validation: context corrected from claims');
+          } else {
+            debugPrint(
+              '[SessionContext] Startup validation: membership not found for '
+              'claims orgId=$freshOrgId — keeping Isar context',
+            );
+          }
+        }
+      } catch (e) {
+        // Non-fatal: un error en startup validation no debe bloquear al usuario
+        debugPrint('[SessionContext] Startup validation error (non-fatal): $e');
+      } finally {
+        // Siempre liberar el lock — no dejar al usuario atrapado en validating
+        if (OrgSwitchStateHolder().state.value == OrgSwitchState.validating) {
+          OrgSwitchStateHolder().state.value = OrgSwitchState.idle;
+          debugPrint('[SessionContext] Startup validation: lock released');
+        }
+      }
+    });
   }
 
   // MERGE: fix append workspace - recargar memberships desde repo
@@ -377,8 +743,11 @@ class SessionContextController extends GetxController {
         providerType: _isProveedor(role) ? providerType : null,
       );
 
-      // Actualizar contexto activo
-      await setActiveContext(newContext);
+      // Actualizar contexto activo.
+      // _setActiveContextInternal: appendWorkspaceToActiveOrg es mismo-org por diseño
+      // (busca membership de la org activa primero). Si el fallback lleva a otra org,
+      // es recuperación de inconsistencia de datos, no un user-initiated switch.
+      await _setActiveContextInternal(newContext);
 
       // MERGE: telemetría de éxito
       _logTelemetry('profile_add_workspace_success', {
@@ -497,12 +866,23 @@ class SessionContextController extends GetxController {
           );
 
           if (newOrgMembership != null) {
-            await setActiveContext(ActiveContext(
-              orgId: newOrgMembership.orgId,
-              orgName: newOrgMembership.orgName,
-              rol: newActiveRole,
-              providerType: ctx.providerType,
-            ));
+            // Org switch real — el rol eliminado era el último en la org activa,
+            // y el fallback es un rol en OTRA org. Debe pasar por switchOrganization()
+            // para sincronizar backend (user_active_contexts) + JWT claims.
+            try {
+              await switchOrganization(
+                organizationId: newOrgMembership.orgId,
+                targetWorkspaceRole: newActiveRole,
+              );
+            } catch (e) {
+              // Si el switch falla (red, backend), limpiar rol en org actual para
+              // que el usuario pueda decidir su próximo workspace manualmente.
+              debugPrint(
+                '[SessionContext] removeWorkspace: fallback org switch failed — '
+                'clearing role in current org: $e',
+              );
+              await _setActiveContextInternal(ctx.copyWith(rol: ''));
+            }
 
             // Forzar navegación al nuevo workspace (cierra vista del eliminado)
             // HomeRouter redirigirá automáticamente al workspace correcto
@@ -513,8 +893,8 @@ class SessionContextController extends GetxController {
             });
           }
         } else {
-          // No hay roles, limpiar
-          await setActiveContext(ctx.copyWith(rol: ''));
+          // No hay roles en ninguna org — limpiar rol (mismo-org, orgId preservado).
+          await _setActiveContextInternal(ctx.copyWith(rol: ''));
           selectionRule = 'empty';
 
           // Navegar a pantalla segura (sin workspaces)
