@@ -1,38 +1,26 @@
 // ============================================================================
 // widgets/orders/purchase_request_detail_sheet.dart
-// PURCHASE REQUEST DETAIL SHEET — Detalle de una solicitud de compra
+// PURCHASE REQUEST DETAIL SHEET — Detalle canónico
 //
 // QUÉ HACE:
-// - Muestra el detalle completo de una PurchaseRequestEntity en bottom sheet.
-// - Secciones: cabecera, item solicitado, metadatos, estado de cotizaciones.
-// - Botón "Ver cotizaciones" si respuestasCount > 0 → abre SupplierResponsesSheet.
+//   - Muestra el detalle de una PurchaseRequestEntity canónica:
+//     title, type, category, originType, assetId, notes, delivery estructurada,
+//     itemsCount, lista de ítems si vino embebida, respuestasCount.
+//   - Botón "Ver cotizaciones" si respuestasCount > 0.
 //
 // QUÉ NO HACE:
-// - NO edita la solicitud (Fase futura).
-// - NO carga datos remotos — recibe la entidad ya cargada.
-// - NO usa Get.snackbar (riesgo de Overlay crash en este contexto).
-//
-// PRINCIPIOS:
-// - Honestidad: solo muestra campos que existen en la entidad.
-// - Reutiliza patrón de quote_details_sheet.dart (SafeArea + Container + ListView).
+//   - No edita la solicitud.
+//   - No carga items on-demand si la cache no los trae (muestra solo itemsCount
+//     y un aviso). Carga bajo demanda queda para tarea futura.
 // ============================================================================
 
 import 'package:flutter/material.dart';
 
+import 'package:avanzza/domain/entities/purchase/create_purchase_request_input.dart';
 import 'package:avanzza/domain/entities/purchase/purchase_request_entity.dart';
 import '../shared/format_helpers.dart';
 import '../quotes/supplier_responses_sheet.dart';
 
-/// Bottom sheet con el detalle completo de una solicitud de compra.
-///
-/// Abrir con:
-/// ```dart
-/// showModalBottomSheet(
-///   context: context,
-///   isScrollControlled: true,
-///   builder: (_) => PurchaseRequestDetailSheet(request: entity),
-/// );
-/// ```
 class PurchaseRequestDetailSheet extends StatelessWidget {
   final PurchaseRequestEntity request;
 
@@ -41,9 +29,8 @@ class PurchaseRequestDetailSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    final idShort = request.id.length > 8
-        ? request.id.substring(0, 8)
-        : request.id;
+    final idShort =
+        request.id.length > 8 ? request.id.substring(0, 8) : request.id;
 
     return SafeArea(
       child: Container(
@@ -58,7 +45,7 @@ class PurchaseRequestDetailSheet extends StatelessWidget {
         child: ListView(
           shrinkWrap: true,
           children: [
-            // ── Cabecera ─────────────────────────────────────────────
+            // Header
             Row(
               children: [
                 Expanded(
@@ -68,7 +55,7 @@ class PurchaseRequestDetailSheet extends StatelessWidget {
                         ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                 ),
-                _EstadoBadge(estado: request.estado),
+                _StatusBadge(status: request.status),
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
@@ -84,49 +71,35 @@ class PurchaseRequestDetailSheet extends StatelessWidget {
 
             const Divider(height: 24),
 
-            // ── Item solicitado ──────────────────────────────────────
-            Text('Item solicitado',
-                style: t.textTheme.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w800)),
+            // Encabezado canónico
+            const _SectionTitle('Encabezado'),
             const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: t.colorScheme.surfaceContainerHighest
-                    .withValues(alpha: 0.25),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(request.tipoRepuesto,
-                      style: t.textTheme.bodyLarge
-                          ?.copyWith(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  Text('Cantidad: ${request.cantidad}',
-                      style: t.textTheme.bodyMedium),
-                  if (request.specs != null && request.specs!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text('Specs: ${request.specs}',
-                        style: t.textTheme.bodySmall
-                            ?.copyWith(color: Colors.black54)),
-                  ],
-                ],
-              ),
+            _DetailRow(
+              icon: Icons.article_outlined,
+              label: 'Título',
+              value: request.title,
             ),
+            _DetailRow(
+              icon: Icons.label_outline,
+              label: 'Tipo',
+              value: _typeLabel(request.type),
+            ),
+            if (request.category != null && request.category!.isNotEmpty)
+              _DetailRow(
+                icon: Icons.category_outlined,
+                label: 'Categoría',
+                value: request.category!,
+              ),
 
             const Divider(height: 24),
 
-            // ── Detalles ─────────────────────────────────────────────
-            Text('Detalles',
-                style: t.textTheme.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w800)),
+            // Contexto
+            const _SectionTitle('Contexto'),
             const SizedBox(height: 8),
             _DetailRow(
-              icon: Icons.location_on_outlined,
-              label: 'Ciudad de entrega',
-              value: request.ciudadEntrega,
+              icon: Icons.info_outline,
+              label: 'Origen',
+              value: _originLabel(request.originType),
             ),
             if (request.assetId != null && request.assetId!.isNotEmpty)
               _DetailRow(
@@ -134,24 +107,63 @@ class PurchaseRequestDetailSheet extends StatelessWidget {
                 label: 'Activo',
                 value: request.assetId!,
               ),
-            if (request.expectedDate != null)
+            if (request.notes != null && request.notes!.isNotEmpty)
               _DetailRow(
-                icon: Icons.event_outlined,
-                label: 'Fecha esperada',
-                value: fmtDateTime(request.expectedDate!),
+                icon: Icons.notes_outlined,
+                label: 'Observaciones',
+                value: request.notes!,
               ),
-            _DetailRow(
-              icon: Icons.monetization_on_outlined,
-              label: 'Moneda',
-              value: request.currencyCode,
-            ),
 
             const Divider(height: 24),
 
-            // ── Estado de cotizaciones ───────────────────────────────
-            Text('Cotizaciones',
-                style: t.textTheme.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w800)),
+            // Ítems
+            _SectionTitle('Ítems (${request.itemsCount})'),
+            const SizedBox(height: 8),
+            if (request.items.isEmpty)
+              Text(
+                'Detalle de ítems no disponible en cache. Recarga desde el '
+                'backend para verlos.',
+                style:
+                    t.textTheme.bodySmall?.copyWith(color: Colors.black54),
+              )
+            else
+              ...request.items.map((it) => _ItemTile(item: it)),
+
+            // Entrega
+            if (request.delivery != null) ...[
+              const Divider(height: 24),
+              const _SectionTitle('Entrega'),
+              const SizedBox(height: 8),
+              _DetailRow(
+                icon: Icons.location_city_outlined,
+                label: 'Ciudad',
+                value: request.delivery!.city,
+              ),
+              _DetailRow(
+                icon: Icons.place_outlined,
+                label: 'Dirección',
+                value: request.delivery!.address,
+              ),
+              if (request.delivery!.department != null &&
+                  request.delivery!.department!.isNotEmpty)
+                _DetailRow(
+                  icon: Icons.map_outlined,
+                  label: 'Departamento',
+                  value: request.delivery!.department!,
+                ),
+              if (request.delivery!.info != null &&
+                  request.delivery!.info!.isNotEmpty)
+                _DetailRow(
+                  icon: Icons.info_outline,
+                  label: 'Info adicional',
+                  value: request.delivery!.info!,
+                ),
+            ],
+
+            const Divider(height: 24),
+
+            // Cotizaciones
+            const _SectionTitle('Cotizaciones'),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -186,7 +198,7 @@ class PurchaseRequestDetailSheet extends StatelessWidget {
                       isScrollControlled: true,
                       builder: (_) => SupplierResponsesSheet(
                         requestId: request.id,
-                        tipoRepuesto: request.tipoRepuesto,
+                        title: request.title,
                       ),
                     );
                   },
@@ -200,21 +212,83 @@ class PurchaseRequestDetailSheet extends StatelessWidget {
       ),
     );
   }
+
+  static String _typeLabel(PurchaseRequestTypeInput t) =>
+      t == PurchaseRequestTypeInput.product ? 'Producto' : 'Servicio';
+
+  static String _originLabel(PurchaseRequestOriginInput o) => switch (o) {
+        PurchaseRequestOriginInput.asset => 'Activo específico',
+        PurchaseRequestOriginInput.inventory => 'Inventario / stock',
+        PurchaseRequestOriginInput.general => 'Necesidad general',
+      };
 }
 
-class _EstadoBadge extends StatelessWidget {
-  final String estado;
-  const _EstadoBadge({required this.estado});
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  const _SectionTitle(this.title);
 
   @override
   Widget build(BuildContext context) {
-    final (label, color) = switch (estado.toLowerCase().trim()) {
-      'abierta' => ('Abierta', const Color(0xFF2F5AFF)),
-      'asignada' => ('Asignada', const Color(0xFFE67E22)),
-      'cerrada' => ('Cerrada', const Color(0xFF1E8E3E)),
-      _ => (estado, const Color(0xFF9AA0A6)),
-    };
+    return Text(
+      title,
+      style: Theme.of(context)
+          .textTheme
+          .titleSmall
+          ?.copyWith(fontWeight: FontWeight.w800),
+    );
+  }
+}
 
+class _ItemTile extends StatelessWidget {
+  final PurchaseRequestItemEntity item;
+  const _ItemTile({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color:
+            t.colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(item.description,
+              style: t.textTheme.bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 2),
+          Text('${item.quantity} ${item.unit}',
+              style: t.textTheme.bodySmall?.copyWith(color: Colors.black54)),
+          if (item.notes != null && item.notes!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(item.notes!,
+                style:
+                    t.textTheme.bodySmall?.copyWith(color: Colors.black54)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final String status;
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = switch (status) {
+      'sent' => ('Enviada', const Color(0xFF2F5AFF)),
+      'partially_responded' =>
+        ('Parcial', const Color(0xFFE67E22)),
+      'responded' => ('Respondida', const Color(0xFF7E57C2)),
+      'closed' => ('Cerrada', const Color(0xFF1E8E3E)),
+      _ => (status, const Color(0xFF9AA0A6)),
+    };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -223,7 +297,7 @@ class _EstadoBadge extends StatelessWidget {
       ),
       child: Text(label,
           style: const TextStyle(
-              color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+              color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
     );
   }
 }
@@ -244,6 +318,7 @@ class _DetailRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 18, color: Colors.black45),
           const SizedBox(width: 8),

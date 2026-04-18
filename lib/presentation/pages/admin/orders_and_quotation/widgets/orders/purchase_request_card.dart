@@ -1,37 +1,31 @@
 // ============================================================================
 // widgets/orders/purchase_request_card.dart
-// PURCHASE REQUEST CARD — Representación honesta de una solicitud de compra
+// PURCHASE REQUEST CARD — Representación canónica de una solicitud
 //
 // QUÉ HACE:
-// - Muestra una PurchaseRequestEntity tal cual es: solicitud, no pedido cumplido.
-// - Expone: id corto, tipoRepuesto, cantidad, estado real (abierta/asignada/cerrada),
-//   ciudad de entrega, cantidad de respuestas, fecha de creación.
+//   - Muestra PurchaseRequestEntity (modelo canónico): title, type badge,
+//     itemsCount, city de entrega si existe, assetId si existe, status,
+//     respuestasCount y fecha.
 //
 // QUÉ NO HACE:
-// - NO muestra total, vendor, items[], payments[] — esos campos no existen en la entidad.
-// - NO inventa semántica de "order fulfilled" ni mapea estados falsos.
-// - NO resuelve assetId a nombre de activo (responsabilidad de Fase 2).
-//
-// PRINCIPIOS:
-// - Honestidad: solo muestra lo que la entidad realmente tiene.
-// - Reutilizable: acepta datos puros, no controller ni Get.find().
-// - Fase 1: card de solicitud. OrderCard (pedido cumplido) se reserva para Fase 2.
+//   - NO muestra "tipoRepuesto" ni "cantidad global" ni "ciudadEntrega" como
+//     eje: ese modelo legacy fue retirado del dominio.
+//   - NO resuelve assetId a nombre de activo (UI futura con AssetRepository).
 // ============================================================================
 
 import 'package:flutter/material.dart';
 
+import 'package:avanzza/domain/entities/purchase/create_purchase_request_input.dart';
 import '../shared/format_helpers.dart';
 
-/// Tarjeta de solicitud de compra (PurchaseRequestEntity).
-///
-/// Representa honestamente una solicitud: qué se pidió, cuánto,
-/// en qué estado está, y cuántas respuestas de proveedores tiene.
 class PurchaseRequestCard extends StatelessWidget {
   final String id;
-  final String tipoRepuesto;
-  final int cantidad;
-  final String estado; // 'abierta' | 'asignada' | 'cerrada'
-  final String ciudadEntrega;
+  final String title;
+  final PurchaseRequestTypeInput type;
+  final String? category;
+  final int itemsCount;
+  final String status; // sent | partially_responded | responded | closed
+  final String? deliveryCity;
   final int respuestasCount;
   final String? assetId;
   final DateTime? createdAt;
@@ -40,10 +34,12 @@ class PurchaseRequestCard extends StatelessWidget {
   const PurchaseRequestCard({
     super.key,
     required this.id,
-    required this.tipoRepuesto,
-    required this.cantidad,
-    required this.estado,
-    required this.ciudadEntrega,
+    required this.title,
+    required this.type,
+    this.category,
+    required this.itemsCount,
+    required this.status,
+    this.deliveryCity,
     required this.respuestasCount,
     this.assetId,
     this.createdAt,
@@ -68,7 +64,7 @@ class PurchaseRequestCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header: ID + Estado ──────────────────────────────────────
+            // Header: id + status
             Row(
               children: [
                 Icon(Icons.receipt_long_outlined,
@@ -80,12 +76,12 @@ class PurchaseRequestCard extends StatelessWidget {
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const Spacer(),
-                _EstadoBadge(estado: estado),
+                _StatusBadge(status: status),
               ],
             ),
             const SizedBox(height: 10),
 
-            // ── Item solicitado ───────────────────────────────────────────
+            // Body: title + type/category + itemsCount + asset
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(10),
@@ -98,13 +94,27 @@ class PurchaseRequestCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    tipoRepuesto,
+                    title,
                     style: t.textTheme.bodyLarge
                         ?.copyWith(fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      _TypePill(type: type),
+                      if (category != null && category!.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          '· $category',
+                          style: t.textTheme.bodySmall
+                              ?.copyWith(color: Colors.black54),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
                   Text(
-                    'Cantidad: $cantidad',
+                    '$itemsCount ${itemsCount == 1 ? "ítem" : "ítems"}',
                     style: t.textTheme.bodySmall
                         ?.copyWith(color: Colors.black54),
                   ),
@@ -121,19 +131,22 @@ class PurchaseRequestCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            // ── Footer: ciudad, respuestas, fecha ─────────────────────────
+            // Footer: delivery city (si existe), respuestas, fecha
             Row(
               children: [
-                const Icon(Icons.location_on_outlined,
-                    size: 16, color: Colors.black45),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    ciudadEntrega,
-                    style: t.textTheme.bodySmall,
-                    overflow: TextOverflow.ellipsis,
+                if (deliveryCity != null && deliveryCity!.isNotEmpty) ...[
+                  const Icon(Icons.location_on_outlined,
+                      size: 16, color: Colors.black45),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      deliveryCity!,
+                      style: t.textTheme.bodySmall,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
+                ] else
+                  const Spacer(),
                 const SizedBox(width: 12),
                 Icon(
                   Icons.forum_outlined,
@@ -178,18 +191,48 @@ class PurchaseRequestCard extends StatelessWidget {
   }
 }
 
-/// Badge de estado con color honesto según el estado real de la entidad.
-class _EstadoBadge extends StatelessWidget {
-  final String estado;
-  const _EstadoBadge({required this.estado});
+class _TypePill extends StatelessWidget {
+  final PurchaseRequestTypeInput type;
+  const _TypePill({required this.type});
 
   @override
   Widget build(BuildContext context) {
-    final (label, color) = switch (estado.toLowerCase().trim()) {
-      'abierta' => ('Abierta', const Color(0xFF2F5AFF)),
-      'asignada' => ('Asignada', const Color(0xFFE67E22)),
-      'cerrada' => ('Cerrada', const Color(0xFF1E8E3E)),
-      _ => (estado, const Color(0xFF9AA0A6)),
+    final (label, color) = switch (type) {
+      PurchaseRequestTypeInput.product => ('Producto', const Color(0xFF1E8E3E)),
+      PurchaseRequestTypeInput.service => ('Servicio', const Color(0xFF2F5AFF)),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final String status;
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    // Status wire backend: sent | partially_responded | responded | closed.
+    final (label, color) = switch (status) {
+      'sent' => ('Enviada', const Color(0xFF2F5AFF)),
+      'partially_responded' =>
+        ('Parcialmente respondida', const Color(0xFFE67E22)),
+      'responded' => ('Respondida', const Color(0xFF7E57C2)),
+      'closed' => ('Cerrada', const Color(0xFF1E8E3E)),
+      _ => (status, const Color(0xFF9AA0A6)),
     };
 
     return Container(
@@ -202,7 +245,7 @@ class _EstadoBadge extends StatelessWidget {
         label,
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
       ),

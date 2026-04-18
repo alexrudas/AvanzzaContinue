@@ -1,11 +1,32 @@
-/// Chips de estado para filtrar solicitudes de compra.
-///
-/// Fase 1: estados reales de PurchaseRequestEntity (abierta/asignada/cerrada).
-/// Reemplaza los estados de "pedido cumplido" (shipped/delivered/returned)
-/// que no tienen correspondencia en el modelo de dominio actual.
-library;
+// ============================================================================
+// widgets/orders/orders_status_chips.dart
+// Chips de estado para filtrar solicitudes de compra.
+//
+// QUÉ HACE:
+//   - Filtra por el `status` wire-stable del contrato backend:
+//     sent | partially_responded | responded | closed.
+//   - Agrupa 'sent' + 'partially_responded' bajo "Abiertas" (aún hay targets
+//     pendientes). 'responded' = "Respondidas" (todos los proveedores cerraron
+//     su respuesta). 'closed' = "Cerradas".
+//
+// PRINCIPIOS:
+//   - Coherencia semántica real con el status del backend. Cero mapeos falsos
+//     a estados inventados (abierta/asignada/cerrada legacy).
+// ============================================================================
 
 import 'package:flutter/material.dart';
+
+/// Filtro aplicable a PurchaseRequestEntity.status. Devuelve lista de status
+/// aceptados o null para "Todas".
+class OrdersStatusFilter {
+  final List<String>? statuses;
+  const OrdersStatusFilter._(this.statuses);
+
+  bool matches(String status) {
+    if (statuses == null) return true;
+    return statuses!.contains(status);
+  }
+}
 
 class OrdersStatusChips extends StatelessWidget {
   final int index;
@@ -16,21 +37,20 @@ class OrdersStatusChips extends StatelessWidget {
     required this.onChanged,
   });
 
-  /// Entries corresponden a los estados reales de PurchaseRequestEntity.
-  /// Índice 0 = sin filtro (todas).
   static const _entries = <(String, IconData)>[
     ('Todas', Icons.all_inbox_outlined),
     ('Abiertas', Icons.pending_outlined),
-    ('Asignadas', Icons.assignment_ind_outlined),
+    ('Respondidas', Icons.mark_chat_read_outlined),
     ('Cerradas', Icons.task_alt_outlined),
   ];
 
-  /// Retorna el valor de estado para filtrar, o null para "Todas".
-  static String? estadoForIndex(int index) => switch (index) {
-        1 => 'abierta',
-        2 => 'asignada',
-        3 => 'cerrada',
-        _ => null,
+  /// Filtro por índice. 0=todas, 1=abiertas (sent|partially_responded),
+  /// 2=responded, 3=closed.
+  static OrdersStatusFilter filterForIndex(int index) => switch (index) {
+        1 => const OrdersStatusFilter._(['sent', 'partially_responded']),
+        2 => const OrdersStatusFilter._(['responded']),
+        3 => const OrdersStatusFilter._(['closed']),
+        _ => const OrdersStatusFilter._(null),
       };
 
   @override

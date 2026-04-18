@@ -39,12 +39,14 @@ import '../shared/format_helpers.dart';
 /// ```
 class SupplierResponsesSheet extends StatefulWidget {
   final String requestId;
-  final String tipoRepuesto;
+
+  /// Título canónico de la solicitud (PurchaseRequest.title).
+  final String title;
 
   const SupplierResponsesSheet({
     super.key,
     required this.requestId,
-    required this.tipoRepuesto,
+    required this.title,
   });
 
   @override
@@ -129,7 +131,7 @@ class _SupplierResponsesSheetState extends State<SupplierResponsesSheet> {
                         ],
                       ),
                       Text(
-                        widget.tipoRepuesto,
+                        widget.title,
                         style: t.textTheme.bodySmall
                             ?.copyWith(color: Colors.black54),
                       ),
