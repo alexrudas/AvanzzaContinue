@@ -50,5 +50,8 @@ jobs:
       - name: Analyze (non-fatal legacy infos/warnings)
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
+      - name: Prewarm IsarCore
+        run: dart run tool/prewarm_isar_core.dart
+
       - name: Test
-        run: flutter test --no-pub
+        run: flutter test --no-pub -j 1
