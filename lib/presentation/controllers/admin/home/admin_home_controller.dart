@@ -514,7 +514,7 @@ class AdminHomeController extends GetxController {
         AdminKpiVM(label: 'Programaciones', value: programaciones.length),
         AdminKpiVM(
           label: 'Compras abiertas',
-          value: compras.where((c) => c.estado == 'abierta').length,
+          value: compras.where((c) => c.status != 'closed').length,
         ),
         AdminKpiVM(label: 'Egresos del mes', value: egresosMes, suffix: '\$'),
       ];
@@ -543,7 +543,7 @@ class AdminHomeController extends GetxController {
       final newAlerts = <AdminAiAlertVM>[];
 
       final comprasAbiertas =
-          compras.where((c) => c.estado == 'abierta').length;
+          compras.where((c) => c.status != 'closed').length;
 
       if (incidencias.isNotEmpty) {
         newAlerts.add(AdminAiAlertVM(

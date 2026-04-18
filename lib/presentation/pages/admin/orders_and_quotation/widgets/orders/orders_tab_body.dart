@@ -1,8 +1,4 @@
-/// Tab de solicitudes de compra con KPIs, filtros y listado real.
-///
-/// Fase 1: conectado a AdminPurchaseController.requests (datos reales).
-/// Reemplaza la versión mock anterior que usaba OrderCard con datos hardcoded.
-/// SavingsHeroCard se oculta — no hay dato de ahorro disponible en la entidad.
+/// Tab de solicitudes de compra con KPIs, filtros y listado real canónico.
 library;
 
 import 'package:flutter/material.dart';
@@ -30,12 +26,10 @@ class _OrdersTabBodyState extends State<OrdersTabBody> {
     final c = widget.controller;
 
     return Obx(() {
-      // ── Loading ──────────────────────────────────────────────────────────
       if (c.loading.value) {
         return const Center(child: CircularProgressIndicator());
       }
 
-      // ── Error ────────────────────────────────────────────────────────────
       if (c.error.value != null) {
         return Center(
           child: Column(
@@ -50,17 +44,14 @@ class _OrdersTabBodyState extends State<OrdersTabBody> {
         );
       }
 
-      // ── Filtrar por estado seleccionado ───────────────────────────────
-      final estadoFilter = OrdersStatusChips.estadoForIndex(_statusIndex);
-      final filtered = estadoFilter == null
-          ? c.requests.toList()
-          : c.requests.where((r) => r.estado == estadoFilter).toList();
+      final filter = OrdersStatusChips.filterForIndex(_statusIndex);
+      final filtered =
+          c.requests.where((r) => filter.matches(r.status)).toList();
 
       return Stack(children: [
         ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
           children: [
-            // KPIs reales desde el controller
             KpiTriadRow(
               total: c.totalCount,
               open: c.openCount,
@@ -75,17 +66,17 @@ class _OrdersTabBodyState extends State<OrdersTabBody> {
               onChanged: (i) => setState(() => _statusIndex = i),
             ),
             const SizedBox(height: 12),
-
-            // ── Lista o empty state ────────────────────────────────────────
             if (filtered.isEmpty)
-              _EmptyState(hasFilter: estadoFilter != null)
+              _EmptyState(hasFilter: _statusIndex != 0)
             else
               ...filtered.map((r) => PurchaseRequestCard(
                     id: r.id,
-                    tipoRepuesto: r.tipoRepuesto,
-                    cantidad: r.cantidad,
-                    estado: r.estado,
-                    ciudadEntrega: r.ciudadEntrega,
+                    title: r.title,
+                    type: r.type,
+                    category: r.category,
+                    itemsCount: r.itemsCount,
+                    status: r.status,
+                    deliveryCity: r.delivery?.city,
                     respuestasCount: r.respuestasCount,
                     assetId: r.assetId,
                     createdAt: r.createdAt,
@@ -97,11 +88,6 @@ class _OrdersTabBodyState extends State<OrdersTabBody> {
                   )),
           ],
         ),
-
-        // FAB — creación diferida a Fase 2.
-        // bottom: 16 estándar. El Scaffold del shell ya posiciona el body ARRIBA
-        // del bottomNavigationBar (SafeArea + CustomFloatingNavBar), así que no
-        // hace falta compensar manualmente la altura del nav bar.
         Positioned(
           right: 16,
           bottom: 16,
@@ -133,7 +119,7 @@ class _EmptyState extends StatelessWidget {
           Text(
             hasFilter
                 ? 'Sin solicitudes con este estado'
-                : 'Sin solicitudes de compra',
+                : 'Sin solicitudes',
             style: t.textTheme.bodyMedium?.copyWith(color: t.hintColor),
           ),
           if (!hasFilter) ...[

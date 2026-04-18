@@ -1,7 +1,28 @@
+// ============================================================================
+// lib/data/models/purchase/purchase_request_model.dart
+// PURCHASE REQUEST MODEL (Isar cache) — alineado al contrato canónico
+// ============================================================================
+// QUÉ HACE:
+//   - Persiste en Isar el header canónico de una PurchaseRequest (title, type
+//     wire-string, category, originType wire-string, assetId, notes, delivery
+//     flat, status, counts, timestamps).
+//   - NO persiste la lista detallada de ítems ni vendorContactIds — esas se
+//     cargan on-demand desde backend cuando el caller las necesite.
+//
+// QUÉ NO HACE:
+//   - No acopla el contrato persistente a enums Dart: persiste strings wire
+//     para ser tolerante a renames del enum en dominio.
+//
+// PRINCIPIOS:
+//   - Isar cache es para listados (admin), no source of truth.
+//   - El mapper server→model traduce enums a wire-string y cuenta items.
+// ============================================================================
+
 import 'package:avanzza/core/utils/datetime_timestamp_converter.dart';
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
+import '../../../domain/entities/purchase/create_purchase_request_input.dart';
 import '../../../domain/entities/purchase/purchase_request_entity.dart'
     as domain;
 
@@ -16,20 +37,27 @@ class PurchaseRequestModel {
   final String id;
   @Index()
   final String orgId;
+
+  final String title;
+  final String typeWire; // 'PRODUCT' | 'SERVICE'
+  final String? category;
+  final String originTypeWire; // 'ASSET' | 'INVENTORY' | 'GENERAL'
   @Index()
   final String? assetId;
-  final String tipoRepuesto;
-  final String? specs;
-  final int cantidad;
+  final String? notes;
+
+  // Delivery flat (nullable en bloque)
+  final String? deliveryCity;
+  final String? deliveryDepartment;
+  final String? deliveryAddress;
+  final String? deliveryInfo;
+
+  final int itemsCount;
+
   @Index()
-  final String ciudadEntrega; // cityId
-  final List<String> proveedorIdsInvitados;
-  @Index()
-  final String estado;
+  final String status; // sent | partially_responded | responded | closed
   final int respuestasCount;
-  final String currencyCode;
-  @DateTimeTimestampConverter()
-  final DateTime? expectedDate;
+
   @DateTimeTimestampConverter()
   final DateTime? createdAt;
   @DateTimeTimestampConverter()
@@ -39,16 +67,19 @@ class PurchaseRequestModel {
     this.isarId,
     required this.id,
     required this.orgId,
+    required this.title,
+    required this.typeWire,
+    this.category,
+    required this.originTypeWire,
     this.assetId,
-    required this.tipoRepuesto,
-    this.specs,
-    required this.cantidad,
-    required this.ciudadEntrega,
-    this.proveedorIdsInvitados = const [],
-    required this.estado,
+    this.notes,
+    this.deliveryCity,
+    this.deliveryDepartment,
+    this.deliveryAddress,
+    this.deliveryInfo,
+    this.itemsCount = 0,
+    required this.status,
     this.respuestasCount = 0,
-    required this.currencyCode,
-    this.expectedDate,
     this.createdAt,
     this.updatedAt,
   });
@@ -56,42 +87,52 @@ class PurchaseRequestModel {
   factory PurchaseRequestModel.fromJson(Map<String, dynamic> json) =>
       _$PurchaseRequestModelFromJson(json);
   Map<String, dynamic> toJson() => _$PurchaseRequestModelToJson(this);
-  factory PurchaseRequestModel.fromFirestore(
-          String docId, Map<String, dynamic> json) =>
-      PurchaseRequestModel.fromJson({...json, 'id': docId});
 
-  factory PurchaseRequestModel.fromEntity(domain.PurchaseRequestEntity e) =>
-      PurchaseRequestModel(
-        id: e.id,
-        orgId: e.orgId,
-        assetId: e.assetId,
-        tipoRepuesto: e.tipoRepuesto,
-        specs: e.specs,
-        cantidad: e.cantidad,
-        ciudadEntrega: e.ciudadEntrega,
-        proveedorIdsInvitados: e.proveedorIdsInvitados,
-        estado: e.estado,
-        respuestasCount: e.respuestasCount,
-        currencyCode: e.currencyCode,
-        expectedDate: e.expectedDate,
-        createdAt: e.createdAt,
-        updatedAt: e.updatedAt,
-      );
+  // ───────────────────────────────────────────────────────────────────────────
+  // Mapping to domain
+  // ───────────────────────────────────────────────────────────────────────────
 
-  domain.PurchaseRequestEntity toEntity() => domain.PurchaseRequestEntity(
-        id: id,
-        orgId: orgId,
-        assetId: assetId,
-        tipoRepuesto: tipoRepuesto,
-        specs: specs,
-        cantidad: cantidad,
-        ciudadEntrega: ciudadEntrega,
-        proveedorIdsInvitados: proveedorIdsInvitados,
-        estado: estado,
-        respuestasCount: respuestasCount,
-        currencyCode: currencyCode,
-        expectedDate: expectedDate,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-      );
+  domain.PurchaseRequestEntity toEntity() {
+    final hasDelivery = (deliveryCity ?? '').isNotEmpty &&
+        (deliveryAddress ?? '').isNotEmpty;
+    return domain.PurchaseRequestEntity(
+      id: id,
+      orgId: orgId,
+      title: title,
+      type: _typeFromWire(typeWire),
+      category: category,
+      originType: _originFromWire(originTypeWire),
+      assetId: assetId,
+      notes: notes,
+      delivery: hasDelivery
+          ? domain.PurchaseRequestDeliveryEntity(
+              department: deliveryDepartment,
+              city: deliveryCity!,
+              address: deliveryAddress!,
+              info: deliveryInfo,
+            )
+          : null,
+      itemsCount: itemsCount,
+      items: const <domain.PurchaseRequestItemEntity>[],
+      vendorContactIds: const <String>[],
+      status: status,
+      respuestasCount: respuestasCount,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+  }
+
+  static PurchaseRequestTypeInput _typeFromWire(String wire) {
+    for (final t in PurchaseRequestTypeInput.values) {
+      if (t.wireName == wire) return t;
+    }
+    return PurchaseRequestTypeInput.product;
+  }
+
+  static PurchaseRequestOriginInput _originFromWire(String wire) {
+    for (final o in PurchaseRequestOriginInput.values) {
+      if (o.wireName == wire) return o;
+    }
+    return PurchaseRequestOriginInput.general;
+  }
 }

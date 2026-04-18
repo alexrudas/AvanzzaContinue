@@ -1,9 +1,4 @@
-/// Tab de cotizaciones — solicitudes con respuestas de proveedores.
-///
-/// Fase 1: muestra solicitudes que tienen respuestasCount > 0.
-/// Usa PurchaseRequestCard (misma tarjeta que el tab de solicitudes)
-/// filtrada a las que ya recibieron al menos una cotización.
-/// El detalle de cada respuesta (precios, proveedores) es Fase 2.
+/// Tab de cotizaciones — solicitudes canónicas filtradas por respuestas.
 library;
 
 import 'package:flutter/material.dart';
@@ -21,12 +16,10 @@ class QuotesTabBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      // ── Loading ──────────────────────────────────────────────────────────
       if (controller.loading.value) {
         return const Center(child: CircularProgressIndicator());
       }
 
-      // ── Todas las solicitudes — cada una ES una solicitud de cotización ──
       final all = controller.requests.toList();
       final withResponsesCount =
           all.where((r) => r.respuestasCount > 0).length;
@@ -48,10 +41,12 @@ class QuotesTabBody extends StatelessWidget {
             else
               ...all.map((r) => PurchaseRequestCard(
                     id: r.id,
-                    tipoRepuesto: r.tipoRepuesto,
-                    cantidad: r.cantidad,
-                    estado: r.estado,
-                    ciudadEntrega: r.ciudadEntrega,
+                    title: r.title,
+                    type: r.type,
+                    category: r.category,
+                    itemsCount: r.itemsCount,
+                    status: r.status,
+                    deliveryCity: r.delivery?.city,
                     respuestasCount: r.respuestasCount,
                     assetId: r.assetId,
                     createdAt: r.createdAt,
@@ -60,15 +55,12 @@ class QuotesTabBody extends StatelessWidget {
                       isScrollControlled: true,
                       builder: (_) => SupplierResponsesSheet(
                         requestId: r.id,
-                        tipoRepuesto: r.tipoRepuesto,
+                        title: r.title,
                       ),
                     ),
                   )),
           ],
         ),
-
-        // FAB — reutiliza el mismo formulario de creación de solicitud.
-        // Una cotización y una solicitud crean la misma PurchaseRequestEntity.
         Positioned(
           right: 16,
           bottom: 16,

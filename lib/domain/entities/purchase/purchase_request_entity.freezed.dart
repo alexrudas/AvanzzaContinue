@@ -13,19 +13,783 @@ part of 'purchase_request_entity.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
+mixin _$PurchaseRequestItemEntity {
+  String get id;
+  String get description;
+  num get quantity;
+  String get unit;
+  String? get notes;
+
+  /// Create a copy of PurchaseRequestItemEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $PurchaseRequestItemEntityCopyWith<PurchaseRequestItemEntity> get copyWith =>
+      _$PurchaseRequestItemEntityCopyWithImpl<PurchaseRequestItemEntity>(
+          this as PurchaseRequestItemEntity, _$identity);
+
+  /// Serializes this PurchaseRequestItemEntity to a JSON map.
+  Map<String, dynamic> toJson();
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is PurchaseRequestItemEntity &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.description, description) ||
+                other.description == description) &&
+            (identical(other.quantity, quantity) ||
+                other.quantity == quantity) &&
+            (identical(other.unit, unit) || other.unit == unit) &&
+            (identical(other.notes, notes) || other.notes == notes));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, id, description, quantity, unit, notes);
+
+  @override
+  String toString() {
+    return 'PurchaseRequestItemEntity(id: $id, description: $description, quantity: $quantity, unit: $unit, notes: $notes)';
+  }
+}
+
+/// @nodoc
+abstract mixin class $PurchaseRequestItemEntityCopyWith<$Res> {
+  factory $PurchaseRequestItemEntityCopyWith(PurchaseRequestItemEntity value,
+          $Res Function(PurchaseRequestItemEntity) _then) =
+      _$PurchaseRequestItemEntityCopyWithImpl;
+  @useResult
+  $Res call(
+      {String id,
+      String description,
+      num quantity,
+      String unit,
+      String? notes});
+}
+
+/// @nodoc
+class _$PurchaseRequestItemEntityCopyWithImpl<$Res>
+    implements $PurchaseRequestItemEntityCopyWith<$Res> {
+  _$PurchaseRequestItemEntityCopyWithImpl(this._self, this._then);
+
+  final PurchaseRequestItemEntity _self;
+  final $Res Function(PurchaseRequestItemEntity) _then;
+
+  /// Create a copy of PurchaseRequestItemEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? description = null,
+    Object? quantity = null,
+    Object? unit = null,
+    Object? notes = freezed,
+  }) {
+    return _then(_self.copyWith(
+      id: null == id
+          ? _self.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      description: null == description
+          ? _self.description
+          : description // ignore: cast_nullable_to_non_nullable
+              as String,
+      quantity: null == quantity
+          ? _self.quantity
+          : quantity // ignore: cast_nullable_to_non_nullable
+              as num,
+      unit: null == unit
+          ? _self.unit
+          : unit // ignore: cast_nullable_to_non_nullable
+              as String,
+      notes: freezed == notes
+          ? _self.notes
+          : notes // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+/// Adds pattern-matching-related methods to [PurchaseRequestItemEntity].
+extension PurchaseRequestItemEntityPatterns on PurchaseRequestItemEntity {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_PurchaseRequestItemEntity value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestItemEntity() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_PurchaseRequestItemEntity value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestItemEntity():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_PurchaseRequestItemEntity value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestItemEntity() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(String id, String description, num quantity, String unit,
+            String? notes)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestItemEntity() when $default != null:
+        return $default(_that.id, _that.description, _that.quantity, _that.unit,
+            _that.notes);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(String id, String description, num quantity, String unit,
+            String? notes)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestItemEntity():
+        return $default(_that.id, _that.description, _that.quantity, _that.unit,
+            _that.notes);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(String id, String description, num quantity, String unit,
+            String? notes)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestItemEntity() when $default != null:
+        return $default(_that.id, _that.description, _that.quantity, _that.unit,
+            _that.notes);
+      case _:
+        return null;
+    }
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _PurchaseRequestItemEntity implements PurchaseRequestItemEntity {
+  const _PurchaseRequestItemEntity(
+      {required this.id,
+      required this.description,
+      required this.quantity,
+      required this.unit,
+      this.notes});
+  factory _PurchaseRequestItemEntity.fromJson(Map<String, dynamic> json) =>
+      _$PurchaseRequestItemEntityFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String description;
+  @override
+  final num quantity;
+  @override
+  final String unit;
+  @override
+  final String? notes;
+
+  /// Create a copy of PurchaseRequestItemEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$PurchaseRequestItemEntityCopyWith<_PurchaseRequestItemEntity>
+      get copyWith =>
+          __$PurchaseRequestItemEntityCopyWithImpl<_PurchaseRequestItemEntity>(
+              this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$PurchaseRequestItemEntityToJson(
+      this,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _PurchaseRequestItemEntity &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.description, description) ||
+                other.description == description) &&
+            (identical(other.quantity, quantity) ||
+                other.quantity == quantity) &&
+            (identical(other.unit, unit) || other.unit == unit) &&
+            (identical(other.notes, notes) || other.notes == notes));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, id, description, quantity, unit, notes);
+
+  @override
+  String toString() {
+    return 'PurchaseRequestItemEntity(id: $id, description: $description, quantity: $quantity, unit: $unit, notes: $notes)';
+  }
+}
+
+/// @nodoc
+abstract mixin class _$PurchaseRequestItemEntityCopyWith<$Res>
+    implements $PurchaseRequestItemEntityCopyWith<$Res> {
+  factory _$PurchaseRequestItemEntityCopyWith(_PurchaseRequestItemEntity value,
+          $Res Function(_PurchaseRequestItemEntity) _then) =
+      __$PurchaseRequestItemEntityCopyWithImpl;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String description,
+      num quantity,
+      String unit,
+      String? notes});
+}
+
+/// @nodoc
+class __$PurchaseRequestItemEntityCopyWithImpl<$Res>
+    implements _$PurchaseRequestItemEntityCopyWith<$Res> {
+  __$PurchaseRequestItemEntityCopyWithImpl(this._self, this._then);
+
+  final _PurchaseRequestItemEntity _self;
+  final $Res Function(_PurchaseRequestItemEntity) _then;
+
+  /// Create a copy of PurchaseRequestItemEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? id = null,
+    Object? description = null,
+    Object? quantity = null,
+    Object? unit = null,
+    Object? notes = freezed,
+  }) {
+    return _then(_PurchaseRequestItemEntity(
+      id: null == id
+          ? _self.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      description: null == description
+          ? _self.description
+          : description // ignore: cast_nullable_to_non_nullable
+              as String,
+      quantity: null == quantity
+          ? _self.quantity
+          : quantity // ignore: cast_nullable_to_non_nullable
+              as num,
+      unit: null == unit
+          ? _self.unit
+          : unit // ignore: cast_nullable_to_non_nullable
+              as String,
+      notes: freezed == notes
+          ? _self.notes
+          : notes // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+/// @nodoc
+mixin _$PurchaseRequestDeliveryEntity {
+  String? get department;
+  String get city;
+  String get address;
+  String? get info;
+
+  /// Create a copy of PurchaseRequestDeliveryEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $PurchaseRequestDeliveryEntityCopyWith<PurchaseRequestDeliveryEntity>
+      get copyWith => _$PurchaseRequestDeliveryEntityCopyWithImpl<
+              PurchaseRequestDeliveryEntity>(
+          this as PurchaseRequestDeliveryEntity, _$identity);
+
+  /// Serializes this PurchaseRequestDeliveryEntity to a JSON map.
+  Map<String, dynamic> toJson();
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is PurchaseRequestDeliveryEntity &&
+            (identical(other.department, department) ||
+                other.department == department) &&
+            (identical(other.city, city) || other.city == city) &&
+            (identical(other.address, address) || other.address == address) &&
+            (identical(other.info, info) || other.info == info));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, department, city, address, info);
+
+  @override
+  String toString() {
+    return 'PurchaseRequestDeliveryEntity(department: $department, city: $city, address: $address, info: $info)';
+  }
+}
+
+/// @nodoc
+abstract mixin class $PurchaseRequestDeliveryEntityCopyWith<$Res> {
+  factory $PurchaseRequestDeliveryEntityCopyWith(
+          PurchaseRequestDeliveryEntity value,
+          $Res Function(PurchaseRequestDeliveryEntity) _then) =
+      _$PurchaseRequestDeliveryEntityCopyWithImpl;
+  @useResult
+  $Res call({String? department, String city, String address, String? info});
+}
+
+/// @nodoc
+class _$PurchaseRequestDeliveryEntityCopyWithImpl<$Res>
+    implements $PurchaseRequestDeliveryEntityCopyWith<$Res> {
+  _$PurchaseRequestDeliveryEntityCopyWithImpl(this._self, this._then);
+
+  final PurchaseRequestDeliveryEntity _self;
+  final $Res Function(PurchaseRequestDeliveryEntity) _then;
+
+  /// Create a copy of PurchaseRequestDeliveryEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? department = freezed,
+    Object? city = null,
+    Object? address = null,
+    Object? info = freezed,
+  }) {
+    return _then(_self.copyWith(
+      department: freezed == department
+          ? _self.department
+          : department // ignore: cast_nullable_to_non_nullable
+              as String?,
+      city: null == city
+          ? _self.city
+          : city // ignore: cast_nullable_to_non_nullable
+              as String,
+      address: null == address
+          ? _self.address
+          : address // ignore: cast_nullable_to_non_nullable
+              as String,
+      info: freezed == info
+          ? _self.info
+          : info // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+/// Adds pattern-matching-related methods to [PurchaseRequestDeliveryEntity].
+extension PurchaseRequestDeliveryEntityPatterns
+    on PurchaseRequestDeliveryEntity {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_PurchaseRequestDeliveryEntity value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestDeliveryEntity() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_PurchaseRequestDeliveryEntity value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestDeliveryEntity():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_PurchaseRequestDeliveryEntity value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestDeliveryEntity() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(
+            String? department, String city, String address, String? info)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestDeliveryEntity() when $default != null:
+        return $default(
+            _that.department, _that.city, _that.address, _that.info);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(
+            String? department, String city, String address, String? info)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestDeliveryEntity():
+        return $default(
+            _that.department, _that.city, _that.address, _that.info);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(
+            String? department, String city, String address, String? info)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestDeliveryEntity() when $default != null:
+        return $default(
+            _that.department, _that.city, _that.address, _that.info);
+      case _:
+        return null;
+    }
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _PurchaseRequestDeliveryEntity implements PurchaseRequestDeliveryEntity {
+  const _PurchaseRequestDeliveryEntity(
+      {this.department, required this.city, required this.address, this.info});
+  factory _PurchaseRequestDeliveryEntity.fromJson(Map<String, dynamic> json) =>
+      _$PurchaseRequestDeliveryEntityFromJson(json);
+
+  @override
+  final String? department;
+  @override
+  final String city;
+  @override
+  final String address;
+  @override
+  final String? info;
+
+  /// Create a copy of PurchaseRequestDeliveryEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$PurchaseRequestDeliveryEntityCopyWith<_PurchaseRequestDeliveryEntity>
+      get copyWith => __$PurchaseRequestDeliveryEntityCopyWithImpl<
+          _PurchaseRequestDeliveryEntity>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$PurchaseRequestDeliveryEntityToJson(
+      this,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _PurchaseRequestDeliveryEntity &&
+            (identical(other.department, department) ||
+                other.department == department) &&
+            (identical(other.city, city) || other.city == city) &&
+            (identical(other.address, address) || other.address == address) &&
+            (identical(other.info, info) || other.info == info));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, department, city, address, info);
+
+  @override
+  String toString() {
+    return 'PurchaseRequestDeliveryEntity(department: $department, city: $city, address: $address, info: $info)';
+  }
+}
+
+/// @nodoc
+abstract mixin class _$PurchaseRequestDeliveryEntityCopyWith<$Res>
+    implements $PurchaseRequestDeliveryEntityCopyWith<$Res> {
+  factory _$PurchaseRequestDeliveryEntityCopyWith(
+          _PurchaseRequestDeliveryEntity value,
+          $Res Function(_PurchaseRequestDeliveryEntity) _then) =
+      __$PurchaseRequestDeliveryEntityCopyWithImpl;
+  @override
+  @useResult
+  $Res call({String? department, String city, String address, String? info});
+}
+
+/// @nodoc
+class __$PurchaseRequestDeliveryEntityCopyWithImpl<$Res>
+    implements _$PurchaseRequestDeliveryEntityCopyWith<$Res> {
+  __$PurchaseRequestDeliveryEntityCopyWithImpl(this._self, this._then);
+
+  final _PurchaseRequestDeliveryEntity _self;
+  final $Res Function(_PurchaseRequestDeliveryEntity) _then;
+
+  /// Create a copy of PurchaseRequestDeliveryEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? department = freezed,
+    Object? city = null,
+    Object? address = null,
+    Object? info = freezed,
+  }) {
+    return _then(_PurchaseRequestDeliveryEntity(
+      department: freezed == department
+          ? _self.department
+          : department // ignore: cast_nullable_to_non_nullable
+              as String?,
+      city: null == city
+          ? _self.city
+          : city // ignore: cast_nullable_to_non_nullable
+              as String,
+      address: null == address
+          ? _self.address
+          : address // ignore: cast_nullable_to_non_nullable
+              as String,
+      info: freezed == info
+          ? _self.info
+          : info // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+/// @nodoc
 mixin _$PurchaseRequestEntity {
   String get id;
   String get orgId;
+  String get title;
+  PurchaseRequestTypeInput get type;
+  String? get category;
+  PurchaseRequestOriginInput get originType;
   String? get assetId;
-  String get tipoRepuesto;
-  String? get specs;
-  int get cantidad;
-  String get ciudadEntrega; // cityId
-  List<String> get proveedorIdsInvitados;
-  String get estado; // abierta | cerrada | asignada
+  String? get notes;
+  PurchaseRequestDeliveryEntity? get delivery;
+
+  /// Cuenta de ítems (útil para list/detail sin cargar ítems detallados).
+  int get itemsCount;
+
+  /// Ítems detallados. Puede venir vacío cuando la entidad nace de cache.
+  List<PurchaseRequestItemEntity> get items;
+  List<String> get vendorContactIds;
+
+  /// Estado wire-stable: sent | partially_responded | responded | closed.
+  String get status;
   int get respuestasCount;
-  String get currencyCode;
-  DateTime? get expectedDate;
   DateTime? get createdAt;
   DateTime? get updatedAt;
 
@@ -47,23 +811,24 @@ mixin _$PurchaseRequestEntity {
             other is PurchaseRequestEntity &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.orgId, orgId) || other.orgId == orgId) &&
+            (identical(other.title, title) || other.title == title) &&
+            (identical(other.type, type) || other.type == type) &&
+            (identical(other.category, category) ||
+                other.category == category) &&
+            (identical(other.originType, originType) ||
+                other.originType == originType) &&
             (identical(other.assetId, assetId) || other.assetId == assetId) &&
-            (identical(other.tipoRepuesto, tipoRepuesto) ||
-                other.tipoRepuesto == tipoRepuesto) &&
-            (identical(other.specs, specs) || other.specs == specs) &&
-            (identical(other.cantidad, cantidad) ||
-                other.cantidad == cantidad) &&
-            (identical(other.ciudadEntrega, ciudadEntrega) ||
-                other.ciudadEntrega == ciudadEntrega) &&
+            (identical(other.notes, notes) || other.notes == notes) &&
+            (identical(other.delivery, delivery) ||
+                other.delivery == delivery) &&
+            (identical(other.itemsCount, itemsCount) ||
+                other.itemsCount == itemsCount) &&
+            const DeepCollectionEquality().equals(other.items, items) &&
             const DeepCollectionEquality()
-                .equals(other.proveedorIdsInvitados, proveedorIdsInvitados) &&
-            (identical(other.estado, estado) || other.estado == estado) &&
+                .equals(other.vendorContactIds, vendorContactIds) &&
+            (identical(other.status, status) || other.status == status) &&
             (identical(other.respuestasCount, respuestasCount) ||
                 other.respuestasCount == respuestasCount) &&
-            (identical(other.currencyCode, currencyCode) ||
-                other.currencyCode == currencyCode) &&
-            (identical(other.expectedDate, expectedDate) ||
-                other.expectedDate == expectedDate) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -76,22 +841,24 @@ mixin _$PurchaseRequestEntity {
       runtimeType,
       id,
       orgId,
+      title,
+      type,
+      category,
+      originType,
       assetId,
-      tipoRepuesto,
-      specs,
-      cantidad,
-      ciudadEntrega,
-      const DeepCollectionEquality().hash(proveedorIdsInvitados),
-      estado,
+      notes,
+      delivery,
+      itemsCount,
+      const DeepCollectionEquality().hash(items),
+      const DeepCollectionEquality().hash(vendorContactIds),
+      status,
       respuestasCount,
-      currencyCode,
-      expectedDate,
       createdAt,
       updatedAt);
 
   @override
   String toString() {
-    return 'PurchaseRequestEntity(id: $id, orgId: $orgId, assetId: $assetId, tipoRepuesto: $tipoRepuesto, specs: $specs, cantidad: $cantidad, ciudadEntrega: $ciudadEntrega, proveedorIdsInvitados: $proveedorIdsInvitados, estado: $estado, respuestasCount: $respuestasCount, currencyCode: $currencyCode, expectedDate: $expectedDate, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'PurchaseRequestEntity(id: $id, orgId: $orgId, title: $title, type: $type, category: $category, originType: $originType, assetId: $assetId, notes: $notes, delivery: $delivery, itemsCount: $itemsCount, items: $items, vendorContactIds: $vendorContactIds, status: $status, respuestasCount: $respuestasCount, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -104,18 +871,22 @@ abstract mixin class $PurchaseRequestEntityCopyWith<$Res> {
   $Res call(
       {String id,
       String orgId,
+      String title,
+      PurchaseRequestTypeInput type,
+      String? category,
+      PurchaseRequestOriginInput originType,
       String? assetId,
-      String tipoRepuesto,
-      String? specs,
-      int cantidad,
-      String ciudadEntrega,
-      List<String> proveedorIdsInvitados,
-      String estado,
+      String? notes,
+      PurchaseRequestDeliveryEntity? delivery,
+      int itemsCount,
+      List<PurchaseRequestItemEntity> items,
+      List<String> vendorContactIds,
+      String status,
       int respuestasCount,
-      String currencyCode,
-      DateTime? expectedDate,
       DateTime? createdAt,
       DateTime? updatedAt});
+
+  $PurchaseRequestDeliveryEntityCopyWith<$Res>? get delivery;
 }
 
 /// @nodoc
@@ -133,16 +904,18 @@ class _$PurchaseRequestEntityCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? orgId = null,
+    Object? title = null,
+    Object? type = null,
+    Object? category = freezed,
+    Object? originType = null,
     Object? assetId = freezed,
-    Object? tipoRepuesto = null,
-    Object? specs = freezed,
-    Object? cantidad = null,
-    Object? ciudadEntrega = null,
-    Object? proveedorIdsInvitados = null,
-    Object? estado = null,
+    Object? notes = freezed,
+    Object? delivery = freezed,
+    Object? itemsCount = null,
+    Object? items = null,
+    Object? vendorContactIds = null,
+    Object? status = null,
     Object? respuestasCount = null,
-    Object? currencyCode = null,
-    Object? expectedDate = freezed,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
@@ -155,46 +928,54 @@ class _$PurchaseRequestEntityCopyWithImpl<$Res>
           ? _self.orgId
           : orgId // ignore: cast_nullable_to_non_nullable
               as String,
+      title: null == title
+          ? _self.title
+          : title // ignore: cast_nullable_to_non_nullable
+              as String,
+      type: null == type
+          ? _self.type
+          : type // ignore: cast_nullable_to_non_nullable
+              as PurchaseRequestTypeInput,
+      category: freezed == category
+          ? _self.category
+          : category // ignore: cast_nullable_to_non_nullable
+              as String?,
+      originType: null == originType
+          ? _self.originType
+          : originType // ignore: cast_nullable_to_non_nullable
+              as PurchaseRequestOriginInput,
       assetId: freezed == assetId
           ? _self.assetId
           : assetId // ignore: cast_nullable_to_non_nullable
               as String?,
-      tipoRepuesto: null == tipoRepuesto
-          ? _self.tipoRepuesto
-          : tipoRepuesto // ignore: cast_nullable_to_non_nullable
-              as String,
-      specs: freezed == specs
-          ? _self.specs
-          : specs // ignore: cast_nullable_to_non_nullable
+      notes: freezed == notes
+          ? _self.notes
+          : notes // ignore: cast_nullable_to_non_nullable
               as String?,
-      cantidad: null == cantidad
-          ? _self.cantidad
-          : cantidad // ignore: cast_nullable_to_non_nullable
+      delivery: freezed == delivery
+          ? _self.delivery
+          : delivery // ignore: cast_nullable_to_non_nullable
+              as PurchaseRequestDeliveryEntity?,
+      itemsCount: null == itemsCount
+          ? _self.itemsCount
+          : itemsCount // ignore: cast_nullable_to_non_nullable
               as int,
-      ciudadEntrega: null == ciudadEntrega
-          ? _self.ciudadEntrega
-          : ciudadEntrega // ignore: cast_nullable_to_non_nullable
-              as String,
-      proveedorIdsInvitados: null == proveedorIdsInvitados
-          ? _self.proveedorIdsInvitados
-          : proveedorIdsInvitados // ignore: cast_nullable_to_non_nullable
+      items: null == items
+          ? _self.items
+          : items // ignore: cast_nullable_to_non_nullable
+              as List<PurchaseRequestItemEntity>,
+      vendorContactIds: null == vendorContactIds
+          ? _self.vendorContactIds
+          : vendorContactIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
-      estado: null == estado
-          ? _self.estado
-          : estado // ignore: cast_nullable_to_non_nullable
+      status: null == status
+          ? _self.status
+          : status // ignore: cast_nullable_to_non_nullable
               as String,
       respuestasCount: null == respuestasCount
           ? _self.respuestasCount
           : respuestasCount // ignore: cast_nullable_to_non_nullable
               as int,
-      currencyCode: null == currencyCode
-          ? _self.currencyCode
-          : currencyCode // ignore: cast_nullable_to_non_nullable
-              as String,
-      expectedDate: freezed == expectedDate
-          ? _self.expectedDate
-          : expectedDate // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
       createdAt: freezed == createdAt
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -204,6 +985,21 @@ class _$PurchaseRequestEntityCopyWithImpl<$Res>
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
     ));
+  }
+
+  /// Create a copy of PurchaseRequestEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $PurchaseRequestDeliveryEntityCopyWith<$Res>? get delivery {
+    if (_self.delivery == null) {
+      return null;
+    }
+
+    return $PurchaseRequestDeliveryEntityCopyWith<$Res>(_self.delivery!,
+        (value) {
+      return _then(_self.copyWith(delivery: value));
+    });
   }
 }
 
@@ -303,16 +1099,18 @@ extension PurchaseRequestEntityPatterns on PurchaseRequestEntity {
     TResult Function(
             String id,
             String orgId,
+            String title,
+            PurchaseRequestTypeInput type,
+            String? category,
+            PurchaseRequestOriginInput originType,
             String? assetId,
-            String tipoRepuesto,
-            String? specs,
-            int cantidad,
-            String ciudadEntrega,
-            List<String> proveedorIdsInvitados,
-            String estado,
+            String? notes,
+            PurchaseRequestDeliveryEntity? delivery,
+            int itemsCount,
+            List<PurchaseRequestItemEntity> items,
+            List<String> vendorContactIds,
+            String status,
             int respuestasCount,
-            String currencyCode,
-            DateTime? expectedDate,
             DateTime? createdAt,
             DateTime? updatedAt)?
         $default, {
@@ -324,16 +1122,18 @@ extension PurchaseRequestEntityPatterns on PurchaseRequestEntity {
         return $default(
             _that.id,
             _that.orgId,
+            _that.title,
+            _that.type,
+            _that.category,
+            _that.originType,
             _that.assetId,
-            _that.tipoRepuesto,
-            _that.specs,
-            _that.cantidad,
-            _that.ciudadEntrega,
-            _that.proveedorIdsInvitados,
-            _that.estado,
+            _that.notes,
+            _that.delivery,
+            _that.itemsCount,
+            _that.items,
+            _that.vendorContactIds,
+            _that.status,
             _that.respuestasCount,
-            _that.currencyCode,
-            _that.expectedDate,
             _that.createdAt,
             _that.updatedAt);
       case _:
@@ -359,16 +1159,18 @@ extension PurchaseRequestEntityPatterns on PurchaseRequestEntity {
     TResult Function(
             String id,
             String orgId,
+            String title,
+            PurchaseRequestTypeInput type,
+            String? category,
+            PurchaseRequestOriginInput originType,
             String? assetId,
-            String tipoRepuesto,
-            String? specs,
-            int cantidad,
-            String ciudadEntrega,
-            List<String> proveedorIdsInvitados,
-            String estado,
+            String? notes,
+            PurchaseRequestDeliveryEntity? delivery,
+            int itemsCount,
+            List<PurchaseRequestItemEntity> items,
+            List<String> vendorContactIds,
+            String status,
             int respuestasCount,
-            String currencyCode,
-            DateTime? expectedDate,
             DateTime? createdAt,
             DateTime? updatedAt)
         $default,
@@ -379,16 +1181,18 @@ extension PurchaseRequestEntityPatterns on PurchaseRequestEntity {
         return $default(
             _that.id,
             _that.orgId,
+            _that.title,
+            _that.type,
+            _that.category,
+            _that.originType,
             _that.assetId,
-            _that.tipoRepuesto,
-            _that.specs,
-            _that.cantidad,
-            _that.ciudadEntrega,
-            _that.proveedorIdsInvitados,
-            _that.estado,
+            _that.notes,
+            _that.delivery,
+            _that.itemsCount,
+            _that.items,
+            _that.vendorContactIds,
+            _that.status,
             _that.respuestasCount,
-            _that.currencyCode,
-            _that.expectedDate,
             _that.createdAt,
             _that.updatedAt);
       case _:
@@ -413,16 +1217,18 @@ extension PurchaseRequestEntityPatterns on PurchaseRequestEntity {
     TResult? Function(
             String id,
             String orgId,
+            String title,
+            PurchaseRequestTypeInput type,
+            String? category,
+            PurchaseRequestOriginInput originType,
             String? assetId,
-            String tipoRepuesto,
-            String? specs,
-            int cantidad,
-            String ciudadEntrega,
-            List<String> proveedorIdsInvitados,
-            String estado,
+            String? notes,
+            PurchaseRequestDeliveryEntity? delivery,
+            int itemsCount,
+            List<PurchaseRequestItemEntity> items,
+            List<String> vendorContactIds,
+            String status,
             int respuestasCount,
-            String currencyCode,
-            DateTime? expectedDate,
             DateTime? createdAt,
             DateTime? updatedAt)?
         $default,
@@ -433,16 +1239,18 @@ extension PurchaseRequestEntityPatterns on PurchaseRequestEntity {
         return $default(
             _that.id,
             _that.orgId,
+            _that.title,
+            _that.type,
+            _that.category,
+            _that.originType,
             _that.assetId,
-            _that.tipoRepuesto,
-            _that.specs,
-            _that.cantidad,
-            _that.ciudadEntrega,
-            _that.proveedorIdsInvitados,
-            _that.estado,
+            _that.notes,
+            _that.delivery,
+            _that.itemsCount,
+            _that.items,
+            _that.vendorContactIds,
+            _that.status,
             _that.respuestasCount,
-            _that.currencyCode,
-            _that.expectedDate,
             _that.createdAt,
             _that.updatedAt);
       case _:
@@ -457,19 +1265,23 @@ class _PurchaseRequestEntity implements PurchaseRequestEntity {
   const _PurchaseRequestEntity(
       {required this.id,
       required this.orgId,
+      required this.title,
+      required this.type,
+      this.category,
+      required this.originType,
       this.assetId,
-      required this.tipoRepuesto,
-      this.specs,
-      required this.cantidad,
-      required this.ciudadEntrega,
-      final List<String> proveedorIdsInvitados = const <String>[],
-      required this.estado,
+      this.notes,
+      this.delivery,
+      this.itemsCount = 0,
+      final List<PurchaseRequestItemEntity> items =
+          const <PurchaseRequestItemEntity>[],
+      final List<String> vendorContactIds = const <String>[],
+      required this.status,
       this.respuestasCount = 0,
-      required this.currencyCode,
-      this.expectedDate,
       this.createdAt,
       this.updatedAt})
-      : _proveedorIdsInvitados = proveedorIdsInvitados;
+      : _items = items,
+        _vendorContactIds = vendorContactIds;
   factory _PurchaseRequestEntity.fromJson(Map<String, dynamic> json) =>
       _$PurchaseRequestEntityFromJson(json);
 
@@ -478,37 +1290,53 @@ class _PurchaseRequestEntity implements PurchaseRequestEntity {
   @override
   final String orgId;
   @override
+  final String title;
+  @override
+  final PurchaseRequestTypeInput type;
+  @override
+  final String? category;
+  @override
+  final PurchaseRequestOriginInput originType;
+  @override
   final String? assetId;
   @override
-  final String tipoRepuesto;
+  final String? notes;
   @override
-  final String? specs;
-  @override
-  final int cantidad;
-  @override
-  final String ciudadEntrega;
-// cityId
-  final List<String> _proveedorIdsInvitados;
-// cityId
+  final PurchaseRequestDeliveryEntity? delivery;
+
+  /// Cuenta de ítems (útil para list/detail sin cargar ítems detallados).
   @override
   @JsonKey()
-  List<String> get proveedorIdsInvitados {
-    if (_proveedorIdsInvitados is EqualUnmodifiableListView)
-      return _proveedorIdsInvitados;
+  final int itemsCount;
+
+  /// Ítems detallados. Puede venir vacío cuando la entidad nace de cache.
+  final List<PurchaseRequestItemEntity> _items;
+
+  /// Ítems detallados. Puede venir vacío cuando la entidad nace de cache.
+  @override
+  @JsonKey()
+  List<PurchaseRequestItemEntity> get items {
+    if (_items is EqualUnmodifiableListView) return _items;
     // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_proveedorIdsInvitados);
+    return EqualUnmodifiableListView(_items);
   }
 
+  final List<String> _vendorContactIds;
   @override
-  final String estado;
-// abierta | cerrada | asignada
+  @JsonKey()
+  List<String> get vendorContactIds {
+    if (_vendorContactIds is EqualUnmodifiableListView)
+      return _vendorContactIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_vendorContactIds);
+  }
+
+  /// Estado wire-stable: sent | partially_responded | responded | closed.
+  @override
+  final String status;
   @override
   @JsonKey()
   final int respuestasCount;
-  @override
-  final String currencyCode;
-  @override
-  final DateTime? expectedDate;
   @override
   final DateTime? createdAt;
   @override
@@ -537,23 +1365,24 @@ class _PurchaseRequestEntity implements PurchaseRequestEntity {
             other is _PurchaseRequestEntity &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.orgId, orgId) || other.orgId == orgId) &&
+            (identical(other.title, title) || other.title == title) &&
+            (identical(other.type, type) || other.type == type) &&
+            (identical(other.category, category) ||
+                other.category == category) &&
+            (identical(other.originType, originType) ||
+                other.originType == originType) &&
             (identical(other.assetId, assetId) || other.assetId == assetId) &&
-            (identical(other.tipoRepuesto, tipoRepuesto) ||
-                other.tipoRepuesto == tipoRepuesto) &&
-            (identical(other.specs, specs) || other.specs == specs) &&
-            (identical(other.cantidad, cantidad) ||
-                other.cantidad == cantidad) &&
-            (identical(other.ciudadEntrega, ciudadEntrega) ||
-                other.ciudadEntrega == ciudadEntrega) &&
+            (identical(other.notes, notes) || other.notes == notes) &&
+            (identical(other.delivery, delivery) ||
+                other.delivery == delivery) &&
+            (identical(other.itemsCount, itemsCount) ||
+                other.itemsCount == itemsCount) &&
+            const DeepCollectionEquality().equals(other._items, _items) &&
             const DeepCollectionEquality()
-                .equals(other._proveedorIdsInvitados, _proveedorIdsInvitados) &&
-            (identical(other.estado, estado) || other.estado == estado) &&
+                .equals(other._vendorContactIds, _vendorContactIds) &&
+            (identical(other.status, status) || other.status == status) &&
             (identical(other.respuestasCount, respuestasCount) ||
                 other.respuestasCount == respuestasCount) &&
-            (identical(other.currencyCode, currencyCode) ||
-                other.currencyCode == currencyCode) &&
-            (identical(other.expectedDate, expectedDate) ||
-                other.expectedDate == expectedDate) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -566,22 +1395,24 @@ class _PurchaseRequestEntity implements PurchaseRequestEntity {
       runtimeType,
       id,
       orgId,
+      title,
+      type,
+      category,
+      originType,
       assetId,
-      tipoRepuesto,
-      specs,
-      cantidad,
-      ciudadEntrega,
-      const DeepCollectionEquality().hash(_proveedorIdsInvitados),
-      estado,
+      notes,
+      delivery,
+      itemsCount,
+      const DeepCollectionEquality().hash(_items),
+      const DeepCollectionEquality().hash(_vendorContactIds),
+      status,
       respuestasCount,
-      currencyCode,
-      expectedDate,
       createdAt,
       updatedAt);
 
   @override
   String toString() {
-    return 'PurchaseRequestEntity(id: $id, orgId: $orgId, assetId: $assetId, tipoRepuesto: $tipoRepuesto, specs: $specs, cantidad: $cantidad, ciudadEntrega: $ciudadEntrega, proveedorIdsInvitados: $proveedorIdsInvitados, estado: $estado, respuestasCount: $respuestasCount, currencyCode: $currencyCode, expectedDate: $expectedDate, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'PurchaseRequestEntity(id: $id, orgId: $orgId, title: $title, type: $type, category: $category, originType: $originType, assetId: $assetId, notes: $notes, delivery: $delivery, itemsCount: $itemsCount, items: $items, vendorContactIds: $vendorContactIds, status: $status, respuestasCount: $respuestasCount, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -596,18 +1427,23 @@ abstract mixin class _$PurchaseRequestEntityCopyWith<$Res>
   $Res call(
       {String id,
       String orgId,
+      String title,
+      PurchaseRequestTypeInput type,
+      String? category,
+      PurchaseRequestOriginInput originType,
       String? assetId,
-      String tipoRepuesto,
-      String? specs,
-      int cantidad,
-      String ciudadEntrega,
-      List<String> proveedorIdsInvitados,
-      String estado,
+      String? notes,
+      PurchaseRequestDeliveryEntity? delivery,
+      int itemsCount,
+      List<PurchaseRequestItemEntity> items,
+      List<String> vendorContactIds,
+      String status,
       int respuestasCount,
-      String currencyCode,
-      DateTime? expectedDate,
       DateTime? createdAt,
       DateTime? updatedAt});
+
+  @override
+  $PurchaseRequestDeliveryEntityCopyWith<$Res>? get delivery;
 }
 
 /// @nodoc
@@ -625,16 +1461,18 @@ class __$PurchaseRequestEntityCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? orgId = null,
+    Object? title = null,
+    Object? type = null,
+    Object? category = freezed,
+    Object? originType = null,
     Object? assetId = freezed,
-    Object? tipoRepuesto = null,
-    Object? specs = freezed,
-    Object? cantidad = null,
-    Object? ciudadEntrega = null,
-    Object? proveedorIdsInvitados = null,
-    Object? estado = null,
+    Object? notes = freezed,
+    Object? delivery = freezed,
+    Object? itemsCount = null,
+    Object? items = null,
+    Object? vendorContactIds = null,
+    Object? status = null,
     Object? respuestasCount = null,
-    Object? currencyCode = null,
-    Object? expectedDate = freezed,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
@@ -647,46 +1485,54 @@ class __$PurchaseRequestEntityCopyWithImpl<$Res>
           ? _self.orgId
           : orgId // ignore: cast_nullable_to_non_nullable
               as String,
+      title: null == title
+          ? _self.title
+          : title // ignore: cast_nullable_to_non_nullable
+              as String,
+      type: null == type
+          ? _self.type
+          : type // ignore: cast_nullable_to_non_nullable
+              as PurchaseRequestTypeInput,
+      category: freezed == category
+          ? _self.category
+          : category // ignore: cast_nullable_to_non_nullable
+              as String?,
+      originType: null == originType
+          ? _self.originType
+          : originType // ignore: cast_nullable_to_non_nullable
+              as PurchaseRequestOriginInput,
       assetId: freezed == assetId
           ? _self.assetId
           : assetId // ignore: cast_nullable_to_non_nullable
               as String?,
-      tipoRepuesto: null == tipoRepuesto
-          ? _self.tipoRepuesto
-          : tipoRepuesto // ignore: cast_nullable_to_non_nullable
-              as String,
-      specs: freezed == specs
-          ? _self.specs
-          : specs // ignore: cast_nullable_to_non_nullable
+      notes: freezed == notes
+          ? _self.notes
+          : notes // ignore: cast_nullable_to_non_nullable
               as String?,
-      cantidad: null == cantidad
-          ? _self.cantidad
-          : cantidad // ignore: cast_nullable_to_non_nullable
+      delivery: freezed == delivery
+          ? _self.delivery
+          : delivery // ignore: cast_nullable_to_non_nullable
+              as PurchaseRequestDeliveryEntity?,
+      itemsCount: null == itemsCount
+          ? _self.itemsCount
+          : itemsCount // ignore: cast_nullable_to_non_nullable
               as int,
-      ciudadEntrega: null == ciudadEntrega
-          ? _self.ciudadEntrega
-          : ciudadEntrega // ignore: cast_nullable_to_non_nullable
-              as String,
-      proveedorIdsInvitados: null == proveedorIdsInvitados
-          ? _self._proveedorIdsInvitados
-          : proveedorIdsInvitados // ignore: cast_nullable_to_non_nullable
+      items: null == items
+          ? _self._items
+          : items // ignore: cast_nullable_to_non_nullable
+              as List<PurchaseRequestItemEntity>,
+      vendorContactIds: null == vendorContactIds
+          ? _self._vendorContactIds
+          : vendorContactIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
-      estado: null == estado
-          ? _self.estado
-          : estado // ignore: cast_nullable_to_non_nullable
+      status: null == status
+          ? _self.status
+          : status // ignore: cast_nullable_to_non_nullable
               as String,
       respuestasCount: null == respuestasCount
           ? _self.respuestasCount
           : respuestasCount // ignore: cast_nullable_to_non_nullable
               as int,
-      currencyCode: null == currencyCode
-          ? _self.currencyCode
-          : currencyCode // ignore: cast_nullable_to_non_nullable
-              as String,
-      expectedDate: freezed == expectedDate
-          ? _self.expectedDate
-          : expectedDate // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
       createdAt: freezed == createdAt
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -696,6 +1542,21 @@ class __$PurchaseRequestEntityCopyWithImpl<$Res>
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
     ));
+  }
+
+  /// Create a copy of PurchaseRequestEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $PurchaseRequestDeliveryEntityCopyWith<$Res>? get delivery {
+    if (_self.delivery == null) {
+      return null;
+    }
+
+    return $PurchaseRequestDeliveryEntityCopyWith<$Res>(_self.delivery!,
+        (value) {
+      return _then(_self.copyWith(delivery: value));
+    });
   }
 }
 

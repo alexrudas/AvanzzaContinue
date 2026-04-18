@@ -1,14 +1,14 @@
 // ============================================================================
 // test/data/repositories/purchase/purchase_repository_core_api_test.dart
-// PURCHASE REPOSITORY — Core API migration tests (F5 Hito 17)
+// PURCHASE REPOSITORY — Core API canonical create path
 // ============================================================================
 // Valida:
-//   - upsertRequest llama a PurchaseApiClient.createPurchaseRequest con el
-//     payload correcto (title, notes, items[0], vendorContactIds) y NO
-//     envía orgId ni requestedBy.
-//   - upsertRequest hidrata el cache local con el PR canónico devuelto por
-//     el backend (no con el id del cliente).
-//   - upsertRequest falla explícitamente si vendorContactIds está vacío.
+//   - createRequest() llama a PurchaseApiClient.createPurchaseRequest con el
+//     payload canónico (title, type, category, originType, assetId, notes,
+//     delivery, items[], vendorContactIds) y NO envía orgId ni requestedBy.
+//   - createRequest() hidrata el cache local con el PR canónico devuelto por
+//     el backend (no con un id cliente).
+//   - createRequest() falla explícitamente si vendorContactIds está vacío.
 //   - fetchRequestsByOrg refresca desde Core API y devuelve cache local.
 //   - fetchResponsesByRequest mapea quotes del backend a
 //     SupplierResponseEntity y llena cache local.
@@ -19,7 +19,7 @@ import 'package:avanzza/data/models/purchase/supplier_response_model.dart';
 import 'package:avanzza/data/repositories/purchase_repository_impl.dart';
 import 'package:avanzza/data/sources/local/purchase_local_ds.dart';
 import 'package:avanzza/data/sources/remote/purchase/purchase_api_client.dart';
-import 'package:avanzza/domain/entities/purchase/purchase_request_entity.dart';
+import 'package:avanzza/domain/entities/purchase/create_purchase_request_input.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // ─── Fakes ──────────────────────────────────────────────────────────────────
@@ -48,7 +48,7 @@ class _FakeApiClient implements PurchaseApiClient {
     'orgId': 'ws-1',
     'requestedBy': 'user-1',
     'coordinationFlowId': 'flow-1',
-    'title': 'Filtro',
+    'title': 'Insumos',
     'notes': null,
     'status': 'sent',
     'createdAt': '2026-04-18T00:00:00Z',
@@ -56,9 +56,9 @@ class _FakeApiClient implements PurchaseApiClient {
     'items': [
       {
         'id': 'it-1',
-        'description': 'Filtro',
+        'description': 'Guantes',
         'quantity': 2,
-        'unit': 'und',
+        'unit': 'caja',
       },
     ],
     'targets': [
@@ -146,77 +146,112 @@ class _FakeLocal implements PurchaseLocalDataSource {
 
 // ─── Fixtures ──────────────────────────────────────────────────────────────
 
-PurchaseRequestEntity _entity({
-  String id = 'pr-client-99',
+CreatePurchaseRequestInput _input({
   List<String> vendors = const ['v-1'],
+  PurchaseRequestOriginInput origin = PurchaseRequestOriginInput.general,
+  String? assetId,
+  CreateDeliveryInput? delivery,
 }) {
-  final now = DateTime.utc(2026, 4, 18);
-  return PurchaseRequestEntity(
-    id: id,
-    orgId: 'ws-1',
-    assetId: null,
-    tipoRepuesto: 'Filtro',
-    specs: 'SAE 15W-40',
-    cantidad: 2,
-    ciudadEntrega: 'Bogotá',
-    proveedorIdsInvitados: vendors,
-    estado: 'abierta',
-    respuestasCount: 0,
-    currencyCode: 'COP',
-    createdAt: now,
-    updatedAt: now,
+  return CreatePurchaseRequestInput(
+    title: 'Insumos',
+    type: PurchaseRequestTypeInput.product,
+    category: 'medicamentos',
+    originType: origin,
+    assetId: assetId,
+    notes: 'Prioridad alta',
+    delivery: delivery,
+    items: const [
+      CreatePurchaseRequestItemInput(
+        description: 'Guantes',
+        quantity: 2,
+        unit: 'caja',
+        notes: 'Nitrilo talla M',
+      ),
+    ],
+    vendorContactIds: vendors,
   );
 }
 
 // ─── Tests ─────────────────────────────────────────────────────────────────
 
 void main() {
-  group('upsertRequest (Core API)', () {
-    test('envía title + items + vendorContactIds; NO envía orgId/requestedBy',
-        () async {
+  group('createRequest (Core API canonical)', () {
+    test('envía title + type + category + originType + notes + items + vendors; '
+        'NO envía orgId/requestedBy', () async {
       final api = _FakeApiClient();
       final local = _FakeLocal();
       final repo = PurchaseRepositoryImpl(local: local, remote: api);
 
-      await repo.upsertRequest(_entity());
+      await repo.createRequest(_input());
 
       expect(api.lastCreate, isNotNull);
       final body = api.lastCreate!.body.toJson();
-      expect(body['title'], 'Filtro');
+      expect(body['title'], 'Insumos');
+      expect(body['type'], 'PRODUCT');
+      expect(body['category'], 'medicamentos');
+      expect(body['originType'], 'GENERAL');
+      expect(body['notes'], 'Prioridad alta');
       expect(body['vendorContactIds'], ['v-1']);
       expect(body['items'], hasLength(1));
       final item = (body['items'] as List).first as Map;
-      expect(item['description'], 'Filtro');
+      expect(item['description'], 'Guantes');
       expect(item['quantity'], 2);
-      expect(item['unit'], 'und');
+      expect(item['unit'], 'caja');
+      expect(item['notes'], 'Nitrilo talla M');
+
+      // Sin delivery ni assetId cuando no se proveen.
+      expect(body.containsKey('delivery'), isFalse);
+      expect(body.containsKey('assetId'), isFalse);
 
       // Claves prohibidas: el JWT las deriva server-side.
       expect(body.containsKey('orgId'), isFalse);
       expect(body.containsKey('requestedBy'), isFalse);
     });
 
-    test('notes concatena specs + ciudad cuando hay ambos', () async {
+    test('incluye delivery estructurada cuando se provee', () async {
       final api = _FakeApiClient();
       final repo = PurchaseRepositoryImpl(local: _FakeLocal(), remote: api);
 
-      await repo.upsertRequest(_entity());
+      await repo.createRequest(_input(
+        delivery: const CreateDeliveryInput(
+          department: 'Atlántico',
+          city: 'Barranquilla',
+          address: 'Cra 45 # 10-20',
+          info: 'Piso 3',
+        ),
+      ));
+
       final body = api.lastCreate!.body.toJson();
-      expect(body['notes'], contains('SAE 15W-40'));
-      expect(body['notes'], contains('Ciudad: Bogotá'));
+      final delivery = body['delivery'] as Map<String, dynamic>;
+      expect(delivery['city'], 'Barranquilla');
+      expect(delivery['address'], 'Cra 45 # 10-20');
+      expect(delivery['department'], 'Atlántico');
+      expect(delivery['info'], 'Piso 3');
     });
 
-    test('hidrata cache local con el id SERVER-SIDE, no con el del cliente',
-        () async {
+    test('incluye assetId cuando originType=ASSET', () async {
+      final api = _FakeApiClient();
+      final repo = PurchaseRepositoryImpl(local: _FakeLocal(), remote: api);
+
+      await repo.createRequest(_input(
+        origin: PurchaseRequestOriginInput.asset,
+        assetId: '11111111-1111-1111-1111-111111111111',
+      ));
+
+      final body = api.lastCreate!.body.toJson();
+      expect(body['originType'], 'ASSET');
+      expect(body['assetId'], '11111111-1111-1111-1111-111111111111');
+    });
+
+    test('hidrata cache local con el id SERVER-SIDE', () async {
       final api = _FakeApiClient();
       final local = _FakeLocal();
       final repo = PurchaseRepositoryImpl(local: local, remote: api);
 
-      await repo.upsertRequest(_entity(id: 'pr-client-99'));
+      await repo.createRequest(_input());
 
       expect(local.requests, hasLength(1));
       expect(local.requests.first.id, 'pr-server-1');
-      // Y NO quedó el id del cliente.
-      expect(local.requests.any((r) => r.id == 'pr-client-99'), isFalse);
     });
 
     test('vendorContactIds vacío → ArgumentError, sin llamar al API',
@@ -225,7 +260,7 @@ void main() {
       final repo = PurchaseRepositoryImpl(local: _FakeLocal(), remote: api);
 
       await expectLater(
-        repo.upsertRequest(_entity(vendors: const [])),
+        repo.createRequest(_input(vendors: const [])),
         throwsArgumentError,
       );
       expect(api.lastCreate, isNull);
@@ -241,13 +276,13 @@ void main() {
             'orgId': 'ws-1',
             'requestedBy': 'user-1',
             'coordinationFlowId': 'f-a',
-            'title': 'Repuesto A',
+            'title': 'Solicitud A',
             'notes': null,
             'status': 'sent',
             'createdAt': '2026-04-18T00:00:00Z',
             'updatedAt': '2026-04-18T00:00:00Z',
             'items': [
-              {'id': 'it', 'description': 'Repuesto A', 'quantity': 1, 'unit': 'und'},
+              {'id': 'it', 'description': 'Item A', 'quantity': 1, 'unit': 'und'},
             ],
             'targets': [
               {'id': 't-a', 'vendorContactId': 'v-a', 'status': 'pending'},
@@ -262,8 +297,7 @@ void main() {
 
       expect(result, hasLength(1));
       expect(result.first.id, 'pr-a');
-      expect(result.first.tipoRepuesto, 'Repuesto A');
-      expect(result.first.estado, 'abierta'); // sent → abierta
+      expect(result.first.status, 'sent');
       expect(local.requests, hasLength(1));
     });
   });
@@ -299,8 +333,7 @@ void main() {
     });
 
     test('si API falla, devuelve cache local (no excepción)', () async {
-      final api = _FakeApiClient();
-      // Simular fallo interceptando fetchComparison
+      final inner = _FakeApiClient();
       final local = _FakeLocal()
         ..responses.add(SupplierResponseModel(
           id: 'cached-1',
@@ -310,7 +343,8 @@ void main() {
           disponibilidad: 'cotizado',
           currencyCode: 'COP',
         ));
-      final repo = PurchaseRepositoryImpl(local: local, remote: _ThrowingApi(api));
+      final repo =
+          PurchaseRepositoryImpl(local: local, remote: _ThrowingApi(inner));
 
       final result = await repo.fetchResponsesByRequest('pr-1');
 
@@ -330,7 +364,8 @@ class _ThrowingApi implements PurchaseApiClient {
       inner.createPurchaseRequest(body);
 
   @override
-  Future<PurchaseRequestListPage> listPurchaseRequests({int? limit, String? cursor}) =>
+  Future<PurchaseRequestListPage> listPurchaseRequests(
+          {int? limit, String? cursor}) =>
       inner.listPurchaseRequests(limit: limit, cursor: cursor);
 
   @override

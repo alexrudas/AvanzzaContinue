@@ -1,28 +1,20 @@
 // ============================================================================
 // lib/data/sources/remote/purchase/purchase_api_mapper.dart
-// PURCHASE API MAPPER — Adaptador entre el contrato Core API y los modelos
-// de dominio cliente (F5 Hito 17).
+// PURCHASE API MAPPER — server response → dominio/modelo canónico
 // ============================================================================
 // QUÉ HACE:
-//   Traduce la representación server-side de PurchaseRequest / Quote al shape
-//   que el cliente Flutter ya modela en PurchaseRequestEntity y
-//   SupplierResponseEntity, más el PurchaseRequestModel de Isar.
+//   Traduce el JSON del Core API al shape canónico del cliente
+//   (PurchaseRequestEntity + PurchaseRequestModel Isar).
+//   Sin hacks: los campos estructurados llegan desde el backend como campos
+//   reales (title, type, category, originType, assetId, deliveryCity…,
+//   items[], targets[]).
 //
-// GAP DE DOMINIO (documentado, no corregido aquí):
-//   El modelo cliente nació diseñado para Firestore con campos planos
-//   (tipoRepuesto/cantidad/ciudadEntrega). El backend usa items[] + targets[].
-//   Este mapper hace la mejor reducción razonable:
-//     - cliente.tipoRepuesto ← server.title
-//     - cliente.cantidad     ← server.items[0].quantity (primer item)
-//     - cliente.specs        ← server.notes
-//     - cliente.ciudadEntrega ← "" (no existe en backend)
-//     - cliente.proveedorIdsInvitados ← server.targets[].vendorContactId
-//     - cliente.estado       ← mapeo backend↔cliente
-//     - cliente.respuestasCount ← server.quotes.length
-//   Cerrar este gap implica migrar PurchaseRequestEntity al shape items[]+
-//   targets[]; fuera de alcance de este hito (no rediseñar dominio).
+// QUÉ NO HACE:
+//   - No inventa enums que el backend no envíe: tolera valores desconocidos
+//     cayendo a default (PRODUCT / GENERAL).
 // ============================================================================
 
+import '../../../../domain/entities/purchase/create_purchase_request_input.dart';
 import '../../../../domain/entities/purchase/purchase_request_entity.dart';
 import '../../../../domain/entities/purchase/supplier_response_entity.dart';
 import '../../../models/purchase/purchase_request_model.dart';
@@ -32,20 +24,8 @@ class PurchaseApiMapper {
   const PurchaseApiMapper._();
 
   // ───────────────────────────────────────────────────────────────────────────
-  // PurchaseRequest (server → cliente)
+  // Helpers
   // ───────────────────────────────────────────────────────────────────────────
-
-  static String _mapStatus(String? serverStatus) {
-    switch (serverStatus) {
-      case 'closed':
-        return 'cerrada';
-      case 'sent':
-      case 'partially_responded':
-      case 'responded':
-      default:
-        return 'abierta';
-    }
-  }
 
   static DateTime? _parseDate(dynamic raw) {
     if (raw == null) return null;
@@ -53,44 +33,86 @@ class PurchaseApiMapper {
     return null;
   }
 
+  static num _num(dynamic raw, {num fallback = 0}) {
+    if (raw is num) return raw;
+    if (raw is String) return num.tryParse(raw) ?? fallback;
+    return fallback;
+  }
+
+  static String? _strOrNull(dynamic raw) {
+    if (raw is String && raw.isNotEmpty) return raw;
+    return null;
+  }
+
+  static PurchaseRequestTypeInput _typeFromJson(dynamic raw) {
+    for (final t in PurchaseRequestTypeInput.values) {
+      if (t.wireName == raw) return t;
+    }
+    return PurchaseRequestTypeInput.product;
+  }
+
+  static PurchaseRequestOriginInput _originFromJson(dynamic raw) {
+    for (final o in PurchaseRequestOriginInput.values) {
+      if (o.wireName == raw) return o;
+    }
+    return PurchaseRequestOriginInput.general;
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // PurchaseRequest (server → cliente)
+  // ───────────────────────────────────────────────────────────────────────────
+
   static PurchaseRequestEntity entityFromServerJson(
     Map<String, dynamic> json,
   ) {
-    final items = (json['items'] as List?)?.cast<Map<String, dynamic>>() ??
-        const <Map<String, dynamic>>[];
-    final targets = (json['targets'] as List?)?.cast<Map<String, dynamic>>() ??
-        const <Map<String, dynamic>>[];
-    final quotes = (json['quotes'] as List?)?.cast<Map<String, dynamic>>() ??
-        const <Map<String, dynamic>>[];
+    final itemsRaw =
+        (json['items'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+    final targetsRaw =
+        (json['targets'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+    final quotesRaw =
+        (json['quotes'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
 
-    final firstItem =
-        items.isNotEmpty ? items.first : const <String, dynamic>{};
-    final qty = firstItem['quantity'];
-    final cantidad = qty is int
-        ? qty
-        : qty is num
-            ? qty.toInt()
-            : qty is String
-                ? (num.tryParse(qty)?.toInt() ?? 1)
-                : 1;
+    final items = itemsRaw
+        .map((it) => PurchaseRequestItemEntity(
+              id: it['id'] as String? ?? '',
+              description: it['description'] as String? ?? '',
+              quantity: _num(it['quantity'], fallback: 1),
+              unit: it['unit'] as String? ?? 'und',
+              notes: _strOrNull(it['notes']),
+            ))
+        .toList(growable: false);
+
+    final vendorContactIds = targetsRaw
+        .map((t) => _strOrNull(t['vendorContactId']))
+        .whereType<String>()
+        .toList(growable: false);
+
+    final deliveryCity = _strOrNull(json['deliveryCity']);
+    final deliveryAddress = _strOrNull(json['deliveryAddress']);
+    final delivery = (deliveryCity != null && deliveryAddress != null)
+        ? PurchaseRequestDeliveryEntity(
+            city: deliveryCity,
+            address: deliveryAddress,
+            department: _strOrNull(json['deliveryDepartment']),
+            info: _strOrNull(json['deliveryInfo']),
+          )
+        : null;
 
     return PurchaseRequestEntity(
       id: json['id'] as String,
       orgId: json['orgId'] as String,
-      assetId: null,
-      tipoRepuesto: (json['title'] as String?) ??
-          (firstItem['description'] as String? ?? ''),
-      specs: json['notes'] as String?,
-      cantidad: cantidad,
-      ciudadEntrega: '',
-      proveedorIdsInvitados: targets
-          .map((t) => t['vendorContactId'] as String?)
-          .whereType<String>()
-          .toList(growable: false),
-      estado: _mapStatus(json['status'] as String?),
-      respuestasCount: quotes.length,
-      currencyCode: 'COP',
-      expectedDate: null,
+      title: json['title'] as String? ?? '',
+      type: _typeFromJson(json['type']),
+      category: _strOrNull(json['category']),
+      originType: _originFromJson(json['originType']),
+      assetId: _strOrNull(json['assetId']),
+      notes: _strOrNull(json['notes']),
+      delivery: delivery,
+      itemsCount: items.length,
+      items: items,
+      vendorContactIds: vendorContactIds,
+      status: json['status'] as String? ?? 'sent',
+      respuestasCount: quotesRaw.length,
       createdAt: _parseDate(json['createdAt']),
       updatedAt: _parseDate(json['updatedAt']),
     );
@@ -98,8 +120,28 @@ class PurchaseApiMapper {
 
   static PurchaseRequestModel modelFromServerJson(
     Map<String, dynamic> json,
-  ) =>
-      PurchaseRequestModel.fromEntity(entityFromServerJson(json));
+  ) {
+    final entity = entityFromServerJson(json);
+    return PurchaseRequestModel(
+      id: entity.id,
+      orgId: entity.orgId,
+      title: entity.title,
+      typeWire: entity.type.wireName,
+      category: entity.category,
+      originTypeWire: entity.originType.wireName,
+      assetId: entity.assetId,
+      notes: entity.notes,
+      deliveryCity: entity.delivery?.city,
+      deliveryDepartment: entity.delivery?.department,
+      deliveryAddress: entity.delivery?.address,
+      deliveryInfo: entity.delivery?.info,
+      itemsCount: entity.itemsCount,
+      status: entity.status,
+      respuestasCount: entity.respuestasCount,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    );
+  }
 
   // ───────────────────────────────────────────────────────────────────────────
   // SupplierResponse (Quote server → cliente)
@@ -124,7 +166,7 @@ class PurchaseApiMapper {
         disponibilidad: 'cotizado',
         currencyCode: (quote['currency'] as String?) ?? 'COP',
         catalogoUrl: null,
-        notas: quote['notes'] as String?,
+        notas: _strOrNull(quote['notes']),
         leadTimeDays: null,
         createdAt: _parseDate(quote['createdAt']),
         updatedAt: _parseDate(quote['updatedAt']),

@@ -46,11 +46,13 @@ class AdminPurchaseController extends GetxController {
   final requests = <PurchaseRequestEntity>[].obs;
 
   // ── KPIs COMPUTADOS ──────────────────────────────────────────────────────
+  // Status wire-stable backend: sent | partially_responded | responded | closed.
   bool get hasActiveOrg => _orgId != null;
   int get totalCount => requests.length;
-  int get openCount => requests.where((r) => r.estado == 'abierta').length;
-  int get assignedCount => requests.where((r) => r.estado == 'asignada').length;
-  int get closedCount => requests.where((r) => r.estado == 'cerrada').length;
+  int get openCount => requests.where((r) => r.status != 'closed').length;
+  int get respondedCount =>
+      requests.where((r) => r.status == 'responded').length;
+  int get closedCount => requests.where((r) => r.status == 'closed').length;
   int get withResponsesCount =>
       requests.where((r) => r.respuestasCount > 0).length;
 
