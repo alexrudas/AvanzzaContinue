@@ -53,6 +53,7 @@ import '../../../domain/errors/access_exceptions.dart';
 import '../../../domain/errors/remote_exceptions.dart';
 import '../../../domain/repositories/access_repository.dart';
 import 'access_session_state.dart';
+import 'access_snapshot_service.dart';
 import 'provider_context_store.dart';
 import 'session_capabilities_store.dart';
 
@@ -95,8 +96,10 @@ class AccessGateway {
   final AccessSessionState _sessionState;
   final SessionCapabilitiesStore _capabilitiesStore;
   final ProviderContextStore? _providerContextStore;
+  final AccessSnapshotService? _snapshotService;
   final Future<String?> Function({bool forceRefresh}) _refreshIdToken;
   final String? Function() _resolveLocalOrgId;
+  final String? Function()? _resolveCurrentUid;
 
   final ValueNotifier<AccessGatewayState> _state =
       ValueNotifier<AccessGatewayState>(const AccessGatewayIdle());
@@ -108,14 +111,18 @@ class AccessGateway {
     required AccessSessionState sessionState,
     required SessionCapabilitiesStore capabilitiesStore,
     ProviderContextStore? providerContextStore,
+    AccessSnapshotService? snapshotService,
     required Future<String?> Function({bool forceRefresh}) refreshIdToken,
     required String? Function() resolveLocalOrgId,
+    String? Function()? resolveCurrentUid,
   })  : _repository = repository,
         _sessionState = sessionState,
         _capabilitiesStore = capabilitiesStore,
         _providerContextStore = providerContextStore,
+        _snapshotService = snapshotService,
         _refreshIdToken = refreshIdToken,
-        _resolveLocalOrgId = resolveLocalOrgId;
+        _resolveLocalOrgId = resolveLocalOrgId,
+        _resolveCurrentUid = resolveCurrentUid;
 
   /// Estado actual (observable con `ValueListenableBuilder` o `.addListener`).
   ValueListenable<AccessGatewayState> get state => _state;
@@ -150,11 +157,20 @@ class AccessGateway {
   }
 
   /// Reset al hacer logout. Limpia flags, capabilities, provider context y
-  /// estado observable.
+  /// estado observable. También invalida el snapshot persistido del usuario
+  /// para que un re-login con la misma cuenta no arranque con permisos
+  /// viejos antes de un refresh.
   void resetForLogout() {
     _sessionState.resetForLogout();
     _capabilitiesStore.clear();
     _providerContextStore?.clear();
+    final uid = _resolveCurrentUid?.call();
+    if (uid != null && uid.isNotEmpty) {
+      // Fire-and-forget: el logout no debe bloquearse por una escritura Isar.
+      _snapshotService?.clearForUser(uid).catchError((e) {
+        _log('snapshot clear on logout failed (non-fatal): $e');
+      });
+    }
     _state.value = const AccessGatewayIdle();
     _log('gateway reset (logout)');
   }
@@ -162,11 +178,40 @@ class AccessGateway {
   /// Reset al cambiar workspace. No limpia capabilities (el próximo
   /// `ensureAccessReady()` las publicará de nuevo). Limpia el provider
   /// context: el nuevo workspace puede tener `isProvider` distinto.
+  ///
+  /// V2.1 (composite key): los snapshots persistidos NO se purgan en
+  /// workspace switch — viven keyed por (uid, workspaceId), así que cada
+  /// workspace conserva su propia caché. El próximo `hydrate()` con el
+  /// nuevo workspaceId encuentra (o no) su snapshot independiente. Esto
+  /// permite cold starts local-first incluso después de switching entre
+  /// workspaces sin perder caché.
   void resetForWorkspaceSwitch() {
     _sessionState.resetForWorkspaceSwitch();
     _providerContextStore?.clear();
     _state.value = const AccessGatewayIdle();
-    _log('gateway reset (workspace switch)');
+    _log('gateway reset (workspace switch) — snapshots preservados');
+  }
+
+  /// Hidrata `SessionCapabilitiesStore` y `ProviderContextStore` desde el
+  /// snapshot persistido en Isar para el par `(uid, workspaceId)`. Si
+  /// existe y no está críticamente vencido, los stores quedan poblados
+  /// ANTES de cualquier llamada a Core API — el shell renderiza con
+  /// permisos completos sin esperar red.
+  ///
+  /// El `state` reactivo del gateway NO se modifica: este método es solo
+  /// pre-fetch local. El gateway sigue mostrando `Idle` hasta que
+  /// `ensureAccessReady()` resuelva contra el servidor.
+  ///
+  /// Invocar desde el splash ANTES de `ensureAccessReady()`. Idempotente.
+  Future<void> hydrateFromLocal(String uid, String workspaceId) async {
+    final svc = _snapshotService;
+    if (svc == null) return;
+    if (workspaceId.isEmpty) return;
+    try {
+      await svc.hydrate(uid, workspaceId);
+    } catch (e) {
+      _log('hydrateFromLocal error (non-fatal): $e');
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -175,27 +220,57 @@ class AccessGateway {
 
   Future<AccessGatewayState> _run() async {
     _state.value = const AccessGatewayLoading();
+    debugPrint('[ACCESS_GATEWAY] remote refresh started');
 
     try {
       final ctx = await _repository.getContext();
       _log('access context loaded: $ctx');
       return _handleContext(ctx);
     } on UnauthorizedException catch (e) {
-      _log('getContext 401: $e');
+      debugPrint('[ACCESS_GATEWAY] remote refresh failed reason=401_403 '
+          'detail=$e');
+      _markSnapshotSyncFailedIfPossible('401_403');
       final next = AccessGatewayError(e);
       _state.value = next;
       return next;
     } on CoreCommonRemoteException catch (e) {
-      _log('getContext remote error: $e');
+      debugPrint('[ACCESS_GATEWAY] remote refresh failed reason=remote_error '
+          'detail=$e');
+      _markSnapshotSyncFailedIfPossible('remote_error');
       final next = AccessGatewayError(e);
       _state.value = next;
       return next;
     } catch (e) {
-      _log('getContext unexpected error: $e');
+      // Heurística para distinguir red/timeout de otros — útil en logs.
+      final reason = e.toString().toLowerCase().contains('timeout')
+          ? 'timeout'
+          : (e.toString().toLowerCase().contains('socket')
+              ? 'network'
+              : 'unexpected');
+      debugPrint('[ACCESS_GATEWAY] remote refresh failed reason=$reason '
+          'detail=$e');
+      _markSnapshotSyncFailedIfPossible(reason);
       final next = AccessGatewayError(e);
       _state.value = next;
       return next;
     }
+  }
+
+  /// Best-effort: si hay snapshot persistido para el workspace activo,
+  /// marcarlo `syncFailed` con la razón humana. Permite UI fina (banner
+  /// suave en lugar de hard error). No-op si no hay snapshot o si no
+  /// podemos resolver uid/wsId.
+  void _markSnapshotSyncFailedIfPossible(String reason) {
+    final svc = _snapshotService;
+    if (svc == null) return;
+    final uid = _resolveCurrentUid?.call();
+    final wsId = _resolveLocalOrgId();
+    if (uid == null || uid.isEmpty || wsId == null || wsId.isEmpty) return;
+    svc
+        .markSyncFailed(userId: uid, workspaceId: wsId, error: reason)
+        .catchError((e) {
+      _log('markSyncFailed failed (non-fatal): $e');
+    });
   }
 
   Future<AccessGatewayState> _handleContext(AccessContext ctx) async {
@@ -212,6 +287,10 @@ class AccessGateway {
               'capabilities=${ctx.capabilities} '
               'source=context_none');
         }
+        // Persistir snapshot SERVER_REFRESH para acelerar próximos cold
+        // starts. Fire-and-forget: la respuesta al caller no debe esperar
+        // la escritura Isar.
+        _persistSnapshotFromContext(ctx);
         if (ctx.requiresTokenRefresh) {
           _log('token refresh required by /context');
           await _refreshIdToken(forceRefresh: true);
@@ -361,6 +440,20 @@ class AccessGateway {
       _state.value = next;
       return next;
     }
+  }
+
+  /// Persiste un snapshot SERVER_REFRESH+CONFIRMED a partir del [ctx]
+  /// canónico. No awaiteado por el caller — escribir Isar nunca debe
+  /// retrasar la resolución del estado del gateway. Errores se loguean
+  /// y se ignoran.
+  void _persistSnapshotFromContext(AccessContext ctx) {
+    final svc = _snapshotService;
+    if (svc == null) return;
+    final uid = _resolveCurrentUid?.call();
+    if (uid == null || uid.isEmpty) return;
+    svc.persistServerRefresh(userId: uid, ctx: ctx).catchError((e) {
+      _log('snapshot persist failed (non-fatal): $e');
+    });
   }
 
   void _log(String msg) {
