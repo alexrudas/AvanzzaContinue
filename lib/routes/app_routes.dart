@@ -35,6 +35,12 @@ abstract class Routes {
   static const enhancedRegistration = _Paths.enhancedRegistration;
   static const providerCoverage = _Paths.providerCoverage;
 
+  /// Flujo de onboarding canónico (Demo 2 / FusionadoFlow promovido a real).
+  /// Q1 phone → Q2 OTP → Q3 intent → Q4 identidad → Q5 asset (si aplica) →
+  /// Q6 commit. Reemplaza al flujo legacy de pasos individuales como
+  /// entrada principal desde [welcome].
+  static const registerOnboarding = _Paths.registerOnboarding;
+
   // ══════════════════════════════════════════════════════════════════════════
   // CORE / HOME
   // ══════════════════════════════════════════════════════════════════════════
@@ -262,6 +268,11 @@ abstract class Routes {
   /// CONTRACT: no requiere arguments. Variante de QA que coexiste con el
   /// flujo canónico hasta que el FusionadoFlow esté hardenado.
   static const demoRegistrationV2 = _Paths.demoRegistrationV2;
+
+  /// TEMPORARY — Variante fusionada del demo de registro (con RUNT temprano +
+  /// "¿Qué quieres hacer?" + relación con activo).
+  /// In-memory. Borrar junto con `demo_registration_v2/fusionado/`.
+  static const demoRegistrationV2Fusionado = _Paths.demoRegistrationV2Fusionado;
 }
 
 /// Paths internos - NO usar directamente, usar Routes.*
@@ -366,7 +377,11 @@ abstract class _Paths {
   static const selectSpecialties = '/provider/specialties/select';
 
   // Demo
+  // Auth onboarding canónico
+  static const registerOnboarding = '/auth/onboarding';
+
   static const bottomNavDemo = '/demo/bottom-nav';
   static const demoSoat = '/campaign/soat';
   static const demoRegistrationV2 = '/demo/registration-v2';
+  static const demoRegistrationV2Fusionado = '/demo/registration-v2-fusionado';
 }

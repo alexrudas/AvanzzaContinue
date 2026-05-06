@@ -45,6 +45,8 @@
 import 'package:get/get.dart';
 
 import '../../core/di/container.dart';
+import '../../core/session/session_active_org_id_provider.dart';
+import '../../domain/services/session/active_org_id_provider.dart';
 import '../../domain/services/workspace/context_switch_service.dart';
 import '../../infrastructure/workspace/context_switch_adapters.dart';
 import '../../services/telemetry/telemetry_service.dart';
@@ -69,6 +71,22 @@ class SplashBinding extends Bindings {
           userRepository: di.userRepository,
           connectivity: di.connectivityService,
         ),
+        permanent: true,
+      );
+    }
+
+    // -------------------------------------------------------------------------
+    // ACTIVE ORG ID PROVIDER (permanent)
+    // - Adapter sobre SessionContextController que satisface el contrato
+    //   de dominio `ActiveOrgIdProvider`.
+    // - Necesario ANTES de cualquier llamada a `AccessGateway.ensureAccessReady()`
+    //   y ANTES de que `AccessInterceptor` reaccione a un 401 bootstrap-recoverable
+    //   — ambos leen el orgId vía esta interface.
+    // - Debe registrarse DESPUÉS de SessionContextController (dependencia directa).
+    // -------------------------------------------------------------------------
+    if (!Get.isRegistered<ActiveOrgIdProvider>()) {
+      Get.put<ActiveOrgIdProvider>(
+        SessionActiveOrgIdProvider(Get.find<SessionContextController>()),
         permanent: true,
       );
     }

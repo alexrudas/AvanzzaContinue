@@ -11,6 +11,7 @@ import 'package:avanzza/core/campaign/demo/demo_soat_campaign.dart';
 import 'package:avanzza/domain/shared/enums/asset_type.dart';
 // TEMPORARY — Demo del flujo de registro v2. Borrar junto con la carpeta.
 import 'package:avanzza/presentation/demo_registration_v2/demo_registration_v2_flow.dart';
+import 'package:avanzza/presentation/demo_registration_v2/fusionado/fusionado_flow.dart';
 import 'package:avanzza/presentation/pages/asset_list_page.dart';
 import 'package:avanzza/presentation/pages/assets_by_type_page.dart';
 import 'package:flutter/foundation.dart';
@@ -562,6 +563,20 @@ class AppPages {
     GetPage(
       name: Routes.demoRegistrationV2,
       page: () => const DemoRegistrationV2Flow(),
+    ),
+
+    // ── ONBOARDING CANÓNICO (FusionadoFlow promovido a registro real) ───
+    // Demo 2 fusionado pasa de "experimental debug" a entrada principal
+    // desde AuthWelcomePage. La ruta legacy [demoRegistrationV2Fusionado]
+    // sigue accesible como alias para QA hasta que el FusionadoFlow esté
+    // hardenado y se retire la variante experimental.
+    GetPage(
+      name: Routes.registerOnboarding,
+      page: () => const FusionadoFlow(),
+    ),
+    GetPage(
+      name: Routes.demoRegistrationV2Fusionado,
+      page: () => const FusionadoFlow(),
     ),
   ];
 }

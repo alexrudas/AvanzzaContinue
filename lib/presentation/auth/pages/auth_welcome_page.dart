@@ -19,6 +19,7 @@
 //   S3 (usuario existente) → workspace directo
 // ============================================================================
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -33,6 +34,20 @@ class AuthWelcomePage extends StatelessWidget {
     final cs = theme.colorScheme;
 
     return Scaffold(
+      // TEMPORARY — FAB del demo de registro v2 (solo en builds debug).
+      // Abre un bottom sheet con dos opciones de demo:
+      //   - Demo 1 (actual): el flujo validado.
+      //   - Demo 2 (fusionado): variante experimental con RUNT temprano.
+      // Borrar este `floatingActionButton` cuando se elimine la carpeta
+      // `lib/presentation/demo_registration_v2/`.
+      floatingActionButton: kDebugMode
+          ? FloatingActionButton.extended(
+              heroTag: 'demo_registration_v2_fab',
+              onPressed: () => _showDemoMenu(context),
+              icon: const Icon(Icons.science_rounded),
+              label: const Text('Registro Demo'),
+            )
+          : null,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -69,9 +84,9 @@ class AuthWelcomePage extends StatelessWidget {
 
                   const SizedBox(height: 48),
 
-                  // ── CTA primario: OTP ──────────────────────────────────────
+                  // ── CTA primario: Onboarding canónico (FusionadoFlow) ─────
                   FilledButton.icon(
-                    onPressed: () => Get.toNamed(Routes.phone),
+                    onPressed: () => Get.toNamed(Routes.registerOnboarding),
                     icon: const Icon(Icons.phone_android_rounded),
                     label: const Text('Continuar con teléfono'),
                     style: FilledButton.styleFrom(
@@ -82,7 +97,27 @@ class AuthWelcomePage extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  // ── Fallback al flujo legacy (link discreto) ──────────────
+                  // Si el FusionadoFlow tiene un bug en producción, este link
+                  // permite al usuario completar registro vía el flujo legacy
+                  // (Routes.phone → otp_verify → countryCity → profile → ...).
+                  // Mantener visible al menos hasta que el FusionadoFlow esté
+                  // validado en producción durante 2 sprints completos.
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => Get.toNamed(Routes.phone),
+                      child: Text(
+                        '¿Problemas? Usar flujo clásico',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
 
                   // ── Google ────────────────────────────────────────────────
                   OutlinedButton.icon(
@@ -140,6 +175,158 @@ class AuthWelcomePage extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// TEMPORARY — Muestra el bottom sheet con las 2 variantes del demo.
+  /// Borrar junto con la carpeta `demo_registration_v2/`.
+  void _showDemoMenu(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        final cs = theme.colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    'Variantes del demo',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                _DemoOption(
+                  icon: Icons.fact_check_rounded,
+                  title: 'Demo 1 (actual)',
+                  subtitle:
+                      'Flujo validado. Phone → OTP → Perfil → Bienvenida → Tu negocio → Activo → Workspace.',
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    Get.toNamed(Routes.demoRegistrationV2);
+                  },
+                  colorScheme: cs,
+                  theme: theme,
+                ),
+                const SizedBox(height: 8),
+                _DemoOption(
+                  icon: Icons.auto_awesome_rounded,
+                  title: 'Demo 2 (fusionado)',
+                  subtitle:
+                      'Variante experimental. Phone → OTP → ¿Qué quieres hacer? → RUNT temprano → Relación → Tu negocio → Workspace.',
+                  highlight: true,
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    Get.toNamed(Routes.demoRegistrationV2Fusionado);
+                  },
+                  colorScheme: cs,
+                  theme: theme,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// TEMPORARY — Card del menú de demos. Borrar junto con la carpeta del demo.
+class _DemoOption extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool highlight;
+  final ColorScheme colorScheme;
+  final ThemeData theme;
+
+  const _DemoOption({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    required this.colorScheme,
+    required this.theme,
+    this.highlight = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: highlight
+          ? colorScheme.primary.withValues(alpha: 0.08)
+          : colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: highlight
+                  ? colorScheme.primary.withValues(alpha: 0.4)
+                  : Colors.transparent,
+              width: 1.2,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  icon,
+                  color: highlight
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ],
           ),
         ),
       ),

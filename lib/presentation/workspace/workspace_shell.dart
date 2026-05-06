@@ -52,12 +52,12 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../core/theme/bottom_nav_theme.dart';
-import '../../core/utils/workspace_normalizer.dart';
 import '../../domain/entities/workspace/workspace_type.dart';
 import '../../routes/app_pages.dart';
 import '../auth/controllers/registration_controller.dart';
 import '../controllers/session_context_controller.dart';
 import '../widgets/workspace/workspace_drawer.dart';
+import 'workspace_shell_bootstrap_layer.dart';
 import 'workspace_config.dart';
 
 /// Controller simple para navegación entre tabs dentro del shell.
@@ -175,54 +175,26 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
 
     // -----------------------------------------------------------------------
-    // FALLBACK TRANSICIONAL — modelo legacy
-    // Solo se usa mientras activeWorkspaceContext aún no esté disponible.
+    // Fase 2 (KILL SWITCH ROL LEGACY): el fallback por `activeContext.rol`
+    // / `selectedRole` fue retirado. Sin `activeWorkspaceContext` y sin
+    // sesión Firebase, redirige al Splash via Routes.home (HomeRouter
+    // reencamina al shell correcto). Si hay sesión Firebase pero el contexto
+    // canónico aún no resolvió, se considera estado transicional y NO se
+    // navega para evitar loops.
     // -----------------------------------------------------------------------
-    String? activeRole;
-    bool isAuthenticatedSession = false;
-
-    if (session != null) {
-      final user = session.userRx.value;
-      if (user != null) {
-        activeRole = user.activeContext?.rol;
-        isAuthenticatedSession = true;
-      }
-    }
-
-    if (!isAuthenticatedSession && Get.isRegistered<RegistrationController>()) {
-      final reg = Get.find<RegistrationController>();
-      activeRole = reg.progress.value?.selectedRole;
-    }
-
-    // Si no hay rol activo, distinguir entre estado transicional y sesión inválida.
-    if (activeRole == null || activeRole.isEmpty) {
-      if (hasFirebaseUser) {
-        _log(
-          'activeWorkspaceContext=null y activeRole vacío, '
-          'pero Firebase user activo → estado transicional, no navegar',
-        );
-        return;
-      }
-
+    if (!hasFirebaseUser) {
       _log(
-        'sin activeWorkspaceContext y sin activeRole, '
-        'Firebase user nulo → redirigiendo a Routes.home',
+        'sin activeWorkspaceContext y sin Firebase user → '
+        'redirigiendo a Routes.home',
       );
       _navigateToHome();
       return;
     }
 
-    final currentRole = WorkspaceNormalizer.normalize(widget.config.roleKey);
-    final normalizedActiveRole = WorkspaceNormalizer.normalize(activeRole);
-
-    if (currentRole != normalizedActiveRole) {
-      _log(
-        'fallback legacy mismatch '
-        'shellRole=$currentRole activeRole=$normalizedActiveRole '
-        '→ redirigiendo a Routes.home',
-      );
-      _navigateToHome();
-    }
+    _log(
+      'activeWorkspaceContext=null pero Firebase user activo → '
+      'estado transicional, no navegar',
+    );
   }
 
   /// Navega a Home de forma segura con anti-loop.
@@ -297,9 +269,11 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         ),
         drawer: const WorkspaceDrawer(),
         resizeToAvoidBottomInset: false,
-        body: _LazyIndexedStack(
-          index: idx,
-          children: [for (final t in tabs) t.page],
+        body: WorkspaceShellBootstrapLayer(
+          child: _LazyIndexedStack(
+            index: idx,
+            children: [for (final t in tabs) t.page],
+          ),
         ),
         bottomNavigationBar: isAdmin
             ? SafeArea(
