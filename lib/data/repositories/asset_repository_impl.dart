@@ -53,6 +53,8 @@ import '../../../domain/errors/asset_creation_exception.dart';
 import '../../../domain/errors/remote_exceptions.dart';
 import '../../../domain/repositories/asset_repository.dart';
 import '../../../domain/repositories/core_common/asset_actor_link_repository.dart';
+import '../../../domain/services/purchase/vehicle_spec_derivation.dart';
+import '../../../domain/value/purchase/vehicle_spec.dart';
 import '../../../domain/value/registration/asset_runt_snapshot.dart';
 import '../sources/local/portfolio_local_ds.dart';
 
@@ -741,6 +743,25 @@ class AssetRepositoryImpl implements AssetRepository {
     }
 
     return assetEntity;
+  }
+
+  @override
+  Future<List<VehicleSpec>> fetchVehicleSpecsByOrg(String orgId) async {
+    // ── Derivación en memoria ────────────────────────────────────────────────
+    // No persiste una colección dedicada de VehicleSpec: trabaja sobre la cache
+    // Isar ya existente (AssetModel filtrado por tipo + AssetVehiculoModel por
+    // assetId). El caller invoca este método una vez al abrir el selector.
+    if (orgId.trim().isEmpty) return const <VehicleSpec>[];
+
+    final assetModels = await local.listAssetsByOrg(orgId, assetType: 'vehicle');
+    if (assetModels.isEmpty) return const <VehicleSpec>[];
+
+    final vehicles = <AssetVehiculoEntity>[];
+    for (final m in assetModels) {
+      final veh = await local.getVehiculo(m.id);
+      if (veh != null) vehicles.add(veh.toEntity());
+    }
+    return VehicleSpecDerivation.fromVehicles(vehicles);
   }
 
   @override

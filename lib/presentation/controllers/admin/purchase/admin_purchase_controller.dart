@@ -32,8 +32,6 @@ import 'package:get/get.dart';
 import '../../../../core/di/container.dart';
 import '../../../../domain/entities/purchase/purchase_request_entity.dart';
 import '../../../../domain/repositories/purchase_repository.dart';
-import '../../../../routes/app_pages.dart';
-import '../../../common/ensure_registered_guard.dart';
 import '../../session_context_controller.dart';
 
 class AdminPurchaseController extends GetxController {
@@ -110,11 +108,4 @@ class AdminPurchaseController extends GetxController {
     );
   }
 
-  // ── ACTIONS ──────────────────────────────────────────────────────────────
-
-  /// Navega al flujo de creación de solicitud (wizard Fase 2).
-  void createRequest() async {
-    final guard = EnsureRegisteredGuard();
-    await guard.run(() async => Get.toNamed(Routes.purchase));
-  }
 }

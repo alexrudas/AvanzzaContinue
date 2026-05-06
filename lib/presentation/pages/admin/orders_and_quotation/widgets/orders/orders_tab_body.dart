@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:avanzza/presentation/controllers/admin/purchase/admin_purchase_controller.dart';
+import 'package:avanzza/presentation/widgets/purchase/asset_type_precontext_sheet.dart';
+import 'package:avanzza/routes/app_routes.dart';
 import 'kpi_triad_row.dart';
 import 'orders_status_chips.dart';
 import 'purchase_request_card.dart';
-import 'purchase_request_detail_sheet.dart';
 
 class OrdersTabBody extends StatefulWidget {
   final AdminPurchaseController controller;
@@ -80,11 +81,11 @@ class _OrdersTabBodyState extends State<OrdersTabBody> {
                     respuestasCount: r.respuestasCount,
                     assetId: r.assetId,
                     createdAt: r.createdAt,
-                    onTap: () => showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (_) => PurchaseRequestDetailSheet(request: r),
-                    ),
+                    // Abre el loop admin-captura (register quote → award →
+                    // emitir OC/OT → cerrar). El requestId se envía como
+                    // argumento; el controller lo resuelve en onInit.
+                    onTap: () =>
+                        Get.toNamed(Routes.purchaseDetail, arguments: r.id),
                   )),
           ],
         ),
@@ -92,7 +93,7 @@ class _OrdersTabBodyState extends State<OrdersTabBody> {
           right: 16,
           bottom: 16,
           child: FloatingActionButton.extended(
-            onPressed: () => c.createRequest(),
+            onPressed: () => startNewPurchaseRequestFlow(context),
             icon: const Icon(Icons.add_shopping_cart),
             label: const Text('Nueva solicitud'),
           ),

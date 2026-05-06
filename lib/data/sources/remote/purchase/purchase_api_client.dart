@@ -1,26 +1,50 @@
 // ============================================================================
 // lib/data/sources/remote/purchase/purchase_api_client.dart
-// PURCHASE API CLIENT — HTTP client contra Core API (F5 Hito 17)
+// PURCHASE API CLIENT — HTTP client contra Core API
 // ============================================================================
 // QUÉ HACE:
-//   - Cliente HTTP único contra avanzza-core-api para compras.
-//   - Cubre los endpoints que los callers vivos necesitan:
-//       POST   /v1/purchase-requests                    → crear
-//       GET    /v1/purchase-requests                    → listar por org
-//       GET    /v1/purchase-requests/:id/comparison     → respuestas/quotes
+//   - Cliente HTTP único contra avanzza-core-api para el loop comercial
+//     admin-captura mono-workspace end-to-end.
+//   - Cubre los endpoints del loop completo:
+//       POST   /v1/purchase-requests                         → crear
+//       GET    /v1/purchase-requests                         → listar por org
+//       GET    /v1/purchase-requests/:id                     → detalle con items/targets
+//       POST   /v1/purchase-requests/:id/quotes              → registrar cotización
+//       GET    /v1/purchase-requests/:id/comparison          → quotes ordenadas
+//       POST   /v1/purchase-requests/:id/award               → crear award CONFIRMED
+//       GET    /v1/purchase-requests/:id/award               → award activo
+//       POST   /v1/sourcing-awards/:id/generate-documents    → emitir OC/OT
+//       POST   /v1/purchase-requests/:id/close               → cerrar PR
+//       GET    /v1/purchase-requests/:id/summary             → resumen operativo (canClose)
 //   - Adjunta Authorization: Bearer <firebase-id-token>.
 //   - Mapea DioException a excepciones tipadas (nestjs_exceptions.dart).
 //
 // QUÉ NO HACE:
 //   - No crea interfaces/abstractos: Core API es la única fuente remota.
-//   - No envía orgId ni requestedBy: el backend los deriva del JWT.
-//     Enviarlos provocaría 400 por forbidNonWhitelisted del backend.
-//   - No encola offline: la creación es online-only (transacción backend
-//     crea CoordinationFlow + PurchaseRequest atómicamente).
+//   - No envía orgId, requestedBy, awardedBy, issuedBy, closedBy: el backend
+//     los deriva del JWT. Enviarlos provocaría 400 por forbidNonWhitelisted.
+//   - No encola offline: las escrituras son online-only (TX backend atómica).
+//
+// PRINCIPIOS:
+//   - Contrato 1:1 con DTOs NestJS (sin inventar campos).
+//   - Responses devuelven el JSON crudo del backend; el mapper traduce a
+//     entidades dominio.
+//   - Errores mapeados preservan `code` canónico de NestJS cuando existe.
+//
+// ENTERPRISE NOTES:
+//   - vendorContactId (en submit-quote y create-award) es el mismo valor que
+//     `PurchaseRequestTarget.vendorContactId` persistido en backend. Para
+//     targets `ActorRef.local` el backend rellena esa columna con el `localId`
+//     (≡ LocalContactEntity.id). Para targets `ActorRef.platform` es el
+//     platformActorId. El caller Flutter solo reutiliza el mismo id que usó
+//     al seleccionar el target en el picker.
+//
+// See docs/adr/0001-actor-canon.md (regla 2.13 — transición vendorContactIds).
 // ============================================================================
 
 import 'package:dio/dio.dart';
 
+import '../../../../domain/entities/core_common/actor_ref.dart';
 import '../core_common/nestjs_exceptions.dart';
 
 /// Firebase ID token provider. null si no hay sesión activa.
@@ -28,13 +52,19 @@ typedef GetIdToken = Future<String?> Function();
 
 /// Body de POST /v1/purchase-requests (espejo del DTO backend canónico).
 ///
-/// Contrato backend vigente (avanzza-core-api — PurchaseRequest canonical fields):
+/// Contrato backend vigente (avanzza-core-api — ADR actor-canon fase 2):
 ///   title, type?, category?, originType?, assetId?, notes?, delivery?,
-///   items[], vendorContactIds[].
+///   items[], [vendorActorRefs | vendorContactIds], attestSelf?.
 ///
-/// type y originType son opcionales en el DTO (defaults backend PRODUCT/GENERAL);
-/// el cliente los envía siempre que vienen del controller — el backend hace
-/// cross-check `originType=ASSET ⇔ assetId`.
+/// REGLA DURA: `vendorActorRefs` y `vendorContactIds` son mutuamente
+/// excluyentes en el body. Si vienen los dos, el backend responde 400
+/// CONFLICTING_VENDOR_REFS. Si vienen vacíos, 400 EMPTY_VENDOR_REFS.
+/// Los factories [withActorRefs] y [withLegacyContactIds] garantizan la
+/// invariante; los callers nuevos deben usar [withActorRefs].
+///
+/// `attestSelf=true` autoriza crear LocalRefAttestation server-side en el
+/// mismo request. Se envía por default cuando hay ActorRef.local (el
+/// backend lo trata como no-op si ya existe attestation).
 class CreatePurchaseRequestBody {
   final String title;
   final String? type; // 'PRODUCT' | 'SERVICE'
@@ -44,9 +74,30 @@ class CreatePurchaseRequestBody {
   final String? notes;
   final CreatePurchaseRequestDelivery? delivery;
   final List<CreatePurchaseRequestItem> items;
-  final List<String> vendorContactIds;
 
-  const CreatePurchaseRequestBody({
+  /// Destinatarios en contrato canónico. Null cuando se usa legacy o matching.
+  final List<ActorRef>? vendorActorRefs;
+
+  /// LEGACY — IDs opacos de LocalContact. Null cuando se usa canónico.
+  /// @deprecated
+  final List<String>? vendorContactIds;
+
+  /// (PF2, 2026-04-27) Si true, el backend resuelve targets con
+  /// `ProviderMatchingService` (excluye workspace solicitante; redirige
+  /// CLAIMED al SELF). En ese modo, vendorActorRefs/vendorContactIds son
+  /// ignorados. Null fuera del modo matching.
+  final bool? useProviderMatching;
+
+  /// (PF2) Specialty.id obligatoria cuando useProviderMatching=true.
+  final String? matchSpecialtyId;
+
+  /// (PF2) AssetType.id opcional para refinar el matching.
+  final String? matchAssetTypeId;
+
+  /// Flag de attestation implícita. Null = no enviar al backend.
+  final bool? attestSelf;
+
+  const CreatePurchaseRequestBody._({
     required this.title,
     this.type,
     this.category,
@@ -55,8 +106,114 @@ class CreatePurchaseRequestBody {
     this.notes,
     this.delivery,
     required this.items,
-    required this.vendorContactIds,
+    this.vendorActorRefs,
+    this.vendorContactIds,
+    this.useProviderMatching,
+    this.matchSpecialtyId,
+    this.matchAssetTypeId,
+    this.attestSelf,
   });
+
+  /// Factory canónico (preferido).
+  factory CreatePurchaseRequestBody.withActorRefs({
+    required String title,
+    String? type,
+    String? category,
+    String? originType,
+    String? assetId,
+    String? notes,
+    CreatePurchaseRequestDelivery? delivery,
+    required List<CreatePurchaseRequestItem> items,
+    required List<ActorRef> vendorActorRefs,
+    bool? attestSelf,
+  }) {
+    assert(vendorActorRefs.isNotEmpty, 'vendorActorRefs no puede ser vacío');
+    return CreatePurchaseRequestBody._(
+      title: title,
+      type: type,
+      category: category,
+      originType: originType,
+      assetId: assetId,
+      notes: notes,
+      delivery: delivery,
+      items: items,
+      vendorActorRefs: vendorActorRefs,
+      attestSelf: attestSelf,
+    );
+  }
+
+  /// (PF2, 2026-04-27) Factory de matching canónico.
+  ///
+  /// Ignora `vendorActorRefs`/`vendorContactIds`: el backend
+  /// (`ProviderMatchingService`) resuelve targets EXCLUYENDO el workspace
+  /// solicitante y redirige automáticamente perfiles CLAIMED a su SELF
+  /// dueño. Cumple el invariante multi-actor (target.targetWorkspaceId
+  /// nunca igual al workspace del solicitante).
+  ///
+  /// `matchSpecialtyId` es obligatoria. `matchAssetTypeId` afina la
+  /// resolución pero no es requerido.
+  factory CreatePurchaseRequestBody.withMatching({
+    required String title,
+    String? type,
+    String? category,
+    String? originType,
+    String? assetId,
+    String? notes,
+    CreatePurchaseRequestDelivery? delivery,
+    required List<CreatePurchaseRequestItem> items,
+    required String matchSpecialtyId,
+    String? matchAssetTypeId,
+  }) {
+    assert(matchSpecialtyId.isNotEmpty, 'matchSpecialtyId no puede ser vacío');
+    return CreatePurchaseRequestBody._(
+      title: title,
+      type: type,
+      category: category,
+      originType: originType,
+      assetId: assetId,
+      notes: notes,
+      delivery: delivery,
+      items: items,
+      useProviderMatching: true,
+      matchSpecialtyId: matchSpecialtyId,
+      matchAssetTypeId: matchAssetTypeId,
+    );
+  }
+
+  /// Factory legacy. Emitido por callers que aún no migraron.
+  ///
+  /// DEUDA CON FECHA: retirar antes de `2026-07-20` (ADR actor-canon fase 2).
+  /// Enforcement por COMBINACIÓN (ver ADR §8.4): @Deprecated emite warning,
+  /// constante + test-guardrail señalan la fecha, ADR ancla la obligación.
+  /// Ningún eslabón individual bloquea por sí solo.
+  @Deprecated(
+    'Usar withActorRefs. '
+    'Retirar antes de 2026-07-20 (ADR actor-canon fase 2).',
+  )
+  factory CreatePurchaseRequestBody.withLegacyContactIds({
+    required String title,
+    String? type,
+    String? category,
+    String? originType,
+    String? assetId,
+    String? notes,
+    CreatePurchaseRequestDelivery? delivery,
+    required List<CreatePurchaseRequestItem> items,
+    required List<String> vendorContactIds,
+  }) {
+    assert(vendorContactIds.isNotEmpty, 'vendorContactIds no puede ser vacío');
+    return CreatePurchaseRequestBody._(
+      title: title,
+      type: type,
+      category: category,
+      originType: originType,
+      assetId: assetId,
+      notes: notes,
+      delivery: delivery,
+      items: items,
+      vendorContactIds: vendorContactIds,
+    );
+  }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'title': title,
@@ -67,7 +224,18 @@ class CreatePurchaseRequestBody {
         if (notes != null) 'notes': notes,
         if (delivery != null) 'delivery': delivery!.toJson(),
         'items': items.map((i) => i.toJson()).toList(),
-        'vendorContactIds': vendorContactIds,
+        if (vendorActorRefs != null)
+          'vendorActorRefs':
+              vendorActorRefs!.map((r) => r.toJson()).toList(),
+        if (vendorContactIds != null) 'vendorContactIds': vendorContactIds,
+        // (PF2) modo matching canónico — mutuamente excluyente con vendor*.
+        if (useProviderMatching == true) 'useProviderMatching': true,
+        if (matchSpecialtyId != null) 'matchSpecialtyId': matchSpecialtyId,
+        if (matchAssetTypeId != null) 'matchAssetTypeId': matchAssetTypeId,
+        // ADR: attestSelf es excepción. Solo viaja cuando es true explícito.
+        // Si es null o false, se omite del wire (el backend trata ausencia
+        // como default=false).
+        if (attestSelf == true) 'attestSelf': true,
       };
 }
 
@@ -136,6 +304,7 @@ class PurchaseApiClient {
         _getIdToken = getIdToken;
 
   static const _base = '/v1/purchase-requests';
+  static const _awardsBase = '/v1/sourcing-awards';
 
   Future<Options> _authOptions() async {
     final token = await _getIdToken();
@@ -158,9 +327,14 @@ class PurchaseApiClient {
     final msg = body is Map && body['message'] is String
         ? body['message'] as String
         : (body?.toString() ?? 'HTTP $status');
+    // Preservar el `code` canónico del body NestJS cuando está presente.
+    // Ver ADR 0001 §6 (tabla de errores del contrato).
+    final code = body is Map && body['code'] is String
+        ? body['code'] as String
+        : null;
     if (status == 401 || status == 403) return UnauthorizedException(msg);
     if (status >= 500) return ServerException(status, msg);
-    return BadRequestException(status, msg);
+    return BadRequestException(status, msg, code: code);
   }
 
   /// POST /v1/purchase-requests — retorna { flow, request }.
@@ -263,6 +437,240 @@ class PurchaseApiClient {
     final rawQuotes = data['quotes'];
     if (rawQuotes is! List) return const <Map<String, dynamic>>[];
     return rawQuotes.cast<Map<String, dynamic>>();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // DETALLE DEL PURCHASE REQUEST (incluye items + targets)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// GET /v1/purchase-requests/:id — detalle con items y targets.
+  /// Necesario para que la UI de detalle conozca `targets[*].id` (UUID del
+  /// PurchaseRequestTarget) y `targets[*].vendorContactId`, que son inputs
+  /// obligatorios al registrar cotizaciones y crear awards.
+  Future<Map<String, dynamic>> fetchPurchaseRequest(String id) async {
+    final options = await _authOptions();
+    final Response<dynamic> res;
+    try {
+      res = await _dio.get<dynamic>('$_base/$id', options: options);
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+    final data = res.data;
+    if (data is! Map<String, dynamic>) {
+      throw ServerException(res.statusCode ?? 0,
+          'fetchPurchaseRequest: respuesta inesperada ${data.runtimeType}');
+    }
+    return data;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // QUOTES (registrar cotización recibida off-platform)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// POST /v1/purchase-requests/:id/quotes — registra una cotización recibida.
+  ///
+  /// Contrato backend (SubmitQuoteDto):
+  ///   - vendorContactId: debe coincidir con el `vendorContactId` del target
+  ///     ya creado al enviar el PR. Para ActorRef.local ≡ LocalContactEntity.id.
+  ///   - validUntil?: ISO-8601 opcional.
+  ///   - currency?: default COP.
+  ///   - notes?: libre.
+  ///   - items[]: {purchaseRequestItemId, unitPrice, notes?}. Debe cubrir todos
+  ///     los ítems del PR; el service valida cobertura total.
+  ///
+  /// Response: QuoteWithItems (Quote + items[]).
+  Future<Map<String, dynamic>> submitQuote({
+    required String requestId,
+    required String vendorContactId,
+    required List<Map<String, dynamic>> items,
+    DateTime? validUntil,
+    String? currency,
+    String? notes,
+  }) async {
+    assert(vendorContactId.isNotEmpty, 'vendorContactId requerido');
+    assert(items.isNotEmpty, 'items no puede ser vacío');
+
+    final body = <String, dynamic>{
+      'vendorContactId': vendorContactId,
+      if (validUntil != null) 'validUntil': validUntil.toUtc().toIso8601String(),
+      if (currency != null && currency.isNotEmpty) 'currency': currency,
+      if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
+      'items': items,
+    };
+
+    final options = await _authOptions();
+    final Response<dynamic> res;
+    try {
+      res = await _dio.post<dynamic>(
+        '$_base/$requestId/quotes',
+        data: body,
+        options: options,
+      );
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+    final data = res.data;
+    if (data is! Map<String, dynamic>) {
+      throw ServerException(res.statusCode ?? 0,
+          'submitQuote: respuesta inesperada ${data.runtimeType}');
+    }
+    return data;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // AWARD (adjudicación)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// POST /v1/purchase-requests/:id/award — crea award CONFIRMED con líneas.
+  ///
+  /// Contrato (CreateAwardDto):
+  ///   - notes?: libre.
+  ///   - lines[]: cada línea exige purchaseRequestItemId (UUID), targetId
+  ///     (UUID del PurchaseRequestTarget), vendorContactId (coincide con el
+  ///     del target), awardedQuantity (positivo, ≤ item.quantity),
+  ///     conversionType (OC | OT | OC_AND_OT, coherente con fulfillmentType
+  ///     del ítem), poDescription?, otDescription?, notes?.
+  ///
+  /// Response: AwardWithLines (SourcingAward + lines[]).
+  Future<Map<String, dynamic>> createAward({
+    required String requestId,
+    required List<Map<String, dynamic>> lines,
+    String? notes,
+  }) async {
+    assert(lines.isNotEmpty, 'lines no puede ser vacío');
+
+    final body = <String, dynamic>{
+      if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
+      'lines': lines,
+    };
+
+    final options = await _authOptions();
+    final Response<dynamic> res;
+    try {
+      res = await _dio.post<dynamic>(
+        '$_base/$requestId/award',
+        data: body,
+        options: options,
+      );
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+    final data = res.data;
+    if (data is! Map<String, dynamic>) {
+      throw ServerException(res.statusCode ?? 0,
+          'createAward: respuesta inesperada ${data.runtimeType}');
+    }
+    return data;
+  }
+
+  /// GET /v1/purchase-requests/:id/award — award CONFIRMED activo.
+  /// Retorna null si el backend responde 404 (aún no adjudicado).
+  Future<Map<String, dynamic>?> fetchAward(String requestId) async {
+    final options = await _authOptions();
+    final Response<dynamic> res;
+    try {
+      res = await _dio.get<dynamic>(
+        '$_base/$requestId/award',
+        options: options,
+      );
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 404) return null;
+      throw _mapDioError(e);
+    }
+    final data = res.data;
+    if (data is! Map<String, dynamic>) return null;
+    return data;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // DOCUMENT GENERATION (OC / OT a partir de award)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// POST /v1/sourcing-awards/:id/generate-documents — emite OC/OT.
+  ///
+  /// Body vacío por diseño (DTO forbid non-whitelisted). El backend agrupa
+  /// líneas por vendor, genera 1 PO por vendor (si tiene OC/OC_AND_OT) y 1 WO
+  /// por vendor (si tiene OT/OC_AND_OT). Anti-duplicación server-side:
+  /// segunda llamada sobre el mismo award responde 400 DOCUMENTS_ALREADY_GENERATED.
+  ///
+  /// Response: { awardId, purchaseOrders: [...], workOrders: [...] }.
+  Future<Map<String, dynamic>> generateDocuments(String awardId) async {
+    final options = await _authOptions();
+    final Response<dynamic> res;
+    try {
+      res = await _dio.post<dynamic>(
+        '$_awardsBase/$awardId/generate-documents',
+        data: const <String, dynamic>{},
+        options: options,
+      );
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+    final data = res.data;
+    if (data is! Map<String, dynamic>) {
+      throw ServerException(res.statusCode ?? 0,
+          'generateDocuments: respuesta inesperada ${data.runtimeType}');
+    }
+    return data;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SUMMARY (estado operativo + canClose)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// GET /v1/purchase-requests/:id/summary — resumen operativo.
+  ///
+  /// Incluye items, awards, purchaseOrders, workOrders, y el bloque
+  /// `completion` con `canClose`, `isOperationallyComplete`, `missingActions[]`.
+  /// Es la única fuente para decidir si el botón "Cerrar PR" puede habilitarse.
+  Future<Map<String, dynamic>> fetchSummary(String requestId) async {
+    final options = await _authOptions();
+    final Response<dynamic> res;
+    try {
+      res = await _dio.get<dynamic>(
+        '$_base/$requestId/summary',
+        options: options,
+      );
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+    final data = res.data;
+    if (data is! Map<String, dynamic>) {
+      throw ServerException(res.statusCode ?? 0,
+          'fetchSummary: respuesta inesperada ${data.runtimeType}');
+    }
+    return data;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // CLOSE PR
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// POST /v1/purchase-requests/:id/close — cierra el PR.
+  ///
+  /// Body vacío. Backend exige `summary.completion.canClose=true`; si no se
+  /// cumple, responde 400 REQUEST_NOT_CLOSABLE con `missingActions[]`.
+  ///
+  /// Response: PurchaseRequest actualizado (status=closed, closedAt, closedBy).
+  Future<Map<String, dynamic>> closePurchaseRequest(String requestId) async {
+    final options = await _authOptions();
+    final Response<dynamic> res;
+    try {
+      res = await _dio.post<dynamic>(
+        '$_base/$requestId/close',
+        data: const <String, dynamic>{},
+        options: options,
+      );
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+    final data = res.data;
+    if (data is! Map<String, dynamic>) {
+      throw ServerException(res.statusCode ?? 0,
+          'closePurchaseRequest: respuesta inesperada ${data.runtimeType}');
+    }
+    return data;
   }
 }
 

@@ -1,54 +1,45 @@
 // ============================================================================
-// lib/presentation/widgets/purchase/asset_picker_sheet.dart
-// ASSET PICKER SHEET — Selección real de un activo del workspace activo.
-// ============================================================================
+// lib/presentation/widgets/purchase/vehicle_spec_picker_sheet.dart
+// VEHICLE SPEC PICKER SHEET — Selector de especificación de vehículo (stock)
+//
 // QUÉ HACE:
-//   - Bottom sheet que lista los AssetEntity del orgId activo y permite
-//     seleccionar uno para vincularlo a una PurchaseRequest (originType=ASSET).
-//   - Fuente de datos: AssetRepository.fetchAssetsByOrg(orgId) (vía DIContainer).
-//   - Muestra `assetKey` (placa/identificador humano) + tipo.
+// - Bottom sheet que muestra las VehicleSpec derivadas del parque vehicular
+//   real del workspace activo y permite elegir una para la PurchaseRequest
+//   cuando originType=inventory y el precontexto es AssetType.vehicle.
+// - Misma UX que AssetPickerSheet para mantener coherencia del formulario.
+// - La derivación se ejecuta UNA vez en initState vía AssetRepository.
 //
 // QUÉ NO HACE:
-//   - No edita, crea ni elimina activos.
-//   - No resuelve picker por portfolio: alcance es el orgId activo completo.
-//
-// PRINCIPIOS:
-//   - Elimina la UX inaceptable de TextField libre para assetId.
-//   - IDs técnicos (UUID) NO los escribe el usuario: se obtienen del tap.
+// - No recalcula por frame ni dentro del build.
+// - No escribe al backend: el snapshot se adjunta al create en submit.
 // ============================================================================
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/di/container.dart';
-import '../../../domain/entities/asset/asset_entity.dart';
+import '../../../domain/value/purchase/vehicle_spec.dart';
 import '../../controllers/purchase_request_controller.dart';
 import '../../controllers/session_context_controller.dart';
 
-class AssetPickerSheet extends StatefulWidget {
-  /// Filtro opcional por tipo de activo. Cuando se provee, solo se listan los
-  /// activos de ese tipo — alineado al precontexto UX de "Nueva solicitud".
-  final AssetType? filterType;
+class VehicleSpecPickerSheet extends StatefulWidget {
+  const VehicleSpecPickerSheet({super.key});
 
-  const AssetPickerSheet({super.key, this.filterType});
-
-  /// Abre el sheet. Al seleccionar, el controller recibe el assetId y la
-  /// etiqueta humana (assetKey) para mostrarla como chip.
-  static Future<void> show(BuildContext context, {AssetType? filterType}) {
+  static Future<void> show(BuildContext context) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) => AssetPickerSheet(filterType: filterType),
+      builder: (_) => const VehicleSpecPickerSheet(),
     );
   }
 
   @override
-  State<AssetPickerSheet> createState() => _AssetPickerSheetState();
+  State<VehicleSpecPickerSheet> createState() => _VehicleSpecPickerSheetState();
 }
 
-class _AssetPickerSheetState extends State<AssetPickerSheet> {
-  List<AssetEntity>? _assets;
+class _VehicleSpecPickerSheetState extends State<VehicleSpecPickerSheet> {
+  List<VehicleSpec>? _specs;
   bool _loading = true;
   String? _error;
   final _searchCtrl = TextEditingController();
@@ -59,9 +50,7 @@ class _AssetPickerSheetState extends State<AssetPickerSheet> {
     super.initState();
     _searchCtrl.addListener(() {
       final q = _searchCtrl.text.trim().toLowerCase();
-      if (q != _query) {
-        setState(() => _query = q);
-      }
+      if (q != _query) setState(() => _query = q);
     });
     _load();
   }
@@ -83,21 +72,17 @@ class _AssetPickerSheetState extends State<AssetPickerSheet> {
         });
         return;
       }
-      final list = await DIContainer().assetRepository.fetchAssetsByOrg(orgId);
+      final specs =
+          await DIContainer().assetRepository.fetchVehicleSpecsByOrg(orgId);
       if (!mounted) return;
-      // Filtro por tipo (UX precontexto): si el caller indicó un tipo,
-      // descartamos los activos de otros tipos antes de renderizar.
-      final filtered = widget.filterType == null
-          ? list
-          : list.where((a) => a.type == widget.filterType).toList();
       setState(() {
-        _assets = filtered;
+        _specs = specs;
         _loading = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Error al cargar activos';
+        _error = 'Error al cargar especificaciones de vehículo';
         _loading = false;
       });
     }
@@ -119,22 +104,22 @@ class _AssetPickerSheetState extends State<AssetPickerSheet> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text(
-                  'Seleccionar activo',
+                  'Seleccionar especificación de vehículo',
                   style: theme.textTheme.titleMedium,
                 ),
               ),
               Text(
-                'Elige el activo relacionado con esta solicitud. Solo se muestran '
-                'los activos del workspace activo.',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.hintColor),
+                'Se derivan de los vehículos ya registrados en tu workspace. '
+                'Formato: Marca Modelo Año — N vehículos.',
+                style:
+                    theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
               ),
               const SizedBox(height: 12),
               TextField(
-                key: const Key('asset_picker.search_field'),
+                key: const Key('vehicle_spec_picker.search_field'),
                 controller: _searchCtrl,
                 decoration: InputDecoration(
-                  hintText: 'Buscar por placa, identificador...',
+                  hintText: 'Buscar por marca, modelo o año...',
                   prefixIcon: const Icon(Icons.search, size: 20),
                   suffixIcon: _query.isEmpty
                       ? null
@@ -163,20 +148,22 @@ class _AssetPickerSheetState extends State<AssetPickerSheet> {
     if (_error != null) {
       return Center(
         child: Text(_error!,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.black54,
-                )),
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: Colors.black54)),
       );
     }
-    final assets = _assets ?? const [];
-    if (assets.isEmpty) {
-      return const _EmptyAssets();
+    final specs = _specs ?? const <VehicleSpec>[];
+    if (specs.isEmpty) {
+      return const _EmptySpecs();
     }
     final visible = _query.isEmpty
-        ? assets
-        : assets.where((a) {
-            final key = a.assetKey.toLowerCase();
-            return key.contains(_query);
+        ? specs
+        : specs.where((s) {
+            return s.makeKey.contains(_query) ||
+                s.modelKey.contains(_query) ||
+                '${s.year}'.contains(_query);
           }).toList();
     if (visible.isEmpty) {
       return Center(
@@ -189,13 +176,10 @@ class _AssetPickerSheetState extends State<AssetPickerSheet> {
     return ListView.separated(
       itemCount: visible.length,
       separatorBuilder: (_, __) => const Divider(height: 1, indent: 56),
-      itemBuilder: (_, i) => _AssetTile(
-        asset: visible[i],
+      itemBuilder: (_, i) => _SpecTile(
+        spec: visible[i],
         onTap: () {
-          controller.selectAsset(
-            id: visible[i].id,
-            label: visible[i].assetKey,
-          );
+          controller.selectVehicleSpec(visible[i]);
           Navigator.of(context).pop();
         },
       ),
@@ -203,32 +187,30 @@ class _AssetPickerSheetState extends State<AssetPickerSheet> {
   }
 }
 
-class _AssetTile extends StatelessWidget {
-  final AssetEntity asset;
+class _SpecTile extends StatelessWidget {
+  final VehicleSpec spec;
   final VoidCallback onTap;
 
-  const _AssetTile({required this.asset, required this.onTap});
+  const _SpecTile({required this.spec, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final typeLabel = switch (asset.type) {
-      AssetType.vehicle => 'Vehículo',
-      AssetType.realEstate => 'Inmueble',
-      AssetType.machinery => 'Maquinaria',
-      AssetType.equipment => 'Equipo',
-    };
+    final count = spec.linkedAssetsCount;
+    final subtitle = count > 1
+        ? '$count vehículos'
+        : (count == 1 ? '1 vehículo' : 'Sin vehículos vinculados');
     return ListTile(
-      key: Key('asset_picker.tile.${asset.id}'),
-      leading: const Icon(Icons.precision_manufacturing_outlined),
-      title: Text(asset.assetKey),
-      subtitle: Text(typeLabel),
+      key: Key('vehicle_spec_picker.tile.${spec.id}'),
+      leading: const Icon(Icons.directions_car_filled_outlined),
+      title: Text(spec.displayLabel),
+      subtitle: Text(subtitle),
       onTap: onTap,
     );
   }
 }
 
-class _EmptyAssets extends StatelessWidget {
-  const _EmptyAssets();
+class _EmptySpecs extends StatelessWidget {
+  const _EmptySpecs();
 
   @override
   Widget build(BuildContext context) {
@@ -242,15 +224,15 @@ class _EmptyAssets extends StatelessWidget {
             Icon(Icons.inbox_outlined, size: 48, color: t.hintColor),
             const SizedBox(height: 12),
             Text(
-              'No hay activos en este workspace',
+              'No hay vehículos con marca, modelo y año completos',
               style: t.textTheme.titleMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              'Registra un activo antes de vincularlo a una solicitud.',
-              style:
-                  t.textTheme.bodySmall?.copyWith(color: t.hintColor),
+              'Registra al menos un vehículo con esos datos para poder pedir '
+              'stock por especificación.',
+              style: t.textTheme.bodySmall?.copyWith(color: t.hintColor),
               textAlign: TextAlign.center,
             ),
           ],

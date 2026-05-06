@@ -3,6 +3,7 @@ import '../entities/asset/asset_document_entity.dart';
 import '../entities/asset/special/asset_vehiculo_entity.dart';
 import '../entities/asset/special/asset_inmueble_entity.dart';
 import '../entities/asset/special/asset_maquinaria_entity.dart';
+import '../value/purchase/vehicle_spec.dart';
 import '../value/registration/asset_runt_snapshot.dart';
 
 abstract class AssetRepository {
@@ -58,4 +59,17 @@ abstract class AssetRepository {
   /// Emite inmediatamente y se actualiza automáticamente ante cualquier
   /// cambio (inserción, actualización, borrado) en Isar para ese portfolioId.
   Stream<List<AssetEntity>> watchAssetsByPortfolio(String portfolioId);
+
+  /// Deriva la lista de [VehicleSpec] a partir del parque vehicular real del
+  /// workspace.
+  ///
+  /// Contrato:
+  /// - Lee vehículos tipo `vehicle` del orgId y su especialización
+  ///   ([AssetVehiculoEntity]) para obtener marca/modelo/año reales.
+  /// - Agrupa con normalización y devuelve la lista canónica ordenada.
+  /// - Offline-first: usa la cache Isar ya disponible. No llama a red aquí.
+  /// - Uso previsto: selector de inventario/stock en Purchase Request. El
+  ///   caller invoca este método UNA vez al abrir el selector; no se pretende
+  ///   que recalcule por frame.
+  Future<List<VehicleSpec>> fetchVehicleSpecsByOrg(String orgId);
 }

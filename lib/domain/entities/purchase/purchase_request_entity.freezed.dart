@@ -769,6 +769,580 @@ class __$PurchaseRequestDeliveryEntityCopyWithImpl<$Res>
 }
 
 /// @nodoc
+mixin _$PurchaseRequestVehicleSpecSnapshot {
+  String get vehicleSpecId;
+  String get displayLabel;
+  String get make;
+  String get model;
+  int get year;
+  String? get version;
+  String? get motorization;
+  int? get engineDisplacementCc;
+  String? get transmission;
+  int? get linkedAssetsCountSnapshot;
+
+  /// Create a copy of PurchaseRequestVehicleSpecSnapshot
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $PurchaseRequestVehicleSpecSnapshotCopyWith<
+          PurchaseRequestVehicleSpecSnapshot>
+      get copyWith => _$PurchaseRequestVehicleSpecSnapshotCopyWithImpl<
+              PurchaseRequestVehicleSpecSnapshot>(
+          this as PurchaseRequestVehicleSpecSnapshot, _$identity);
+
+  /// Serializes this PurchaseRequestVehicleSpecSnapshot to a JSON map.
+  Map<String, dynamic> toJson();
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is PurchaseRequestVehicleSpecSnapshot &&
+            (identical(other.vehicleSpecId, vehicleSpecId) ||
+                other.vehicleSpecId == vehicleSpecId) &&
+            (identical(other.displayLabel, displayLabel) ||
+                other.displayLabel == displayLabel) &&
+            (identical(other.make, make) || other.make == make) &&
+            (identical(other.model, model) || other.model == model) &&
+            (identical(other.year, year) || other.year == year) &&
+            (identical(other.version, version) || other.version == version) &&
+            (identical(other.motorization, motorization) ||
+                other.motorization == motorization) &&
+            (identical(other.engineDisplacementCc, engineDisplacementCc) ||
+                other.engineDisplacementCc == engineDisplacementCc) &&
+            (identical(other.transmission, transmission) ||
+                other.transmission == transmission) &&
+            (identical(other.linkedAssetsCountSnapshot,
+                    linkedAssetsCountSnapshot) ||
+                other.linkedAssetsCountSnapshot == linkedAssetsCountSnapshot));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      vehicleSpecId,
+      displayLabel,
+      make,
+      model,
+      year,
+      version,
+      motorization,
+      engineDisplacementCc,
+      transmission,
+      linkedAssetsCountSnapshot);
+
+  @override
+  String toString() {
+    return 'PurchaseRequestVehicleSpecSnapshot(vehicleSpecId: $vehicleSpecId, displayLabel: $displayLabel, make: $make, model: $model, year: $year, version: $version, motorization: $motorization, engineDisplacementCc: $engineDisplacementCc, transmission: $transmission, linkedAssetsCountSnapshot: $linkedAssetsCountSnapshot)';
+  }
+}
+
+/// @nodoc
+abstract mixin class $PurchaseRequestVehicleSpecSnapshotCopyWith<$Res> {
+  factory $PurchaseRequestVehicleSpecSnapshotCopyWith(
+          PurchaseRequestVehicleSpecSnapshot value,
+          $Res Function(PurchaseRequestVehicleSpecSnapshot) _then) =
+      _$PurchaseRequestVehicleSpecSnapshotCopyWithImpl;
+  @useResult
+  $Res call(
+      {String vehicleSpecId,
+      String displayLabel,
+      String make,
+      String model,
+      int year,
+      String? version,
+      String? motorization,
+      int? engineDisplacementCc,
+      String? transmission,
+      int? linkedAssetsCountSnapshot});
+}
+
+/// @nodoc
+class _$PurchaseRequestVehicleSpecSnapshotCopyWithImpl<$Res>
+    implements $PurchaseRequestVehicleSpecSnapshotCopyWith<$Res> {
+  _$PurchaseRequestVehicleSpecSnapshotCopyWithImpl(this._self, this._then);
+
+  final PurchaseRequestVehicleSpecSnapshot _self;
+  final $Res Function(PurchaseRequestVehicleSpecSnapshot) _then;
+
+  /// Create a copy of PurchaseRequestVehicleSpecSnapshot
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? vehicleSpecId = null,
+    Object? displayLabel = null,
+    Object? make = null,
+    Object? model = null,
+    Object? year = null,
+    Object? version = freezed,
+    Object? motorization = freezed,
+    Object? engineDisplacementCc = freezed,
+    Object? transmission = freezed,
+    Object? linkedAssetsCountSnapshot = freezed,
+  }) {
+    return _then(_self.copyWith(
+      vehicleSpecId: null == vehicleSpecId
+          ? _self.vehicleSpecId
+          : vehicleSpecId // ignore: cast_nullable_to_non_nullable
+              as String,
+      displayLabel: null == displayLabel
+          ? _self.displayLabel
+          : displayLabel // ignore: cast_nullable_to_non_nullable
+              as String,
+      make: null == make
+          ? _self.make
+          : make // ignore: cast_nullable_to_non_nullable
+              as String,
+      model: null == model
+          ? _self.model
+          : model // ignore: cast_nullable_to_non_nullable
+              as String,
+      year: null == year
+          ? _self.year
+          : year // ignore: cast_nullable_to_non_nullable
+              as int,
+      version: freezed == version
+          ? _self.version
+          : version // ignore: cast_nullable_to_non_nullable
+              as String?,
+      motorization: freezed == motorization
+          ? _self.motorization
+          : motorization // ignore: cast_nullable_to_non_nullable
+              as String?,
+      engineDisplacementCc: freezed == engineDisplacementCc
+          ? _self.engineDisplacementCc
+          : engineDisplacementCc // ignore: cast_nullable_to_non_nullable
+              as int?,
+      transmission: freezed == transmission
+          ? _self.transmission
+          : transmission // ignore: cast_nullable_to_non_nullable
+              as String?,
+      linkedAssetsCountSnapshot: freezed == linkedAssetsCountSnapshot
+          ? _self.linkedAssetsCountSnapshot
+          : linkedAssetsCountSnapshot // ignore: cast_nullable_to_non_nullable
+              as int?,
+    ));
+  }
+}
+
+/// Adds pattern-matching-related methods to [PurchaseRequestVehicleSpecSnapshot].
+extension PurchaseRequestVehicleSpecSnapshotPatterns
+    on PurchaseRequestVehicleSpecSnapshot {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_PurchaseRequestVehicleSpecSnapshot value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestVehicleSpecSnapshot() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_PurchaseRequestVehicleSpecSnapshot value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestVehicleSpecSnapshot():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_PurchaseRequestVehicleSpecSnapshot value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestVehicleSpecSnapshot() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(
+            String vehicleSpecId,
+            String displayLabel,
+            String make,
+            String model,
+            int year,
+            String? version,
+            String? motorization,
+            int? engineDisplacementCc,
+            String? transmission,
+            int? linkedAssetsCountSnapshot)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestVehicleSpecSnapshot() when $default != null:
+        return $default(
+            _that.vehicleSpecId,
+            _that.displayLabel,
+            _that.make,
+            _that.model,
+            _that.year,
+            _that.version,
+            _that.motorization,
+            _that.engineDisplacementCc,
+            _that.transmission,
+            _that.linkedAssetsCountSnapshot);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(
+            String vehicleSpecId,
+            String displayLabel,
+            String make,
+            String model,
+            int year,
+            String? version,
+            String? motorization,
+            int? engineDisplacementCc,
+            String? transmission,
+            int? linkedAssetsCountSnapshot)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestVehicleSpecSnapshot():
+        return $default(
+            _that.vehicleSpecId,
+            _that.displayLabel,
+            _that.make,
+            _that.model,
+            _that.year,
+            _that.version,
+            _that.motorization,
+            _that.engineDisplacementCc,
+            _that.transmission,
+            _that.linkedAssetsCountSnapshot);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(
+            String vehicleSpecId,
+            String displayLabel,
+            String make,
+            String model,
+            int year,
+            String? version,
+            String? motorization,
+            int? engineDisplacementCc,
+            String? transmission,
+            int? linkedAssetsCountSnapshot)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _PurchaseRequestVehicleSpecSnapshot() when $default != null:
+        return $default(
+            _that.vehicleSpecId,
+            _that.displayLabel,
+            _that.make,
+            _that.model,
+            _that.year,
+            _that.version,
+            _that.motorization,
+            _that.engineDisplacementCc,
+            _that.transmission,
+            _that.linkedAssetsCountSnapshot);
+      case _:
+        return null;
+    }
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _PurchaseRequestVehicleSpecSnapshot
+    implements PurchaseRequestVehicleSpecSnapshot {
+  const _PurchaseRequestVehicleSpecSnapshot(
+      {required this.vehicleSpecId,
+      required this.displayLabel,
+      required this.make,
+      required this.model,
+      required this.year,
+      this.version,
+      this.motorization,
+      this.engineDisplacementCc,
+      this.transmission,
+      this.linkedAssetsCountSnapshot});
+  factory _PurchaseRequestVehicleSpecSnapshot.fromJson(
+          Map<String, dynamic> json) =>
+      _$PurchaseRequestVehicleSpecSnapshotFromJson(json);
+
+  @override
+  final String vehicleSpecId;
+  @override
+  final String displayLabel;
+  @override
+  final String make;
+  @override
+  final String model;
+  @override
+  final int year;
+  @override
+  final String? version;
+  @override
+  final String? motorization;
+  @override
+  final int? engineDisplacementCc;
+  @override
+  final String? transmission;
+  @override
+  final int? linkedAssetsCountSnapshot;
+
+  /// Create a copy of PurchaseRequestVehicleSpecSnapshot
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$PurchaseRequestVehicleSpecSnapshotCopyWith<
+          _PurchaseRequestVehicleSpecSnapshot>
+      get copyWith => __$PurchaseRequestVehicleSpecSnapshotCopyWithImpl<
+          _PurchaseRequestVehicleSpecSnapshot>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$PurchaseRequestVehicleSpecSnapshotToJson(
+      this,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _PurchaseRequestVehicleSpecSnapshot &&
+            (identical(other.vehicleSpecId, vehicleSpecId) ||
+                other.vehicleSpecId == vehicleSpecId) &&
+            (identical(other.displayLabel, displayLabel) ||
+                other.displayLabel == displayLabel) &&
+            (identical(other.make, make) || other.make == make) &&
+            (identical(other.model, model) || other.model == model) &&
+            (identical(other.year, year) || other.year == year) &&
+            (identical(other.version, version) || other.version == version) &&
+            (identical(other.motorization, motorization) ||
+                other.motorization == motorization) &&
+            (identical(other.engineDisplacementCc, engineDisplacementCc) ||
+                other.engineDisplacementCc == engineDisplacementCc) &&
+            (identical(other.transmission, transmission) ||
+                other.transmission == transmission) &&
+            (identical(other.linkedAssetsCountSnapshot,
+                    linkedAssetsCountSnapshot) ||
+                other.linkedAssetsCountSnapshot == linkedAssetsCountSnapshot));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      vehicleSpecId,
+      displayLabel,
+      make,
+      model,
+      year,
+      version,
+      motorization,
+      engineDisplacementCc,
+      transmission,
+      linkedAssetsCountSnapshot);
+
+  @override
+  String toString() {
+    return 'PurchaseRequestVehicleSpecSnapshot(vehicleSpecId: $vehicleSpecId, displayLabel: $displayLabel, make: $make, model: $model, year: $year, version: $version, motorization: $motorization, engineDisplacementCc: $engineDisplacementCc, transmission: $transmission, linkedAssetsCountSnapshot: $linkedAssetsCountSnapshot)';
+  }
+}
+
+/// @nodoc
+abstract mixin class _$PurchaseRequestVehicleSpecSnapshotCopyWith<$Res>
+    implements $PurchaseRequestVehicleSpecSnapshotCopyWith<$Res> {
+  factory _$PurchaseRequestVehicleSpecSnapshotCopyWith(
+          _PurchaseRequestVehicleSpecSnapshot value,
+          $Res Function(_PurchaseRequestVehicleSpecSnapshot) _then) =
+      __$PurchaseRequestVehicleSpecSnapshotCopyWithImpl;
+  @override
+  @useResult
+  $Res call(
+      {String vehicleSpecId,
+      String displayLabel,
+      String make,
+      String model,
+      int year,
+      String? version,
+      String? motorization,
+      int? engineDisplacementCc,
+      String? transmission,
+      int? linkedAssetsCountSnapshot});
+}
+
+/// @nodoc
+class __$PurchaseRequestVehicleSpecSnapshotCopyWithImpl<$Res>
+    implements _$PurchaseRequestVehicleSpecSnapshotCopyWith<$Res> {
+  __$PurchaseRequestVehicleSpecSnapshotCopyWithImpl(this._self, this._then);
+
+  final _PurchaseRequestVehicleSpecSnapshot _self;
+  final $Res Function(_PurchaseRequestVehicleSpecSnapshot) _then;
+
+  /// Create a copy of PurchaseRequestVehicleSpecSnapshot
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? vehicleSpecId = null,
+    Object? displayLabel = null,
+    Object? make = null,
+    Object? model = null,
+    Object? year = null,
+    Object? version = freezed,
+    Object? motorization = freezed,
+    Object? engineDisplacementCc = freezed,
+    Object? transmission = freezed,
+    Object? linkedAssetsCountSnapshot = freezed,
+  }) {
+    return _then(_PurchaseRequestVehicleSpecSnapshot(
+      vehicleSpecId: null == vehicleSpecId
+          ? _self.vehicleSpecId
+          : vehicleSpecId // ignore: cast_nullable_to_non_nullable
+              as String,
+      displayLabel: null == displayLabel
+          ? _self.displayLabel
+          : displayLabel // ignore: cast_nullable_to_non_nullable
+              as String,
+      make: null == make
+          ? _self.make
+          : make // ignore: cast_nullable_to_non_nullable
+              as String,
+      model: null == model
+          ? _self.model
+          : model // ignore: cast_nullable_to_non_nullable
+              as String,
+      year: null == year
+          ? _self.year
+          : year // ignore: cast_nullable_to_non_nullable
+              as int,
+      version: freezed == version
+          ? _self.version
+          : version // ignore: cast_nullable_to_non_nullable
+              as String?,
+      motorization: freezed == motorization
+          ? _self.motorization
+          : motorization // ignore: cast_nullable_to_non_nullable
+              as String?,
+      engineDisplacementCc: freezed == engineDisplacementCc
+          ? _self.engineDisplacementCc
+          : engineDisplacementCc // ignore: cast_nullable_to_non_nullable
+              as int?,
+      transmission: freezed == transmission
+          ? _self.transmission
+          : transmission // ignore: cast_nullable_to_non_nullable
+              as String?,
+      linkedAssetsCountSnapshot: freezed == linkedAssetsCountSnapshot
+          ? _self.linkedAssetsCountSnapshot
+          : linkedAssetsCountSnapshot // ignore: cast_nullable_to_non_nullable
+              as int?,
+    ));
+  }
+}
+
+/// @nodoc
 mixin _$PurchaseRequestEntity {
   String get id;
   String get orgId;
@@ -792,6 +1366,10 @@ mixin _$PurchaseRequestEntity {
   int get respuestasCount;
   DateTime? get createdAt;
   DateTime? get updatedAt;
+
+  /// Target opcional: VehicleSpec snapshot cuando el pedido fue para
+  /// inventario/stock de un grupo marca/modelo/año.
+  PurchaseRequestVehicleSpecSnapshot? get vehicleSpec;
 
   /// Create a copy of PurchaseRequestEntity
   /// with the given fields replaced by the non-null parameter values.
@@ -832,7 +1410,9 @@ mixin _$PurchaseRequestEntity {
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
-                other.updatedAt == updatedAt));
+                other.updatedAt == updatedAt) &&
+            (identical(other.vehicleSpec, vehicleSpec) ||
+                other.vehicleSpec == vehicleSpec));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -854,11 +1434,12 @@ mixin _$PurchaseRequestEntity {
       status,
       respuestasCount,
       createdAt,
-      updatedAt);
+      updatedAt,
+      vehicleSpec);
 
   @override
   String toString() {
-    return 'PurchaseRequestEntity(id: $id, orgId: $orgId, title: $title, type: $type, category: $category, originType: $originType, assetId: $assetId, notes: $notes, delivery: $delivery, itemsCount: $itemsCount, items: $items, vendorContactIds: $vendorContactIds, status: $status, respuestasCount: $respuestasCount, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'PurchaseRequestEntity(id: $id, orgId: $orgId, title: $title, type: $type, category: $category, originType: $originType, assetId: $assetId, notes: $notes, delivery: $delivery, itemsCount: $itemsCount, items: $items, vendorContactIds: $vendorContactIds, status: $status, respuestasCount: $respuestasCount, createdAt: $createdAt, updatedAt: $updatedAt, vehicleSpec: $vehicleSpec)';
   }
 }
 
@@ -884,9 +1465,11 @@ abstract mixin class $PurchaseRequestEntityCopyWith<$Res> {
       String status,
       int respuestasCount,
       DateTime? createdAt,
-      DateTime? updatedAt});
+      DateTime? updatedAt,
+      PurchaseRequestVehicleSpecSnapshot? vehicleSpec});
 
   $PurchaseRequestDeliveryEntityCopyWith<$Res>? get delivery;
+  $PurchaseRequestVehicleSpecSnapshotCopyWith<$Res>? get vehicleSpec;
 }
 
 /// @nodoc
@@ -918,6 +1501,7 @@ class _$PurchaseRequestEntityCopyWithImpl<$Res>
     Object? respuestasCount = null,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
+    Object? vehicleSpec = freezed,
   }) {
     return _then(_self.copyWith(
       id: null == id
@@ -984,6 +1568,10 @@ class _$PurchaseRequestEntityCopyWithImpl<$Res>
           ? _self.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      vehicleSpec: freezed == vehicleSpec
+          ? _self.vehicleSpec
+          : vehicleSpec // ignore: cast_nullable_to_non_nullable
+              as PurchaseRequestVehicleSpecSnapshot?,
     ));
   }
 
@@ -999,6 +1587,21 @@ class _$PurchaseRequestEntityCopyWithImpl<$Res>
     return $PurchaseRequestDeliveryEntityCopyWith<$Res>(_self.delivery!,
         (value) {
       return _then(_self.copyWith(delivery: value));
+    });
+  }
+
+  /// Create a copy of PurchaseRequestEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $PurchaseRequestVehicleSpecSnapshotCopyWith<$Res>? get vehicleSpec {
+    if (_self.vehicleSpec == null) {
+      return null;
+    }
+
+    return $PurchaseRequestVehicleSpecSnapshotCopyWith<$Res>(_self.vehicleSpec!,
+        (value) {
+      return _then(_self.copyWith(vehicleSpec: value));
     });
   }
 }
@@ -1112,7 +1715,8 @@ extension PurchaseRequestEntityPatterns on PurchaseRequestEntity {
             String status,
             int respuestasCount,
             DateTime? createdAt,
-            DateTime? updatedAt)?
+            DateTime? updatedAt,
+            PurchaseRequestVehicleSpecSnapshot? vehicleSpec)?
         $default, {
     required TResult orElse(),
   }) {
@@ -1135,7 +1739,8 @@ extension PurchaseRequestEntityPatterns on PurchaseRequestEntity {
             _that.status,
             _that.respuestasCount,
             _that.createdAt,
-            _that.updatedAt);
+            _that.updatedAt,
+            _that.vehicleSpec);
       case _:
         return orElse();
     }
@@ -1172,7 +1777,8 @@ extension PurchaseRequestEntityPatterns on PurchaseRequestEntity {
             String status,
             int respuestasCount,
             DateTime? createdAt,
-            DateTime? updatedAt)
+            DateTime? updatedAt,
+            PurchaseRequestVehicleSpecSnapshot? vehicleSpec)
         $default,
   ) {
     final _that = this;
@@ -1194,7 +1800,8 @@ extension PurchaseRequestEntityPatterns on PurchaseRequestEntity {
             _that.status,
             _that.respuestasCount,
             _that.createdAt,
-            _that.updatedAt);
+            _that.updatedAt,
+            _that.vehicleSpec);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -1230,7 +1837,8 @@ extension PurchaseRequestEntityPatterns on PurchaseRequestEntity {
             String status,
             int respuestasCount,
             DateTime? createdAt,
-            DateTime? updatedAt)?
+            DateTime? updatedAt,
+            PurchaseRequestVehicleSpecSnapshot? vehicleSpec)?
         $default,
   ) {
     final _that = this;
@@ -1252,7 +1860,8 @@ extension PurchaseRequestEntityPatterns on PurchaseRequestEntity {
             _that.status,
             _that.respuestasCount,
             _that.createdAt,
-            _that.updatedAt);
+            _that.updatedAt,
+            _that.vehicleSpec);
       case _:
         return null;
     }
@@ -1279,7 +1888,8 @@ class _PurchaseRequestEntity implements PurchaseRequestEntity {
       required this.status,
       this.respuestasCount = 0,
       this.createdAt,
-      this.updatedAt})
+      this.updatedAt,
+      this.vehicleSpec})
       : _items = items,
         _vendorContactIds = vendorContactIds;
   factory _PurchaseRequestEntity.fromJson(Map<String, dynamic> json) =>
@@ -1342,6 +1952,11 @@ class _PurchaseRequestEntity implements PurchaseRequestEntity {
   @override
   final DateTime? updatedAt;
 
+  /// Target opcional: VehicleSpec snapshot cuando el pedido fue para
+  /// inventario/stock de un grupo marca/modelo/año.
+  @override
+  final PurchaseRequestVehicleSpecSnapshot? vehicleSpec;
+
   /// Create a copy of PurchaseRequestEntity
   /// with the given fields replaced by the non-null parameter values.
   @override
@@ -1386,7 +2001,9 @@ class _PurchaseRequestEntity implements PurchaseRequestEntity {
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
-                other.updatedAt == updatedAt));
+                other.updatedAt == updatedAt) &&
+            (identical(other.vehicleSpec, vehicleSpec) ||
+                other.vehicleSpec == vehicleSpec));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1408,11 +2025,12 @@ class _PurchaseRequestEntity implements PurchaseRequestEntity {
       status,
       respuestasCount,
       createdAt,
-      updatedAt);
+      updatedAt,
+      vehicleSpec);
 
   @override
   String toString() {
-    return 'PurchaseRequestEntity(id: $id, orgId: $orgId, title: $title, type: $type, category: $category, originType: $originType, assetId: $assetId, notes: $notes, delivery: $delivery, itemsCount: $itemsCount, items: $items, vendorContactIds: $vendorContactIds, status: $status, respuestasCount: $respuestasCount, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'PurchaseRequestEntity(id: $id, orgId: $orgId, title: $title, type: $type, category: $category, originType: $originType, assetId: $assetId, notes: $notes, delivery: $delivery, itemsCount: $itemsCount, items: $items, vendorContactIds: $vendorContactIds, status: $status, respuestasCount: $respuestasCount, createdAt: $createdAt, updatedAt: $updatedAt, vehicleSpec: $vehicleSpec)';
   }
 }
 
@@ -1440,10 +2058,13 @@ abstract mixin class _$PurchaseRequestEntityCopyWith<$Res>
       String status,
       int respuestasCount,
       DateTime? createdAt,
-      DateTime? updatedAt});
+      DateTime? updatedAt,
+      PurchaseRequestVehicleSpecSnapshot? vehicleSpec});
 
   @override
   $PurchaseRequestDeliveryEntityCopyWith<$Res>? get delivery;
+  @override
+  $PurchaseRequestVehicleSpecSnapshotCopyWith<$Res>? get vehicleSpec;
 }
 
 /// @nodoc
@@ -1475,6 +2096,7 @@ class __$PurchaseRequestEntityCopyWithImpl<$Res>
     Object? respuestasCount = null,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
+    Object? vehicleSpec = freezed,
   }) {
     return _then(_PurchaseRequestEntity(
       id: null == id
@@ -1541,6 +2163,10 @@ class __$PurchaseRequestEntityCopyWithImpl<$Res>
           ? _self.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      vehicleSpec: freezed == vehicleSpec
+          ? _self.vehicleSpec
+          : vehicleSpec // ignore: cast_nullable_to_non_nullable
+              as PurchaseRequestVehicleSpecSnapshot?,
     ));
   }
 
@@ -1556,6 +2182,21 @@ class __$PurchaseRequestEntityCopyWithImpl<$Res>
     return $PurchaseRequestDeliveryEntityCopyWith<$Res>(_self.delivery!,
         (value) {
       return _then(_self.copyWith(delivery: value));
+    });
+  }
+
+  /// Create a copy of PurchaseRequestEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $PurchaseRequestVehicleSpecSnapshotCopyWith<$Res>? get vehicleSpec {
+    if (_self.vehicleSpec == null) {
+      return null;
+    }
+
+    return $PurchaseRequestVehicleSpecSnapshotCopyWith<$Res>(_self.vehicleSpec!,
+        (value) {
+      return _then(_self.copyWith(vehicleSpec: value));
     });
   }
 }

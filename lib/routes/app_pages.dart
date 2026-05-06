@@ -83,6 +83,7 @@ import '../presentation/pages/portfolio/wizard/create_portfolio_step2_page.dart'
 import '../presentation/pages/portfolio/wizard/runt_query_progress_page.dart';
 import '../presentation/pages/portfolio/wizard/runt_query_result_page.dart';
 import '../presentation/bindings/purchase_request_binding.dart';
+import '../presentation/bindings/purchase_request_detail_binding.dart';
 import '../presentation/pages/admin/network/actor_detail_page.dart';
 import '../presentation/pages/admin/network/network_operational_screen.dart';
 import '../presentation/pages/admin/network/provider_detail_page.dart';
@@ -90,6 +91,7 @@ import '../presentation/pages/admin/network/provider_form_page.dart';
 import '../presentation/pages/admin/network/providers_directory_page.dart';
 import '../presentation/pages/provider/me/provider_me_page.dart';
 import '../presentation/pages/provider/specialties/select_specialties_page.dart';
+import '../presentation/pages/purchase/purchase_request_detail_page.dart';
 import '../presentation/pages/purchase_request_page.dart';
 import '../presentation/pages/runt/runt_person_consult_page.dart';
 import '../presentation/pages/runt/runt_vehicle_consult_page.dart';
@@ -256,6 +258,16 @@ class AppPages {
       page: () => const PurchaseRequestPage(),
       binding: PurchaseRequestBinding(),
     ),
+
+    // Detalle de PR con el loop admin-captura (register quote → award →
+    // emitir OC/OT → cerrar). CONTRACT: Get.toNamed(Routes.purchaseDetail,
+    // arguments: String requestId).
+    GetPage(
+      name: Routes.purchaseDetail,
+      page: () => const PurchaseRequestDetailPage(),
+      binding: PurchaseRequestDetailBinding(),
+    ),
+
     GetPage(name: Routes.assets, page: () => const AssetListPage()),
 
     // CONTRACT: Routes.assetsByType requiere argument AssetType (enum).

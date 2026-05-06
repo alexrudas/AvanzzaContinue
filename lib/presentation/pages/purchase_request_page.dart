@@ -15,9 +15,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../domain/entities/asset/asset_entity.dart';
 import '../../domain/entities/purchase/create_purchase_request_input.dart';
 import '../controllers/purchase_request_controller.dart';
 import '../widgets/purchase/asset_picker_sheet.dart';
+import '../widgets/purchase/asset_type_precontext_sheet.dart';
+import '../widgets/purchase/vehicle_spec_picker_sheet.dart';
 import '../widgets/purchase/vendor_target_picker_sheet.dart';
 
 class PurchaseRequestPage extends StatefulWidget {
@@ -30,9 +33,8 @@ class PurchaseRequestPage extends StatefulWidget {
 class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
   late final PurchaseRequestController controller;
 
-  // Encabezado
-  final _titleCtrl = TextEditingController();
-  final _categoryCtrl = TextEditingController();
+  // Encabezado (el título fue eliminado del formulario: se auto-genera en
+  // submit a partir del contexto — tipo de activo + categoría).
 
   // Contexto (assetId gestionado por AssetPickerSheet)
   final _notesCtrl = TextEditingController();
@@ -55,11 +57,8 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
   }
 
   void _wireHeader() {
-    _titleCtrl.text = controller.title.value;
-    _categoryCtrl.text = controller.category.value;
-    _titleCtrl.addListener(() => controller.title.value = _titleCtrl.text);
-    _categoryCtrl
-        .addListener(() => controller.category.value = _categoryCtrl.text);
+    // Título: auto-generado en submit a partir del contexto (tipo de activo
+    // + categoría). Categoría: Dropdown reactivo, no requiere TextEditingCtrl.
   }
 
   void _wireContext() {
@@ -112,8 +111,6 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
 
   @override
   void dispose() {
-    _titleCtrl.dispose();
-    _categoryCtrl.dispose();
     _notesCtrl.dispose();
     _deliveryDeptCtrl.dispose();
     _deliveryCityCtrl.dispose();
@@ -144,9 +141,16 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
       );
       Get.back();
     } else {
+      // El controller ya expuso un mensaje humano específico basado en la
+      // causa real (401, red, 4xx con code canónico, 5xx). Si por alguna
+      // razón no hay mensaje (bug), usamos el genérico como fallback.
+      final msg = controller.lastSubmitError.value ??
+          'Error al enviar la solicitud. Intenta de nuevo.';
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error al enviar la solicitud. Intenta de nuevo.'),
+        SnackBar(
+          content: Text(msg),
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -165,13 +169,13 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _HeaderSection(
-                      titleCtrl: _titleCtrl,
-                      categoryCtrl: _categoryCtrl,
-                      controller: controller,
-                    ),
+                    // Sección 1 — Alcance del pedido (tipo de activo, tipo
+                    // de solicitud, aplicar a, activo relacionado).
+                    _ScopeSection(controller: controller),
                     const SizedBox(height: 20),
-                    _ContextSection(
+                    // Sección 2 — Clasificación (categoría dependiente del
+                    // tipo de activo × tipo de solicitud) + observaciones.
+                    _ClassificationSection(
                       notesCtrl: _notesCtrl,
                       controller: controller,
                     ),
@@ -202,6 +206,7 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
                 controller.title.value;
                 controller.originType.value;
                 controller.assetId.value;
+                controller.selectedVehicleSpec.value;
                 controller.selectedVendorIds.length;
                 controller.items.length;
                 controller.deliveryEnabled.value;
@@ -262,39 +267,132 @@ class _ItemControllers {
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// SECCIÓN: Encabezado
+// SECCIÓN 1 — Alcance del pedido
 // ───────────────────────────────────────────────────────────────────────────
-class _HeaderSection extends StatelessWidget {
-  final TextEditingController titleCtrl;
-  final TextEditingController categoryCtrl;
+// Define el universo operativo: tipo de activo precontexto (chip read-only),
+// naturaleza del pedido (Producto/Servicio) y destino (Aplicar a). Incluye el
+// picker real de activos del workspace cuando el destino es un activo concreto.
+class _ScopeSection extends StatelessWidget {
   final PurchaseRequestController controller;
 
-  const _HeaderSection({
-    required this.titleCtrl,
-    required this.categoryCtrl,
-    required this.controller,
-  });
+  const _ScopeSection({required this.controller});
+
+  /// Label contextual de "Pedido para un …" según el tipo de activo ya
+  /// preseleccionado en el BottomSheet precontexto. Si no hay tipo definido,
+  /// cae en una etiqueta neutra genérica.
+  String _assetOrderLabel(AssetType? t) {
+    switch (t) {
+      case AssetType.vehicle:
+        return 'Pedido para un vehículo';
+      case AssetType.realEstate:
+        return 'Pedido para un inmueble';
+      case AssetType.machinery:
+        return 'Pedido para una maquinaria';
+      case AssetType.equipment:
+        return 'Pedido para un equipo';
+      case null:
+        return 'Pedido para un activo';
+    }
+  }
+
+  /// Label contextual del botón del picker, según el tipo de activo.
+  String _pickAssetLabel(AssetType? t, bool alreadySelected) {
+    final base = switch (t) {
+      AssetType.vehicle => 'vehículo',
+      AssetType.realEstate => 'inmueble',
+      AssetType.machinery => 'maquinaria',
+      AssetType.equipment => 'equipo',
+      null => 'activo',
+    };
+    return alreadySelected ? 'Cambiar $base' : 'Seleccionar $base';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return _SectionCard(
-      title: 'Encabezado',
-      icon: Icons.article_outlined,
+      title: 'Alcance del pedido',
+      icon: Icons.flag_outlined,
       children: [
-        TextField(
-          controller: titleCtrl,
-          decoration: const InputDecoration(
-            labelText: 'Título de la solicitud *',
-            hintText: 'Ej: Insumos mensuales farmacia central',
-            border: OutlineInputBorder(),
-          ),
-          textCapitalization: TextCapitalization.sentences,
-        ),
+        // A) Tipo de activo (read-only, proviene del BottomSheet precontexto).
+        Obx(() {
+          final t = controller.selectedAssetType.value;
+          return Align(
+            alignment: Alignment.centerLeft,
+            child: Chip(
+              avatar: Icon(
+                t == null ? Icons.inventory_2_outlined : assetTypeIcon(t),
+                size: 18,
+                color: theme.colorScheme.primary,
+              ),
+              label: Text(
+                t == null
+                    ? 'Tipo de activo: no definido'
+                    : 'Tipo de activo: ${assetTypeLabel(t)}',
+              ),
+            ),
+          );
+        }),
         const SizedBox(height: 12),
-        Obx(() => DropdownButtonFormField<PurchaseRequestTypeInput>(
+        // B) "Aplica a" — PRIMERA decisión del usuario. Su valor determina si
+        //    mostramos "Tipo de solicitud" y el picker de activo específico.
+        Obx(() {
+          final t = controller.selectedAssetType.value;
+          final current = controller.originType.value;
+          // Saneamos: el enum canónico tiene `general` por compat backend;
+          // aquí solo son válidos `asset` o `inventory`.
+          final safeCurrent = current == PurchaseRequestOriginInput.inventory
+              ? current
+              : PurchaseRequestOriginInput.asset;
+          return DropdownButtonFormField<PurchaseRequestOriginInput>(
+            key: const Key('purchase_request_page.apply_to_dropdown'),
+            initialValue: safeCurrent,
+            decoration: const InputDecoration(
+              labelText: 'Aplica a *',
+              border: OutlineInputBorder(),
+            ),
+            items: [
+              DropdownMenuItem(
+                value: PurchaseRequestOriginInput.asset,
+                child: Text(_assetOrderLabel(t)),
+              ),
+              const DropdownMenuItem(
+                value: PurchaseRequestOriginInput.inventory,
+                child: Text('Pedido para inventario / stock'),
+              ),
+            ],
+            onChanged: (v) {
+              if (v == null) return;
+              controller.originType.value = v;
+              if (v == PurchaseRequestOriginInput.inventory) {
+                // Inventario/stock no aplica a servicios: fijamos PRODUCTO
+                // implícitamente, limpiamos activo y revalidamos categoría.
+                controller.clearAsset();
+                controller.forceProductNature();
+              } else {
+                // Volviendo a "activo": no arrastrar estado inválido, y si
+                // la categoría ya no pertenece al nuevo catálogo (activo ×
+                // tipo actual) la limpiamos. También limpiamos la spec —
+                // no aplica cuando el pedido es a un activo específico.
+                controller.clearVehicleSpec();
+                controller.ensureCategoryValid();
+              }
+            },
+          );
+        }),
+        // C) "Tipo de solicitud" — SOLO visible cuando Aplica a = activo.
+        //    En inventario/stock el tipo queda implícito en PRODUCTO.
+        Obx(() {
+          final isAssetScope = controller.originType.value ==
+              PurchaseRequestOriginInput.asset;
+          if (!isAssetScope) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: DropdownButtonFormField<PurchaseRequestTypeInput>(
+              key: const Key('purchase_request_page.request_type_dropdown'),
               initialValue: controller.type.value,
               decoration: const InputDecoration(
-                labelText: 'Tipo *',
+                labelText: 'Tipo de solicitud *',
                 border: OutlineInputBorder(),
               ),
               items: const [
@@ -308,102 +406,54 @@ class _HeaderSection extends StatelessWidget {
                 ),
               ],
               onChanged: (v) {
-                if (v != null) controller.type.value = v;
-              },
-            )),
-        const SizedBox(height: 12),
-        TextField(
-          controller: categoryCtrl,
-          decoration: const InputDecoration(
-            labelText: 'Categoría',
-            hintText: 'Ej: limpieza, medicamentos, transporte',
-            border: OutlineInputBorder(),
-          ),
-          textCapitalization: TextCapitalization.sentences,
-        ),
-      ],
-    );
-  }
-}
-
-// ───────────────────────────────────────────────────────────────────────────
-// SECCIÓN: Contexto (con picker real de activos)
-// ───────────────────────────────────────────────────────────────────────────
-class _ContextSection extends StatelessWidget {
-  final TextEditingController notesCtrl;
-  final PurchaseRequestController controller;
-
-  const _ContextSection({
-    required this.notesCtrl,
-    required this.controller,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return _SectionCard(
-      title: 'Contexto',
-      icon: Icons.info_outline,
-      children: [
-        Obx(() => DropdownButtonFormField<PurchaseRequestOriginInput>(
-              initialValue: controller.originType.value,
-              decoration: const InputDecoration(
-                labelText: 'Origen de la necesidad *',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(
-                  value: PurchaseRequestOriginInput.asset,
-                  child: Text('Activo específico'),
-                ),
-                DropdownMenuItem(
-                  value: PurchaseRequestOriginInput.inventory,
-                  child: Text('Inventario / stock'),
-                ),
-                DropdownMenuItem(
-                  value: PurchaseRequestOriginInput.general,
-                  child: Text('Necesidad general'),
-                ),
-              ],
-              onChanged: (v) {
                 if (v == null) return;
-                controller.originType.value = v;
-                if (v != PurchaseRequestOriginInput.asset) {
-                  controller.clearAsset();
-                }
+                controller.type.value = v;
+                controller.ensureCategoryValid();
               },
-            )),
-        const SizedBox(height: 12),
+            ),
+          );
+        }),
+        // D) Activo específico — SOLO cuando Aplica a = activo. Usa picker
+        //    real del workspace, filtrado por el tipo de activo precontexto
+        //    y con buscador interno.
         Obx(() {
-          final show = controller.originType.value ==
+          final isAssetScope = controller.originType.value ==
               PurchaseRequestOriginInput.asset;
-          if (!show) return const SizedBox.shrink();
+          if (!isAssetScope) return const SizedBox.shrink();
+          final t = controller.selectedAssetType.value;
           final selectedId = controller.assetId.value;
           final label = controller.assetLabel.value;
           return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(top: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Activo relacionado *',
+                  t == null
+                      ? 'Activo relacionado *'
+                      : '${assetTypeSingular(t)} relacionado *',
                   style: theme.textTheme.labelLarge,
                 ),
                 const SizedBox(height: 6),
                 if (selectedId.isNotEmpty)
-                  InputChip(
-                    key: const Key(
-                        'purchase_request_page.selected_asset_chip'),
-                    avatar: const Icon(
-                        Icons.precision_manufacturing_outlined,
-                        size: 18),
-                    label: Text(label.isNotEmpty ? label : selectedId),
-                    onDeleted: controller.clearAsset,
-                    deleteIconColor: theme.colorScheme.error,
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: InputChip(
+                      key: const Key(
+                          'purchase_request_page.selected_asset_chip'),
+                      avatar: const Icon(
+                          Icons.precision_manufacturing_outlined,
+                          size: 18),
+                      label: Text(label.isNotEmpty ? label : selectedId),
+                      onDeleted: controller.clearAsset,
+                      deleteIconColor: theme.colorScheme.error,
+                    ),
                   )
                 else
                   Text(
-                    'Sin activo seleccionado',
+                    t == null
+                        ? 'Sin activo seleccionado'
+                        : 'Sin ${assetTypeSingular(t).toLowerCase()} seleccionado',
                     style: theme.textTheme.bodyMedium
                         ?.copyWith(color: theme.colorScheme.error),
                   ),
@@ -413,19 +463,253 @@ class _ContextSection extends StatelessWidget {
                   child: OutlinedButton.icon(
                     key: const Key(
                         'purchase_request_page.pick_asset_button'),
-                    onPressed: () => AssetPickerSheet.show(context),
+                    onPressed: () => AssetPickerSheet.show(
+                      context,
+                      filterType: t,
+                    ),
                     icon: const Icon(
                         Icons.precision_manufacturing_outlined,
                         size: 18),
-                    label: Text(selectedId.isEmpty
-                        ? 'Seleccionar activo'
-                        : 'Cambiar activo'),
+                    label:
+                        Text(_pickAssetLabel(t, selectedId.isNotEmpty)),
+                  ),
+                ),
+                // Bloque de contexto comercial/técnico — solo para vehículos.
+                if (t == AssetType.vehicle && selectedId.isNotEmpty)
+                  _SelectedVehicleSummary(controller: controller),
+              ],
+            ),
+          );
+        }),
+        // E) Inventario/Stock — bloque VehicleSpec (solo vehículos).
+        //    Sustituye al selector de placa: el pedido se relaciona a una
+        //    especificación derivada del parque, no a un activo puntual.
+        Obx(() {
+          final isInventoryScope = controller.originType.value ==
+              PurchaseRequestOriginInput.inventory;
+          if (!isInventoryScope) return const SizedBox.shrink();
+          final t = controller.selectedAssetType.value;
+          if (t != AssetType.vehicle) {
+            // Fase 1: otros tipos de activo aún no tienen "spec" derivada.
+            // El pedido de stock queda genérico sin target específico.
+            return const SizedBox.shrink();
+          }
+          final spec = controller.selectedVehicleSpec.value;
+          return Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Especificación de vehículo *',
+                  style: theme.textTheme.labelLarge,
+                ),
+                const SizedBox(height: 6),
+                if (spec != null)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: InputChip(
+                      key: const Key(
+                          'purchase_request_page.selected_vehicle_spec_chip'),
+                      avatar: const Icon(
+                          Icons.directions_car_filled_outlined,
+                          size: 18),
+                      label: Text(
+                        spec.linkedAssetsCount > 0
+                            ? '${spec.displayLabel} — ${spec.linkedAssetsCount} vehículo'
+                                '${spec.linkedAssetsCount == 1 ? '' : 's'}'
+                            : spec.displayLabel,
+                      ),
+                      onDeleted: controller.clearVehicleSpec,
+                      deleteIconColor: theme.colorScheme.error,
+                    ),
+                  )
+                else
+                  Text(
+                    'Sin especificación seleccionada',
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(color: theme.colorScheme.error),
+                  ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    key: const Key(
+                        'purchase_request_page.pick_vehicle_spec_button'),
+                    onPressed: () => VehicleSpecPickerSheet.show(context),
+                    icon: const Icon(
+                        Icons.directions_car_filled_outlined,
+                        size: 18),
+                    label: Text(spec == null
+                        ? 'Seleccionar especificación'
+                        : 'Cambiar especificación'),
                   ),
                 ),
               ],
             ),
           );
         }),
+      ],
+    );
+  }
+}
+
+/// Bloque compacto de contexto vehicular mostrado bajo el picker cuando el
+/// pedido aplica a un vehículo específico. Reactivo a `selectedVehicle` del
+/// controller — se oculta solo si los detalles aún no cargaron o si el tipo
+/// de activo no es vehículo.
+class _SelectedVehicleSummary extends StatelessWidget {
+  final PurchaseRequestController controller;
+  const _SelectedVehicleSummary({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Obx(() {
+      final v = controller.selectedVehicle.value;
+      // Sin datos aún (fetch en curso) → no renderizamos ruido; el chip de
+      // placa ya confirma al usuario que la selección quedó hecha.
+      if (v == null) return const SizedBox.shrink();
+
+      final lineLabel = _joinNonEmpty([v.marca, v.line ?? v.modelo], ' ');
+      final yearLabel = v.anio > 0 ? 'Año ${v.anio}' : null;
+      final serviceLabel = _prettyCase(v.serviceType);
+      final chassis = v.vin?.trim().isNotEmpty == true
+          ? v.vin!
+          : (v.chassisNumber?.trim().isNotEmpty == true
+              ? v.chassisNumber!
+              : null);
+
+      return Container(
+        key: const Key('purchase_request_page.vehicle_summary'),
+        margin: const EdgeInsets.only(top: 12),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: theme.colorScheme.primary.withValues(alpha: 0.25),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Vehículo seleccionado',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 6),
+            _SummaryRow(label: 'Placa', value: v.placa),
+            if (lineLabel != null)
+              _SummaryRow(label: 'Marca / línea', value: lineLabel),
+            if (yearLabel != null) _SummaryRow(label: 'Año', value: '${v.anio}'),
+            if (serviceLabel != null)
+              _SummaryRow(label: 'Servicio', value: serviceLabel),
+            if (chassis != null)
+              _SummaryRow(label: 'Chasis / VIN', value: chassis),
+          ],
+        ),
+      );
+    });
+  }
+
+  static String? _joinNonEmpty(List<String?> parts, String sep) {
+    final xs = parts
+        .map((e) => e?.trim() ?? '')
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (xs.isEmpty) return null;
+    return xs.join(sep);
+  }
+
+  /// Normaliza strings tipo "PARTICULAR" / "PÚBLICO" → "Particular".
+  static String? _prettyCase(String? raw) {
+    final s = raw?.trim();
+    if (s == null || s.isEmpty) return null;
+    return s[0].toUpperCase() + s.substring(1).toLowerCase();
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _SummaryRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 96,
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.hintColor,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// SECCIÓN 2 — Clasificación
+// ───────────────────────────────────────────────────────────────────────────
+// Categoría dependiente de (tipo de activo × tipo de solicitud) + notas libres.
+class _ClassificationSection extends StatelessWidget {
+  final TextEditingController notesCtrl;
+  final PurchaseRequestController controller;
+
+  const _ClassificationSection({
+    required this.notesCtrl,
+    required this.controller,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      title: 'Clasificación',
+      icon: Icons.category_outlined,
+      children: [
+        Obx(() {
+          // Las listas de PRODUCTO y SERVICIO son independientes y se
+          // recomputan cuando cambia cualquiera de las dos dimensiones.
+          final cats = controller.currentCategories;
+          final current = controller.category.value.trim();
+          final value = cats.contains(current) ? current : null;
+          return DropdownButtonFormField<String>(
+            key: const Key('purchase_request_page.category_dropdown'),
+            initialValue: value,
+            decoration: const InputDecoration(
+              labelText: 'Categoría *',
+              border: OutlineInputBorder(),
+            ),
+            items: [
+              for (final c in cats)
+                DropdownMenuItem(value: c, child: Text(c)),
+            ],
+            onChanged: (v) => controller.category.value = v ?? '',
+          );
+        }),
+        const SizedBox(height: 12),
         TextField(
           controller: notesCtrl,
           decoration: const InputDecoration(
@@ -591,22 +875,26 @@ class _TargetsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return _SectionCard(
-      title: 'Destinatarios',
-      icon: Icons.group_outlined,
+      title: 'Proveedores',
+      icon: Icons.add_business_outlined,
       children: [
         Text(
-          'Selecciona al menos un contacto del workspace para enviar la solicitud.',
+          'Selecciona hasta 3 proveedores de tu workspace para enviarles '
+          'la solicitud.',
           style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
         ),
         const SizedBox(height: 10),
         Obx(() {
           final ids = controller.selectedVendorIds;
-          final contactsById = {
-            for (final c in controller.availableContacts) c.id: c,
+          // Mapa por id usando la lista cruda (no el getter filtrado) para
+          // mostrar correctamente el displayName incluso si un proveedor ya
+          // no cumple el filtro por algún cambio de roleLabel.
+          final vendorsById = {
+            for (final v in controller.availableContacts) v.id: v,
           };
           if (ids.isEmpty) {
             return Text(
-              'Sin destinatarios seleccionados',
+              'Sin proveedores seleccionados',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.error,
               ),
@@ -616,8 +904,8 @@ class _TargetsSection extends StatelessWidget {
             spacing: 6,
             runSpacing: 4,
             children: ids.map((id) {
-              final c = contactsById[id];
-              final label = c?.displayName ?? id;
+              final v = vendorsById[id];
+              final label = v?.displayName ?? id;
               return InputChip(
                 key: Key('purchase_request_page.target_chip.$id'),
                 label: Text(label),
@@ -633,8 +921,8 @@ class _TargetsSection extends StatelessWidget {
           child: OutlinedButton.icon(
             key: const Key('purchase_request_page.pick_targets_button'),
             onPressed: () => VendorTargetPickerSheet.show(context),
-            icon: const Icon(Icons.person_add_alt_outlined, size: 18),
-            label: const Text('Seleccionar destinatarios'),
+            icon: const Icon(Icons.add_business_outlined, size: 18),
+            label: const Text('Seleccionar proveedores'),
           ),
         ),
       ],

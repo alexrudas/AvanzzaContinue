@@ -74,6 +74,11 @@ abstract class Routes {
   // ══════════════════════════════════════════════════════════════════════════
   static const incidencia = _Paths.incidencia;
   static const purchase = _Paths.purchase;
+
+  /// Detalle de un PurchaseRequest existente con el loop admin-captura
+  /// (register quote → award → emitir OC/OT → cerrar).
+  /// CONTRACT: Get.toNamed(Routes.purchaseDetail, arguments: String requestId)
+  static const purchaseDetail = _Paths.purchaseDetail;
   static const assets = _Paths.assets;
 
   /// Lista de activos filtrada por tipo (vista dedicada del tipo seleccionado
@@ -315,6 +320,7 @@ abstract class _Paths {
   // Módulos
   static const incidencia = '/incidencia';
   static const purchase = '/purchase';
+  static const purchaseDetail = '/purchase/detail';
   static const assets = '/assets';
   static const assetsByType = '/assets/by-type';
   static const tenantHome = '/tenant/home';
