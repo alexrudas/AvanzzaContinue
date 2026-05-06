@@ -35,6 +35,16 @@ class RegistrationProgressModel {
   List<String> coverageCities = [];
   List<String> categories = [];
 
+  /// LEGACY (Fase 1). Captura el código de rol elegido en el wizard como
+  /// string libre (ej. `'admin_activos_org'`, `'propietario_emp'`,
+  /// `'proveedor_servicios'`). Se conserva por compatibilidad con datos
+  /// locales ya persistidos en Isar y por el log estructural
+  /// `[AuthRoleSelection] selectedRole=...` que monitorean búsquedas.
+  ///
+  /// Para lectura tipada usar [resolvedWorkspaceTypeName] (wireName de
+  /// [WorkspaceType]) — ver `onboarding_workspace_contract.md` §3.
+  /// Las escrituras nuevas deben ir vía `RegistrationController.setRole`,
+  /// que dual-escribe `selectedRole` + `resolvedWorkspaceTypeName`.
   String? selectedRole;
 
   // Respuestas contextuales para roles Admin/Owner

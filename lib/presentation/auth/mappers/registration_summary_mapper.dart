@@ -18,6 +18,7 @@
 // ============================================================================
 
 import '../../../data/models/auth/registration_progress_model.dart';
+import '../../../domain/entities/workspace/workspace_type.dart';
 
 /// Valor inmutable que representa una fila del resumen de registro.
 class SummaryItem {
@@ -104,9 +105,9 @@ class RegistrationSummaryMapper {
       profile.add(
           SummaryItem(label: 'Nombre de empresa', value: p.companyName!.trim()));
     }
-    if (p.selectedRole?.isNotEmpty == true) {
-      profile.add(
-          SummaryItem(label: 'Rol inicial', value: _roleLabel(p.selectedRole!)));
+    final profileRoleLabel = _resolveProfileRoleLabel(p);
+    if (profileRoleLabel != null) {
+      profile.add(SummaryItem(label: 'Rol inicial', value: profileRoleLabel));
     }
 
     return RegistrationSummaryData(
@@ -201,14 +202,64 @@ class RegistrationSummaryMapper {
 
     // ── Sección: Rol ─────────────────────────────────────────────────────
 
-    if (p.selectedRole?.isNotEmpty == true) {
-      items.add(SummaryItem(
-        label: 'Rol inicial',
-        value: _roleLabel(p.selectedRole!),
-      ));
+    final flatRoleLabel = _resolveProfileRoleLabel(p);
+    if (flatRoleLabel != null) {
+      items.add(SummaryItem(label: 'Rol inicial', value: flatRoleLabel));
     }
 
     return items;
+  }
+
+  /// Resuelve el label "Rol inicial" preferiendo el contrato Fase 2.
+  ///
+  /// Orden:
+  ///   1. `resolvedWorkspaceTypeName` (wireName tipado) → label de
+  ///      [WorkspaceType].
+  ///   2. Fallback: `selectedRole` legacy → [_roleLabel].
+  ///
+  /// Retorna `null` si ninguno está disponible (no agrega la fila).
+  static String? _resolveProfileRoleLabel(RegistrationProgressModel p) {
+    final wireName = p.resolvedWorkspaceTypeName;
+    if (wireName != null && wireName.isNotEmpty) {
+      final type = WorkspaceTypeX.fromWireName(wireName);
+      if (type != WorkspaceType.unknown) {
+        return _workspaceTypeLabel(type);
+      }
+    }
+
+    final legacy = p.selectedRole;
+    if (legacy != null && legacy.isNotEmpty) {
+      return _roleLabel(legacy);
+    }
+
+    return null;
+  }
+
+  /// Label legible para un [WorkspaceType] tipado.
+  ///
+  /// Mantiene paridad con [_roleLabel] para que el resumen no cambie de
+  /// texto al migrar progressos legacy → tipados.
+  static String _workspaceTypeLabel(WorkspaceType type) {
+    switch (type) {
+      case WorkspaceType.assetAdmin:
+        return 'Administrador de activos';
+      case WorkspaceType.owner:
+        return 'Propietario';
+      case WorkspaceType.renter:
+        return 'Arrendatario';
+      case WorkspaceType.workshop:
+        return 'Proveedor';
+      case WorkspaceType.supplier:
+        return 'Proveedor';
+      case WorkspaceType.insurer:
+        return 'Aseguradora';
+      case WorkspaceType.legal:
+        return 'Abogado';
+      case WorkspaceType.advisor:
+        return 'Asesor';
+      case WorkspaceType.unknown:
+        return '';
+    }
   }
 
   // ── Lookup tables ───────────────────────────────────────────────────────

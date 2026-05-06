@@ -25,25 +25,23 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/di/container.dart';
 import '../../../core/utils/workspace_normalizer.dart';
+import '../../../data/datasources/local/registration_intent_ds.dart';
 import '../../../data/datasources/local/registration_progress_ds.dart';
 import '../../../data/models/auth/registration_progress_model.dart';
-import '../../../domain/adapters/workspace_context_adapter.dart';
 import '../../../domain/entities/org/organization_entity.dart';
 import '../../../domain/entities/user/active_context.dart';
 import '../../../domain/entities/user/membership_entity.dart';
 import '../../../domain/entities/user/user_entity.dart';
 import '../../../domain/entities/user_profile_entity.dart';
-import '../../../domain/entities/workspace/registration_workspace_intent.dart';
-import '../../../domain/entities/workspace/workspace_type.dart';
 import '../../../domain/repositories/auth_repository.dart';
-import '../../../domain/services/registration/registration_workspace_resolver.dart';
+import '../../../domain/services/registration/registration_role_code_mapper.dart';
 import '../../../domain/usecases/check_username_available_uc.dart';
 import '../../../domain/usecases/finalize_registration_uc.dart';
 import '../../../domain/usecases/sign_up_username_password_uc.dart';
-import '../../../domain/value/workspace/business_mode.dart';
 import '../../../routes/app_pages.dart';
 import '../../../services/telemetry/telemetry_service.dart';
 import '../../controllers/session_context_controller.dart';
@@ -320,6 +318,11 @@ class RegistrationController extends GetxController {
           ..id = id
           ..updatedAt = DateTime.now().toUtc());
     p.selectedRole = role;
+    // Dual-write Fase 2: persistir wireName tipado para lectores nuevos
+    // (RegistrationRoleCodeMapper, splash, summary). El campo legacy
+    // permanece por compat con datos locales y telemetría.
+    p.resolvedWorkspaceTypeName =
+        RegistrationRoleCodeMapper.wireNameFromRoleCode(role);
     p.step = 5;
     progress.value = await progressDS.upsert(p);
   }
@@ -330,6 +333,7 @@ class RegistrationController extends GetxController {
           ..id = id
           ..updatedAt = DateTime.now().toUtc());
     p.selectedRole = null;
+    p.resolvedWorkspaceTypeName = null;
     progress.value = await progressDS.upsert(p);
   }
 
@@ -453,6 +457,11 @@ class RegistrationController extends GetxController {
     // Guardar los roles y workspaces resueltos
     p.resolvedRoles = preview.roles;
     p.resolvedWorkspaces = preview.workspaces;
+    // Dual-write Fase 2: derivar wireName tipado desde el code que el
+    // wizard pasó. Permite que SplashBootstrap/summary lean sin recurrir
+    // al substring legacy.
+    p.resolvedWorkspaceTypeName =
+        RegistrationRoleCodeMapper.wireNameFromRoleCode(selectedRole);
     progress.value = await progressDS.upsert(p);
   }
 
@@ -526,6 +535,10 @@ class RegistrationController extends GetxController {
         }
 
         p.selectedRole = newActiveRole;
+        // Dual-write Fase 2: re-derivar wireName tipado para que lectores
+        // nuevos vean el workspace activo correcto tras la rotación.
+        p.resolvedWorkspaceTypeName =
+            RegistrationRoleCodeMapper.wireNameFromRoleCode(newActiveRole);
 
         _logTelemetry('workspace_switched_auto', {
           'from': normalized,
@@ -649,13 +662,13 @@ class RegistrationController extends GetxController {
 
     final uid = currentUser.uid;
     final phone = p.phone ?? currentUser.phoneNumber ?? '';
-    final selectedRole = (p.selectedRole?.isNotEmpty == true)
-        ? p.selectedRole!
-        : 'admin_activos_ind';
     final now = DateTime.now().toUtc();
 
     // ── 1. Perfil legacy (UserProfileEntity → Firestore userProfiles) ──────
     // Conservado para compatibilidad con lecturas que usan IsarSessionDS.
+    // KILL SWITCH ROL LEGACY: roles=[]. La fuente de verdad de permisos del
+    // user en el workspace son las capabilities derivadas del Core API
+    // (`GET /v1/access/me/context.capabilities[]` + `GET /v1/providers/me`).
     final profile = UserProfileEntity(
       uid: uid,
       phone: phone,
@@ -664,7 +677,7 @@ class RegistrationController extends GetxController {
       countryId: p.countryId,
       regionId: p.regionId,
       cityId: p.cityId,
-      roles: [selectedRole],
+      roles: const <String>[],
       orgIds: const [],
       docType: p.docType,
       docNumber: p.docNumber,
@@ -678,8 +691,19 @@ class RegistrationController extends GetxController {
     await finalizeUC(profile);
 
     // ── 2. Organización ────────────────────────────────────────────────────
-    // Genera un orgId determinístico pero único para este usuario.
-    final orgId = 'org_${uid.hashCode.abs()}_${now.millisecondsSinceEpoch}';
+    // Resolver orgId con política resolve-or-create:
+    //   1) Isar local (rápido; si el user ya hidrató activeContext en esta
+    //      sesión o en una anterior que persistió a disco, lo reusa).
+    //   2) Firestore directo (si Isar está vacío por algún reset, pero el
+    //      user ya existía en otra sesión/dispositivo — cross-process).
+    //   3) Generar uno determinista por uid con UUID v5 (estable entre
+    //      procesos y dispositivos — mismo uid ⇒ mismo orgId siempre).
+    //
+    // SIN usar `uid.hashCode` ni `millisecondsSinceEpoch`: el hashCode de
+    // String no es estable entre procesos Dart y el timestamp garantiza
+    // duplicación en cada ejecución del wizard. Ese combo creaba una org
+    // nueva por sesión aunque el user ya tuviera una en Firestore.
+    final orgId = await _resolveOrCreateOrgId(uid);
     final isEmpresa = (p.titularType ?? '').toLowerCase() == 'empresa';
 
     // Nombre de display: display name de Firebase (Google/Apple) o teléfono.
@@ -708,11 +732,17 @@ class RegistrationController extends GetxController {
     // ── 3. UserEntity (con activeContext) → isar.userModels ───────────────
     // CRÍTICO: SessionContextController._getLocalUserOnly() lee isar.userModels.
     // Sin este upsert, hydrationState queda en authOkProfileEmpty y bootstrap loopea.
+    //
+    // KILL SWITCH ROL LEGACY: ActiveContext.rol queda vacío. El "rol UI" se
+    // deriva en runtime desde Core API:
+    //   · `SessionCapabilitiesStore` (poblado por AccessGateway tras
+    //     /v1/access/me/context y /v1/auth/bootstrap).
+    //   · `ProviderMeController.me.isProvider` (de /v1/providers/me).
+    // El campo `ActiveContext.rol` está marcado para sunset en Fase 2.
     final activeCtx = ActiveContext(
       orgId: orgId,
       orgName: orgName,
-      rol: selectedRole,
-      providerType: p.providerType,
+      rol: '',
     );
     final userEntity = UserEntity(
       uid: uid,
@@ -726,12 +756,16 @@ class RegistrationController extends GetxController {
     );
     await DIContainer().userRepository.upsertUser(userEntity);
 
-    // ── 4. Membership (roles + org) → isar.membershipModels ───────────────
+    // ── 4. Membership (org + ubicación) → isar.membershipModels ───────────
+    // KILL SWITCH ROL LEGACY: roles=[]. El binding "user→workspace" en Core
+    // API se hace vía `Membership` (UUID) + `MembershipRole` (pivot a `Role`),
+    // y el cliente solo lee las `capabilities[]` resultantes — NO consume
+    // un rol string desde Flutter.
     final membership = MembershipEntity(
       userId: uid,
       orgId: orgId,
       orgName: orgName,
-      roles: [selectedRole],
+      roles: const <String>[],
       estatus: 'activo',
       primaryLocation: {
         'countryId': p.countryId ?? 'CO',
@@ -743,18 +777,21 @@ class RegistrationController extends GetxController {
     );
     await DIContainer().userRepository.upsertMembership(membership);
 
-    // ── 4b. FASE 2 — Contrato tipado (no-fatal) ───────────────────────────
-    // Si el resolver falla, el bootstrap legacy sigue funcionando (Gate 4
-    // Steps 2-4). Se registra el error en debug pero NO interrumpe el flujo.
-    await _tryApplyFase2Contract(
-      p: p,
-      uid: uid,
-      orgId: orgId,
-      orgName: orgName,
-      legacySelectedRole: selectedRole,
+    // ── 5. Persistir onboarding intent (sobrevive al clear() siguiente) ───
+    //
+    // Si el wizard capturó intención de proveedor (workshop/supplier),
+    // marcar la intención local. El splash leerá esto para enviar al
+    // usuario a `/provider/bootstrap` aunque `/v1/providers/me` devuelva
+    // `isProvider=false`. NO es un rol — es metadata de routing post-register.
+    //
+    // Lectura tipada: prefiere `resolvedWorkspaceTypeName` (wireName Fase 2);
+    // cae al substring legacy en `selectedRole` solo si el tipado no existe.
+    await _persistProviderOnboardingIntentIfApplicable(
+      resolvedWorkspaceTypeName: p.resolvedWorkspaceTypeName,
+      legacySelectedRole: p.selectedRole,
     );
 
-    // ── 5. Re-hidratar sesión ─────────────────────────────────────────────
+    // ── 6. Re-hidratar sesión ─────────────────────────────────────────────
     // resetForLogout() limpia el single-flight guard → _doInit() corre fresco.
     // Ahora _getLocalUserOnly() encontrará el UserModel recién creado →
     // hydrationState = authOkProfileReady → bootstrap pasa Gate 2 y Gate 3.
@@ -769,195 +806,48 @@ class RegistrationController extends GetxController {
       }
     }
 
-    // ── 6. Limpiar progreso (después de re-hidratar, no antes) ────────────
+    // ── 7. Limpiar progreso (después de re-hidratar, no antes) ────────────
     await clear(id);
   }
 
-  // ==========================================================================
-  // FASE 2 — Bloque de resolución tipada (no-fatal)
-  // ==========================================================================
-
-  /// Intenta aplicar el contrato tipado de Fase 2.
+  /// Si el wizard indica proveedor (workshop/supplier), persiste el flag de
+  /// `providerOnboardingIntent` en SharedPreferences. El flag sobrevive al
+  /// `clear()` del progress y al restart del proceso. Lo limpia el
+  /// `ProviderBootstrapController` tras un bootstrap exitoso.
   ///
-  /// Si el resolver falla por cualquier motivo (combinación no mapeada,
-  /// campos faltantes, inconsistencia), registra el error en debug y retorna
-  /// sin lanzar. El bootstrap legacy (Gate 4 Steps 2-4) actúa como fallback.
-  Future<void> _tryApplyFase2Contract({
-    required RegistrationProgressModel p,
-    required String uid,
-    required String orgId,
-    required String orgName,
-    required String legacySelectedRole,
+  /// Detección tipada (Fase 2): prefiere [resolvedWorkspaceTypeName]
+  /// (wireName de [WorkspaceType]); cae al substring sobre el
+  /// [legacySelectedRole] solo si el tipado no existe.
+  Future<void> _persistProviderOnboardingIntentIfApplicable({
+    String? resolvedWorkspaceTypeName,
+    String? legacySelectedRole,
   }) async {
+    final isProviderIntent = RegistrationRoleCodeMapper.isProviderIntent(
+      resolvedWorkspaceTypeName: resolvedWorkspaceTypeName,
+      legacySelectedRole: legacySelectedRole,
+    );
+    if (!isProviderIntent) return;
     try {
-      final workspaceType = WorkspaceContextAdapter.resolveType(
-        normalizedRole:
-            WorkspaceContextAdapter.normalizeRole(legacySelectedRole),
-        normalizedProviderType:
-            WorkspaceContextAdapter.normalizeProviderType(p.providerType),
+      await RegistrationIntentDS().setProviderOnboardingIntent(true);
+    } catch (e) {
+      // Degradación segura: si SharedPreferences falla, el splash usa el
+      // fallback default (assets/portfolio create). NO bloqueamos el flow.
+      debugPrint(
+        '[RegistrationController] providerOnboardingIntent persist error '
+        '(non-fatal): $e',
       );
-
-      if (workspaceType == WorkspaceType.unknown) {
-        debugPrint(
-            '[Fase2] workspaceType unknown para role=$legacySelectedRole — skip');
-        return;
-      }
-
-      final businessMode = _deriveBusinessMode(
-        workspaceType: workspaceType,
-        adminFollowUp: p.adminFollowUp,
-        ownerFollowUp: p.ownerFollowUp,
-      );
-
-      if (businessMode == null) {
-        debugPrint(
-            '[Fase2] businessMode no derivable para type=${workspaceType.wireName} — skip');
-        return;
-      }
-
-      final orgType = (p.titularType ?? '').toLowerCase() == 'empresa'
-          ? 'empresa'
-          : 'personal';
-
-      final intent = RegistrationWorkspaceIntent(
-        workspaceType: workspaceType,
-        businessMode: businessMode,
-        orgType: orgType,
-        providerType:
-            p.providerType?.isNotEmpty == true ? p.providerType : null,
-      );
-
-      final resolved = const RegistrationWorkspaceResolver().resolve(
-        intent: intent,
-        userId: uid,
-        orgId: orgId,
-        orgName: orgName,
-      );
-
-      // Doble escritura transicional: canonical legacyRoleCode.
-      final canonicalRole = resolved.legacyRoleCode;
-
-      // Actualizar UserEntity.activeContext.rol al rol canónico.
-      final existingUser = await DIContainer().userRepository.getUser(uid);
-      if (existingUser != null) {
-        final updatedCtx = existingUser.activeContext?.copyWith(
-              rol: canonicalRole,
-            ) ??
-            ActiveContext(
-              orgId: orgId,
-              orgName: orgName,
-              rol: canonicalRole,
-              providerType: p.providerType,
-            );
-        await DIContainer().userRepository.upsertUser(
-              existingUser.copyWith(
-                activeContext: updatedCtx,
-                updatedAt: DateTime.now().toUtc(),
-              ),
-            );
-      }
-
-      // Actualizar Membership.roles[] con el rol canónico.
-      //
-      // ESTRATEGIA FASE 2: se reemplazan los roles de la membership dejando
-      // solo el rol canónico formal. Los códigos internos del wizard (ej.
-      // 'admin_activos_ind') son artefactos de onboarding, no roles formales
-      // del dominio. Mezclarlos produciría ambigüedad semántica en bootstrap.
-      // Solo se preservan roles canónicos formales previos distintos al nuevo.
-      final memberships =
-          await DIContainer().userRepository.fetchMemberships(uid);
-      final existingMembership =
-          memberships.where((m) => m.orgId == orgId).firstOrNull;
-      if (existingMembership != null) {
-        const formalRoles = {
-          'propietario',
-          'administrador',
-          'arrendatario',
-          'proveedor_servicios',
-          'proveedor_articulos',
-        };
-        final cleanedRoles = existingMembership.roles
-            .where((r) => formalRoles.contains(r) && r != canonicalRole)
-            .toList()
-          ..add(canonicalRole);
-
-        await DIContainer().userRepository.upsertMembership(
-          existingMembership.copyWith(
-            roles: cleanedRoles,
-            updatedAt: DateTime.now().toUtc(),
-          ),
-        );
-      }
-
-      // Persistir workspaceId activo.
-      // Esta escritura sobrevive al clear() de RegistrationProgressModel y es
-      // la fuente de verdad que Gate 4 Step 1 del bootstrap usa para rehidratar
-      // el WorkspaceContext sin re-resolver desde legacy.
-      await DIContainer()
-          .workspaceRepository
-          .setActiveWorkspace(resolved.workspaceId);
-
-      // NOTA ARQUITECTÓNICA — seed NO se persiste en RegistrationProgressModel:
-      // Sería destruido por clear() al final de finalizeRegistration().
-      // La doble escritura a UserEntity.activeContext.rol + WorkspaceRepository
-      // es suficiente. SessionContextController reconstruye el contexto desde ahí.
-
-      debugPrint('[Fase2] contrato resuelto: ${resolved.debugDescription}');
-    } catch (e, st) {
-      debugPrint('[Fase2] resolver no-fatal error: $e\n$st');
     }
   }
 
-  /// Deriva [BusinessMode] desde el workspaceType y los follow-up del progress.
-  ///
-  /// Retorna null si la combinación no es derivable (indica datos de onboarding
-  /// incompletos o un tipo de workspace sin follow-up mapeado).
-  /// Deriva [BusinessMode] desde workspaceType + follow-up del wizard.
-  ///
-  /// REGLA: prefiere null honesto a semántica falsa.
-  /// Si la combinación no puede mapearse con los datos disponibles, retorna null
-  /// y el bloque Fase 2 hace skip no-fatal → bootstrap legacy actúa como fallback.
-  ///
-  /// Valores esperados del wizard:
-  /// - ownerFollowUp: 'self' | 'third'
-  /// - adminFollowUp: 'third' | 'both'  ('own' no mapea a ningún modo de la matriz)
-  BusinessMode? _deriveBusinessMode({
-    required WorkspaceType workspaceType,
-    required String? adminFollowUp,
-    required String? ownerFollowUp,
-  }) {
-    switch (workspaceType) {
-      case WorkspaceType.owner:
-        final followUp = ownerFollowUp?.trim().toLowerCase();
-        if (followUp == 'self') return BusinessMode.selfManaged;
-        if (followUp == 'third') return BusinessMode.delegated;
-        // Cualquier otro valor (null, 'both', inesperado) → no derivable.
-        return null;
-
-      case WorkspaceType.assetAdmin:
-        final followUp = adminFollowUp?.trim().toLowerCase();
-        if (followUp == 'third') return BusinessMode.thirdParty;
-        if (followUp == 'both') return BusinessMode.hybrid;
-        // 'own' significa solo activos propios — no está en la matriz formal.
-        // null u otro valor inesperado → no derivable.
-        return null;
-
-      case WorkspaceType.renter:
-        return BusinessMode.consumer;
-
-      case WorkspaceType.workshop:
-        return BusinessMode.serviceProvider;
-
-      case WorkspaceType.supplier:
-        return BusinessMode.retailer;
-
-      case WorkspaceType.insurer:
-      case WorkspaceType.legal:
-      case WorkspaceType.advisor:
-      case WorkspaceType.unknown:
-        return null;
-    }
-  }
+  // ==========================================================================
+  // FASE 2 — Bloque legacy ELIMINADO.
+  //
+  // El método anterior `_tryApplyFase2Contract` escribía un "rol canónico" en
+  // `UserEntity.activeContext.rol` y `Membership.roles[]`. Ese flujo está
+  // PROHIBIDO por el contrato Core API: el "rol UI" se deriva de capabilities
+  // (`SessionCapabilitiesStore` poblado por `AccessGateway`) y de
+  // `isProvider` (`ProviderMeController` sobre `GET /v1/providers/me`).
+  // ==========================================================================
 
   // --- Shims para compatibilidad con provider_profile_page.dart ---
 
@@ -999,6 +889,63 @@ class RegistrationController extends GetxController {
           : null;
 
   String? get providerCategoryCompat => progress.value?.businessCategoryId;
+
+  // ==========================================================================
+  // ORG ID — resolve-or-create con estabilidad cross-process
+  // ==========================================================================
+
+  /// Namespace fijo para UUID v5 — cualquier cambio aquí rompería la
+  /// identidad de orgId para usuarios existentes. NO modificar.
+  static const String _kOrgIdNamespace = 'avanzzaplus.org.v1';
+
+  /// Resuelve el `orgId` activo del usuario o lo crea si no existe.
+  ///
+  /// Política (de más barata a más costosa):
+  ///   1) Isar local — si `userModels[uid].activeContext.orgId` existe,
+  ///      reusarlo. Cubre re-ejecuciones del wizard dentro de la misma
+  ///      instalación/sesión.
+  ///   2) Firestore directo (`users/{uid}.activeContext.orgId`) — si Isar
+  ///      está vacío pero el user ya existía en Firestore (otra sesión,
+  ///      otro dispositivo, Isar reseteado), reusar lo persistido allí.
+  ///   3) Generar un orgId DETERMINISTA con UUID v5 basado en el uid. El
+  ///      mismo uid produce SIEMPRE el mismo orgId, aunque el proceso Dart
+  ///      se reinicie. Este es el reemplazo canónico del antiguo
+  ///      `'org_${uid.hashCode.abs()}_${millisecondsSinceEpoch}'` que
+  ///      fabricaba una org nueva por sesión (hashCode de String no es
+  ///      estable entre procesos y el timestamp cambia siempre).
+  Future<String> _resolveOrCreateOrgId(String uid) async {
+    // 1) Isar local
+    try {
+      final localUser = await DIContainer().userLocal.getUser(uid);
+      final localOrgId = localUser?.activeContext?.orgId;
+      if (localOrgId != null && localOrgId.isNotEmpty) {
+        debugPrint('[Registration] reuse orgId from Isar: $localOrgId');
+        return localOrgId;
+      }
+    } catch (e) {
+      debugPrint('[Registration] Isar lookup error (non-fatal): $e');
+    }
+
+    // 2) Firestore directo (bypassa el getUser Isar-only del repo)
+    try {
+      final remoteUser = await DIContainer().userRemote.getUser(uid);
+      final remoteOrgId = remoteUser?.activeContext?.orgId;
+      if (remoteOrgId != null && remoteOrgId.isNotEmpty) {
+        debugPrint('[Registration] reuse orgId from Firestore: $remoteOrgId');
+        return remoteOrgId;
+      }
+    } catch (e) {
+      debugPrint('[Registration] Firestore lookup error (non-fatal): $e');
+    }
+
+    // 3) Generar UUID v5 determinista por uid (stable cross-process)
+    final deterministicId = const Uuid()
+        .v5(Namespace.url.value, '$_kOrgIdNamespace:$uid')
+        .replaceAll('-', '');
+    final orgId = 'org_$deterministicId';
+    debugPrint('[Registration] generated new deterministic orgId: $orgId');
+    return orgId;
+  }
 }
 
 /// Clase para retornar el resultado de la resolución de roles/workspaces

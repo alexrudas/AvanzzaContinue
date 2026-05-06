@@ -26,9 +26,11 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import '../../application/gateways/accounting/accounting_event_remote_gateway.dart';
+import '../../application/services/access/access_gateway.dart';
 import '../../application/services/accounting/accounting_outbox_sync_service.dart';
 import '../../infrastructure/isar/repositories/isar_accounting_event_repository.dart';
 import '../../presentation/controllers/session_context_controller.dart';
+import '../di/container.dart';
 
 const _kSyncWorkerTag = 'accounting_outbox_sync';
 
@@ -144,7 +146,11 @@ class AuthStateObserver {
       }
       // Worker muere SIEMPRE en logout, independientemente de SessionContextController.
       await _stopOutboxWorker();
-      await _clearSession();
+      // Capturamos el uid ANTES de nulificar `_lastUid`: el clear del
+      // OnboardingSession exige conocer al usuario que se va para borrar
+      // por índice. Sin uid no hay borrado posible.
+      final exitedUid = _lastUid;
+      await _clearSession(exitedUid: exitedUid);
       _lastUid = null;
     }
   }
@@ -187,8 +193,13 @@ class AuthStateObserver {
     }
   }
 
-  /// Limpiar SessionContextController cuando el usuario hace logout
-  Future<void> _clearSession() async {
+  /// Limpiar SessionContextController cuando el usuario hace logout.
+  ///
+  /// [exitedUid] es el uid del usuario que cerró sesión (capturado antes de
+  /// nulificar `_lastUid`). Permite borrar su `OnboardingSession` persistida
+  /// por índice. Si es null/vacío, el cleanup de onboarding se omite — no
+  /// hay forma segura de saber qué fila borrar.
+  Future<void> _clearSession({String? exitedUid}) async {
     try {
       if (Get.isRegistered<SessionContextController>()) {
         final session = Get.find<SessionContextController>();
@@ -202,6 +213,31 @@ class AuthStateObserver {
 
         if (kDebugMode) {
           debugPrint('[AuthStateObserver] SessionController limpiado');
+        }
+      }
+
+      // Access gateway: reset obligatorio del flag bootstrapAttempted y del
+      // store de capabilities. Sin esto, un re-login en la misma ejecución
+      // del proceso (logout → login) no podría disparar bootstrap de nuevo
+      // y quedaría trabado en un estado terminal falso.
+      if (Get.isRegistered<AccessGateway>()) {
+        Get.find<AccessGateway>().resetForLogout();
+        if (kDebugMode) {
+          debugPrint('[AuthStateObserver] AccessGateway reset (logout)');
+        }
+      }
+
+      // OnboardingSession: borrado del estado de reanudación del usuario que
+      // se va. Camino secundario (defensa) — el camino principal es el
+      // logout explícito del flow. Si por algún motivo (logout silencioso,
+      // expiración del token, kill desde el sistema) llegamos aquí sin que
+      // el flow haya limpiado, ESTE es el último guardrail antes de que
+      // el siguiente usuario abra la app.
+      if (exitedUid != null && exitedUid.isNotEmpty) {
+        await DIContainer().onboardingSessionService.clearForUser(exitedUid);
+        if (kDebugMode) {
+          debugPrint(
+              '[AuthStateObserver] OnboardingSession cleared for exited uid');
         }
       }
     } catch (e) {

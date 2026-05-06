@@ -69,6 +69,11 @@ abstract class Routes {
   static const incidencia = _Paths.incidencia;
   static const purchase = _Paths.purchase;
   static const assets = _Paths.assets;
+
+  /// Lista de activos filtrada por tipo (vista dedicada del tipo seleccionado
+  /// desde la pantalla agrupada [assets]).
+  /// CONTRACT: Get.toNamed(Routes.assetsByType, arguments: AssetType)
+  static const assetsByType = _Paths.assetsByType;
   static const tenantHome = _Paths.tenantHome;
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -252,6 +257,11 @@ abstract class Routes {
   // ══════════════════════════════════════════════════════════════════════════
   static const bottomNavDemo = _Paths.bottomNavDemo;
   static const demoSoat = _Paths.demoSoat;
+
+  /// Demo experimental del flujo de registro v2 (RUNT temprano + tabs).
+  /// CONTRACT: no requiere arguments. Variante de QA que coexiste con el
+  /// flujo canónico hasta que el FusionadoFlow esté hardenado.
+  static const demoRegistrationV2 = _Paths.demoRegistrationV2;
 }
 
 /// Paths internos - NO usar directamente, usar Routes.*
@@ -295,6 +305,7 @@ abstract class _Paths {
   static const incidencia = '/incidencia';
   static const purchase = '/purchase';
   static const assets = '/assets';
+  static const assetsByType = '/assets/by-type';
   static const tenantHome = '/tenant/home';
 
   // Consultas
@@ -357,4 +368,5 @@ abstract class _Paths {
   // Demo
   static const bottomNavDemo = '/demo/bottom-nav';
   static const demoSoat = '/campaign/soat';
+  static const demoRegistrationV2 = '/demo/registration-v2';
 }

@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../services/telemetry/telemetry_service.dart';
 import '../../../data/models/auth/registration_progress_model.dart';
+import '../../../domain/services/registration/registration_role_code_mapper.dart';
 import '../../../routes/app_pages.dart';
 import '../../controllers/session_context_controller.dart';
 import '../../widgets/wizard/bottom_sheet_selector.dart';
@@ -423,15 +424,23 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
       // 4) Aceptar T&C (el checkbox ya fue validado en _canContinue).
       await _reg.acceptTerms();
 
-      // 5) Navegación basada en workspaces resueltos (flujo original).
-      // Proveedores van a providerProfile primero; todos los demás van a
-      // registerSummary → finalizeRegistration.
-      // NUNCA saltar a Routes.home desde aquí en el flujo de registro.
+      // 5) Navegación basada en workspaces resueltos (registro inicial).
+      //
+      // CORRECCIÓN MF1 (2026-04-27):
+      //   El registro inicial NUNCA navega directo a `/auth/provider/profile`
+      //   ni a `/provider/bootstrap`. SIEMPRE pasa por `registerSummary` para
+      //   que `finalizeRegistration` provisione user + workspace + membership
+      //   en backend (POST /v1/auth/bootstrap). Tras login, los workspaces
+      //   `supplier`/`workshop` están envueltos en `ProviderBootstrapGate`
+      //   (MF1) que detecta `me().isProvider=false` y redirige automáticamente
+      //   al wizard `/provider/bootstrap` con workspace ya creado.
+      //
+      //   Si saltáramos directo al wizard sin haber provisionado workspace,
+      //   el POST /v1/providers/bootstrap fallaría con WORKSPACE_NOT_FOUND.
       String routeForWorkspaces(List<String> wss) {
-        final low = wss.map((w) => w.toLowerCase()).toList();
-        if (low.any((w) => w.contains('proveedor'))) {
-          return Routes.providerProfile;
-        }
+        // Todos los roles convergen en registerSummary durante el registro
+        // inicial. La especialización (ej. wizard del proveedor) ocurre
+        // POST-finalize vía gates en los workspace shells.
         return Routes.registerSummary;
       }
 
@@ -439,17 +448,27 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
           (Get.arguments is String ? Get.arguments as String : null));
       final nextRoute = passedNext ?? routeForWorkspaces(finalWorkspaces);
 
+      // [AuthRoleSelection] continue tapped — log requerido por contrato MF1.
+      // ignore: avoid_print
+      debugPrint(
+        '[AuthRoleSelection] continue tapped '
+        'selectedUserType=$_holderType '
+        'selectedRole=$activeRoleCode '
+        'targetRoute=$nextRoute',
+      );
+
       try {
-        final pushInsteadOfReplace = finalWorkspaces.any(
-          (w) => w.toLowerCase().contains('proveedor'),
-        );
-        if (pushInsteadOfReplace) {
-          Get.toNamed(nextRoute);
-        } else {
-          Get.offAllNamed(nextRoute);
-        }
+        Get.offAllNamed(nextRoute);
       } catch (e) {
         debugPrint('[WARN] Navigation to $nextRoute failed: $e');
+        if (mounted) {
+          Get.snackbar(
+            'No pudimos continuar',
+            'Error navegando a la siguiente pantalla. '
+                'Reintenta en unos segundos.',
+            snackPosition: SnackPosition.BOTTOM,
+          );
+        }
       }
     }
   }
@@ -504,11 +523,17 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
     required String? ownerFollowUpStr,
     required int elapsed,
   }) async {
-    // Helper para determinar ruta según workspace
+    // Helper para determinar ruta según workspace.
+    //
+    // CORRECCIÓN MF1: el legacy `/auth/provider/profile` queda
+    // reemplazado por `/provider/bootstrap`. En append-mode el user ya
+    // tiene sesión + workspace, así que el wizard puede arrancar
+    // directamente. El controller del wizard verifica idempotentemente
+    // si ya es proveedor y redirige a `/provider/me` si aplica.
     String routeForWorkspaces(List<String> wss) {
       final low = wss.map((w) => w.toLowerCase()).toList();
       if (low.any((w) => w.contains('proveedor'))) {
-        return Routes.providerProfile;
+        return Routes.providerBootstrap;
       }
       if (low.any((w) => w.contains('administrador'))) return Routes.home;
       if (low.any((w) => w.contains('propietario'))) return Routes.home;
@@ -519,77 +544,27 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
       return Routes.home;
     }
 
-    // a) Usuario autenticado → añadir rol a organización activa
+    // a) Usuario autenticado → en Fase 2 el "append de rol" desapareció:
+    //    convertirse en proveedor exige `POST /v1/providers/bootstrap`
+    //    (Routes.providerBootstrap). Para cualquier otra opción se vuelve
+    //    al shell admin (Routes.home).
+    //
+    // KILL SWITCH ROL LEGACY: NO se itera `m.roles`, NO se llama
+    // `appendWorkspaceToActiveOrg` (no-op en Fase 2). El append-mode
+    // multi-rol fue retirado.
     if (_session?.user != null) {
-      // Validar que existe organización elegible
-      final membership = _session!.memberships.firstWhereOrNull(
-            (m) => m.orgId == _session!.user?.activeContext?.orgId,
-          ) ??
-          _session!.memberships.firstWhereOrNull((m) => m.roles.isNotEmpty) ??
-          _session!.memberships.firstOrNull;
-
-      if (membership == null) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'No hay organización activa para añadir el workspace. Selecciona o crea una organización primero.',
-            ),
-          ),
-        );
-        return;
-      }
-
-      // VERIFICAR SI EL WORKSPACE YA EXISTE
-      final normalizedNewRole = _normalizeWorkspace(activeRoleCode);
-      final existingRoles = membership.roles.map(_normalizeWorkspace).toSet();
-
-      if (existingRoles.contains(normalizedNewRole)) {
-        final overlappingRoles = membership.roles
-            .where((r) => _normalizeWorkspace(r) == normalizedNewRole)
-            .toList();
-        _log('profile_add_workspace_skipped_exists', extra: {
-          'role_attempted': activeRoleCode,
-          'roles_existing': membership.roles.join(','),
-          'orgId': membership.orgId,
-        });
-        await _showWorkspaceExistsModal(overlappingRoles[0]);
-        return;
-      }
-
-      try {
-        // Añadir workspace a la organización activa
-        await _session!.appendWorkspaceToActiveOrg(
-          role: activeRoleCode,
-          providerType:
-              _reg.providerType.value.isEmpty ? null : _reg.providerType.value,
-        );
-
-        // MERGE: fix append workspace - recargar memberships para reactividad
-        await _session!.reloadMembershipsFromRepo();
-
-        // Telemetría éxito
-        _log('profile_add_workspace_success', extra: {
-          'role_added': activeRoleCode,
-          'workspaces_after': newWorkspaces.join(','),
-          'duration_ms': elapsed,
-        });
-
-        // Navegar sin romper sesión
-        final nextRoute = routeForWorkspaces(newWorkspaces);
-        Get.offNamedUntil(
-          nextRoute,
-          (r) =>
-              r.settings.name == Routes.home ||
-              r.settings.name == Routes.profile,
-        );
-      } catch (e) {
-        _log('profile_add_workspace_error', extra: {'error': e.toString()});
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al añadir workspace: $e')),
-        );
-      }
+      _log('profile_add_workspace_routed_authenticated', extra: {
+        'role_attempted': activeRoleCode,
+        'workspaces': newWorkspaces.join(','),
+        'duration_ms': elapsed,
+      });
+      final nextRoute = routeForWorkspaces(newWorkspaces);
+      Get.offNamedUntil(
+        nextRoute,
+        (r) =>
+            r.settings.name == Routes.home ||
+            r.settings.name == Routes.profile,
+      );
       return;
     }
 
@@ -634,13 +609,19 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
     p.resolvedRoles = mergedRoles;
     p.resolvedWorkspaces = mergedWs;
     p.selectedRole = activeRoleCode;
+    // Dual-write Fase 2: derivar wireName tipado para que SplashBootstrap y
+    // summary lean sin recurrir al substring legacy en `selectedRole`.
+    p.resolvedWorkspaceTypeName =
+        RegistrationRoleCodeMapper.wireNameFromRoleCode(activeRoleCode);
     await _reg.progressDS.upsert(p);
 
-    // Determinar siguiente ruta según el rol
+    // Determinar siguiente ruta según el rol (append-mode).
+    //
+    // CORRECCIÓN MF1: proveedor → /provider/bootstrap (wizard nuevo).
     String nextRoute;
     final roleLower = activeRoleCode.toLowerCase();
     if (roleLower.contains('proveedor')) {
-      nextRoute = Routes.providerProfile;
+      nextRoute = Routes.providerBootstrap;
     } else if (roleLower.contains('administrador') ||
         roleLower.contains('propietario') ||
         roleLower.contains('arrendatario')) {
@@ -649,7 +630,31 @@ class _SelectProfilePageState extends State<SelectProfilePage> {
       nextRoute = Routes.home;
     }
 
-    Get.toNamed(nextRoute, parameters: {'append': '1'});
+    // [AuthRoleSelection] continue tapped — log requerido por contrato MF1.
+    final regHolder = _reg.titularType.value.isNotEmpty
+        ? _reg.titularType.value
+        : (_reg.progress.value?.titularType ?? 'unknown');
+    final loggedHolderType = _holderType ?? regHolder;
+    debugPrint(
+      '[AuthRoleSelection] continue tapped (append) '
+      'selectedUserType=$loggedHolderType '
+      'selectedRole=$activeRoleCode '
+      'targetRoute=$nextRoute',
+    );
+
+    try {
+      Get.toNamed(nextRoute, parameters: {'append': '1'});
+    } catch (e) {
+      debugPrint('[WARN] Navigation to $nextRoute failed: $e');
+      if (mounted) {
+        Get.snackbar(
+          'No pudimos continuar',
+          'Error navegando a la siguiente pantalla. '
+              'Reintenta en unos segundos.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
+    }
   }
 
   // Roles por tipo

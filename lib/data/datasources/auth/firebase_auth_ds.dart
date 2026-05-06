@@ -1,10 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
-
-import '../../../domain/errors/auth_failure.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+
+import '../../../domain/errors/auth_failure.dart';
 
 /// FirebaseAuthDS - Data Source para autenticación con Firebase
 ///
@@ -37,9 +37,14 @@ class FirebaseAuthDS {
     await _auth.verifyPhoneNumber(
       phoneNumber: phoneNumber,
       verificationCompleted: (PhoneAuthCredential credential) async {
-        if (kDebugMode) debugPrint('[PhoneAuth] verificationCompleted (auto-verify)');
+        if (kDebugMode)
+          debugPrint('[PhoneAuth] verificationCompleted (auto-verify)');
         try {
           final result = await _auth.signInWithCredential(credential);
+          // Fuerza refresco inmediato del ID token tras el auto-verify para
+          // que el próximo request HTTP salga con un token fresco. Nunca
+          // imprimir el token en logs (higiene de seguridad).
+          await result.user?.getIdToken(true);
           final uid = result.user?.uid;
           if (uid != null) onAutoVerified(uid);
         } on FirebaseAuthException catch (e) {
@@ -99,6 +104,10 @@ class FirebaseAuthDS {
       smsCode: smsCode,
     );
     final result = await _auth.signInWithCredential(credential);
+    // Refresca el ID token tras la verificación OTP para que el primer
+    // request HTTP protegido salga con un token ya caliente. Nunca imprimir
+    // el token en logs (higiene de seguridad).
+    await result.user?.getIdToken(true);
     return result.user!.uid;
   }
 
@@ -347,9 +356,10 @@ class FirebaseAuthDS {
   /// - [getIdTokenResult]: retorna el resultado decodificado para LEER campos
   ///   como activeContext.organizationId, role, membershipStatus.
   ///
-  /// Usar [forceRefresh: true] obligatoriamente después de llamar al backend
-  /// switchActiveOrganization, para garantizar que los claims reflejen el nuevo
-  /// orgId escrito por Firebase Admin setCustomUserClaims().
+  /// Usar [forceRefresh: true] cuando se necesite garantizar que los claims
+  /// reflejen un cambio reciente escrito por Firebase Admin
+  /// `setCustomUserClaims()` fuera de banda (p. ej. tras un proceso de
+  /// onboarding ejecutado en el servidor).
   ///
   /// Sin [forceRefresh], el SDK puede devolver claims del token cacheado (viejo).
   Future<IdTokenResult?> getIdTokenResult({bool forceRefresh = false}) async {

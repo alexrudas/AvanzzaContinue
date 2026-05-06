@@ -11,7 +11,9 @@ import 'package:avanzza/domain/usecases/load_initial_cache_uc.dart'
 import 'package:avanzza/domain/usecases/set_active_context_uc.dart'
     show SetActiveContextUC;
 import 'package:avanzza/domain/usecases/verify_otp_uc.dart' show VerifyOtpUC;
+import 'package:avanzza/infrastructure/contacts/flutter_contacts_picker.dart';
 import 'package:avanzza/presentation/auth/scanners/scanner_controller.dart';
+import 'package:avanzza/presentation/shared/widgets/phone/contact_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -169,6 +171,15 @@ class AppBindings extends Bindings {
     Get.lazyPut<LocationController>(
       () => LocationController(DIContainer().geoRepository),
       fenix: true,
+    );
+
+    // Contact picker (seam para `PhoneField`). Implementación real con
+    // `flutter_contacts`: abre el picker NATIVO del dispositivo, pide
+    // permisos on-demand y normaliza el número seleccionado a E.164
+    // canónico antes de devolverlo al widget.
+    Get.put<ContactPicker>(
+      const FlutterContactsPicker(),
+      permanent: true,
     );
 
     // Workspace controller

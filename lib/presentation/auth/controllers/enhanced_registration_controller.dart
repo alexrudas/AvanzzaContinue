@@ -8,15 +8,12 @@ import 'package:get/get.dart';
 
 import '../../../core/di/container.dart';
 import '../../../data/datasources/auth/firebase_auth_ds.dart';
-import '../../../domain/adapters/workspace_context_adapter.dart';
+import '../../../data/datasources/local/registration_intent_ds.dart';
 import '../../../domain/entities/org/organization_entity.dart';
 import '../../../domain/entities/user/active_context.dart';
 import '../../../domain/entities/user/membership_entity.dart';
 import '../../../domain/entities/user/user_entity.dart';
-import '../../../domain/entities/workspace/registration_workspace_intent.dart';
-import '../../../domain/entities/workspace/workspace_type.dart';
-import '../../../domain/services/registration/registration_workspace_resolver.dart';
-import '../../../domain/value/workspace/business_mode.dart';
+import '../../../domain/services/registration/registration_role_code_mapper.dart';
 import '../../../routes/app_pages.dart';
 import '../../controllers/session_context_controller.dart';
 import '../scanners/escanner_document_model.dart';
@@ -683,16 +680,18 @@ class EnhancedRegistrationController extends GetxController {
 
       // ========================================================================
       // 3. CREAR MEMBERSHIP
+      //
+      // KILL SWITCH ROL LEGACY: roles=[]. El binding "user→workspace" en Core
+      // API se hace vía `Membership` (UUID) + `MembershipRole` (pivot a `Role`),
+      // y el cliente solo lee las `capabilities[]` resultantes — NO consume
+      // un rol string desde Flutter.
       // ========================================================================
-
-      final selectedRole = progress?.selectedRole ?? 'admin_activos_ind';
-      final roles = [selectedRole];
 
       final membership = MembershipEntity(
         userId: uid,
         orgId: orgId,
         orgName: orgName,
-        roles: roles,
+        roles: const <String>[],
         estatus: 'activo',
         primaryLocation: {
           'countryId': countryId.value,
@@ -706,31 +705,18 @@ class EnhancedRegistrationController extends GetxController {
       await DIContainer().userRepository.upsertMembership(membership);
 
       // ========================================================================
-      // 3b. FASE 2 — Contrato tipado (no-fatal)
-      // Si el resolver falla, el bootstrap legacy actúa como fallback.
-      // Si tiene éxito, effectiveRole contiene el rol canónico formal.
-      // ========================================================================
-
-      final effectiveRole = await _tryApplyFase2Contract(
-        uid: uid,
-        orgId: orgId,
-        orgName: orgName,
-        legacySelectedRole: selectedRole,
-        titularType: progress?.titularType,
-        providerType: progress?.providerType,
-        adminFollowUp: progress?.adminFollowUp,
-        ownerFollowUp: progress?.ownerFollowUp,
-      );
-
-      // ========================================================================
       // 4. SET ACTIVE CONTEXT
+      //
+      // KILL SWITCH ROL LEGACY: ActiveContext.rol queda vacío. El "rol UI" se
+      // deriva en runtime de `SessionCapabilitiesStore` (poblado por
+      // `AccessGateway` tras /v1/access/me/context y /v1/auth/bootstrap) y de
+      // `ProviderMeController.me.isProvider` (sobre /v1/providers/me).
       // ========================================================================
 
       final activeContext = ActiveContext(
         orgId: orgId,
         orgName: orgName,
-        rol: effectiveRole,
-        providerType: progress?.providerType,
+        rol: '',
       );
 
       await sessionController.setActiveContext(activeContext);
@@ -749,6 +735,33 @@ class EnhancedRegistrationController extends GetxController {
         debugPrint(
             '[EnhancedRegistration] Error al inicializar SessionController: $e');
         // Continuar de todos modos - el usuario está creado
+      }
+
+      // ========================================================================
+      // 4.2. PERSISTIR ONBOARDING INTENT (sobrevive al clear() siguiente)
+      // ========================================================================
+      //
+      // Si el wizard capturó intención de proveedor (workshop/supplier),
+      // marcar la intención local. El splash leerá esto para enviar al
+      // usuario a `/provider/bootstrap` aunque `/v1/providers/me` devuelva
+      // `isProvider=false`. NO es un rol — es metadata de routing
+      // post-register, limpiada por `ProviderBootstrapController` tras éxito.
+      //
+      // Lectura tipada Fase 2: prefiere `resolvedWorkspaceTypeName`
+      // (wireName de WorkspaceType); cae al substring sobre `selectedRole`
+      // solo si el tipado no existe (datos pre-migración).
+
+      final isProviderIntent = RegistrationRoleCodeMapper.isProviderIntent(
+        resolvedWorkspaceTypeName: progress?.resolvedWorkspaceTypeName,
+        legacySelectedRole: progress?.selectedRole,
+      );
+      if (isProviderIntent) {
+        try {
+          await RegistrationIntentDS().setProviderOnboardingIntent(true);
+        } catch (e) {
+          debugPrint(
+              '[EnhancedRegistration] providerOnboardingIntent persist error (non-fatal): $e');
+        }
       }
 
       // ========================================================================
@@ -784,138 +797,14 @@ class EnhancedRegistrationController extends GetxController {
   }
 
   // ============================================================================
-  // FASE 2 — Resolución tipada (no-fatal)
+  // FASE 2 — Bloque legacy ELIMINADO.
+  //
+  // El método anterior `_tryApplyFase2Contract` escribía un "rol canónico" en
+  // `Membership.roles[]`. Ese flujo está PROHIBIDO por el contrato Core API:
+  // el "rol UI" se deriva de capabilities (`SessionCapabilitiesStore` poblado
+  // por `AccessGateway`) y de `isProvider` (`ProviderMeController` sobre
+  // `GET /v1/providers/me`).
   // ============================================================================
-
-  /// Intenta aplicar el contrato tipado de Fase 2.
-  ///
-  /// Retorna el rol canónico formal si el resolver tiene éxito,
-  /// o [legacySelectedRole] si falla (fallback no-fatal).
-  Future<String> _tryApplyFase2Contract({
-    required String uid,
-    required String orgId,
-    required String orgName,
-    required String legacySelectedRole,
-    required String? titularType,
-    required String? providerType,
-    required String? adminFollowUp,
-    required String? ownerFollowUp,
-  }) async {
-    try {
-      final workspaceType = WorkspaceContextAdapter.resolveType(
-        normalizedRole: WorkspaceContextAdapter.normalizeRole(legacySelectedRole),
-        normalizedProviderType:
-            WorkspaceContextAdapter.normalizeProviderType(providerType),
-      );
-
-      if (workspaceType == WorkspaceType.unknown) {
-        debugPrint('[Fase2-Enhanced] workspaceType unknown para role=$legacySelectedRole — skip');
-        return legacySelectedRole;
-      }
-
-      final businessMode = _deriveBusinessMode(
-        workspaceType: workspaceType,
-        adminFollowUp: adminFollowUp,
-        ownerFollowUp: ownerFollowUp,
-      );
-
-      if (businessMode == null) {
-        debugPrint('[Fase2-Enhanced] businessMode no derivable para type=${workspaceType.wireName} — skip');
-        return legacySelectedRole;
-      }
-
-      final orgType = (titularType ?? '').toLowerCase() == 'empresa'
-          ? 'empresa'
-          : 'personal';
-
-      final intent = RegistrationWorkspaceIntent(
-        workspaceType: workspaceType,
-        businessMode: businessMode,
-        orgType: orgType,
-        providerType: (providerType?.isNotEmpty == true) ? providerType : null,
-      );
-
-      final resolved = const RegistrationWorkspaceResolver().resolve(
-        intent: intent,
-        userId: uid,
-        orgId: orgId,
-        orgName: orgName,
-      );
-
-      final canonicalRole = resolved.legacyRoleCode;
-
-      // Actualizar Membership.roles[] con el rol canónico.
-      // Solo roles canónicos formales — eliminar artefactos internos del wizard.
-      const formalRoles = {
-        'propietario',
-        'administrador',
-        'arrendatario',
-        'proveedor_servicios',
-        'proveedor_articulos',
-      };
-      final memberships =
-          await DIContainer().userRepository.fetchMemberships(uid);
-      final existingMembership =
-          memberships.where((m) => m.orgId == orgId).firstOrNull;
-      if (existingMembership != null) {
-        final cleanedRoles = existingMembership.roles
-            .where((r) => formalRoles.contains(r) && r != canonicalRole)
-            .toList()
-          ..add(canonicalRole);
-        await DIContainer().userRepository.upsertMembership(
-          existingMembership.copyWith(
-            roles: cleanedRoles,
-            updatedAt: DateTime.now().toUtc(),
-          ),
-        );
-      }
-
-      // Persistir workspaceId activo — sobrevive al clear() del progress.
-      await DIContainer()
-          .workspaceRepository
-          .setActiveWorkspace(resolved.workspaceId);
-
-      debugPrint('[Fase2-Enhanced] contrato resuelto: ${resolved.debugDescription}');
-      return canonicalRole;
-    } catch (e, st) {
-      debugPrint('[Fase2-Enhanced] resolver no-fatal error: $e\n$st');
-      return legacySelectedRole;
-    }
-  }
-
-  /// Deriva [BusinessMode] desde workspaceType + follow-up del wizard.
-  ///
-  /// Retorna null si la combinación no puede mapearse honestamente.
-  /// Prefiere null a semántica falsa.
-  BusinessMode? _deriveBusinessMode({
-    required WorkspaceType workspaceType,
-    required String? adminFollowUp,
-    required String? ownerFollowUp,
-  }) {
-    switch (workspaceType) {
-      case WorkspaceType.owner:
-        final f = ownerFollowUp?.trim().toLowerCase();
-        if (f == 'self') return BusinessMode.selfManaged;
-        if (f == 'third') return BusinessMode.delegated;
-        return null;
-      case WorkspaceType.assetAdmin:
-        final f = adminFollowUp?.trim().toLowerCase();
-        if (f == 'third') return BusinessMode.thirdParty;
-        if (f == 'both') return BusinessMode.hybrid;
-        return null;
-      case WorkspaceType.renter:
-        return BusinessMode.consumer;
-      case WorkspaceType.workshop:
-        return BusinessMode.serviceProvider;
-      case WorkspaceType.supplier:
-        return BusinessMode.retailer;
-      case WorkspaceType.insurer:
-      case WorkspaceType.legal:
-      case WorkspaceType.advisor:
-      case WorkspaceType.unknown:
-        return null;
-    }
-  }
 
   // ============================================================================
   // HELPERS
