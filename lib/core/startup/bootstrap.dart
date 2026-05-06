@@ -36,6 +36,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:isar_community/isar.dart';
 
+import '../../data/sources/local/geo_local_ds.dart';
+import '../../services/geo_asset_seeder.dart';
 import '../auth/auth_state_observer.dart';
 import '../db/isar_instance.dart';
 import '../db/migrations.dart';
@@ -152,6 +154,21 @@ class Bootstrap {
     // ─────────────────────────────────────────────────────────────────────────
     final isar = await openIsar();
     await runMigrations(isar);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // GEO CATALOG SEED (offline-first)
+    //
+    // Hidrata Isar con país/regiones/ciudades de Colombia desde los assets
+    // locales `assets/regions_entities_co.v3.json` y
+    // `assets/cities_entities_co.v3.json`. Idempotente: en arranques normales
+    // retorna en milisegundos. En clean install / wipe / catálogo Firestore
+    // vacío, garantiza que los selectores de región y ciudad TIENEN datos
+    // sin depender de Firebase.
+    //
+    // Debe correr ANTES de levantar observers de sync para que la primera
+    // emisión de `watchRegions/watchCities` tenga catálogo local que mostrar.
+    // ─────────────────────────────────────────────────────────────────────────
+    await GeoAssetSeeder(GeoLocalDataSource(isar)).seedColombiaIfNeeded();
 
     final firestore = FirebaseFirestore.instance;
 

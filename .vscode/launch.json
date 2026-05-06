@@ -1,13 +1,49 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        
-      {
-        "name": "Flutter: main.dart",
-        "request": "launch",
-        "type": "dart",
-        "program": "lib/main.dart"
-      }
-    ]
-  }
-  
+  // Avanzza — configuraciones de Flutter por ambiente.
+  //
+  // Cada configuración inyecta los hosts de las APIs vía `--dart-define`
+  // (consumido por `lib/core/config/api_endpoints.dart`). Los defaults
+  // del archivo NO se tocan — los flags de aquí los sobreescriben en runtime.
+  //
+  // Cuándo usar cuál:
+  //   "Avanzza Dev Local"
+  //     → Core local (3000) + Integrations local (3001) en 192.168.1.83.
+  //       ÚNICA configuración aprobada para uso hoy.
+  //
+  //   "Avanzza Hetzner Integrations only — PENDIENTE Core"
+  //     → NO USAR EN FLUJOS QUE TOQUEN CORE API. Core en Hetzner aún
+  //       no está confirmado (host/puerto sin verificar). Solo válida
+  //       si necesitas pegarle a Integrations en Hetzner sin tocar Core,
+  //       y bajo ese escenario debes saber qué estás haciendo. Antes de
+  //       darle uso real: confirmar host/puerto de Core en prod y
+  //       agregar el flag `--dart-define=AVANZZA_CORE_URL=...`.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Avanzza Dev Local",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define=AVANZZA_CORE_URL=http://192.168.1.83:3000",
+        "--dart-define=AVANZZA_INTEGRATIONS_URL=http://192.168.1.83:3001"
+      ]
+    },
+    {
+      // PENDIENTE: NO USAR para flujos que tocan Core API.
+      // Falta confirmar dónde corre Core de Hetzner/prod. Mientras tanto,
+      // esta config solo setea Integrations; Core caería al default del
+      // archivo (que es local, lo cual NO es prod). Antes de usarla:
+      //   1) Confirmar host real de Core (ej. https://core.avanzza.com).
+      //   2) Agregar `--dart-define=AVANZZA_CORE_URL=<host-real>` aquí.
+      //   3) Renombrar a "Avanzza Prod" cuando esté completa.
+      "name": "Avanzza Hetzner Integrations only — PENDIENTE Core",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define=AVANZZA_INTEGRATIONS_URL=http://178.156.227.90"
+      ]
+    }
+  ]
+}

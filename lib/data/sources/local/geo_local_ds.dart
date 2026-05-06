@@ -41,6 +41,17 @@ class GeoLocalDataSource {
     });
   }
 
+  /// Inserción/upsert masivo de regiones en una sola writeTxn.
+  /// Usado por el seeder de assets locales para evitar 32+ transacciones
+  /// por país en cada arranque. Idempotente vía `replace:true` en el índice
+  /// único de `id`.
+  Future<void> upsertRegions(List<RegionModel> list) async {
+    if (list.isEmpty) return;
+    await isar.writeTxn(() async {
+      await isar.regionModels.putAll(list);
+    });
+  }
+
   // Cities
   Future<List<CityModel>> cities(
       {required String countryId, String? regionId, bool? isActive}) async {
@@ -56,6 +67,17 @@ class GeoLocalDataSource {
     await isar.writeTxn(() async {
       // CityModel has replace:true on unique index, so just put it
       await isar.cityModels.put(m);
+    });
+  }
+
+  /// Inserción/upsert masivo de ciudades en una sola writeTxn.
+  /// El catálogo de Colombia tiene ~1100 entradas: usar `upsertCity` por
+  /// cada una abriría 1100 transacciones y bloqueaba el arranque varios
+  /// segundos. `putAll` dentro de una sola writeTxn baja eso a ~ms.
+  Future<void> upsertCities(List<CityModel> list) async {
+    if (list.isEmpty) return;
+    await isar.writeTxn(() async {
+      await isar.cityModels.putAll(list);
     });
   }
 
