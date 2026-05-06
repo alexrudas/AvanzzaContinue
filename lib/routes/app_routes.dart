@@ -55,6 +55,14 @@ abstract class Routes {
   static const providerWorkspaceArticles = _Paths.providerWorkspaceArticles;
   static const providerWorkspaceServices = _Paths.providerWorkspaceServices;
 
+  /// Wizard de auto-onboarding del proveedor (MF1):
+  ///   POST /v1/providers/bootstrap → /provider/me
+  static const providerBootstrap = _Paths.providerBootstrap;
+
+  /// Vista agregada self del proveedor (MF1):
+  ///   GET /v1/providers/me. Si isProvider=false redirige a bootstrap.
+  static const providerMe = _Paths.providerMe;
+
   // ══════════════════════════════════════════════════════════════════════════
   // MÓDULOS OPERATIVOS
   // ══════════════════════════════════════════════════════════════════════════
@@ -204,6 +212,41 @@ abstract class Routes {
   /// CONTRACT: Get.toNamed(Routes.ownerDetail, arguments: {'owner': OwnerNetworkVm})
   static const ownerDetail = _Paths.ownerDetail;
 
+  /// Ficha de detalle de un actor de la red operativa (ADR actor-canon §10).
+  /// CONTRACT: Get.toNamed(Routes.actorDetail, arguments: {'actor': NetworkActorVm}).
+  static const actorDetail = _Paths.actorDetail;
+
+  /// Directorio dedicado de PROVEEDORES del workspace (primer rostro visible
+  /// del arquetipo transversal comercial/servicio). Fuente de verdad
+  /// compartida con el selector de Pedidos: `LocalContactRepository`.
+  /// CONTRACT: no requiere arguments — `ProvidersDirectoryBinding` resuelve
+  /// orgId desde SessionContextController.
+  static const providersDirectory = _Paths.providersDirectory;
+
+  /// Ficha de detalle de un proveedor (lectura por secciones).
+  /// CONTRACT: Get.toNamed(Routes.providerDetail,
+  ///   arguments: {'providerId': '<id>'})
+  static const providerDetail = _Paths.providerDetail;
+
+  /// Formulario COMPLETO de alta o edición de proveedor.
+  /// CONTRACT:
+  ///   Get.toNamed(Routes.providerForm) → alta
+  ///   Get.toNamed(Routes.providerForm, arguments: {'providerId': '<id>'}) → edición
+  static const providerForm = _Paths.providerForm;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // PROVIDER — CATÁLOGO / SPECIALTIES
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /// Selector multi-select de specialties para proveedores ("¿Qué ofreces?").
+  /// Consume `GET /v1/catalog/specialties` y devuelve los IDs seleccionados.
+  /// CONTRACT:
+  ///   Get.toNamed(Routes.selectSpecialties, arguments: {
+  ///     'assetType': '<assetType-id, p.ej. vehicle.car>',
+  ///   })
+  /// RESULT: `Set<String>` de specialty IDs seleccionados (via Get.back).
+  static const selectSpecialties = _Paths.selectSpecialties;
+
   // ══════════════════════════════════════════════════════════════════════════
   // DEMO / DESARROLLO
   // ══════════════════════════════════════════════════════════════════════════
@@ -243,6 +286,10 @@ abstract class _Paths {
   static const providerHomeServices = '/provider/home/services';
   static const providerWorkspaceArticles = '/provider/workspace/articles';
   static const providerWorkspaceServices = '/provider/workspace/services';
+
+  // MF1 — provider self-onboarding.
+  static const providerBootstrap = '/provider/bootstrap';
+  static const providerMe = '/provider/me';
 
   // Módulos
   static const incidencia = '/incidencia';
@@ -299,6 +346,13 @@ abstract class _Paths {
   // Red operativa
   static const networkOperational = '/network/operational';
   static const ownerDetail = '/network/owner-detail';
+  static const actorDetail = '/network/actor-detail';
+  static const providersDirectory = '/network/providers';
+  static const providerDetail = '/network/providers/detail';
+  static const providerForm = '/network/providers/form';
+
+  // Provider — Catálogo / Specialties
+  static const selectSpecialties = '/provider/specialties/select';
 
   // Demo
   static const bottomNavDemo = '/demo/bottom-nav';
