@@ -1,0 +1,369 @@
+// ============================================================================
+// lib/application/services/access/access_gateway.dart
+// ACCESS GATEWAY — orquestador del flujo proactivo del subsistema de acceso.
+// ============================================================================
+// QUÉ HACE:
+// - Ejecuta el flujo proactivo §5 del contrato en app launch / post-login:
+//     1. GET /v1/access/me/context
+//     2. switch requiresAction:
+//          · NONE              → publicar capabilities + estado ready.
+//          · BOOTSTRAP_REQUIRED→ POST /v1/auth/bootstrap (+ refresh si aplica)
+//                                → re-llamar /context → publicar estado.
+//          · SELECT_WORKSPACE  → estado requiresWorkspaceSelection (sin
+//                                navegar si no existe UI; no inventar
+//                                workspace).
+//          · CONTACT_SUPPORT   → estado blocked.
+// - Expone `AccessGatewayState` reactivo para que la capa presentation
+//   decida UX (splash, banners, redirección a workspace picker, etc.).
+// - Resetea `AccessSessionState` + `SessionCapabilitiesStore` en logout.
+//
+// QUÉ NO HACE:
+// - No es un Controller GetX. No pertenece a presentation. Es un servicio
+//   de `application/services/access/` que cualquier Controller puede
+//   invocar (Splash, AuthState, SessionContext).
+// - No navega. Publica estado; la UI decide.
+// - No duplica la lógica reactiva del interceptor. Si el gateway recibe un
+//   error en /context, NO intenta bootstrapear desde aquí en paralelo al
+//   interceptor: el flujo proactivo tiene reglas distintas del reactivo.
+//
+// PRINCIPIOS:
+// - Context-first + bootstrap condicional: `ensureAccessReady()` SIEMPRE
+//   llama GET /context, pero POST /bootstrap solo se dispara si el server
+//   reporta `requiresAction == BOOTSTRAP_REQUIRED`.
+// - Idempotente: llamar `ensureAccessReady()` N veces en la misma sesión no
+//   dispara N bootstraps (el `AccessSessionState` lo impide).
+// - Single-flight a nivel de gateway: dos invocaciones paralelas de
+//   `ensureAccessReady()` comparten el mismo Future.
+// - Deny-by-default: errores no modelados → estado `error(reason)`.
+//
+// ENTERPRISE NOTES:
+// - Fuente: "Contrato de integración — Flutter ↔ Core API Access" §5.
+// - La integración con `SessionContextController` se deja opcional — el
+//   gateway solo lee capabilities localmente vía store; el Controller puede
+//   observar el estado del gateway cuando se decida cablear en splash.
+// ============================================================================
+
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+
+import '../../../domain/entities/access/access_context.dart';
+import '../../../domain/entities/access/access_enums.dart';
+import '../../../domain/errors/access_exceptions.dart';
+import '../../../domain/errors/remote_exceptions.dart';
+import '../../../domain/repositories/access_repository.dart';
+import 'access_session_state.dart';
+import 'provider_context_store.dart';
+import 'session_capabilities_store.dart';
+
+/// Estado reactivo del gateway. La UI (splash, shell) lo observa para
+/// decidir redirección / banner.
+sealed class AccessGatewayState {
+  const AccessGatewayState();
+}
+
+class AccessGatewayIdle extends AccessGatewayState {
+  const AccessGatewayIdle();
+}
+
+class AccessGatewayLoading extends AccessGatewayState {
+  const AccessGatewayLoading();
+}
+
+class AccessGatewayReady extends AccessGatewayState {
+  final AccessContext context;
+  const AccessGatewayReady(this.context);
+}
+
+class AccessGatewayRequiresWorkspaceSelection extends AccessGatewayState {
+  final AccessContext context;
+  const AccessGatewayRequiresWorkspaceSelection(this.context);
+}
+
+class AccessGatewayBlocked extends AccessGatewayState {
+  final AccessContext context;
+  const AccessGatewayBlocked(this.context);
+}
+
+class AccessGatewayError extends AccessGatewayState {
+  final Object error;
+  const AccessGatewayError(this.error);
+}
+
+class AccessGateway {
+  final AccessRepository _repository;
+  final AccessSessionState _sessionState;
+  final SessionCapabilitiesStore _capabilitiesStore;
+  final ProviderContextStore? _providerContextStore;
+  final Future<String?> Function({bool forceRefresh}) _refreshIdToken;
+  final String? Function() _resolveLocalOrgId;
+
+  final ValueNotifier<AccessGatewayState> _state =
+      ValueNotifier<AccessGatewayState>(const AccessGatewayIdle());
+
+  Future<AccessGatewayState>? _inFlight;
+
+  AccessGateway({
+    required AccessRepository repository,
+    required AccessSessionState sessionState,
+    required SessionCapabilitiesStore capabilitiesStore,
+    ProviderContextStore? providerContextStore,
+    required Future<String?> Function({bool forceRefresh}) refreshIdToken,
+    required String? Function() resolveLocalOrgId,
+  })  : _repository = repository,
+        _sessionState = sessionState,
+        _capabilitiesStore = capabilitiesStore,
+        _providerContextStore = providerContextStore,
+        _refreshIdToken = refreshIdToken,
+        _resolveLocalOrgId = resolveLocalOrgId;
+
+  /// Estado actual (observable con `ValueListenableBuilder` o `.addListener`).
+  ValueListenable<AccessGatewayState> get state => _state;
+
+  /// Asegura que el estado de acceso del caller quede resuelto contra Core API,
+  /// siguiendo el flujo proactivo §5 del contrato:
+  ///
+  ///   1. SIEMPRE llama GET /v1/access/me/context (único request garantizado).
+  ///   2. Según `requiresAction`:
+  ///        · NONE               → ready. NO hay POST /bootstrap.
+  ///        · BOOTSTRAP_REQUIRED → POST /v1/auth/bootstrap + refresh + re-fetch /context.
+  ///        · SELECT_WORKSPACE   → estado terminal "requiresWorkspaceSelection".
+  ///                               NO hay POST /bootstrap.
+  ///        · CONTACT_SUPPORT    → estado terminal bloqueante.
+  ///                               NO hay POST /bootstrap.
+  ///
+  /// Idempotente + single-flight: N invocaciones paralelas comparten el mismo
+  /// Future. Tras completarse, una llamada posterior re-ejecuta el flujo (lo
+  /// cual es barato si /context devuelve NONE; el contrato §5 exige consultar
+  /// /context en cada arranque para detectar mutaciones server-side).
+  ///
+  /// Puntos de invocación esperados:
+  /// - App launch (cold start + hot restart) — vía SplashBootstrapController.
+  /// - Tras workspace switch exitoso (post-`resetForWorkspaceSwitch`).
+  /// - Tras login OTP/federated si se quiere validación explícita inmediata.
+  Future<AccessGatewayState> ensureAccessReady() {
+    final pending = _inFlight;
+    if (pending != null) return pending;
+    final future = _run();
+    _inFlight = future;
+    return future.whenComplete(() => _inFlight = null);
+  }
+
+  /// Reset al hacer logout. Limpia flags, capabilities, provider context y
+  /// estado observable.
+  void resetForLogout() {
+    _sessionState.resetForLogout();
+    _capabilitiesStore.clear();
+    _providerContextStore?.clear();
+    _state.value = const AccessGatewayIdle();
+    _log('gateway reset (logout)');
+  }
+
+  /// Reset al cambiar workspace. No limpia capabilities (el próximo
+  /// `ensureAccessReady()` las publicará de nuevo). Limpia el provider
+  /// context: el nuevo workspace puede tener `isProvider` distinto.
+  void resetForWorkspaceSwitch() {
+    _sessionState.resetForWorkspaceSwitch();
+    _providerContextStore?.clear();
+    _state.value = const AccessGatewayIdle();
+    _log('gateway reset (workspace switch)');
+  }
+
+  // --------------------------------------------------------------------------
+  // Internals
+  // --------------------------------------------------------------------------
+
+  Future<AccessGatewayState> _run() async {
+    _state.value = const AccessGatewayLoading();
+
+    try {
+      final ctx = await _repository.getContext();
+      _log('access context loaded: $ctx');
+      return _handleContext(ctx);
+    } on UnauthorizedException catch (e) {
+      _log('getContext 401: $e');
+      final next = AccessGatewayError(e);
+      _state.value = next;
+      return next;
+    } on CoreCommonRemoteException catch (e) {
+      _log('getContext remote error: $e');
+      final next = AccessGatewayError(e);
+      _state.value = next;
+      return next;
+    } catch (e) {
+      _log('getContext unexpected error: $e');
+      final next = AccessGatewayError(e);
+      _state.value = next;
+      return next;
+    }
+  }
+
+  Future<AccessGatewayState> _handleContext(AccessContext ctx) async {
+    switch (ctx.requiresAction) {
+      case RequiresAction.none:
+        _capabilitiesStore.set(ctx.capabilities);
+        // [AuthBootstrap] log canónico — visible cuando /context resuelve
+        // sin necesidad de POST /bootstrap (caller ya provisionado).
+        if (kDebugMode) {
+          debugPrint('[AuthBootstrap] '
+              'activeOrgId=${ctx.activeOrgId} '
+              'workspaceId=${ctx.activeWorkspace?.id} '
+              'membershipId=${ctx.membership?.id} '
+              'capabilities=${ctx.capabilities} '
+              'source=context_none');
+        }
+        if (ctx.requiresTokenRefresh) {
+          _log('token refresh required by /context');
+          await _refreshIdToken(forceRefresh: true);
+        }
+        final next = AccessGatewayReady(ctx);
+        _state.value = next;
+        return next;
+
+      case RequiresAction.bootstrapRequired:
+        return _handleBootstrapRequired(ctx);
+
+      case RequiresAction.selectWorkspace:
+        _log('context requires workspace selection');
+        _capabilitiesStore.clear();
+        final next = AccessGatewayRequiresWorkspaceSelection(ctx);
+        _state.value = next;
+        return next;
+
+      case RequiresAction.contactSupport:
+        _log('context blocked state');
+        _capabilitiesStore.clear();
+        final next = AccessGatewayBlocked(ctx);
+        _state.value = next;
+        return next;
+    }
+  }
+
+  Future<AccessGatewayState> _handleBootstrapRequired(
+      AccessContext ctx) async {
+    // ── Terminal check: bootstrap ya fue exitoso, pero el backend sigue
+    //    reportando BOOTSTRAP_REQUIRED → inconsistencia de estado.
+    if (_sessionState.bootstrapSucceeded) {
+      _log('post-success /context still reports BOOTSTRAP_REQUIRED — '
+          'inconsistent backend state');
+      const err = AccessBootstrapExhaustedException(
+        'Backend reports BOOTSTRAP_REQUIRED after a successful bootstrap '
+        'in this session.',
+      );
+      const next = AccessGatewayError(err);
+      _state.value = next;
+      return next;
+    }
+
+    // ── Terminal check: intento previo falló con razón terminal (policy
+    //    blocker u otro error no recuperable). No reintentar hasta logout.
+    if (_sessionState.bootstrapTerminal) {
+      _log('previous bootstrap failure was terminal — not retrying');
+      const err = AccessBootstrapExhaustedException(
+        'Previous bootstrap attempt failed with a terminal reason '
+        'in this session.',
+      );
+      const next = AccessGatewayError(err);
+      _state.value = next;
+      return next;
+    }
+
+    // Resolver orgId: preferir el activeOrgId reportado por /context
+    // (puede venir del claim aunque no exista workspace todavía); si no,
+    // caer al orgId local (activeContext.orgId o primera membership).
+    final orgIdFromContext = ctx.activeOrgId;
+    final orgIdFromLocal = _resolveLocalOrgId();
+    final orgId = (orgIdFromContext != null && orgIdFromContext.isNotEmpty)
+        ? orgIdFromContext
+        : (orgIdFromLocal != null && orgIdFromLocal.isNotEmpty
+            ? orgIdFromLocal
+            : null);
+
+    // ── PRE-CHECK: si no hay orgId disponible, NO llamar a /bootstrap.
+    //    El server devolvería 400 ACTIVE_ORG_ID_MISSING y antes quemábamos
+    //    el flag bloqueando reintentos legítimos tras onboarding. Ahora:
+    //      · marcamos outcome = failedMissingOrgId (RECUPERABLE),
+    //      · emitimos RequiresWorkspaceSelection para que UI pueda decidir,
+    //      · NO llamamos backend — cuando el orgId aparezca, un nuevo
+    //        trigger (manual o reactivo) podrá intentar bootstrap.
+    if (orgId == null) {
+      _log('bootstrap skipped: no orgId available (missing_active_org, '
+          'recoverable)');
+      _sessionState.markBootstrapFailedMissingOrgId();
+      _capabilitiesStore.clear();
+      final next = AccessGatewayRequiresWorkspaceSelection(ctx);
+      _state.value = next;
+      return next;
+    }
+
+    _log('bootstrap required; calling POST /v1/auth/bootstrap (orgId=$orgId)');
+
+    try {
+      final result = await _repository.bootstrap(orgId: orgId);
+      _log('bootstrap completed (orgIdSource=${result.orgIdSource.name})');
+
+      // [AuthBootstrap] log canónico — observabilidad del onboarding sin
+      // exponer el orgId completo en producción si fuera sensible.
+      if (kDebugMode) {
+        debugPrint('[AuthBootstrap] '
+            'activeOrgId=${result.activeOrgId} '
+            'workspaceId=${result.workspaceId} '
+            'membershipId=${result.membershipId} '
+            'capabilities=${result.capabilities}');
+      }
+
+      if (result.requiresTokenRefresh) {
+        _log('token refresh required post-bootstrap');
+        await _refreshIdToken(forceRefresh: true);
+      }
+
+      _sessionState.markBootstrapSucceeded();
+
+      // Re-fetch /context para confirmar NONE (contrato §5 STEP E → STEP B).
+      final refreshed = await _repository.getContext();
+      _log('post-bootstrap /context: $refreshed');
+      return _handleContext(refreshed);
+    } on BadRequestException catch (e) {
+      _log('bootstrap 400 code=${e.code}: $e');
+      if (e.code == AccessErrorCode.activeOrgIdMissing) {
+        // Edge case: pasamos un orgId pero el server lo rechazó como missing
+        // (raro, pero posible si el server cambió reglas). Tratamos como
+        // RECUPERABLE igual que el pre-check, no quemamos flag terminal.
+        _sessionState.markBootstrapFailedMissingOrgId();
+        final next = AccessGatewayRequiresWorkspaceSelection(ctx);
+        _state.value = next;
+        return next;
+      }
+      // Otras 400 (validation errors) → terminal no recuperable.
+      _sessionState.markBootstrapFailedOther();
+      final next = AccessGatewayError(e);
+      _state.value = next;
+      return next;
+    } on UnauthorizedException catch (e) {
+      // 401/403 durante bootstrap = policy blocker (USER_SUSPENDED/INACTIVE/
+      // PENDING_ACTIVATION/MEMBERSHIP_INACTIVE). TERMINAL por sesión; el
+      // usuario debe contactar soporte.
+      _log('bootstrap 401/403 — policy blocker: $e');
+      _sessionState.markBootstrapFailedBlockingPolicy();
+      final next = AccessGatewayError(e);
+      _state.value = next;
+      return next;
+    } on CoreCommonRemoteException catch (e) {
+      _log('bootstrap remote error: $e');
+      _sessionState.markBootstrapFailedOther();
+      final next = AccessGatewayError(e);
+      _state.value = next;
+      return next;
+    } catch (e) {
+      _log('bootstrap unexpected error: $e');
+      _sessionState.markBootstrapFailedOther();
+      final next = AccessGatewayError(e);
+      _state.value = next;
+      return next;
+    }
+  }
+
+  void _log(String msg) {
+    if (kDebugMode) debugPrint('[ACCESS] $msg');
+  }
+}
