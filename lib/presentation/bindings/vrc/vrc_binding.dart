@@ -3,22 +3,18 @@
 // VRC BINDING — Presentation Layer / GetX DI
 //
 // QUÉ HACE:
-// - Registra las dependencias GetX del módulo VRC Individual en su scope.
-// - Crea un Dio aislado via IntegrationsApiClient.create() con tag 'vrc'.
-// - Registra VrcService y VrcController con fenix: true para sobrevivir
-//   la navegación Consulta → Resultado.
+// - Registra VrcService + VrcController en el scope de las pantallas VRC.
+// - Reutiliza el Dio tag:'integrations' registrado por el container global.
 //
 // QUÉ NO HACE:
-// - No reutiliza el Dio global de AppBindings (no tiene ApiKeyInterceptor).
-// - No reutiliza el Dio del binding 'integrations' (scopes distintos).
+// - No crea Dios propios, no monta interceptores, no duplica infra.
 // - No registra repositorios (VRC no tiene cache ni persistencia).
 //
 // PRINCIPIOS:
-// - tag: 'vrc' evita colisión con tag 'integrations' del módulo homólogo.
-// - fenix: true garantiza que VrcController sobrevive la navegación entre
+// - fenix: true → VrcController sobrevive la navegación entre
 //   VrcConsultPage y VrcResultPage sin perder el resultado.
 // - Árbol de dependencias:
-//     IntegrationsApiClient.create() [Dio, tag:'vrc']
+//     Get.find<Dio>(tag: 'integrations')  ← registrado por container global
 //       └─ VrcService
 //             └─ VrcController
 // ============================================================================
@@ -26,33 +22,19 @@
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 
-import '../../../data/remote/integrations_api_client.dart';
 import '../../../data/vrc/vrc_service.dart';
 import '../../controllers/vrc/vrc_controller.dart';
 
-/// Binding GetX para el módulo VRC Individual.
-///
-/// Registrar en app_pages.dart para las rutas Routes.vrcConsult y Routes.vrcResult.
 class VrcBinding extends Bindings {
   @override
   void dependencies() {
-    // ── 1. Cliente HTTP aislado ────────────────────────────────────────────
-    // Mismo factory que el módulo Integrations — incluye ApiKeyInterceptor,
-    // LogInterceptor(debug) y baseUrl 'http://178.156.227.90/api'.
-    // Tag 'vrc' evita colisión con tag 'integrations'.
-    Get.lazyPut<Dio>(
-      () => IntegrationsApiClient.create(),
-      tag: 'vrc',
-      fenix: true,
-    );
-
-    // ── 2. Servicio HTTP VRC ───────────────────────────────────────────────
+    // ── Servicio HTTP VRC ────────────────────────────────────────────────────
     Get.lazyPut<VrcService>(
-      () => VrcService(Get.find<Dio>(tag: 'vrc')),
+      () => VrcService(Get.find<Dio>(tag: 'integrations')),
       fenix: true,
     );
 
-    // ── 3. Controller ──────────────────────────────────────────────────────
+    // ── Controller ───────────────────────────────────────────────────────────
     // fenix: true → el controller persiste mientras el usuario navega entre
     // VrcConsultPage y VrcResultPage, conservando el último resultado.
     Get.lazyPut<VrcController>(

@@ -6,23 +6,23 @@ import 'models/simit_models.dart';
 
 /// Servicio HTTP para consumir la API de SIMIT (Sistema Integrado de Multas de Tránsito).
 ///
-/// Proporciona métodos para consultar multas de tránsito por documento.
+/// QUÉ HACE:
+/// - Consulta multas por documento contra Integrations API.
 ///
-/// Este servicio NO maneja cache, solo realiza peticiones HTTP.
-/// El cache debe implementarse en la capa de repositorio.
+/// QUÉ NO HACE:
+/// - No construye baseUrl. El [Dio] inyectado ya trae origin; el service
+///   solo pasa el path absoluto con su prefijo (`/api/simit/...`).
+/// - No maneja cache — responsabilidad del repositorio.
 class SimitService {
   final Dio _dio;
-  final String baseUrl;
 
-  /// Constructor que recibe una instancia de Dio ya configurada.
-  ///
-  /// [_dio]: Cliente HTTP Dio con configuración de timeouts, interceptors, etc.
-  /// [baseUrl]: URL base de la API (ej: "https://api.example.com")
-  SimitService(this._dio, {required this.baseUrl});
+  /// Constructor. Recibe el [Dio] con baseUrl = origin de Integrations
+  /// y `ApiKeyInterceptor` ya configurados.
+  SimitService(this._dio);
 
   /// Consulta multas de tránsito por número de documento.
   ///
-  /// Endpoint: GET /simit/multas/:license
+  /// Endpoint: GET /api/simit/multas/:license
   ///
   /// [document]: Número de documento (cédula) de la persona a consultar
   ///
@@ -42,7 +42,7 @@ class SimitService {
     required String document,
   }) async {
     try {
-      final url = '$baseUrl/simit/multas/$document';
+      final url = '/api/simit/multas/$document';
 
       // Realizar petición HTTP
       final response = await _dio.get(url);

@@ -177,16 +177,8 @@ class AssetDetailRuntController extends GetxController {
     vehicleSecondaryLabel = vehiculo != null
         ? buildVehicleSecondaryLabel(vehiculo.marca, vehiculo.modelo, vehiculo.anio)
         : null;
-    vehicleSnapshotForQuote = vehiculo != null
-        ? VehicleSnapshot(
-            plate: vehiculo.placa,
-            brand: vehiculo.marca,
-            model: vehiculo.modelo,
-            year: vehiculo.anio,
-            vehicleClass: vehiculo.vehicleClass ?? '',
-            service: vehiculo.serviceType ?? '',
-          )
-        : null;
+    vehicleSnapshotForQuote =
+        vehiculo != null ? VehicleSnapshot.fromVehiculo(vehiculo) : null;
   }
 
   /// Marca el inicio de una actualización RUNT iniciada por el usuario.

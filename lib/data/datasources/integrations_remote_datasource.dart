@@ -40,7 +40,7 @@ class IntegrationsRemoteDatasource {
     required String document,
     required String type,
   }) async {
-    final url = '/runt/person/consult/$document/$type';
+    final url = '/api/runt/person/consult/$document/$type';
 
     try {
       final response = await _dio.get<Map<String, dynamic>>(url);
@@ -79,7 +79,7 @@ class IntegrationsRemoteDatasource {
   Future<SimitResultResponseModel> fetchSimit({
     required String query,
   }) async {
-    final url = '/simit/multas/$query';
+    final url = '/api/simit/multas/$query';
 
     try {
       final response = await _dio.get<Map<String, dynamic>>(url);

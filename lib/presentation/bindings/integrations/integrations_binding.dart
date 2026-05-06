@@ -1,31 +1,21 @@
 // ============================================================================
 // lib/presentation/bindings/integrations/integrations_binding.dart
+// INTEGRATIONS BINDING — Registra el stack del módulo Integrations en GetX.
 //
-// INTEGRATIONS BINDING
+// QUÉ HACE:
+// - Registra IntegrationsRemoteDatasource / LocalDatasource / Repository /
+//   Controller en el scope de la página que lo use.
+// - Reutiliza el Dio tag:'integrations' registrado por el container global.
 //
-// Registra en GetX todas las dependencias del módulo Integrations
-// en el scope de la página que lo use.
+// QUÉ NO HACE:
+// - No crea Dios propios, no monta interceptores, no arma baseUrl.
 //
-// Árbol de dependencias:
-//
-//   IntegrationsApiClient (Dio aislado)
+// ÁRBOL DE DEPENDENCIAS:
+//   Get.find<Dio>(tag: 'integrations')       ← registrado por container global
 //     └─ IntegrationsRemoteDatasource
-//   IntegrationsLocalDatasource (recibe Isar de DIContainer)
+//   IntegrationsLocalDatasource (Isar)
 //     └─ IntegrationsRepositoryImpl (remote + local)
 //           └─ IntegrationsController
-//
-// Uso en app_pages.dart (NO modificar app_pages.dart existente):
-//   GetPage(
-//     name: '/integrations-test',
-//     page: () => const IntegrationsTestPage(),
-//     binding: IntegrationsBinding(),
-//   )
-//
-// O navegar directamente sin ruta registrada:
-//   Get.to(
-//     () => const IntegrationsTestPage(),
-//     binding: IntegrationsBinding(),
-//   );
 // ============================================================================
 
 import 'package:dio/dio.dart';
@@ -34,27 +24,15 @@ import 'package:get/get.dart';
 import '../../../core/di/container.dart';
 import '../../../data/datasources/integrations_remote_datasource.dart';
 import '../../../data/local/integrations_local_datasource.dart';
-import '../../../data/remote/integrations_api_client.dart';
 import '../../../data/repositories/integrations_repository_impl.dart';
 import '../../../domain/repositories/integrations_repository.dart';
 import '../../controllers/integrations/integrations_controller.dart';
 
 /// Binding GetX para el módulo de integraciones (RUNT Persona + SIMIT).
-///
-/// Scope aislado: las dependencias solo viven mientras la página esté activa.
 class IntegrationsBinding extends Bindings {
   @override
   void dependencies() {
-    // ── 1. Cliente HTTP aislado para el módulo ─────────────────────────────
-    // Instancia de Dio independiente del Dio global de AppBindings.
-    // Tag 'integrations' evita colisión con el Dio global.
-    Get.lazyPut<Dio>(
-      () => IntegrationsApiClient.create(),
-      tag: 'integrations',
-      fenix: true,
-    );
-
-    // ── 2. Datasource remoto ───────────────────────────────────────────────
+    // ── 1. Datasource remoto ─────────────────────────────────────────────────
     Get.lazyPut<IntegrationsRemoteDatasource>(
       () => IntegrationsRemoteDatasource(
         Get.find<Dio>(tag: 'integrations'),
@@ -62,14 +40,13 @@ class IntegrationsBinding extends Bindings {
       fenix: true,
     );
 
-    // ── 3. Datasource local (cache Isar) ───────────────────────────────────
-    // Reutiliza la instancia de Isar del contenedor global del proyecto.
+    // ── 2. Datasource local (cache Isar) ─────────────────────────────────────
     Get.lazyPut<IntegrationsLocalDatasource>(
       () => IntegrationsLocalDatasource(DIContainer().isar),
       fenix: true,
     );
 
-    // ── 4. Repositorio ─────────────────────────────────────────────────────
+    // ── 3. Repositorio ───────────────────────────────────────────────────────
     Get.lazyPut<IntegrationsRepository>(
       () => IntegrationsRepositoryImpl(
         remote: Get.find<IntegrationsRemoteDatasource>(),
@@ -78,7 +55,7 @@ class IntegrationsBinding extends Bindings {
       fenix: true,
     );
 
-    // ── 5. Controller ──────────────────────────────────────────────────────
+    // ── 4. Controller ────────────────────────────────────────────────────────
     Get.lazyPut<IntegrationsController>(
       () => IntegrationsController(
         Get.find<IntegrationsRepository>(),

@@ -37,11 +37,8 @@ import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 
 import '../../../application/runt/runt_async_query_gateway.dart';
-import '../../../core/config/api_endpoints.dart';
 import '../../../core/di/container.dart';
 import '../../../data/gateways/runt_async_query_gateway_impl.dart';
-import '../../../data/remote/integrations_api_client.dart';
-import '../../../data/remote/interceptors/api_key_interceptor.dart';
 import '../../../data/runt/runt_query_service.dart';
 import '../../../data/vrc/vrc_service.dart';
 import '../../controllers/asset/asset_registration_controller.dart';
@@ -60,11 +57,7 @@ class AssetRegistrationBinding extends Bindings {
     // (por ejemplo al volver de Progress/Result), no creamos otra instancia.
     if (!Get.isRegistered<RuntQueryService>()) {
       Get.lazyPut<RuntQueryService>(
-        () => RuntQueryService(
-          // Instancia Dio aislada con X-API-Key — NO usa el Dio global.
-          Dio()..interceptors.add(ApiKeyInterceptor()),
-          baseUrl: ApiEndpoints.runtBaseUrl,
-        ),
+        () => RuntQueryService(Get.find<Dio>(tag: 'integrations')),
       );
     }
 
@@ -121,16 +114,9 @@ class AssetRegistrationBinding extends Bindings {
     //
     // Guard Get.isRegistered<Dio>(tag:'vrc') — si el usuario previamente
     // usó la consulta VRC standalone (VrcBinding), el Dio ya está registrado.
-    if (!Get.isRegistered<Dio>(tag: 'vrc')) {
-      Get.lazyPut<Dio>(
-        () => IntegrationsApiClient.create(),
-        tag: 'vrc',
-        fenix: true,
-      );
-    }
     if (!Get.isRegistered<VrcService>()) {
       Get.lazyPut<VrcService>(
-        () => VrcService(Get.find<Dio>(tag: 'vrc')),
+        () => VrcService(Get.find<Dio>(tag: 'integrations')),
         fenix: true,
       );
     }

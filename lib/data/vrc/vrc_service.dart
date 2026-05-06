@@ -18,7 +18,10 @@
 // - No configura el Dio ni sus interceptores (responsabilidad del VrcBinding).
 //
 // PRINCIPIOS:
-// - El Dio recibido ya tiene baseUrl = 'http://178.156.227.90/api' y ApiKeyInterceptor.
+// - El Dio recibido tiene baseUrl = origin de Integrations y ApiKeyInterceptor.
+// - El service pasa paths absolutos con su prefijo:
+//     Individual → /api/vrc/...
+//     Batches    → /v1/vrc-batches/...
 // - Individual: timeout 120 s (el backend agrega fuentes lentas).
 // - Batch create: timeout 30 s (el endpoint devuelve batchId inmediatamente).
 // - Batch poll: timeout 15 s (sondeo ligero — el backend ya procesó).
@@ -28,6 +31,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../core/config/api_endpoints.dart';
 import '../../core/exceptions/api_exceptions.dart';
 import 'models/vrc_batch_models.dart';
 import 'models/vrc_models.dart';
@@ -59,8 +63,13 @@ class VrcService {
     required String documentType,
     required String documentNumber,
   }) async {
-    final url = '/vrc/$plate/$documentType/$documentNumber';
+    final url = '/api/vrc/$plate/$documentType/$documentNumber';
     debugPrint('[VRC_SERVICE] URL → $url');
+    // ── LOG TEMPORAL — diagnóstico Dev Local vs Hetzner ─────────────────────
+    // ignore: avoid_print
+    print('[VRC] baseUrl = ${ApiEndpoints.integrationsBaseUrl}');
+    // ignore: avoid_print
+    print('[VRC] endpoint = $url');
 
     try {
       final response = await _dio.get<Map<String, dynamic>>(
@@ -115,21 +124,6 @@ class VrcService {
   /// Timeout para sondear el estado — request ligero de status.
   static const _batchPollTimeout = Duration(seconds: 15);
 
-  /// URL base para los endpoints v1 del batch VRC.
-  ///
-  /// Los batch endpoints usan el prefijo /v1/ mientras que los endpoints
-  /// individuales usan /api/ (reflejado en [Dio.options.baseUrl]).
-  /// Se deriva tomando solo el origin (scheme + host + port) del baseUrl
-  /// y añadiendo /v1. Funciona correctamente con el servidor actual
-  /// (http://178.156.227.90/api → http://178.156.227.90/v1).
-  ///
-  /// NOTA: si en el futuro el servidor introduce un path-prefix (proxy,
-  /// subruta), este getter debe revisarse — no preserva paths intermedios.
-  String get _batchBaseUrl {
-    final origin = Uri.parse(_dio.options.baseUrl).origin;
-    return '$origin/v1';
-  }
-
   /// Crea un batch de consultas VRC para múltiples placas.
   ///
   /// Endpoint: POST /v1/vrc-batches
@@ -146,8 +140,13 @@ class VrcService {
     required String orgId,
     required String requestedBy,
   }) async {
-    final url = '$_batchBaseUrl/vrc-batches';
+    const url = '/v1/vrc-batches';
     debugPrint('[VRC_SERVICE] Batch create → url=$url plates=${plates.join(",")}');
+    // ── LOG TEMPORAL — diagnóstico Dev Local vs Hetzner ─────────────────────
+    // ignore: avoid_print
+    print('[VRC] baseUrl = ${ApiEndpoints.integrationsBaseUrl}');
+    // ignore: avoid_print
+    print('[VRC] endpoint = $url');
 
     try {
       final response = await _dio.post<Map<String, dynamic>>(
@@ -187,7 +186,12 @@ class VrcService {
   ///
   /// Lanza [VrcApiException] en caso de error de red o parsing.
   Future<VrcBatchStatusResponseModel> pollBatch(String batchId) async {
-    final url = '$_batchBaseUrl/vrc-batches/$batchId';
+    final url = '/v1/vrc-batches/$batchId';
+    // ── LOG TEMPORAL — diagnóstico Dev Local vs Hetzner ─────────────────────
+    // ignore: avoid_print
+    print('[VRC] baseUrl = ${ApiEndpoints.integrationsBaseUrl}');
+    // ignore: avoid_print
+    print('[VRC] endpoint = $url');
 
     try {
       // ── [BATCH_TIMING] PUNTO 2a — HTTP_RAW SEND ────────────────────────────

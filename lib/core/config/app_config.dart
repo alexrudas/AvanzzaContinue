@@ -25,6 +25,42 @@ class AppConfig {
   static const bool enableOfflineSync = true;
   static const bool enableIsarInspector = false;
 
+  /// Kill-switch de la integración canónica de proveedores con Core API.
+  ///
+  /// Por defecto ON. Cuando está activo, `ProviderFormController.save()`
+  /// orquesta la cadena completa:
+  ///   `LocalContact.save → match-candidate.probe → POST /v1/providers
+  ///    → PUT /v1/providers/:id/specialties`
+  /// y la sección "Especialidades" del form aparece cuando hay `assetType`
+  /// en contexto.
+  ///
+  /// Cuando está OFF, el `save()` cae al primer statement de kill-switch:
+  /// solo persiste `LocalContact` localmente y retorna OK. NUNCA dispara
+  /// probe / provision / replace contra Core API. La sección del selector
+  /// también se oculta del form. Útil como rollback inmediato si el
+  /// endpoint Core API tiene issues en producción o si el backfill de
+  /// capabilities no corrió todavía.
+  ///
+  /// REGLA OPERATIVA (rollback condition):
+  ///   Si los endpoints de Core API resultan inestables o el equipo
+  ///   detecta un patrón de fallos en producción, apagar este flag es la
+  ///   primera línea de mitigación — sin redeploy de schema, sin migración
+  ///   de datos. El usuario recupera el flujo legacy puro (LocalContact
+  ///   only) hasta que el backend esté sano y se reactive el flag.
+  ///
+  /// Endpoints canónicos consumidos cuando ON:
+  ///   - `POST /v1/core-common/match-candidates/probe` (registra
+  ///     LocalRefAttestation antes del POST en CREATE flow).
+  ///   - `POST /v1/providers` (crear/reusar ProviderProfile).
+  ///   - `GET  /v1/providers/:providerProfileId` (verificar en EDIT flow).
+  ///   - `PUT  /v1/providers/:providerProfileId/specialties` (REPLACE).
+  ///
+  /// Aquí como `const` por simplicidad — mismo patrón que
+  /// `enableOfflineSync` / `enableIsarInspector`. Si se necesita togglear
+  /// remoto, migrar a un servicio de feature flags (ej. el patrón de
+  /// `AssetSchemaFlags` con backing en Firestore).
+  static const bool enableProviderSpecialtiesUI = true;
+
   // Build info (could be injected during CI)
   static const String buildFlavor = String.fromEnvironment('FLAVOR', defaultValue: 'dev');
   static const String buildNumber = String.fromEnvironment('BUILD_NUMBER', defaultValue: '0');
