@@ -17,83 +17,139 @@ const LocalContactModelSchema = CollectionSchema(
   name: r'LocalContactModel',
   id: -1867106818189807675,
   properties: {
-    r'createdAt': PropertySchema(
+    r'additionalBranches': PropertySchema(
       id: 0,
+      name: r'additionalBranches',
+      type: IsarType.objectList,
+      target: r'ProviderBranchEmbedded',
+    ),
+    r'addressLine': PropertySchema(
+      id: 1,
+      name: r'addressLine',
+      type: IsarType.string,
+    ),
+    r'categories': PropertySchema(
+      id: 2,
+      name: r'categories',
+      type: IsarType.stringList,
+    ),
+    r'cityId': PropertySchema(
+      id: 3,
+      name: r'cityId',
+      type: IsarType.string,
+    ),
+    r'countryId': PropertySchema(
+      id: 4,
+      name: r'countryId',
+      type: IsarType.string,
+    ),
+    r'coverageAllCountry': PropertySchema(
+      id: 5,
+      name: r'coverageAllCountry',
+      type: IsarType.bool,
+    ),
+    r'coverageCityIds': PropertySchema(
+      id: 6,
+      name: r'coverageCityIds',
+      type: IsarType.stringList,
+    ),
+    r'createdAt': PropertySchema(
+      id: 7,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'deletedAt': PropertySchema(
-      id: 1,
+      id: 8,
       name: r'deletedAt',
       type: IsarType.dateTime,
     ),
     r'displayName': PropertySchema(
-      id: 2,
+      id: 9,
       name: r'displayName',
       type: IsarType.string,
     ),
     r'docId': PropertySchema(
-      id: 3,
+      id: 10,
       name: r'docId',
       type: IsarType.string,
     ),
     r'id': PropertySchema(
-      id: 4,
+      id: 11,
       name: r'id',
       type: IsarType.string,
     ),
     r'isDeleted': PropertySchema(
-      id: 5,
+      id: 12,
       name: r'isDeleted',
       type: IsarType.bool,
     ),
     r'notesPrivate': PropertySchema(
-      id: 6,
+      id: 13,
       name: r'notesPrivate',
       type: IsarType.string,
     ),
     r'organizationId': PropertySchema(
-      id: 7,
+      id: 14,
       name: r'organizationId',
       type: IsarType.string,
     ),
     r'primaryEmail': PropertySchema(
-      id: 8,
+      id: 15,
       name: r'primaryEmail',
       type: IsarType.string,
     ),
     r'primaryPhoneE164': PropertySchema(
-      id: 9,
+      id: 16,
       name: r'primaryPhoneE164',
       type: IsarType.string,
     ),
+    r'regionId': PropertySchema(
+      id: 17,
+      name: r'regionId',
+      type: IsarType.string,
+    ),
     r'roleLabel': PropertySchema(
-      id: 10,
+      id: 18,
       name: r'roleLabel',
       type: IsarType.string,
     ),
+    r'secondaryPhoneE164': PropertySchema(
+      id: 19,
+      name: r'secondaryPhoneE164',
+      type: IsarType.string,
+    ),
     r'snapshotAdoptedAt': PropertySchema(
-      id: 11,
+      id: 20,
       name: r'snapshotAdoptedAt',
       type: IsarType.dateTime,
     ),
     r'snapshotSourcePlatformActorId': PropertySchema(
-      id: 12,
+      id: 21,
       name: r'snapshotSourcePlatformActorId',
       type: IsarType.string,
     ),
+    r'supplierTypeWire': PropertySchema(
+      id: 22,
+      name: r'supplierTypeWire',
+      type: IsarType.string,
+    ),
     r'tagsPrivate': PropertySchema(
-      id: 13,
+      id: 23,
       name: r'tagsPrivate',
       type: IsarType.stringList,
     ),
     r'updatedAt': PropertySchema(
-      id: 14,
+      id: 24,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
+    r'website': PropertySchema(
+      id: 25,
+      name: r'website',
+      type: IsarType.string,
+    ),
     r'workspaceId': PropertySchema(
-      id: 15,
+      id: 26,
       name: r'workspaceId',
       type: IsarType.string,
     )
@@ -209,7 +265,7 @@ const LocalContactModelSchema = CollectionSchema(
     )
   },
   links: {},
-  embeddedSchemas: {},
+  embeddedSchemas: {r'ProviderBranchEmbedded': ProviderBranchEmbeddedSchema},
   getId: _localContactModelGetId,
   getLinks: _localContactModelGetLinks,
   attach: _localContactModelAttach,
@@ -222,6 +278,47 @@ int _localContactModelEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  bytesCount += 3 + object.additionalBranches.length * 3;
+  {
+    final offsets = allOffsets[ProviderBranchEmbedded]!;
+    for (var i = 0; i < object.additionalBranches.length; i++) {
+      final value = object.additionalBranches[i];
+      bytesCount +=
+          ProviderBranchEmbeddedSchema.estimateSize(value, offsets, allOffsets);
+    }
+  }
+  {
+    final value = object.addressLine;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  bytesCount += 3 + object.categories.length * 3;
+  {
+    for (var i = 0; i < object.categories.length; i++) {
+      final value = object.categories[i];
+      bytesCount += value.length * 3;
+    }
+  }
+  {
+    final value = object.cityId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.countryId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  bytesCount += 3 + object.coverageCityIds.length * 3;
+  {
+    for (var i = 0; i < object.coverageCityIds.length; i++) {
+      final value = object.coverageCityIds[i];
+      bytesCount += value.length * 3;
+    }
+  }
   bytesCount += 3 + object.displayName.length * 3;
   {
     final value = object.docId;
@@ -255,7 +352,19 @@ int _localContactModelEstimateSize(
     }
   }
   {
+    final value = object.regionId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.roleLabel;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.secondaryPhoneE164;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -266,11 +375,23 @@ int _localContactModelEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.supplierTypeWire;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.tagsPrivate.length * 3;
   {
     for (var i = 0; i < object.tagsPrivate.length; i++) {
       final value = object.tagsPrivate[i];
       bytesCount += value.length * 3;
+    }
+  }
+  {
+    final value = object.website;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
     }
   }
   bytesCount += 3 + object.workspaceId.length * 3;
@@ -283,22 +404,38 @@ void _localContactModelSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeDateTime(offsets[0], object.createdAt);
-  writer.writeDateTime(offsets[1], object.deletedAt);
-  writer.writeString(offsets[2], object.displayName);
-  writer.writeString(offsets[3], object.docId);
-  writer.writeString(offsets[4], object.id);
-  writer.writeBool(offsets[5], object.isDeleted);
-  writer.writeString(offsets[6], object.notesPrivate);
-  writer.writeString(offsets[7], object.organizationId);
-  writer.writeString(offsets[8], object.primaryEmail);
-  writer.writeString(offsets[9], object.primaryPhoneE164);
-  writer.writeString(offsets[10], object.roleLabel);
-  writer.writeDateTime(offsets[11], object.snapshotAdoptedAt);
-  writer.writeString(offsets[12], object.snapshotSourcePlatformActorId);
-  writer.writeStringList(offsets[13], object.tagsPrivate);
-  writer.writeDateTime(offsets[14], object.updatedAt);
-  writer.writeString(offsets[15], object.workspaceId);
+  writer.writeObjectList<ProviderBranchEmbedded>(
+    offsets[0],
+    allOffsets,
+    ProviderBranchEmbeddedSchema.serialize,
+    object.additionalBranches,
+  );
+  writer.writeString(offsets[1], object.addressLine);
+  writer.writeStringList(offsets[2], object.categories);
+  writer.writeString(offsets[3], object.cityId);
+  writer.writeString(offsets[4], object.countryId);
+  writer.writeBool(offsets[5], object.coverageAllCountry);
+  writer.writeStringList(offsets[6], object.coverageCityIds);
+  writer.writeDateTime(offsets[7], object.createdAt);
+  writer.writeDateTime(offsets[8], object.deletedAt);
+  writer.writeString(offsets[9], object.displayName);
+  writer.writeString(offsets[10], object.docId);
+  writer.writeString(offsets[11], object.id);
+  writer.writeBool(offsets[12], object.isDeleted);
+  writer.writeString(offsets[13], object.notesPrivate);
+  writer.writeString(offsets[14], object.organizationId);
+  writer.writeString(offsets[15], object.primaryEmail);
+  writer.writeString(offsets[16], object.primaryPhoneE164);
+  writer.writeString(offsets[17], object.regionId);
+  writer.writeString(offsets[18], object.roleLabel);
+  writer.writeString(offsets[19], object.secondaryPhoneE164);
+  writer.writeDateTime(offsets[20], object.snapshotAdoptedAt);
+  writer.writeString(offsets[21], object.snapshotSourcePlatformActorId);
+  writer.writeString(offsets[22], object.supplierTypeWire);
+  writer.writeStringList(offsets[23], object.tagsPrivate);
+  writer.writeDateTime(offsets[24], object.updatedAt);
+  writer.writeString(offsets[25], object.website);
+  writer.writeString(offsets[26], object.workspaceId);
 }
 
 LocalContactModel _localContactModelDeserialize(
@@ -308,23 +445,40 @@ LocalContactModel _localContactModelDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = LocalContactModel(
-    createdAt: reader.readDateTime(offsets[0]),
-    deletedAt: reader.readDateTimeOrNull(offsets[1]),
-    displayName: reader.readString(offsets[2]),
-    docId: reader.readStringOrNull(offsets[3]),
-    id: reader.readString(offsets[4]),
-    isDeleted: reader.readBoolOrNull(offsets[5]) ?? false,
+    additionalBranches: reader.readObjectList<ProviderBranchEmbedded>(
+          offsets[0],
+          ProviderBranchEmbeddedSchema.deserialize,
+          allOffsets,
+          ProviderBranchEmbedded(),
+        ) ??
+        const <ProviderBranchEmbedded>[],
+    addressLine: reader.readStringOrNull(offsets[1]),
+    categories: reader.readStringList(offsets[2]) ?? const <String>[],
+    cityId: reader.readStringOrNull(offsets[3]),
+    countryId: reader.readStringOrNull(offsets[4]),
+    coverageAllCountry: reader.readBoolOrNull(offsets[5]) ?? false,
+    coverageCityIds: reader.readStringList(offsets[6]) ?? const <String>[],
+    createdAt: reader.readDateTime(offsets[7]),
+    deletedAt: reader.readDateTimeOrNull(offsets[8]),
+    displayName: reader.readString(offsets[9]),
+    docId: reader.readStringOrNull(offsets[10]),
+    id: reader.readString(offsets[11]),
+    isDeleted: reader.readBoolOrNull(offsets[12]) ?? false,
     isarId: id,
-    notesPrivate: reader.readStringOrNull(offsets[6]),
-    organizationId: reader.readStringOrNull(offsets[7]),
-    primaryEmail: reader.readStringOrNull(offsets[8]),
-    primaryPhoneE164: reader.readStringOrNull(offsets[9]),
-    roleLabel: reader.readStringOrNull(offsets[10]),
-    snapshotAdoptedAt: reader.readDateTimeOrNull(offsets[11]),
-    snapshotSourcePlatformActorId: reader.readStringOrNull(offsets[12]),
-    tagsPrivate: reader.readStringList(offsets[13]) ?? const <String>[],
-    updatedAt: reader.readDateTime(offsets[14]),
-    workspaceId: reader.readString(offsets[15]),
+    notesPrivate: reader.readStringOrNull(offsets[13]),
+    organizationId: reader.readStringOrNull(offsets[14]),
+    primaryEmail: reader.readStringOrNull(offsets[15]),
+    primaryPhoneE164: reader.readStringOrNull(offsets[16]),
+    regionId: reader.readStringOrNull(offsets[17]),
+    roleLabel: reader.readStringOrNull(offsets[18]),
+    secondaryPhoneE164: reader.readStringOrNull(offsets[19]),
+    snapshotAdoptedAt: reader.readDateTimeOrNull(offsets[20]),
+    snapshotSourcePlatformActorId: reader.readStringOrNull(offsets[21]),
+    supplierTypeWire: reader.readStringOrNull(offsets[22]),
+    tagsPrivate: reader.readStringList(offsets[23]) ?? const <String>[],
+    updatedAt: reader.readDateTime(offsets[24]),
+    website: reader.readStringOrNull(offsets[25]),
+    workspaceId: reader.readString(offsets[26]),
   );
   return object;
 }
@@ -337,36 +491,64 @@ P _localContactModelDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readObjectList<ProviderBranchEmbedded>(
+            offset,
+            ProviderBranchEmbeddedSchema.deserialize,
+            allOffsets,
+            ProviderBranchEmbedded(),
+          ) ??
+          const <ProviderBranchEmbedded>[]) as P;
     case 1:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringList(offset) ?? const <String>[]) as P;
     case 3:
       return (reader.readStringOrNull(offset)) as P;
     case 4:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 5:
       return (reader.readBoolOrNull(offset) ?? false) as P;
     case 6:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? const <String>[]) as P;
     case 7:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 9:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 10:
       return (reader.readStringOrNull(offset)) as P;
     case 11:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 12:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 13:
-      return (reader.readStringList(offset) ?? const <String>[]) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 14:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 15:
+      return (reader.readStringOrNull(offset)) as P;
+    case 16:
+      return (reader.readStringOrNull(offset)) as P;
+    case 17:
+      return (reader.readStringOrNull(offset)) as P;
+    case 18:
+      return (reader.readStringOrNull(offset)) as P;
+    case 19:
+      return (reader.readStringOrNull(offset)) as P;
+    case 20:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 21:
+      return (reader.readStringOrNull(offset)) as P;
+    case 22:
+      return (reader.readStringOrNull(offset)) as P;
+    case 23:
+      return (reader.readStringList(offset) ?? const <String>[]) as P;
+    case 24:
+      return (reader.readDateTime(offset)) as P;
+    case 25:
+      return (reader.readStringOrNull(offset)) as P;
+    case 26:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1121,6 +1303,1019 @@ extension LocalContactModelQueryWhere
 
 extension LocalContactModelQueryFilter
     on QueryBuilder<LocalContactModel, LocalContactModel, QFilterCondition> {
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      additionalBranchesLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'additionalBranches',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      additionalBranchesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'additionalBranches',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      additionalBranchesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'additionalBranches',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      additionalBranchesLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'additionalBranches',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      additionalBranchesLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'additionalBranches',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      additionalBranchesLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'additionalBranches',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      addressLineIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'addressLine',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      addressLineIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'addressLine',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      addressLineEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'addressLine',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      addressLineGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'addressLine',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      addressLineLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'addressLine',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      addressLineBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'addressLine',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      addressLineStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'addressLine',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      addressLineEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'addressLine',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      addressLineContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'addressLine',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      addressLineMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'addressLine',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      addressLineIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'addressLine',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      addressLineIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'addressLine',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      categoriesElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'categories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      categoriesElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'categories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      categoriesElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'categories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      categoriesElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'categories',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      categoriesElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'categories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      categoriesElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'categories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      categoriesElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'categories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      categoriesElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'categories',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      categoriesElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'categories',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      categoriesElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'categories',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      categoriesLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'categories',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      categoriesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'categories',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      categoriesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'categories',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      categoriesLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'categories',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      categoriesLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'categories',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      categoriesLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'categories',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      cityIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'cityId',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      cityIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'cityId',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      cityIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'cityId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      cityIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'cityId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      cityIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'cityId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      cityIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'cityId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      cityIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'cityId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      cityIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'cityId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      cityIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'cityId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      cityIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'cityId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      cityIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'cityId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      cityIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'cityId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      countryIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'countryId',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      countryIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'countryId',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      countryIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'countryId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      countryIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'countryId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      countryIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'countryId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      countryIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'countryId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      countryIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'countryId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      countryIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'countryId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      countryIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'countryId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      countryIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'countryId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      countryIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'countryId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      countryIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'countryId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      coverageAllCountryEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'coverageAllCountry',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      coverageCityIdsElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'coverageCityIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      coverageCityIdsElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'coverageCityIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      coverageCityIdsElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'coverageCityIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      coverageCityIdsElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'coverageCityIds',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      coverageCityIdsElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'coverageCityIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      coverageCityIdsElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'coverageCityIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      coverageCityIdsElementContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'coverageCityIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      coverageCityIdsElementMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'coverageCityIds',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      coverageCityIdsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'coverageCityIds',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      coverageCityIdsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'coverageCityIds',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      coverageCityIdsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'coverageCityIds',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      coverageCityIdsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'coverageCityIds',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      coverageCityIdsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'coverageCityIds',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      coverageCityIdsLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'coverageCityIds',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      coverageCityIdsLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'coverageCityIds',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      coverageCityIdsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'coverageCityIds',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
       createdAtEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
@@ -2378,6 +3573,160 @@ extension LocalContactModelQueryFilter
   }
 
   QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      regionIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'regionId',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      regionIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'regionId',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      regionIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'regionId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      regionIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'regionId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      regionIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'regionId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      regionIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'regionId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      regionIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'regionId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      regionIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'regionId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      regionIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'regionId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      regionIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'regionId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      regionIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'regionId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      regionIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'regionId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
       roleLabelIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -2526,6 +3875,160 @@ extension LocalContactModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'roleLabel',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      secondaryPhoneE164IsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'secondaryPhoneE164',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      secondaryPhoneE164IsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'secondaryPhoneE164',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      secondaryPhoneE164EqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'secondaryPhoneE164',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      secondaryPhoneE164GreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'secondaryPhoneE164',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      secondaryPhoneE164LessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'secondaryPhoneE164',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      secondaryPhoneE164Between(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'secondaryPhoneE164',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      secondaryPhoneE164StartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'secondaryPhoneE164',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      secondaryPhoneE164EndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'secondaryPhoneE164',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      secondaryPhoneE164Contains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'secondaryPhoneE164',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      secondaryPhoneE164Matches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'secondaryPhoneE164',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      secondaryPhoneE164IsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'secondaryPhoneE164',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      secondaryPhoneE164IsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'secondaryPhoneE164',
         value: '',
       ));
     });
@@ -2756,6 +4259,160 @@ extension LocalContactModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'snapshotSourcePlatformActorId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      supplierTypeWireIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'supplierTypeWire',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      supplierTypeWireIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'supplierTypeWire',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      supplierTypeWireEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'supplierTypeWire',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      supplierTypeWireGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'supplierTypeWire',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      supplierTypeWireLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'supplierTypeWire',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      supplierTypeWireBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'supplierTypeWire',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      supplierTypeWireStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'supplierTypeWire',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      supplierTypeWireEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'supplierTypeWire',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      supplierTypeWireContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'supplierTypeWire',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      supplierTypeWireMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'supplierTypeWire',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      supplierTypeWireIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'supplierTypeWire',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      supplierTypeWireIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'supplierTypeWire',
         value: '',
       ));
     });
@@ -3043,6 +4700,160 @@ extension LocalContactModelQueryFilter
   }
 
   QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      websiteIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'website',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      websiteIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'website',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      websiteEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'website',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      websiteGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'website',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      websiteLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'website',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      websiteBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'website',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      websiteStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'website',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      websiteEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'website',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      websiteContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'website',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      websiteMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'website',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      websiteIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'website',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      websiteIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'website',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
       workspaceIdEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -3180,13 +4991,76 @@ extension LocalContactModelQueryFilter
 }
 
 extension LocalContactModelQueryObject
-    on QueryBuilder<LocalContactModel, LocalContactModel, QFilterCondition> {}
+    on QueryBuilder<LocalContactModel, LocalContactModel, QFilterCondition> {
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      additionalBranchesElement(FilterQuery<ProviderBranchEmbedded> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'additionalBranches');
+    });
+  }
+}
 
 extension LocalContactModelQueryLinks
     on QueryBuilder<LocalContactModel, LocalContactModel, QFilterCondition> {}
 
 extension LocalContactModelQuerySortBy
     on QueryBuilder<LocalContactModel, LocalContactModel, QSortBy> {
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortByAddressLine() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addressLine', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortByAddressLineDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addressLine', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortByCityId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cityId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortByCityIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cityId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortByCountryId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'countryId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortByCountryIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'countryId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortByCoverageAllCountry() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'coverageAllCountry', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortByCoverageAllCountryDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'coverageAllCountry', Sort.desc);
+    });
+  }
+
   QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
       sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
@@ -3327,6 +5201,20 @@ extension LocalContactModelQuerySortBy
   }
 
   QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortByRegionId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'regionId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortByRegionIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'regionId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
       sortByRoleLabel() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'roleLabel', Sort.asc);
@@ -3337,6 +5225,20 @@ extension LocalContactModelQuerySortBy
       sortByRoleLabelDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'roleLabel', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortBySecondaryPhoneE164() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'secondaryPhoneE164', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortBySecondaryPhoneE164Desc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'secondaryPhoneE164', Sort.desc);
     });
   }
 
@@ -3369,6 +5271,20 @@ extension LocalContactModelQuerySortBy
   }
 
   QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortBySupplierTypeWire() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'supplierTypeWire', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortBySupplierTypeWireDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'supplierTypeWire', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
       sortByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
@@ -3379,6 +5295,20 @@ extension LocalContactModelQuerySortBy
       sortByUpdatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortByWebsite() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'website', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortByWebsiteDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'website', Sort.desc);
     });
   }
 
@@ -3399,6 +5329,62 @@ extension LocalContactModelQuerySortBy
 
 extension LocalContactModelQuerySortThenBy
     on QueryBuilder<LocalContactModel, LocalContactModel, QSortThenBy> {
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenByAddressLine() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addressLine', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenByAddressLineDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addressLine', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenByCityId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cityId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenByCityIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cityId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenByCountryId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'countryId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenByCountryIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'countryId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenByCoverageAllCountry() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'coverageAllCountry', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenByCoverageAllCountryDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'coverageAllCountry', Sort.desc);
+    });
+  }
+
   QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
       thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
@@ -3553,6 +5539,20 @@ extension LocalContactModelQuerySortThenBy
   }
 
   QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenByRegionId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'regionId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenByRegionIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'regionId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
       thenByRoleLabel() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'roleLabel', Sort.asc);
@@ -3563,6 +5563,20 @@ extension LocalContactModelQuerySortThenBy
       thenByRoleLabelDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'roleLabel', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenBySecondaryPhoneE164() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'secondaryPhoneE164', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenBySecondaryPhoneE164Desc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'secondaryPhoneE164', Sort.desc);
     });
   }
 
@@ -3595,6 +5609,20 @@ extension LocalContactModelQuerySortThenBy
   }
 
   QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenBySupplierTypeWire() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'supplierTypeWire', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenBySupplierTypeWireDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'supplierTypeWire', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
       thenByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
@@ -3605,6 +5633,20 @@ extension LocalContactModelQuerySortThenBy
       thenByUpdatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenByWebsite() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'website', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenByWebsiteDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'website', Sort.desc);
     });
   }
 
@@ -3625,6 +5667,48 @@ extension LocalContactModelQuerySortThenBy
 
 extension LocalContactModelQueryWhereDistinct
     on QueryBuilder<LocalContactModel, LocalContactModel, QDistinct> {
+  QueryBuilder<LocalContactModel, LocalContactModel, QDistinct>
+      distinctByAddressLine({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'addressLine', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QDistinct>
+      distinctByCategories() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'categories');
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QDistinct>
+      distinctByCityId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'cityId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QDistinct>
+      distinctByCountryId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'countryId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QDistinct>
+      distinctByCoverageAllCountry() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'coverageAllCountry');
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QDistinct>
+      distinctByCoverageCityIds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'coverageCityIds');
+    });
+  }
+
   QueryBuilder<LocalContactModel, LocalContactModel, QDistinct>
       distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
@@ -3698,9 +5782,24 @@ extension LocalContactModelQueryWhereDistinct
   }
 
   QueryBuilder<LocalContactModel, LocalContactModel, QDistinct>
+      distinctByRegionId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'regionId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QDistinct>
       distinctByRoleLabel({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'roleLabel', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QDistinct>
+      distinctBySecondaryPhoneE164({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'secondaryPhoneE164',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -3720,6 +5819,14 @@ extension LocalContactModelQueryWhereDistinct
   }
 
   QueryBuilder<LocalContactModel, LocalContactModel, QDistinct>
+      distinctBySupplierTypeWire({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'supplierTypeWire',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QDistinct>
       distinctByTagsPrivate() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'tagsPrivate');
@@ -3730,6 +5837,13 @@ extension LocalContactModelQueryWhereDistinct
       distinctByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'updatedAt');
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QDistinct>
+      distinctByWebsite({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'website', caseSensitive: caseSensitive);
     });
   }
 
@@ -3746,6 +5860,54 @@ extension LocalContactModelQueryProperty
   QueryBuilder<LocalContactModel, int, QQueryOperations> isarIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isarId');
+    });
+  }
+
+  QueryBuilder<LocalContactModel, List<ProviderBranchEmbedded>,
+      QQueryOperations> additionalBranchesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'additionalBranches');
+    });
+  }
+
+  QueryBuilder<LocalContactModel, String?, QQueryOperations>
+      addressLineProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'addressLine');
+    });
+  }
+
+  QueryBuilder<LocalContactModel, List<String>, QQueryOperations>
+      categoriesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'categories');
+    });
+  }
+
+  QueryBuilder<LocalContactModel, String?, QQueryOperations> cityIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'cityId');
+    });
+  }
+
+  QueryBuilder<LocalContactModel, String?, QQueryOperations>
+      countryIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'countryId');
+    });
+  }
+
+  QueryBuilder<LocalContactModel, bool, QQueryOperations>
+      coverageAllCountryProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'coverageAllCountry');
+    });
+  }
+
+  QueryBuilder<LocalContactModel, List<String>, QQueryOperations>
+      coverageCityIdsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'coverageCityIds');
     });
   }
 
@@ -3817,9 +5979,23 @@ extension LocalContactModelQueryProperty
   }
 
   QueryBuilder<LocalContactModel, String?, QQueryOperations>
+      regionIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'regionId');
+    });
+  }
+
+  QueryBuilder<LocalContactModel, String?, QQueryOperations>
       roleLabelProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'roleLabel');
+    });
+  }
+
+  QueryBuilder<LocalContactModel, String?, QQueryOperations>
+      secondaryPhoneE164Property() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'secondaryPhoneE164');
     });
   }
 
@@ -3837,6 +6013,13 @@ extension LocalContactModelQueryProperty
     });
   }
 
+  QueryBuilder<LocalContactModel, String?, QQueryOperations>
+      supplierTypeWireProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'supplierTypeWire');
+    });
+  }
+
   QueryBuilder<LocalContactModel, List<String>, QQueryOperations>
       tagsPrivateProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -3848,6 +6031,12 @@ extension LocalContactModelQueryProperty
       updatedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'updatedAt');
+    });
+  }
+
+  QueryBuilder<LocalContactModel, String?, QQueryOperations> websiteProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'website');
     });
   }
 
@@ -3890,6 +6079,27 @@ LocalContactModel _$LocalContactModelFromJson(Map<String, dynamic> json) =>
       deletedAt: json['deletedAt'] == null
           ? null
           : DateTime.parse(json['deletedAt'] as String),
+      supplierTypeWire: json['supplierTypeWire'] as String?,
+      categories: (json['categories'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[],
+      countryId: json['countryId'] as String?,
+      regionId: json['regionId'] as String?,
+      cityId: json['cityId'] as String?,
+      addressLine: json['addressLine'] as String?,
+      secondaryPhoneE164: json['secondaryPhoneE164'] as String?,
+      website: json['website'] as String?,
+      coverageCityIds: (json['coverageCityIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[],
+      coverageAllCountry: json['coverageAllCountry'] as bool? ?? false,
+      additionalBranches: (json['additionalBranches'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProviderBranchEmbedded.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <ProviderBranchEmbedded>[],
     );
 
 Map<String, dynamic> _$LocalContactModelToJson(LocalContactModel instance) =>
@@ -3911,4 +6121,16 @@ Map<String, dynamic> _$LocalContactModelToJson(LocalContactModel instance) =>
       'snapshotAdoptedAt': instance.snapshotAdoptedAt?.toIso8601String(),
       'isDeleted': instance.isDeleted,
       'deletedAt': instance.deletedAt?.toIso8601String(),
+      'supplierTypeWire': instance.supplierTypeWire,
+      'categories': instance.categories,
+      'countryId': instance.countryId,
+      'regionId': instance.regionId,
+      'cityId': instance.cityId,
+      'addressLine': instance.addressLine,
+      'secondaryPhoneE164': instance.secondaryPhoneE164,
+      'website': instance.website,
+      'coverageCityIds': instance.coverageCityIds,
+      'coverageAllCountry': instance.coverageAllCountry,
+      'additionalBranches':
+          instance.additionalBranches.map((e) => e.toJson()).toList(),
     };

@@ -1,35 +1,32 @@
 // ============================================================================
 // lib/presentation/pages/admin/network/network_operational_screen.dart
-// NETWORK OPERATIONAL SCREEN — "Mi red operativa" / Propietarios
-//
+// NETWORK OPERATIONAL SCREEN v2 — ADR actor-canon §10 + §11
+// ============================================================================
 // QUÉ HACE:
-// - Muestra la lista de propietarios deduplicados y agregados de la org activa.
-// - Gestiona 4 estados: loading, error, empty y data.
-// - Permite búsqueda por nombre o documento con SearchBar colapsable.
-// - Navega a [OwnerDetailPage] al tocar un propietario.
+//   - Lista actores de la red operativa (cualquier rol) a partir de
+//     `NetworkOperationalController` v2.
+//   - Filtro por rol con chips horizontales (solo los roles realmente
+//     presentes en la carga actual).
+//   - Búsqueda por displayName (case-insensitive).
+//   - Navega a ActorDetailPage con el VM seleccionado.
 //
 // QUÉ NO HACE:
-// - No muestra UI para actores futuros (Arrendatarios, Conductores, etc.).
-//   La estructura interna es multi-actor preparada; la UI solo expone lo que
-//   tiene datos reales.
-// - No persiste datos ni accede directamente a repositorios.
-// - No contiene lógica de agregación — delega a [NetworkOperationalController].
+//   - NO tiene clases OwnerListTile / TenantListTile / DriverListTile. Un
+//     solo tile genérico para cualquier actor. La UI se especializa por
+//     rol (tabs, label, color) solo cuando hay divergencia real.
+//   - NO asume portfolio/SIMIT/licencia (retirados en 5c por §11).
 //
-// PRINCIPIOS:
-// - Theme-first: todos los colores y estilos desde ColorScheme y TextTheme.
-// - Stateless: el estado vive completamente en [NetworkOperationalController].
-// - La métrica visible es "N portafolios" — no "N activos" (Sprint 1).
-//
-// ENTERPRISE NOTES:
-// CREADO (2026-04): Sprint 1 módulo "Mi red operativa" — Propietarios.
+// See docs/adr/0001-actor-canon.md §10 + §11.
 // ============================================================================
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../../domain/entities/core_common/value_objects/asset_actor_role.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../controllers/admin/network/network_operational_controller.dart';
-import '../../../view_models/network/owner_network_vm.dart';
+import '../../../view_models/network/network_actor_vm.dart';
+import 'actor_detail_page.dart';
 
 class NetworkOperationalScreen extends StatefulWidget {
   const NetworkOperationalScreen({super.key});
@@ -41,8 +38,6 @@ class NetworkOperationalScreen extends StatefulWidget {
 
 class _NetworkOperationalScreenState extends State<NetworkOperationalScreen> {
   late final NetworkOperationalController _controller;
-
-  /// Controla si el SearchBar está expandido en el AppBar.
   bool _searchActive = false;
   final _searchCtrl = TextEditingController();
 
@@ -63,7 +58,7 @@ class _NetworkOperationalScreenState extends State<NetworkOperationalScreen> {
       _searchActive = !_searchActive;
       if (!_searchActive) {
         _searchCtrl.clear();
-        _controller.searchQuery.value = '';
+        _controller.setSearchQuery('');
       }
     });
   }
@@ -85,13 +80,13 @@ class _NetworkOperationalScreenState extends State<NetworkOperationalScreen> {
                 autofocus: true,
                 style: theme.textTheme.bodyMedium,
                 decoration: InputDecoration(
-                  hintText: 'Buscar por nombre o documento…',
+                  hintText: 'Buscar por nombre…',
                   hintStyle: theme.textTheme.bodyMedium?.copyWith(
                     color: cs.onSurfaceVariant,
                   ),
                   border: InputBorder.none,
                 ),
-                onChanged: (v) => _controller.searchQuery.value = v,
+                onChanged: _controller.setSearchQuery,
               )
             : const Text('Mi red operativa'),
         actions: [
@@ -102,70 +97,155 @@ class _NetworkOperationalScreenState extends State<NetworkOperationalScreen> {
           ),
         ],
       ),
-      body: Obx(() {
-        // ── Estado: cargando ─────────────────────────────────────────────
-        if (_controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        // ── Estado: error ────────────────────────────────────────────────
-        if (_controller.error.value != null) {
-          return _NetworkErrorState(message: _controller.error.value!);
-        }
-
-        // ── Estado: vacío ────────────────────────────────────────────────
-        if (_controller.filteredOwners.isEmpty) {
-          // Si hay búsqueda activa y no hay resultados, mostrar mensaje específico.
-          if (_controller.searchQuery.value.isNotEmpty) {
-            return _NetworkEmptySearch(query: _controller.searchQuery.value);
-          }
-          return const _NetworkEmptyState();
-        }
-
-        // ── Estado: con datos ────────────────────────────────────────────
-        return _OwnerList(owners: _controller.filteredOwners);
-      }),
+      body: Column(
+        children: [
+          Obx(() => _RoleFilterBar(
+                present: _controller.rolesPresent,
+                selected: _controller.roleFilter.value,
+                onSelect: _controller.setRoleFilter,
+              )),
+          Expanded(
+            child: Obx(() {
+              if (_controller.isLoading.value) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (_controller.error.value != null) {
+                return _ErrorState(message: _controller.error.value!);
+              }
+              final list = _controller.filteredActors;
+              if (list.isEmpty) {
+                if (_controller.searchQuery.value.isNotEmpty) {
+                  return _EmptySearch(query: _controller.searchQuery.value);
+                }
+                return const _EmptyState();
+              }
+              return RefreshIndicator(
+                onRefresh: _controller.reload,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: list.length,
+                  separatorBuilder: (_, __) =>
+                      const Divider(height: 1, indent: 72),
+                  itemBuilder: (_, i) => _ActorTile(actor: list[i]),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
     );
   }
 }
 
-// ── Lista de propietarios ─────────────────────────────────────────────────────
+// ── Filtro por rol (chips) ──────────────────────────────────────────────────
 
-class _OwnerList extends StatelessWidget {
-  final List<OwnerNetworkVm> owners;
+class _RoleFilterBar extends StatelessWidget {
+  final Set<AssetActorRole> present;
+  final AssetActorRole? selected;
+  final void Function(AssetActorRole? role) onSelect;
 
-  const _OwnerList({required this.owners});
+  const _RoleFilterBar({
+    required this.present,
+    required this.selected,
+    required this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: owners.length,
-      separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
-      itemBuilder: (_, i) => _OwnerListTile(owner: owners[i]),
+    if (present.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    // Orden estable: siguiendo el orden del enum AssetActorRole.
+    final ordered = AssetActorRole.values.where(present.contains).toList();
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      color: cs.surface,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _chip(
+              context,
+              label: 'Todos',
+              active: selected == null,
+              onTap: () => onSelect(null),
+            ),
+            const SizedBox(width: 8),
+            for (final r in ordered) ...[
+              _chip(
+                context,
+                label: _roleLabel(r),
+                active: selected == r,
+                onTap: () => onSelect(r),
+              ),
+              const SizedBox(width: 8),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _chip(
+    BuildContext ctx, {
+    required String label,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(ctx);
+    final cs = theme.colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: active ? cs.primary : cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: active ? cs.primary : cs.outlineVariant,
+          ),
+        ),
+        child: Text(
+          label,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: active ? cs.onPrimary : cs.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
     );
   }
 }
 
-// ── Tile de propietario ───────────────────────────────────────────────────────
+// ── Tile genérico ──────────────────────────────────────────────────────────
 
-class _OwnerListTile extends StatelessWidget {
-  final OwnerNetworkVm owner;
-
-  const _OwnerListTile({required this.owner});
+class _ActorTile extends StatelessWidget {
+  final NetworkActorVm actor;
+  const _ActorTile({required this.actor});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-
-    final docText = _formatDoc(owner);
-
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: _OwnerAvatar(name: owner.name, cs: cs),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: CircleAvatar(
+        radius: 22,
+        backgroundColor: cs.primaryContainer,
+        child: Text(
+          _initials(actor.displayName),
+          style: TextStyle(
+            color: cs.onPrimaryContainer,
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+          ),
+        ),
+      ),
       title: Text(
-        owner.name,
+        actor.displayName,
         style: theme.textTheme.bodyMedium?.copyWith(
           fontWeight: FontWeight.w600,
           color: cs.onSurface,
@@ -173,148 +253,37 @@ class _OwnerListTile extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (docText != null)
-            Text(
-              docText,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-            ),
-          const SizedBox(height: 4),
-          Text(
-            _portfolioCountText(owner.portfolioCount),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: cs.onSurfaceVariant,
-            ),
-          ),
-          if (owner.riskFlags.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: owner.riskFlags
-                  .map((f) => _OwnerRiskChip(flag: f, owner: owner))
-                  .toList(),
-            ),
-          ],
-        ],
+      subtitle: Text(
+        _roleLabel(actor.role),
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: cs.onSurfaceVariant,
+        ),
       ),
-      trailing: Icon(
-        Icons.chevron_right_rounded,
-        color: cs.onSurfaceVariant,
-      ),
+      trailing: Icon(Icons.chevron_right_rounded, color: cs.onSurfaceVariant),
       onTap: () => Get.toNamed(
-        Routes.ownerDetail,
-        arguments: {'owner': owner},
+        Routes.actorDetail,
+        arguments: {ActorDetailPage.argKey: actor},
       ),
     );
   }
 
-  String? _formatDoc(OwnerNetworkVm o) {
-    final type = o.documentType?.trim().toUpperCase();
-    final doc = o.document.trim();
-    if (doc.isEmpty) return null;
-    if (type != null && type.isNotEmpty) return '$type · $doc';
-    return doc;
-  }
-
-  String _portfolioCountText(int count) {
-    return '$count ${count == 1 ? 'portafolio asociado' : 'portafolios asociados'}';
-  }
-}
-
-// ── Avatar de iniciales ────────────────────────────────────────────────────────
-
-class _OwnerAvatar extends StatelessWidget {
-  final String name;
-  final ColorScheme cs;
-
-  const _OwnerAvatar({required this.name, required this.cs});
-
-  String get _initials {
+  String _initials(String name) {
     final parts = name.trim().split(RegExp(r'\s+')).where((s) => s.isNotEmpty);
     if (parts.isEmpty) return '?';
     if (parts.length == 1) return parts.first[0].toUpperCase();
     return (parts.first[0] + parts.elementAt(1)[0]).toUpperCase();
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: 22,
-      backgroundColor: cs.primaryContainer,
-      child: Text(
-        _initials,
-        style: TextStyle(
-          color: cs.onPrimaryContainer,
-          fontWeight: FontWeight.w700,
-          fontSize: 14,
-        ),
-      ),
-    );
-  }
 }
 
-// ── Chip de riesgo ────────────────────────────────────────────────────────────
+// ── Estados vacíos/error ───────────────────────────────────────────────────
 
-class _OwnerRiskChip extends StatelessWidget {
-  final OwnerRiskFlag flag;
-  final OwnerNetworkVm owner;
-
-  const _OwnerRiskChip({required this.flag, required this.owner});
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-
-    switch (flag) {
-      case OwnerRiskFlag.hasFines:
-        final label = owner.simitFormattedTotal != null
-            ? 'Multas ${owner.simitFormattedTotal}'
-            : 'Multas activas';
-        return _chip(context, label, cs.error, cs.onError);
-
-      case OwnerRiskFlag.licenseNotVigent:
-        final label = owner.licenseStatus ?? 'Lic. no vigente';
-        return _chip(context, label, Colors.amber.shade700, Colors.white);
-    }
-  }
-
-  Widget _chip(BuildContext ctx, String label, Color bg, Color fg) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: bg.withValues(alpha: 0.4)),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(ctx).textTheme.labelSmall?.copyWith(
-          color: bg,
-          fontWeight: FontWeight.w600,
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
-  }
-}
-
-// ── Estados de la pantalla ────────────────────────────────────────────────────
-
-class _NetworkEmptyState extends StatelessWidget {
-  const _NetworkEmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -328,7 +297,7 @@ class _NetworkEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Ningún propietario registrado aún.',
+              'No hay actores en tu red aún.',
               style: theme.textTheme.titleSmall?.copyWith(
                 color: cs.onSurface,
                 fontWeight: FontWeight.w600,
@@ -337,7 +306,7 @@ class _NetworkEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Los propietarios aparecen cuando completas una consulta VRC en tus portafolios.',
+              'Los actores aparecen cuando se registra un vínculo con alguno de tus activos (propietario, conductor, taller, etc.).',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: cs.onSurfaceVariant,
               ),
@@ -350,16 +319,14 @@ class _NetworkEmptyState extends StatelessWidget {
   }
 }
 
-class _NetworkEmptySearch extends StatelessWidget {
+class _EmptySearch extends StatelessWidget {
   final String query;
-
-  const _NetworkEmptySearch({required this.query});
+  const _EmptySearch({required this.query});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -386,16 +353,14 @@ class _NetworkEmptySearch extends StatelessWidget {
   }
 }
 
-class _NetworkErrorState extends StatelessWidget {
+class _ErrorState extends StatelessWidget {
   final String message;
-
-  const _NetworkErrorState({required this.message});
+  const _ErrorState({required this.message});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -428,5 +393,28 @@ class _NetworkErrorState extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ── Helper de labels (local al módulo) ─────────────────────────────────────
+
+String _roleLabel(AssetActorRole r) {
+  switch (r) {
+    case AssetActorRole.owner:
+      return 'Propietario';
+    case AssetActorRole.tenant:
+      return 'Arrendatario';
+    case AssetActorRole.operator:
+      return 'Operador';
+    case AssetActorRole.driver:
+      return 'Conductor';
+    case AssetActorRole.technician:
+      return 'Técnico';
+    case AssetActorRole.workshop:
+      return 'Taller';
+    case AssetActorRole.legal:
+      return 'Legal';
+    case AssetActorRole.manager:
+      return 'Administrador';
   }
 }

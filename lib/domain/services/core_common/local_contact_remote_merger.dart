@@ -49,6 +49,7 @@
 
 import '../../../data/models/core_common/remote/local_contact_remote_dto.dart';
 import '../../entities/core_common/local_contact_entity.dart';
+import '../../entities/core_common/value_objects/supplier_type.dart';
 
 /// Crea una [LocalContactEntity] NUEVA a partir de un DTO remoto.
 /// notesPrivate=null y tagsPrivate=[] por construcción explícita.
@@ -73,6 +74,18 @@ LocalContactEntity hydrateNewLocalContactFromRemote(
     snapshotAdoptedAt: remote.snapshotAdoptedAt,
     isDeleted: remote.isDeleted,
     deletedAt: remote.deletedAt,
+    // v2: campos de perfil estructurado hidratados tal cual del remoto.
+    supplierType: SupplierType.fromWire(remote.supplierTypeWire),
+    categories: List<String>.from(remote.categories),
+    countryId: remote.countryId,
+    regionId: remote.regionId,
+    cityId: remote.cityId,
+    addressLine: remote.addressLine,
+    secondaryPhoneE164: remote.secondaryPhoneE164,
+    website: remote.website,
+    coverageCityIds: List<String>.from(remote.coverageCityIds),
+    coverageAllCountry: remote.coverageAllCountry,
+    additionalBranches: List.of(remote.additionalBranches),
   );
 }
 
@@ -116,5 +129,18 @@ LocalContactEntity mergeExistingLocalContactWithRemote({
     snapshotAdoptedAt: remote.snapshotAdoptedAt,
     isDeleted: remote.isDeleted,
     deletedAt: remote.deletedAt,
+    // v2: campos públicos del perfil se toman del remoto (last-write-wins
+    // por updatedAt a nivel de repo). Los privados se siguen preservando.
+    supplierType: SupplierType.fromWire(remote.supplierTypeWire),
+    categories: List<String>.from(remote.categories),
+    countryId: remote.countryId,
+    regionId: remote.regionId,
+    cityId: remote.cityId,
+    addressLine: remote.addressLine,
+    secondaryPhoneE164: remote.secondaryPhoneE164,
+    website: remote.website,
+    coverageCityIds: List<String>.from(remote.coverageCityIds),
+    coverageAllCountry: remote.coverageAllCountry,
+    additionalBranches: List.of(remote.additionalBranches),
   );
 }

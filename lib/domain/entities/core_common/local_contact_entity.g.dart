@@ -32,6 +32,29 @@ _LocalContactEntity _$LocalContactEntityFromJson(Map<String, dynamic> json) =>
       deletedAt: json['deletedAt'] == null
           ? null
           : DateTime.parse(json['deletedAt'] as String),
+      supplierType:
+          $enumDecodeNullable(_$SupplierTypeEnumMap, json['supplierType']),
+      categories: (json['categories'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[],
+      countryId: json['countryId'] as String?,
+      regionId: json['regionId'] as String?,
+      cityId: json['cityId'] as String?,
+      addressLine: json['addressLine'] as String?,
+      secondaryPhoneE164: json['secondaryPhoneE164'] as String?,
+      website: json['website'] as String?,
+      coverageCityIds: (json['coverageCityIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[],
+      coverageAllCountry: json['coverageAllCountry'] as bool? ?? false,
+      linkedProviderProfileId: json['linkedProviderProfileId'] as String?,
+      additionalBranches: (json['additionalBranches'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProviderBranchEntity.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <ProviderBranchEntity>[],
     );
 
 Map<String, dynamic> _$LocalContactEntityToJson(_LocalContactEntity instance) =>
@@ -52,4 +75,22 @@ Map<String, dynamic> _$LocalContactEntityToJson(_LocalContactEntity instance) =>
       'snapshotAdoptedAt': instance.snapshotAdoptedAt?.toIso8601String(),
       'isDeleted': instance.isDeleted,
       'deletedAt': instance.deletedAt?.toIso8601String(),
+      'supplierType': _$SupplierTypeEnumMap[instance.supplierType],
+      'categories': instance.categories,
+      'countryId': instance.countryId,
+      'regionId': instance.regionId,
+      'cityId': instance.cityId,
+      'addressLine': instance.addressLine,
+      'secondaryPhoneE164': instance.secondaryPhoneE164,
+      'website': instance.website,
+      'coverageCityIds': instance.coverageCityIds,
+      'coverageAllCountry': instance.coverageAllCountry,
+      'linkedProviderProfileId': instance.linkedProviderProfileId,
+      'additionalBranches': instance.additionalBranches,
     };
+
+const _$SupplierTypeEnumMap = {
+  SupplierType.products: 'products',
+  SupplierType.services: 'services',
+  SupplierType.mixed: 'mixed',
+};

@@ -45,8 +45,14 @@ import '../../../domain/entities/asset/asset_entity.dart';
 import '../../../domain/entities/asset/special/asset_inmueble_entity.dart';
 import '../../../domain/entities/asset/special/asset_maquinaria_entity.dart';
 import '../../../domain/entities/asset/special/asset_vehiculo_entity.dart';
+import '../../../domain/entities/core_common/value_objects/actor_ref_kind_value.dart';
+import '../../../domain/entities/core_common/value_objects/asset_actor_role.dart';
+import '../../../domain/entities/core_common/value_objects/asset_class.dart';
+import '../../../domain/entities/core_common/value_objects/target_local_kind.dart';
 import '../../../domain/errors/asset_creation_exception.dart';
+import '../../../domain/errors/remote_exceptions.dart';
 import '../../../domain/repositories/asset_repository.dart';
+import '../../../domain/repositories/core_common/asset_actor_link_repository.dart';
 import '../../../domain/value/registration/asset_runt_snapshot.dart';
 import '../sources/local/portfolio_local_ds.dart';
 
@@ -62,11 +68,24 @@ class AssetRepositoryImpl implements AssetRepository {
   /// Se mantiene como dependencia explícita para testabilidad.
   final PortfolioLocalDataSource portfolioLocalDS;
 
+  /// Repo canónico de vínculos actor↔activo (Core API). Se usa para
+  /// declarar `source=user_declared` cada vez que el workspace registra
+  /// un activo: alimenta la derivación C2 que hace
+  /// `GET /v1/core-common/workspaces/me/asset-types`. Sin este vínculo,
+  /// el workspace no aparece "operando" ese assetType ante el form de
+  /// proveedor (sección Especialidades quedaría con el dropdown vacío).
+  ///
+  /// La invocación va por `enqueueSync()` — es offline-first, no
+  /// bloquea el registro local. Backend es idempotente sobre la clave
+  /// lógica, así que reintentos no duplican.
+  final AssetActorLinkRepository assetActorLinks;
+
   AssetRepositoryImpl({
     required this.local,
     required this.remote,
     required this.enqueueSync,
     required this.portfolioLocalDS,
+    required this.assetActorLinks,
   });
 
   // ---------------------------------------------------------------------------
@@ -672,6 +691,30 @@ class AssetRepositoryImpl implements AssetRepository {
     enqueueSync(() => remote.upsertAsset(assetModel));
     enqueueSync(() => remote.upsertVehiculo(vehiculoModel));
 
+    // ── DECLARAR VÍNCULO CANÓNICO ASSET↔WORKSPACE (Core API, Hito 1.x) ──
+    // Para que `GET /v1/core-common/workspaces/me/asset-types` deje de
+    // devolver `[]` y el form de proveedor pueda ofrecer specialties, el
+    // workspace DEBE figurar como "operando" este AssetType en la tabla
+    // canónica `asset_actor_link`. Encolamos un POST con
+    // `source=user_declared`. La taxonomía la gobierna 100 % el backend
+    // — el cliente envía el alias `AssetClass.vehicle` y backend lo
+    // resuelve al `AssetType.id` raíz canónico vía
+    // `ASSET_CLASS_TO_ROOT_ID`. Cero clasificación en cliente.
+    //
+    // Idempotente server-side: re-envíos con la misma clave lógica
+    // ((orgId, assetId, role, assetTypeId resuelto, refs locales))
+    // devuelven la fila existente sin duplicar.
+    //
+    // Errores no fatales (Network / Server / Unauthorized): se loguean
+    // y se descartan dentro del job para que el `OfflineSyncService` los
+    // reintente con su política habitual y NO bloqueen el alta del
+    // activo (que ya quedó persistido en Isar + Firestore).
+    enqueueSync(() => enqueueDeclareAssetActorLink(
+          assetId: assetId,
+          orgId: orgId,
+          assetClass: AssetClass.vehicle,
+        ));
+
     if (kDebugMode) {
       debugPrint(
         '[AUDIT][CREATE_ASSET] ✅ Isar write OK\n'
@@ -1101,5 +1144,82 @@ class AssetRepositoryImpl implements AssetRepository {
     if (fechaFin.isBefore(now)) return 'vencido';
     if (fechaFin.isBefore(now.add(const Duration(days: 30)))) return 'por_vencer';
     return 'vigente';
+  }
+
+  // ---------------------------------------------------------------------------
+  // CORE API — declarar AssetActorLink user_declared
+  // ---------------------------------------------------------------------------
+
+  /// Encola el POST canónico que declara que [orgId] opera el activo
+  /// [assetId] bajo [assetClass]. La resolución `assetClass → AssetType.id`
+  /// la hace el backend; el cliente solo envía el alias.
+  ///
+  /// Diseño de errores (offline-first):
+  ///   - `BadRequestException(code='ASSET_TYPE_NOT_FOUND')`: gap del seed
+  ///     en backend. Se loguea WARN con `via` para que ops detecte qué
+  ///     seed falta. NO se rethrow — el activo ya está en Isar/Firestore.
+  ///   - `BadRequestException(code='INVALID_ACTOR_REF_SHAPE' |
+  ///     'INVALID_ASSET_TYPE_INPUT')`: bug del cliente. Se loguea ERROR.
+  ///     NO se rethrow para no bloquear sync.
+  ///   - `UnauthorizedException`: capability `asset_actor_link.create`
+  ///     faltante (workspace pre-bootstrap). Se loguea WARN con
+  ///     instrucción de correr `backfill-provider-capabilities.ts`.
+  ///   - `NetworkException` / `ServerException`: rethrow para que
+  ///     `OfflineSyncService` reintente con backoff exponencial.
+  ///   - Cualquier otro: rethrow.
+  ///
+  /// Idempotente server-side: re-envíos con misma clave lógica devuelven
+  /// la fila existente con HTTP 200 sin duplicar.
+  ///
+  /// Anotado @visibleForTesting porque es la API que consume el job de
+  /// `enqueueSync`. Los tests del repo lo invocan directamente para
+  /// verificar payload + error mapping sin levantar Isar.
+  @visibleForTesting
+  Future<void> enqueueDeclareAssetActorLink({
+    required String assetId,
+    required String orgId,
+    required AssetClass assetClass,
+  }) async {
+    try {
+      final link = await assetActorLinks.create(
+        assetId: assetId,
+        assetClass: assetClass,
+        role: AssetActorRole.owner,
+        actorRefKind: ActorRefKindValue.local,
+        localKind: TargetLocalKind.organization,
+        localId: orgId,
+      );
+      if (kDebugMode) {
+        debugPrint(
+          '[AssetActorLink][SYNC] declared org=$orgId assetId=$assetId '
+          'assetClass=${assetClass.wireName} → linkId=${link.id}',
+        );
+      }
+    } on UnauthorizedException catch (e) {
+      // Capability `asset_actor_link.create` falta para este workspace.
+      // No rethrow: el sync no se beneficia de reintentar lo mismo.
+      debugPrint(
+        '[AssetActorLink][SYNC] UNAUTHORIZED — capability '
+        '`asset_actor_link.create` falta para org=$orgId. Correr '
+        '`pnpm ts-node scripts/backfill-provider-capabilities.ts`. '
+        'Detalle: ${e.message}',
+      );
+    } on BadRequestException catch (e) {
+      // Errores no recuperables del payload. Posibles códigos:
+      //   ASSET_TYPE_NOT_FOUND      → falta seed del AssetType raíz.
+      //   INVALID_ACTOR_REF_SHAPE   → bug del cliente.
+      //   INVALID_ASSET_TYPE_INPUT  → bug del cliente (XOR).
+      // No rethrow: reintentar con el mismo payload no resuelve.
+      debugPrint(
+        '[AssetActorLink][SYNC] BAD_REQUEST code=${e.code} '
+        'org=$orgId assetId=$assetId — ${e.message}',
+      );
+    } on NetworkException {
+      // Sin conexión. El SyncService reintentará.
+      rethrow;
+    } on ServerException {
+      // 5xx — reintentable.
+      rethrow;
+    }
   }
 }

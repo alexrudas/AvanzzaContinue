@@ -51,6 +51,13 @@ enum RelationshipSuspensionReason {
   /// Fallback para casos no clasificados. Evitar en operación normal.
   @JsonValue('unknown')
   unknown,
+
+  /// El registro local origen fue fusionado en otro vía local_ref_redirect
+  /// (ADR actor-canon §2.10). La relación del `from` se cierra; la del `to`
+  /// continúa. Se setea automáticamente por el backend en el servicio de
+  /// redirect, no por acción manual del usuario.
+  @JsonValue('localRefMerged')
+  localRefMerged,
 }
 
 /// Extensión con wire names estables.
@@ -68,6 +75,8 @@ extension RelationshipSuspensionReasonX on RelationshipSuspensionReason {
         return 'systemPolicy';
       case RelationshipSuspensionReason.unknown:
         return 'unknown';
+      case RelationshipSuspensionReason.localRefMerged:
+        return 'localRefMerged';
     }
   }
 
@@ -84,14 +93,18 @@ extension RelationshipSuspensionReasonX on RelationshipSuspensionReason {
         return RelationshipSuspensionReason.systemPolicy;
       case 'unknown':
         return RelationshipSuspensionReason.unknown;
+      case 'localRefMerged':
+        return RelationshipSuspensionReason.localRefMerged;
       default:
         throw ArgumentError('RelationshipSuspensionReason desconocido: $raw');
     }
   }
 
   /// Si la suspensión puede revertirse sin intervención manual del usuario.
-  /// 'platformActorRemoved' y 'platformKeyReassignedCritical' requieren resolución
-  /// explícita: no se auto-reactivan, aunque la evidencia vuelva a aparecer.
+  /// 'platformActorRemoved', 'platformKeyReassignedCritical' y 'localRefMerged'
+  /// requieren resolución explícita (en localRefMerged: el "from" queda cerrado
+  /// permanentemente porque apunta a un registro fusionado; el usuario trabaja
+  /// con el "to", no con el "from").
   bool get isReversibleWithoutUserAction =>
       this == RelationshipSuspensionReason.systemPolicy ||
       this == RelationshipSuspensionReason.unknown;
