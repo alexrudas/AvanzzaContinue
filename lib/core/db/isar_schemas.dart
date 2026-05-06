@@ -1,4 +1,5 @@
 import 'package:avanzza/data/local/integrations_local_datasource.dart';
+import 'package:avanzza/data/models/access/access_context_snapshot_model.dart';
 import 'package:avanzza/data/models/accounting/accounting_entry_model.dart';
 import 'package:avanzza/data/models/accounting/adjustment_model.dart';
 import 'package:avanzza/data/models/ai/ai_advisor_model.dart';
@@ -51,6 +52,10 @@ import '../../infrastructure/isar/entities/outbox_event_entity.dart';
 import '../../infrastructure/local/isar/models/sync/sync_outbox_entry_model.dart';
 
 final allIsarSchemas = [
+  // Access — snapshot persistido del estado de acceso del caller (caché Isar
+  // del workspace access para arranque local-first sin depender de Core API).
+  AccessContextSnapshotModelSchema,
+
   // Integrations — RUNT Persona + SIMIT cache (generados por build_runner)
   IntegrationsRuntPersonCacheModelSchema,
   IntegrationsSimitCacheModelSchema,
