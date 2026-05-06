@@ -150,10 +150,9 @@ class ContextValidator {
       return const ContextValidationResult.invalid('org_name_empty');
     }
 
-    if (context.roleCode.trim().isEmpty) {
-      return const ContextValidationResult.invalid('role_code_empty');
-    }
-
+    // Fase 2 (KILL SWITCH ROL LEGACY): roleCode puede ser vacío. El "rol UI"
+    // se deriva de capabilities + isProvider. Solo se rechaza si el tipo del
+    // workspace está en cuarentena explícita (`unknown`).
     if (context.type == WorkspaceType.unknown) {
       return const ContextValidationResult.invalid('workspace_type_unknown');
     }
@@ -177,28 +176,16 @@ class ContextValidator {
       return const ContextValidationResult.invalid('no_memberships');
     }
 
-    final activeSameOrgMemberships = memberships.where((m) {
-      return _isMembershipActive(m.estatus) && m.orgId == context.orgId;
-    }).toList(growable: false);
-
-    if (activeSameOrgMemberships.isEmpty) {
-      return const ContextValidationResult.invalid(
-        'no_active_membership_for_org',
-      );
-    }
-
-    final hasCompatibleRole = activeSameOrgMemberships.any(
-      (membership) => _membershipSupportsContext(
-        membership: membership,
-        context: context,
-      ),
+    // Fase 2 (KILL SWITCH ROL LEGACY): basta con que exista una membership
+    // ACTIVE para la misma orgId. Ya no se exige que `m.roles` cubra el
+    // `roleCode` del contexto — los permisos viven en `capabilities[]`.
+    final hasActiveSameOrg = memberships.any(
+      (m) => _isMembershipActive(m.estatus) && m.orgId == context.orgId,
     );
 
-    if (!hasCompatibleRole) {
-      return ContextValidationResult.invalid(
-        'no_active_membership_for_context',
-        detail:
-            'orgId=${context.orgId}, type=${context.type.wireName}, roleCode=${context.roleCode}',
+    if (!hasActiveSameOrg) {
+      return const ContextValidationResult.invalid(
+        'no_active_membership_for_org',
       );
     }
 
@@ -214,76 +201,4 @@ class ContextValidator {
     return normalized == 'activo' || normalized == 'active';
   }
 
-  /// Determina si una membership respalda el contexto pedido.
-  ///
-  /// Estrategia conservadora:
-  /// 1. Si algún rol legacy coincide exactamente con `context.roleCode`
-  ///    (tras normalización), valida.
-  /// 2. Si no, intenta mapping canónico:
-  ///    `membership.role -> WorkspaceType` y compara con `context.type`.
-  /// 3. Nunca usa substring matching permisivo tipo contains().
-  static bool _membershipSupportsContext({
-    required MembershipEntity membership,
-    required WorkspaceContext context,
-  }) {
-    if (membership.roles.isEmpty) {
-      return false;
-    }
-
-    final normalizedContextRole =
-        WorkspaceContextAdapter.normalizeRole(context.roleCode);
-
-    final inferredProviderType = _resolveProviderTypeForMembership(membership);
-
-    for (final rawRole in membership.roles) {
-      final normalizedMembershipRole =
-          WorkspaceContextAdapter.normalizeRole(rawRole);
-
-      if (normalizedMembershipRole.isEmpty) {
-        continue;
-      }
-
-      // 1. Match exacto de roleCode normalizado
-      if (normalizedMembershipRole == normalizedContextRole) {
-        return true;
-      }
-
-      // 2. Match por tipo canónico
-      final resolvedType = WorkspaceContextAdapter.resolveType(
-        normalizedRole: normalizedMembershipRole,
-        normalizedProviderType: inferredProviderType,
-      );
-
-      if (resolvedType == context.type) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /// Heurística transicional para inferir providerType desde providerProfiles.
-  ///
-  /// IMPORTANTE:
-  /// - Esto es compatibilidad de Fase 1.
-  /// - No es modelo canónico final de dominio.
-  static String? _resolveProviderTypeForMembership(
-      MembershipEntity membership) {
-    if (membership.providerProfiles.isEmpty) {
-      return null;
-    }
-
-    final serialized = membership.providerProfiles
-        .map((p) => p.toString().toLowerCase())
-        .join(' ');
-
-    if (serialized.contains('articulo') ||
-        serialized.contains('artículos') ||
-        serialized.contains('repuesto') ||
-        serialized.contains('insumo')) {
-      return 'articulos';
-    }
-
-    return 'servicios';
-  }
 }

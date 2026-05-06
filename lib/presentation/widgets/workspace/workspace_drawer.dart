@@ -1,32 +1,59 @@
-// lib/presentation/widgets/nav/workspace_drawer.dart
-import 'package:avanzza/core/session/org_switch_exceptions.dart';
-import 'package:avanzza/domain/entities/user/active_context.dart';
+// ============================================================================
+// lib/presentation/widgets/workspace/workspace_drawer.dart
+// WORKSPACE DRAWER — Fase 2 (KILL SWITCH ROL LEGACY).
+//
+// QUÉ HACE:
+// - Muestra hasta dos items canónicos derivados del Core API:
+//     · "Administrador de activos" — siempre presente si hay sesión con
+//       `Membership` activa en el orgId actual (capability `purchase_request.read`).
+//     · "Proveedor" — presente si `ProviderContextStore.isProvider == true`
+//       (resuelto desde `GET /v1/providers/me`).
+// - Permite cerrar sesión y un atajo a la página de validación de tema en
+//   modo debug.
+//
+// QUÉ NO HACE:
+// - NO lee `Membership.roles[]` ni `ActiveContext.rol`. La identidad del
+//   workspace no proviene de strings legacy.
+// - NO ofrece "agregar/eliminar workspace": en el modelo Core API el binding
+//   user→workspace es 1:1 vía `Membership`. La conversión a proveedor se hace
+//   desde la pantalla de bootstrap del proveedor (POST /v1/providers/bootstrap),
+//   no desde el drawer.
+// - NO cambia de organización aquí: el switch cross-org canónico vive en
+//   `SessionContextController.applyLocalActiveContext()` y debe invocarse desde
+//   una UI dedicada de selección de organización (fuera del scope de este
+//   drawer). Core API resuelve `activeOrgId` por inferencia server-side cuando
+//   hay 1 membership viable.
+//
+// PRINCIPIOS:
+// - Single source of truth: capabilities + isProvider — derivado de Core API.
+// - Sin magic strings de roles ni mapeos legacy.
+// - Reactividad GetX (`Obx`) sobre `RegistrationController`/`SessionContext`/
+//   `SessionCapabilitiesStore`/`ProviderContextStore`.
+// ============================================================================
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
-import '../../../core/utils/workspace_normalizer.dart';
+import '../../../application/services/access/provider_context_store.dart';
+import '../../../application/services/access/session_capabilities_store.dart';
 import '../../../routes/app_pages.dart';
 import '../../auth/controllers/registration_controller.dart';
 import '../../controllers/session_context_controller.dart';
 import '../../themes/devtools/theming_sanity_page.dart';
 import '../drawer/workspace_item.dart';
-import '../modal/confirmation_dialog.dart';
-import '../modal/workspace_selector_sheet.dart';
+
+/// Identifica de forma estable cada item del drawer. Mapea 1:1 con la
+/// navegación canónica post-bootstrap.
+enum _DrawerWorkspace {
+  /// Shell del administrador de activos (Routes.home).
+  assetAdmin,
+
+  /// Shell unificado del proveedor (Routes.providerWorkspaceServices).
+  provider,
+}
 
 class WorkspaceDrawer extends StatelessWidget {
   const WorkspaceDrawer({super.key});
-
-  // Helper puro testeable
-  static List<String> _buildActive(List<String> source) => source
-      .map((w) => w.trim())
-      .where((w) => w.isNotEmpty)
-      .map(WorkspaceNormalizer.normalize)
-      .toSet()
-      // .where(_supported.contains)
-      .toList()
-    ..sort(_preferredOrder);
 
   @override
   Widget build(BuildContext context) {
@@ -36,73 +63,53 @@ class WorkspaceDrawer extends StatelessWidget {
     final reg = Get.isRegistered<RegistrationController>()
         ? Get.find<RegistrationController>()
         : null;
+    final caps = Get.isRegistered<SessionCapabilitiesStore>()
+        ? Get.find<SessionCapabilitiesStore>()
+        : null;
+    final providerCtx = Get.isRegistered<ProviderContextStore>()
+        ? Get.find<ProviderContextStore>()
+        : null;
 
     return Drawer(
       child: SafeArea(
         child: Obx(() {
-          // Fuente reactiva: userRx + membershipsRx + bump
+          // Reactividad: enganchar a userRx + memberships bump + capabilities + isProvider.
           final user = session?.userRx.value;
-          final _ = session?.membershipsVersion.value; // engancha a versión
+          // Toques explícitos para que Obx vuelva a construir cuando cambien.
+          session?.membershipsVersion.value;
+          caps?.capabilitiesRx.length;
+          final isProvider = providerCtx?.isProviderRx.value ?? false;
           final fromUser = user != null;
 
-          // 1) Usuario logueado → workspaces desde membershipsRx
-          final userWorkspaces =
-              fromUser ? _extractUserWorkspaces(session!) : const <String>[];
-
-          // 2) Registro → resolvedWorkspaces
-          final resolved =
-              reg?.progress.value?.resolvedWorkspaces ?? const <String>[];
-
-          // 3) Fuente final
-          final List<String> source;
-
-          if (fromUser && userWorkspaces.isNotEmpty) {
-            source = userWorkspaces;
-          } else if (resolved.isNotEmpty) {
-            source = resolved;
-            print(
-                "fromUser $fromUser && ${userWorkspaces.isNotEmpty}, resolved $resolved");
-          } else {
-            source = _allWorkspaces;
-          }
-
-          final active = _buildActive(source);
-          print("fromUser active $active");
+          // Items canónicos derivados de capabilities + isProvider.
+          final items = _resolveItems(
+            fromUser: fromUser,
+            caps: caps,
+            isProvider: isProvider,
+          );
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _Header(
-                fromUser: fromUser,
-                userName: user?.name,
-                activeContext: user?.activeContext?.rol,
-              ),
-              if (active.isEmpty)
+              _Header(fromUser: fromUser, userName: user?.name),
+              if (items.isEmpty)
                 const _EmptyHint()
               else
                 Expanded(
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
-                    itemCount: active.length,
+                    itemCount: items.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, i) {
-                      final ws = active[i];
-                      final data = _tileFor(ws);
-                      final isActive = WorkspaceNormalizer.normalize(
-                              user?.activeContext?.rol ?? '') ==
-                          ws;
+                      final ws = items[i];
+                      final tile = _tileFor(ws);
+                      final isActive = _isActiveRoute(ws);
                       return WorkspaceItem(
-                        roleLabel: data.title,
-                        icon: data.icon,
-                        subtitle: data.subtitle,
+                        roleLabel: tile.title,
+                        icon: tile.icon,
+                        subtitle: tile.subtitle,
                         isActive: isActive,
-                        onTap: () => _goToWorkspace(ws, session, reg),
-                        onDeleted: () {
-                          // Trigger rebuild after deletion
-                          if (session != null) {
-                            session.membershipsVersion.value++;
-                          }
-                        },
+                        onTap: () => _goTo(ws),
                       );
                     },
                   ),
@@ -112,10 +119,6 @@ class WorkspaceDrawer extends StatelessWidget {
                 ..._buildFooterForUser(session)
               else
                 ..._buildFooterForGuest(reg),
-
-              // === DEBUG ONLY: Theming Sanity Page ===
-              // Acceso oculto a la página de validación visual del sistema de themes
-              // Solo visible en modo debug (kDebugMode)
               if (kDebugMode) ...[
                 const Divider(height: 1),
                 ListTile(
@@ -124,12 +127,11 @@ class WorkspaceDrawer extends StatelessWidget {
                   subtitle: const Text('Validación visual de temas (solo dev)'),
                   dense: true,
                   onTap: () {
-                    Get.back(); // Cerrar drawer
+                    Get.back();
                     Get.to(() => const ThemingSanityPage());
                   },
                 ),
               ],
-
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.info_outline),
@@ -139,7 +141,7 @@ class WorkspaceDrawer extends StatelessWidget {
                   Get.back();
                   Get.snackbar(
                     'Avanzza 2.0',
-                    'Workspaces por rol — Exploración/Registro diferido',
+                    'Workspaces canónicos por capabilities + isProvider',
                     snackPosition: SnackPosition.BOTTOM,
                   );
                 },
@@ -152,22 +154,105 @@ class WorkspaceDrawer extends StatelessWidget {
     );
   }
 
-  // Footer usuario autenticado
+  // ─── Resolución de items ───────────────────────────────────────────────────
+
+  /// Calcula los items visibles para el caller actual.
+  /// - Asset Admin: si el usuario está autenticado.
+  /// - Provider: si `ProviderContextStore.isProvider == true`.
+  /// En modo guest (sin user logueado), muestra sólo Asset Admin como
+  /// preview (Routes.home renderiza estado vacío).
+  static List<_DrawerWorkspace> _resolveItems({
+    required bool fromUser,
+    required SessionCapabilitiesStore? caps,
+    required bool isProvider,
+  }) {
+    final out = <_DrawerWorkspace>[];
+
+    // Asset admin siempre se muestra cuando hay sesión. No requiere
+    // capability específica: una `Membership` ACTIVE basta para que el shell
+    // de admin sea válido. Para usuarios sin sesión (guest), también lo
+    // mostramos como puerta a explorar.
+    out.add(_DrawerWorkspace.assetAdmin);
+
+    // Provider sólo si Core API confirmó isProvider=true en este workspace.
+    if (fromUser && isProvider) {
+      out.add(_DrawerWorkspace.provider);
+    }
+
+    // Nota: aunque un usuario tenga capability `provider.create`, el item
+    // "Proveedor" sólo aparece tras hacer bootstrap (isProvider=true). Para
+    // iniciar el bootstrap se navega manualmente a /provider/bootstrap.
+    // No se expone esa puerta desde el drawer en MF1 para evitar UX confusa.
+
+    return out;
+  }
+
+  static bool _isActiveRoute(_DrawerWorkspace ws) {
+    final current = Get.currentRoute;
+    switch (ws) {
+      case _DrawerWorkspace.assetAdmin:
+        return current == Routes.home;
+      case _DrawerWorkspace.provider:
+        return current == Routes.providerWorkspaceServices ||
+            current == Routes.providerWorkspaceArticles ||
+            current == Routes.providerMe ||
+            current == Routes.providerBootstrap;
+    }
+  }
+
+  static _TileData _tileFor(_DrawerWorkspace ws) {
+    switch (ws) {
+      case _DrawerWorkspace.assetAdmin:
+        return const _TileData(
+          title: 'Administrador de activos',
+          subtitle: 'Gestiona activos, incidencias y compras',
+          icon: Icons.dashboard_customize_outlined,
+        );
+      case _DrawerWorkspace.provider:
+        return const _TileData(
+          title: 'Proveedor',
+          subtitle: 'Solicitudes recibidas y catálogo',
+          icon: Icons.handyman_outlined,
+        );
+    }
+  }
+
+  // ─── Navegación ────────────────────────────────────────────────────────────
+
+  Future<void> _goTo(_DrawerWorkspace ws) async {
+    // Cerrar drawer primero (evita "No Overlay widget found" en post-frame).
+    try {
+      Get.back();
+    } catch (_) {}
+
+    final target = switch (ws) {
+      _DrawerWorkspace.assetAdmin => Routes.home,
+      _DrawerWorkspace.provider => Routes.providerWorkspaceServices,
+    };
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.currentRoute != target) {
+        Get.offAllNamed(target);
+      }
+    });
+  }
+
+  // ─── Footers ───────────────────────────────────────────────────────────────
+
   List<Widget> _buildFooterForUser(SessionContextController? session) => [
+        // Crear nuevo workspace / perfil. Permite al usuario autenticado
+        // arrancar un nuevo onboarding (otro perfil de negocio o cambio de
+        // titular). NO interfiere con el workspace activo — entra al flow
+        // de selección país/ciudad y desde ahí al onboarding canónico.
         ListTile(
-          leading: const Icon(Icons.add_circle_outline),
-          title: const Text('Agregar workspace'),
+          leading: const Icon(Icons.add_business_outlined),
+          title: const Text('Crear nuevo workspace'),
+          subtitle: const Text('Iniciar un perfil/empresa adicional'),
           dense: true,
           onTap: () {
             Get.back();
-            Get.toNamed(Routes.profile, parameters: {'append': '1'});
+            Get.toNamed(Routes.countryCity);
           },
-        ),
-        ListTile(
-          leading: const Icon(Icons.delete_outline),
-          title: const Text('Eliminar workspace'),
-          dense: true,
-          onTap: () => _handleDeleteWorkspace(session, isAuthenticated: true),
         ),
         ListTile(
           leading: const Icon(Icons.logout),
@@ -177,24 +262,7 @@ class WorkspaceDrawer extends StatelessWidget {
         ),
       ];
 
-  // Footer invitado
   List<Widget> _buildFooterForGuest(RegistrationController? reg) => [
-        ListTile(
-          leading: const Icon(Icons.person_add_alt_1),
-          title: const Text('Añadir workspace'),
-          dense: true,
-          onTap: () {
-            Get.back();
-            Get.toNamed(Routes.profile, parameters: {'append': '1'});
-          },
-        ),
-        if (reg?.progress.value?.resolvedWorkspaces.isNotEmpty ?? false)
-          ListTile(
-            leading: const Icon(Icons.delete_outline),
-            title: const Text('Eliminar workspace'),
-            dense: true,
-            onTap: () => _handleDeleteWorkspace(reg, isAuthenticated: false),
-          ),
         ListTile(
           leading: const Icon(Icons.person_add_alt_1),
           title: const Text('Registrarme'),
@@ -212,392 +280,11 @@ class WorkspaceDrawer extends StatelessWidget {
         ),
       ];
 
-  // ---- User helpers ----
-  List<String> _extractUserWorkspaces(SessionContextController session) {
-    final roles = session.membershipsRx
-        .where((m) => m.estatus == 'activo')
-        .expand((m) => m.roles)
-        .map(WorkspaceNormalizer.normalize)
-        .toSet();
-
-    final activeCtx = session.userRx.value?.activeContext;
-    final ordered = [
-      if ((activeCtx?.rol ?? '').isNotEmpty)
-        WorkspaceNormalizer.normalize(activeCtx!.rol),
-      ...roles.where(
-          (r) => r != WorkspaceNormalizer.normalize(activeCtx?.rol ?? '')),
-    ];
-    return ordered;
-  }
-
-  // ---- Normalización y orden ----
-  static const _allWorkspaces = <String>[
-    'Administrador',
-    'Propietario',
-    'Proveedor',
-    'Arrendatario',
-    'Aseguradora',
-    'Abogado',
-    'Asesor de seguros',
-  ];
-
-  static int _preferredOrder(String a, String b) {
-    const order = {
-      'Administrador': 0,
-      'Propietario': 1,
-      'Proveedor': 2,
-      'Arrendatario': 3,
-      'Aseguradora': 4,
-      'Asesor de seguros': 5,
-      'Abogado': 6,
-    };
-    return (order[a] ?? 999).compareTo(order[b] ?? 999);
-  }
-
-  _TileData _tileFor(String ws) {
-    switch (ws) {
-      case 'Administrador':
-        return const _TileData(
-          title: 'Administrador',
-          subtitle: 'Gestiona activos, incidencias y compras',
-          icon: Icons.dashboard_customize_outlined,
-        );
-      case 'Propietario':
-        return const _TileData(
-          title: 'Propietario',
-          subtitle: 'Control de activos y documentos',
-          icon: Icons.domain_outlined,
-        );
-      case 'Proveedor':
-        return const _TileData(
-          title: 'Proveedor',
-          subtitle: 'Servicios y artículos',
-          icon: Icons.handyman_outlined,
-        );
-      case 'Arrendatario':
-        return const _TileData(
-          title: 'Arrendatario',
-          subtitle: 'Uso y reportes del activo',
-          icon: Icons.directions_car_filled_outlined,
-        );
-      case 'Aseguradora':
-        return const _TileData(
-          title: 'Aseguradora / Broker',
-          subtitle: 'Pólizas y renovaciones',
-          icon: Icons.policy_outlined,
-        );
-      case 'Abogado':
-        return const _TileData(
-          title: 'Abogado',
-          subtitle: 'Casos y reclamaciones',
-          icon: Icons.balance_outlined,
-        );
-      case 'Asesor de seguros':
-        return const _TileData(
-          title: 'Asesor de seguros',
-          subtitle: 'Ventas y asesoría',
-          icon: Icons.support_agent_outlined,
-        );
-      default:
-        return _TileData(title: ws, icon: Icons.apps_outlined);
-    }
-  }
-
-  /// Mensaje de error legible para el usuario según la razón de fallo del switch.
-  static String _switchErrorMessage(SwitchOrganizationFailureReason reason) {
-    switch (reason) {
-      case SwitchOrganizationFailureReason.notAuthenticated:
-        return 'Tu sesión expiró. Inicia sesión de nuevo.';
-      case SwitchOrganizationFailureReason.backendError:
-        return 'El servidor rechazó el cambio. Intenta de nuevo.';
-      case SwitchOrganizationFailureReason.tokenRefreshFailed:
-        return 'No se pudo refrescar tu sesión. Intenta de nuevo.';
-      case SwitchOrganizationFailureReason.claimsPropagationFailed:
-        return 'No se pudo verificar tu acceso. Intenta de nuevo.';
-      case SwitchOrganizationFailureReason.membershipNotFound:
-        return 'No tienes membresía activa en esa organización.';
-      case SwitchOrganizationFailureReason.persistenceFailed:
-        return 'El cambio se aplicó, pero hubo un error local. Reinicia la app si persiste.';
-      case SwitchOrganizationFailureReason.unknown:
-        return 'No se pudo cambiar de organización. Intenta de nuevo.';
-    }
-  }
-
-  Future<void> _waitDrawerClose(BuildContext ctx,
-      {Duration timeout = const Duration(milliseconds: 500)}) async {
-    final start = DateTime.now();
-    while (ctx.mounted && Scaffold.maybeOf(ctx)?.isDrawerOpen == true) {
-      await SchedulerBinding.instance.endOfFrame;
-      if (DateTime.now().difference(start) > timeout) break;
-    }
-    if (ctx.mounted) await SchedulerBinding.instance.endOfFrame;
-  }
-
-  Future<void> _goToWorkspace(
-    String ws,
-    SessionContextController? session,
-    RegistrationController? reg,
-  ) async {
-    if (session?.userRx.value != null) {
-      final membership = session!.membershipsRx.firstWhereOrNull(
-        (m) => m.roles.any((r) => WorkspaceNormalizer.normalize(r) == ws),
-      );
-
-      if (membership != null) {
-        final role = membership.roles
-            .firstWhere((r) => WorkspaceNormalizer.normalize(r) == ws);
-        String? providerType;
-        if (ws == 'Proveedor' && membership.providerProfiles.isNotEmpty) {
-          providerType = membership.providerProfiles.first.providerType;
-        }
-
-        final current = session.userRx.value?.activeContext;
-        final isCrossOrg = current != null &&
-            current.orgId.isNotEmpty &&
-            membership.orgId != current.orgId;
-
-        if (isCrossOrg) {
-          // Org switch real — pasa por backend + JWT sync.
-          try {
-            await session.switchOrganization(
-              organizationId: membership.orgId,
-              targetWorkspaceRole: role,
-            );
-          } on SwitchOrganizationException catch (e) {
-            debugPrint('[WorkspaceDrawer] switchOrganization failed: $e');
-            // Cerrar drawer primero, luego snackbar en post-frame.
-            // Get.snackbar() necesita que el overlayContext esté asentado —
-            // llamarlo durante la animación de cierre del drawer lanza
-            // "No Overlay widget found". addPostFrameCallback garantiza
-            // que el overlay ya está disponible (mismo patrón que la navegación
-            // en el path de éxito).
-            try { Get.back(); } catch (_) {}
-            final message = _switchErrorMessage(e.reason);
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              Get.snackbar(
-                'No se pudo cambiar de workspace',
-                message,
-                snackPosition: SnackPosition.BOTTOM,
-              );
-            });
-            return;
-          } catch (e) {
-            debugPrint('[WorkspaceDrawer] switchOrganization unexpected error: $e');
-            try { Get.back(); } catch (_) {}
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              Get.snackbar(
-                'No se pudo cambiar de workspace',
-                'Error inesperado. Intenta de nuevo.',
-                snackPosition: SnackPosition.BOTTOM,
-              );
-            });
-            return;
-          }
-        } else {
-          // Cambio de workspace dentro de la misma org — local.
-          final nextCtx = (current == null)
-              ? ActiveContext(
-                  orgId: membership.orgId,
-                  orgName: membership.orgName,
-                  rol: role,
-                  providerType: providerType,
-                )
-              : current.copyWith(
-                  orgId: membership.orgId,
-                  orgName: membership.orgName,
-                  rol: role,
-                  providerType: providerType,
-                );
-          await session.setActiveContext(nextCtx);
-        }
-      }
-
-      final ctx = Get.context;
-      if (ctx != null &&
-          ctx.mounted &&
-          Scaffold.maybeOf(ctx)?.isDrawerOpen == true) {
-        Navigator.of(ctx).pop();
-        await _waitDrawerClose(ctx);
-      } else {
-        try {
-          Get.back();
-        } catch (_) {}
-      }
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final target =
-            (ws == 'Proveedor') ? Routes.providerProfile : Routes.home;
-        if (Get.currentRoute != target) {
-          Get.offAllNamed(target);
-        }
-      });
-
-      return;
-    }
-
-    if (reg != null) {
-      await _persistExploreSelection(ws, reg);
-      debugPrint(
-          '[REG] selectedRole=${reg.progress.value?.selectedRole} resolved=${reg.progress.value?.resolvedWorkspaces}');
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final target = (ws == 'Proveedor') ? Routes.providerProfile : Routes.home;
-      Get.offAllNamed(target);
-    });
-  }
-
-  Future<void> _persistExploreSelection(
-      String ws, RegistrationController reg) async {
-    String role;
-    String titularType = 'persona';
-    String? providerType;
-
-    switch (ws) {
-      case 'Administrador':
-        role = 'admin_activos_ind';
-        break;
-      case 'Propietario':
-        role = 'propietario';
-        break;
-      case 'Arrendatario':
-        role = 'arrendatario';
-        break;
-      case 'Proveedor':
-        role = 'proveedor';
-        providerType = 'servicios';
-        break;
-      case 'Aseguradora':
-        role = 'aseguradora';
-        titularType = 'empresa';
-        providerType = 'articulos';
-        break;
-      case 'Abogado':
-        role = 'abogado';
-        providerType = 'servicios';
-        break;
-      case 'Asesor de seguros':
-        role = 'asesor_seguros';
-        break;
-      default:
-        role = ws.toLowerCase();
-    }
-
-    await reg.setTitularType(titularType);
-    await reg.setRole(role);
-    if (providerType != null) {
-      await reg.setProviderType(providerType);
-    }
-  }
-
   Future<void> _exitToWelcome(RegistrationController? reg) async {
     if (reg != null) {
       await reg.clear('current');
     }
     Get.offAllNamed(Routes.countryCity);
-  }
-
-  /// Maneja la eliminación de un workspace
-  Future<void> _handleDeleteWorkspace(
-    dynamic controller, {
-    required bool isAuthenticated,
-  }) async {
-    final context = Get.context;
-    if (context == null) return;
-
-    // Obtener lista de workspaces disponibles
-    final List<String> availableWorkspaces;
-    if (isAuthenticated && controller is SessionContextController) {
-      availableWorkspaces = _extractUserWorkspaces(controller);
-    } else if (!isAuthenticated && controller is RegistrationController) {
-      availableWorkspaces = controller.progress.value?.resolvedWorkspaces ?? [];
-    } else {
-      return;
-    }
-
-    // Si no hay workspaces, mostrar mensaje
-    if (availableWorkspaces.isEmpty) {
-      Get.back(); // Cerrar drawer
-      Get.snackbar(
-        'Sin workspaces',
-        'No tienes workspaces para eliminar',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
-    }
-
-    // Si solo hay un workspace, no permitir eliminarlo
-    if (availableWorkspaces.length == 1) {
-      Get.back(); // Cerrar drawer
-      Get.snackbar(
-        'Workspace único',
-        'Debes tener al menos un workspace activo',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
-    }
-
-    Get.back(); // Cerrar drawer
-
-    // Convertir a WorkspaceSelectItem
-    final workspaceItems = availableWorkspaces.map((ws) {
-      final data = _tileFor(ws);
-      final isActive = isAuthenticated &&
-          controller is SessionContextController &&
-          WorkspaceNormalizer.normalize(
-                  controller.userRx.value?.activeContext?.rol ?? '') ==
-              ws;
-
-      return WorkspaceSelectItem(
-        label: data.title,
-        subtitle: data.subtitle,
-        icon: data.icon,
-        isActive: isActive,
-      );
-    }).toList();
-
-    // Mostrar selector de workspace
-    final selected = await WorkspaceSelectorSheet.show(
-      context,
-      title: 'Selecciona el workspace a eliminar',
-      workspaces: workspaceItems,
-    );
-
-    if (selected == null) return; // Usuario canceló
-
-    if (!context.mounted) return;
-
-    // Mostrar confirmación
-    final confirmation = await ConfirmationDialog.show(
-      context,
-      ConfirmationDialogConfig(
-        title: '¿Eliminar workspace?',
-        message:
-            '¿Estás seguro de que deseas eliminar el workspace "${selected.label}"?',
-        confirmText: 'Eliminar',
-        cancelText: 'Cancelar',
-        isDestructive: true,
-        icon: Icons.delete_outline,
-      ),
-    );
-
-    if (confirmation != ConfirmationResult.confirmed) return;
-
-    // Ejecutar eliminación (los controladores manejan notificaciones y telemetría)
-    try {
-      if (isAuthenticated && controller is SessionContextController) {
-        await controller.removeWorkspaceFromActiveOrg(role: selected.label);
-      } else if (!isAuthenticated && controller is RegistrationController) {
-        await controller.removeWorkspaceFromProgress(selected.label);
-      }
-    } catch (e) {
-      // Error ya logueado por controlador, solo mostrar mensaje genérico
-      Get.snackbar(
-        'Error',
-        'No se pudo eliminar el workspace',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-    }
   }
 
   Future<void> _logout(SessionContextController? session) async {
@@ -608,30 +295,18 @@ class WorkspaceDrawer extends StatelessWidget {
 class _Header extends StatelessWidget {
   final bool fromUser;
   final String? userName;
-  final String? activeContext;
 
-  const _Header({
-    required this.fromUser,
-    this.userName,
-    this.activeContext,
-  });
+  const _Header({required this.fromUser, this.userName});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    String subtitle;
-    if (fromUser) {
-      if (userName != null && activeContext != null) {
-        subtitle = '$userName • $activeContext';
-      } else if (userName != null) {
-        subtitle = '$userName • Mis workspaces';
-      } else {
-        subtitle = 'Mis workspaces';
-      }
-    } else {
-      subtitle = 'Workspaces disponibles';
-    }
+    final subtitle = fromUser
+        ? (userName?.isNotEmpty == true
+            ? '$userName • Mis workspaces'
+            : 'Mis workspaces')
+        : 'Workspaces disponibles';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
@@ -641,37 +316,32 @@ class _Header extends StatelessWidget {
           bottom: BorderSide(color: theme.colorScheme.outlineVariant),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              if (fromUser) ...[
-                CircleAvatar(
-                  radius: 20,
-                  child: Text(
-                    (userName?.isNotEmpty == true ? userName![0] : 'U')
-                        .toUpperCase(),
-                    style: theme.textTheme.titleMedium,
-                  ),
-                ),
-                const SizedBox(width: 12),
-              ],
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Workspaces', style: theme.textTheme.titleLarge),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: theme.textTheme.bodySmall!
-                          .copyWith(color: theme.hintColor),
-                    ),
-                  ],
-                ),
+          if (fromUser) ...[
+            CircleAvatar(
+              radius: 20,
+              child: Text(
+                (userName?.isNotEmpty == true ? userName![0] : 'U')
+                    .toUpperCase(),
+                style: theme.textTheme.titleMedium,
               ),
-            ],
+            ),
+            const SizedBox(width: 12),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Workspaces', style: theme.textTheme.titleLarge),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall!
+                      .copyWith(color: theme.hintColor),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -708,8 +378,8 @@ class _EmptyHint extends StatelessWidget {
               Text(
                 'Completa tu registro para habilitar workspaces',
                 textAlign: TextAlign.center,
-                style:
-                    theme.textTheme.bodySmall!.copyWith(color: theme.hintColor),
+                style: theme.textTheme.bodySmall!
+                    .copyWith(color: theme.hintColor),
               ),
             ],
           ),

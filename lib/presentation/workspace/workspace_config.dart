@@ -54,6 +54,7 @@ import '../bindings/admin/admin_maintenance_binding.dart';
 import '../bindings/admin/admin_purchase_binding.dart';
 import '../bindings/owner/owner_binding.dart';
 import '../bindings/provider/provider_articles_binding.dart';
+import '../bindings/provider/provider_me_binding.dart';
 import '../bindings/provider/provider_services_binding.dart';
 import '../bindings/renter/renter_binding.dart';
 import '../pages/accounting/accounting_page.dart';
@@ -62,9 +63,7 @@ import '../pages/owner/contracts/owner_contracts_page.dart';
 import '../pages/owner/home/owner_home_page.dart';
 import '../pages/owner/portfolio/owner_portfolio_page.dart';
 import '../pages/provider/articles/catalog/provider_articles_catalog_page.dart';
-import '../pages/provider/articles/chat/provider_articles_chat_page.dart';
-import '../pages/provider/articles/home/provider_articles_home_page.dart';
-import '../pages/provider/services/agenda/provider_services_agenda_page.dart';
+import '../pages/provider/me/provider_me_page.dart';
 import '../pages/provider/services/chat/provider_services_chat_page.dart';
 import '../pages/provider/services/home/provider_services_home_page.dart';
 import '../pages/provider/services/orders/provider_services_orders_page.dart';
@@ -72,9 +71,6 @@ import '../pages/renter/asset/renter_asset_page.dart';
 import '../pages/renter/chat/renter_chat_page.dart';
 import '../pages/renter/documents/renter_documents_page.dart';
 import '../pages/renter/payments/renter_payments_page.dart';
-import '../pages/workspaces/provider_articles_commercial_page.dart';
-import '../pages/workspaces/provider_articles_orders_shell.dart';
-import '../pages/workspaces/provider_articles_profile_page.dart';
 
 class WorkspaceConfig {
   final String roleKey;
@@ -166,6 +162,9 @@ WorkspaceConfig workspaceFor({
   }
 
   final normalized = WorkspaceNormalizer.normalize(rol).toLowerCase();
+  // Fase 2: providerType ya no decide entre supplier/workshop (shell unificado).
+  // Se conserva el parámetro en la firma por compatibilidad de callers legacy.
+  // ignore: unused_local_variable
   final pt = (providerType ?? '').trim().toLowerCase();
   final normalizedOrgType = _normalizeOrgType(orgType);
 
@@ -185,13 +184,9 @@ WorkspaceConfig workspaceFor({
       isAdvisor(normalized) ||
       isInsurer(normalized) ||
       isLegal(normalized)) {
-    if (pt == 'articulos') {
-      return _buildSupplierConfig(orgType: normalizedOrgType);
-    }
-
-    if (pt == 'servicios' || pt.isEmpty) {
-      return _buildWorkshopConfig();
-    }
+    // Fase 2 (UNIFIED PROVIDER SHELL): un único shell para cualquier
+    // proveedor; el viejo split supplier/workshop fue retirado.
+    return _buildProviderConfig(orgType: normalizedOrgType);
   }
 
   _logUnrecognizedRole(rol, normalized);
@@ -244,8 +239,15 @@ class NavigationRegistry {
 
   /// Retorna el [WorkspaceConfig] principal para el [WorkspaceType] dado.
   ///
-  /// - `orgType` solo afecta supplier.
-  /// - insurer/legal/advisor usan fallback explícito a workshop en Fase 1.
+  /// Fase 2 — UNIFIED PROVIDER SHELL:
+  /// - supplier / workshop / insurer / legal / advisor → todos resuelven al
+  ///   mismo `_buildProviderConfig`. El split anterior por `providerType`
+  ///   fue retirado: no había features reales que justificaran 2 shells.
+  /// - El config retornado conserva el [WorkspaceType] solicitado para
+  ///   diferenciar `supplier` (artículos) vs `workshop` (servicios) en el
+  ///   shell, aunque las tabs/páginas sean compartidas hoy.
+  /// - `orgType` se preserva para que el config pueda ajustar la copy o
+  ///   tabs en el futuro sin romper callers.
   /// - unknown retorna null: el caller debe manejar cuarentena/recovery.
   static WorkspaceConfig? configFor(
     WorkspaceType type, {
@@ -264,31 +266,14 @@ class NavigationRegistry {
         return _buildRenterConfig();
 
       case WorkspaceType.supplier:
-        return _buildSupplierConfig(orgType: normalizedOrgType);
-
       case WorkspaceType.workshop:
-        return _buildWorkshopConfig();
-
       case WorkspaceType.insurer:
-        _logTypedFallback(
-          sourceType: WorkspaceType.insurer,
-          targetType: WorkspaceType.workshop,
-        );
-        return _buildWorkshopConfig();
-
       case WorkspaceType.legal:
-        _logTypedFallback(
-          sourceType: WorkspaceType.legal,
-          targetType: WorkspaceType.workshop,
-        );
-        return _buildWorkshopConfig();
-
       case WorkspaceType.advisor:
-        _logTypedFallback(
-          sourceType: WorkspaceType.advisor,
-          targetType: WorkspaceType.workshop,
+        return _buildProviderConfig(
+          orgType: normalizedOrgType,
+          workspaceType: type,
         );
-        return _buildWorkshopConfig();
 
       case WorkspaceType.unknown:
         return null;
@@ -411,63 +396,25 @@ WorkspaceConfig _buildRenterConfig() {
   );
 }
 
-WorkspaceConfig _buildSupplierConfig({
+/// UNIFIED PROVIDER SHELL — destino canónico tras `POST /v1/providers/bootstrap`.
+///
+/// Reemplaza al viejo split supplier/workshop. Reutiliza páginas existentes
+/// para no inventar UI nueva:
+///   - Inicio        → `ProviderServicesHomePage`
+///   - Solicitudes   → `ProviderServicesOrdersPage`
+///   - Catálogo      → `ProviderArticlesCatalogPage`
+///   - Chat          → `ProviderServicesChatPage`
+///   - Perfil        → `ProviderMeBody` (tab embebido, alimentado por
+///                     `GET /v1/providers/me`).
+///
+/// `orgType` se preserva por contrato pero hoy no diferencia tabs.
+WorkspaceConfig _buildProviderConfig({
   required String orgType,
+  WorkspaceType workspaceType = WorkspaceType.workshop,
 }) {
-  final isEmpresa = orgType == 'empresa';
-
   return WorkspaceConfig(
-    roleKey: 'prov_articulos',
-    workspaceType: WorkspaceType.supplier,
-    tabs: [
-      const WorkspaceTab(
-        title: 'Inicio',
-        icon: Icons.home_outlined,
-        page: ProviderArticlesHomePage(),
-      ),
-      const WorkspaceTab(
-        title: 'Productos',
-        icon: Icons.view_list_outlined,
-        page: ProviderArticlesCatalogPage(),
-      ),
-      const WorkspaceTab(
-        title: 'Pedidos',
-        icon: Icons.assignment_outlined,
-        page: ProviderArticlesOrdersShell(),
-      ),
-      if (isEmpresa)
-        const WorkspaceTab(
-          title: 'Comercial',
-          icon: Icons.campaign_outlined,
-          page: ProviderArticlesCommercialPage(),
-        )
-      else
-        const WorkspaceTab(
-          title: 'Chat',
-          icon: Icons.chat_bubble_outline,
-          page: ProviderArticlesChatPage(),
-        ),
-      if (isEmpresa)
-        const WorkspaceTab(
-          title: 'Chat',
-          icon: Icons.chat_bubble_outline,
-          page: ProviderArticlesChatPage(),
-        )
-      else
-        const WorkspaceTab(
-          title: 'Perfil',
-          icon: Icons.person_outline,
-          page: ProviderArticlesProfilePage(),
-        ),
-    ],
-    onInit: () => ProviderArticlesBinding().dependencies(),
-  );
-}
-
-WorkspaceConfig _buildWorkshopConfig() {
-  return WorkspaceConfig(
-    roleKey: 'prov_servicios',
-    workspaceType: WorkspaceType.workshop,
+    roleKey: 'provider',
+    workspaceType: workspaceType,
     tabs: const [
       WorkspaceTab(
         title: 'Inicio',
@@ -475,27 +422,34 @@ WorkspaceConfig _buildWorkshopConfig() {
         page: ProviderServicesHomePage(),
       ),
       WorkspaceTab(
-        title: 'Agenda',
-        icon: Icons.calendar_today_outlined,
-        page: ProviderServicesAgendaPage(),
-      ),
-      WorkspaceTab(
-        title: 'Órdenes',
+        title: 'Solicitudes',
         icon: Icons.assignment_outlined,
         page: ProviderServicesOrdersPage(),
       ),
       WorkspaceTab(
-        title: 'Contabilidad',
-        icon: Icons.receipt_long_outlined,
-        page: AccountingPage(),
+        title: 'Catálogo',
+        icon: Icons.view_list_outlined,
+        page: ProviderArticlesCatalogPage(),
       ),
       WorkspaceTab(
         title: 'Chat',
         icon: Icons.chat_bubble_outline,
         page: ProviderServicesChatPage(),
       ),
+      WorkspaceTab(
+        title: 'Perfil',
+        icon: Icons.person_outline,
+        page: ProviderMeBody(),
+      ),
     ],
-    onInit: () => ProviderServicesBinding().dependencies(),
+    onInit: () {
+      // Inicializa los bindings de las páginas heredadas (artículos +
+      // servicios) y el binding de /provider/me que alimenta el tab
+      // "Perfil". Idempotente — Get.lazyPut evita duplicados.
+      ProviderServicesBinding().dependencies();
+      ProviderArticlesBinding().dependencies();
+      ProviderMeBinding().dependencies();
+    },
   );
 }
 
@@ -606,31 +560,7 @@ void _logUnrecognizedRole(String original, String normalized) {
   }
 }
 
-void _logTypedFallback({
-  required WorkspaceType sourceType,
-  required WorkspaceType targetType,
-}) {
-  if (kDebugMode || kProfileMode) {
-    debugPrint(
-      '[WorkspaceConfig] Fallback tipado Fase 1: '
-      '${sourceType.wireName} -> ${targetType.wireName}',
-    );
-  }
-
-  try {
-    if (Get.isRegistered<TelemetryService>()) {
-      Get.find<TelemetryService>().log(
-        'workspace_config_typed_fallback',
-        {
-          'sourceType': sourceType.wireName,
-          'targetType': targetType.wireName,
-          'timestamp': DateTime.now().toIso8601String(),
-        },
-      );
-    }
-  } catch (e) {
-    if (kDebugMode || kProfileMode) {
-      debugPrint('[WorkspaceConfig] Telemetry error: $e');
-    }
-  }
-}
+// _logTypedFallback eliminado: el shell unificado ya no fallbackea entre
+// supplier/workshop/insurer/legal/advisor — todos resuelven al mismo
+// _buildProviderConfig. Si un día se reintroduce un split, restaurar este
+// helper junto con la decisión.
