@@ -23,6 +23,8 @@
 //   Ver ALERTS_SYSTEM_V4.md §9. Decisión de ubicación en §3.4.
 // ============================================================================
 
+import 'dart:developer' as dev;
+
 import 'package:uuid/uuid.dart';
 
 import '../../../domain/entities/alerts/alert_audience.dart';
@@ -37,26 +39,81 @@ import '../../campaign/soat/soat_campaign_evaluator.dart';
 import '../../../domain/entities/alerts/alert_evidence_keys.dart';
 import '../../../domain/entities/alerts/alert_fact_keys.dart';
 
+// @audit-temp [AUDIT_VRC_DEBUG] — diagnóstico end-to-end VRC → AlertCenter.
+// Eliminar tras validar las 4 placas. Buscar prefijo "[AUDIT_VRC_DEBUG]".
+const Set<String> _kSoatAuditPlates = {
+  'WPV760',
+  'WPV583',
+  'WPV585',
+  'WGA960',
+};
+bool _soatAuditMatch(String? placa) =>
+    placa != null && _kSoatAuditPlates.contains(placa.trim().toUpperCase());
+
 /// Genera la alerta SOAT canónica para el activo descrito en [snapshot].
 ///
 /// Retorna null si:
 /// - [snapshot.soatPolicy] es null (no existe póliza SOAT).
 /// - La prioridad calculada es [SoatPriority.none] (> 30 días: sin urgencia).
 DomainAlert? buildSoatAlert(AssetAlertSnapshot snapshot) {
+  // @audit-temp [AUDIT_VRC_DEBUG]
+  final auditOn = _soatAuditMatch(snapshot.placa);
+
   final policy = snapshot.soatPolicy;
-  if (policy == null) return null;
+  if (policy == null) {
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    if (auditOn) {
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [SOAT_ADAPTER] '
+        'policy=null → return null. '
+        'CONSECUENCIA: NO se genera alerta SOAT (ni soat_missing existe en V1).',
+        name: 'AUDIT_VRC',
+      );
+    }
+    return null;
+  }
 
   // Delegar cálculo al evaluador existente (FUENTE ÚNICA DE VERDAD para SOAT)
   final evaluation = evaluateSoat(policy.fechaFin);
   final priority = getSoatPriority(evaluation.diasRestantes);
 
+  // @audit-temp [AUDIT_VRC_DEBUG]
+  if (auditOn) {
+    dev.log(
+      '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [SOAT_ADAPTER] '
+      'policy.id=${policy.id} fechaFin=${policy.fechaFin.toIso8601String()} '
+      'evalState=${evaluation.state.name} diasRestantes=${evaluation.diasRestantes} '
+      'priority=${priority.name}',
+      name: 'AUDIT_VRC',
+    );
+  }
+
   // Sin urgencia — no se genera alerta
-  if (priority == SoatPriority.none) return null;
+  if (priority == SoatPriority.none) {
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    if (auditOn) {
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [SOAT_ADAPTER] '
+        'priority=none (>30 días) → return null. Sin alerta SOAT en este ciclo.',
+        name: 'AUDIT_VRC',
+      );
+    }
+    return null;
+  }
 
   final severity = _mapPriority(priority);
   final code = evaluation.state == SoatState.expired
       ? AlertCode.soatExpired
       : AlertCode.soatDueSoon;
+
+  // @audit-temp [AUDIT_VRC_DEBUG]
+  if (auditOn) {
+    dev.log(
+      '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [SOAT_ADAPTER] EXIT '
+      'code=${code.wireName} severity=${severity.name}',
+      name: 'AUDIT_VRC',
+    );
+  }
 
   // primaryEvidenceId = policy.id (sourceId del primer evidenceRef)
   final dedupeKey =

@@ -26,6 +26,8 @@
 // CREADO (2026-03): Fase 2 — Orquestador canónico v1. Ver ALERTS_SYSTEM_V4.md §12.
 // ============================================================================
 
+import 'dart:developer' as dev;
+
 import '../../entities/alerts/domain_alert.dart';
 import 'asset_alert_snapshot.dart';
 import 'asset_alert_snapshot_assembler.dart';
@@ -34,6 +36,17 @@ import 'evaluators/rc_alert_evaluator.dart';
 import 'evaluators/rtm_alert_evaluator.dart';
 import 'support/alert_dedupe.dart';
 import 'support/alert_sort.dart';
+
+// @audit-temp [AUDIT_VRC_DEBUG] — diagnóstico end-to-end VRC → AlertCenter.
+// Eliminar tras validar las 4 placas. Buscar prefijo "[AUDIT_VRC_DEBUG]".
+const Set<String> _kOrchAuditPlates = {
+  'WPV760',
+  'WPV583',
+  'WPV585',
+  'WGA960',
+};
+bool _orchAuditMatch(String? placa) =>
+    placa != null && _kOrchAuditPlates.contains(placa.trim().toUpperCase());
 
 /// Función que evalúa el SOAT de un snapshot y retorna una alerta o null.
 ///
@@ -78,29 +91,97 @@ class AssetComplianceAlertOrchestrator {
     );
     if (snapshot == null) return const [];
 
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    final auditOn = _orchAuditMatch(snapshot.placa);
+    if (auditOn) {
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [ORCHESTRATOR] ENTER evaluate '
+        'assetId=$assetId orgId=$orgId',
+        name: 'AUDIT_VRC',
+      );
+    }
+
     // 2. Ejecutar evaluadores
     final raw = <DomainAlert>[];
 
     // SOAT — inyectado por constructor (implementación vive en core/)
     final soat = _buildSoatAlert(snapshot);
     if (soat != null) raw.add(soat);
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    if (auditOn) {
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [ORCHESTRATOR] '
+        'SOAT evaluator → ${soat == null ? "null" : "code=${soat.code.wireName}"}',
+        name: 'AUDIT_VRC',
+      );
+    }
 
     // RTM
     final rtm = buildRtmAlert(snapshot);
     if (rtm != null) raw.add(rtm);
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    if (auditOn) {
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [ORCHESTRATOR] '
+        'RTM evaluator → ${rtm == null ? "null" : "code=${rtm.code.wireName}"}',
+        name: 'AUDIT_VRC',
+      );
+    }
 
     // RC (hasta 2 alertas: contractual + extracontractual)
-    raw.addAll(buildRcAlerts(snapshot));
+    final rcAlerts = buildRcAlerts(snapshot);
+    raw.addAll(rcAlerts);
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    if (auditOn) {
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [ORCHESTRATOR] '
+        'RC evaluator → ${rcAlerts.length} alertas '
+        'codes=${rcAlerts.map((a) => a.code.wireName).toList()}',
+        name: 'AUDIT_VRC',
+      );
+    }
 
     // Legal (hasta 2 alertas: embargo + limitaciones)
-    raw.addAll(buildLegalAlerts(snapshot));
+    final legalAlerts = buildLegalAlerts(snapshot);
+    raw.addAll(legalAlerts);
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    if (auditOn) {
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [ORCHESTRATOR] '
+        'Legal evaluator → ${legalAlerts.length} alertas '
+        'codes=${legalAlerts.map((a) => a.code.wireName).toList()}',
+        name: 'AUDIT_VRC',
+      );
+    }
 
-    if (raw.isEmpty) return const [];
+    if (raw.isEmpty) {
+      // @audit-temp [AUDIT_VRC_DEBUG]
+      if (auditOn) {
+        dev.log(
+          '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [ORCHESTRATOR] EXIT '
+          'raw.isEmpty → AlertCenter recibirá 0 alertas para este activo.',
+          name: 'AUDIT_VRC',
+        );
+      }
+      return const [];
+    }
 
     // 3. Dedupe
     final deduped = dedupeAlerts(raw);
 
     // 4. Sort
-    return sortAlerts(deduped);
+    final sorted = sortAlerts(deduped);
+
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    if (auditOn) {
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [ORCHESTRATOR] EXIT '
+        'raw=${raw.length} deduped=${deduped.length} sorted=${sorted.length} '
+        'finalCodes=${sorted.map((a) => "${a.code.wireName}@${a.severity.name}").toList()}',
+        name: 'AUDIT_VRC',
+      );
+    }
+
+    return sorted;
   }
 }

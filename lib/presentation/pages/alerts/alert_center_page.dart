@@ -71,6 +71,19 @@ class AlertCenterPage extends GetView<AlertCenterController> {
           // ── Chips de filtro ──────────────────────────────────────────────
           _FilterChipsRow(controller: controller),
           const Divider(height: 1),
+          // ── Banner de drill-down por código (entrada desde Home agrupado) ─
+          // Solo visible cuando activeCodeFilter != null. Los chips quedan
+          // visualmente sin selección mientras el banner está activo —
+          // tap en "Quitar" o en cualquier chip restaura el modo categoría.
+          Obx(() {
+            final label = controller.activeCodeFilterLabel;
+            if (label == null) return const SizedBox.shrink();
+            return _CodeFilterBanner(
+              label: label,
+              onRemove: () =>
+                  controller.setFilter(AlertCenterFilter.all),
+            );
+          }),
           // ── Contenido principal ──────────────────────────────────────────
           Expanded(
             child: RefreshIndicator(
@@ -117,10 +130,86 @@ class _FilterChipsRow extends StatelessWidget {
         children: AlertCenterFilter.values
             .map((f) => Obx(() => _FilterChip(
                   filter: f,
-                  isSelected: controller.activeFilter.value == f,
+                  // Cuando hay drill-down por código, ningún chip se ve activo
+                  // — el banner es la única señal de filtro vigente. Tap en
+                  // cualquier chip limpia el code via setFilter().
+                  isSelected: controller.activeCodeFilter.value == null &&
+                      controller.activeFilter.value == f,
                   onTap: () => controller.setFilter(f),
                 )))
             .toList(),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CODE FILTER BANNER — drill-down desde Home
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Banner que comunica el filtro por [AlertCode] activo.
+///
+/// Solo visible cuando se llegó al Centro de Alertas con argumento de código
+/// (ej: desde el bloque agrupado del Home). Tap en el banner o en "Quitar"
+/// invoca [onRemove], que el caller cablea a `setFilter(AlertCenterFilter.all)`
+/// para salir del modo drill-down.
+class _CodeFilterBanner extends StatelessWidget {
+  final String label;
+  final VoidCallback onRemove;
+
+  const _CodeFilterBanner({
+    required this.label,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Material(
+      color: cs.primaryContainer.withValues(alpha: 0.4),
+      child: InkWell(
+        onTap: onRemove,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              Icon(Icons.filter_alt_rounded, size: 18, color: cs.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text.rich(
+                  TextSpan(
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: cs.onSurface,
+                    ),
+                    children: [
+                      const TextSpan(
+                        text: 'Filtrando: ',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      TextSpan(
+                        text: label,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                'Quitar',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: cs.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.close_rounded, size: 16, color: cs.primary),
+            ],
+          ),
+        ),
       ),
     );
   }

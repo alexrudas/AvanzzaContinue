@@ -36,6 +36,7 @@ import 'package:get/get.dart';
 
 import '../../../../core/di/container.dart';
 import '../../../../domain/entities/alerts/alert_code.dart';
+import '../../../../domain/entities/alerts/alert_fact_keys.dart';
 import '../../../../domain/entities/alerts/alert_kind.dart';
 import '../../../../domain/entities/alerts/alert_severity.dart';
 import '../../../../domain/entities/portfolio/portfolio_entity.dart';
@@ -177,6 +178,25 @@ class AdminHomeController extends GetxController {
   /// DISTINTO de [promotedAlertVms] — no contaminan el canal de riesgo.
   /// Actualizado por [_loadOpportunities()].
   final opportunityAlertVms = <AlertCardVm>[].obs;
+
+  /// Documentos compliance EN SEGUIMIENTO — vencimiento entre 8 y 30 días.
+  ///
+  /// Canal informativo, no urgente. Distinto de [promotedAlertVms]
+  /// (≤ 7 días o vencidos) y de [opportunityAlertVms] (señal comercial).
+  /// Permite al Home mostrar un bucket conceptual *"Documentos por vencer"*
+  /// agregado a nivel de activo (no por code), evitando ruido de SOAT/RTM/RC
+  /// como filas separadas cuando el usuario solo quiere "qué vigilar".
+  ///
+  /// Códigos incluidos (compliance documental con `dueSoon`):
+  ///   - soatDueSoon, rtmDueSoon
+  ///   - rcContractualDueSoon, rcExtracontractualDueSoon
+  ///
+  /// Filtro temporal: 7 < daysRemaining ≤ 30.
+  /// Excluye explícitamente lo que ya promueve a [promotedAlertVms] para
+  /// evitar doble cuenta en el Home.
+  ///
+  /// Actualizado por [_loadTrackingDocs()].
+  final trackingDocsVms = <AlertCardVm>[].obs;
 
   /// Single source of truth para cantidad de activos registrados.
   final RxInt assetsCount = 0.obs;
@@ -331,6 +351,7 @@ class AdminHomeController extends GetxController {
     _loadLocal();
     _loadPromotedAlerts();
     _loadOpportunities();
+    _loadTrackingDocs();
 
     // Workers reactivos: cuando userRx o membershipsRx cambian,
     // re-resolver orgId, sincronizar estado de sesión, y recargar datos.
@@ -381,22 +402,18 @@ class AdminHomeController extends GetxController {
       _userName.value = 'Usuario';
     }
 
-    // activeWorkspace
-    final rol = user?.activeContext?.rol;
-    _activeWorkspace.value =
-        (rol != null && rol.isNotEmpty) ? rol : 'Workspace';
+    // Fase 2 (KILL SWITCH ROL LEGACY): el "workspace activo" en el shell de
+    // admin de activos es siempre "Administrador". El switch a proveedor se
+    // hace navegando a Routes.providerMe desde el drawer.
+    _activeWorkspace.value = 'Administrador de activos';
 
-    // availableRoles (estatus normalizado: trim + lowercase)
-    final roles = memberships
-        .where((m) => (m.estatus).trim().toLowerCase() == 'activo')
-        .expand((m) => m.roles)
-        .toSet()
-        .toList();
-    roles.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    _availableRoles.assignAll(roles);
+    // availableRoles deja de poblarse desde m.roles. La UI legacy que lo
+    // consumía (selector de roles del shell) fue retirada con la migración
+    // a capabilities + isProvider.
+    _availableRoles.clear();
 
     _debugLog('_syncSessionState',
-        'user=${_userName.value} workspace=${_activeWorkspace.value} roles=${_availableRoles.length} memberships=${memberships.length}');
+        'user=${_userName.value} workspace=${_activeWorkspace.value} memberships=${memberships.length}');
   }
 
   /// Callback reactivo: se ejecuta cuando membershipsRx cambia.
@@ -424,6 +441,7 @@ class AdminHomeController extends GetxController {
       _loadLocal();
       _loadPromotedAlerts();
       _loadOpportunities();
+      _loadTrackingDocs();
     }
   }
 
@@ -442,6 +460,7 @@ class AdminHomeController extends GetxController {
     await _di.syncService.sync();
     _loadPromotedAlerts();
     _loadOpportunities();
+    _loadTrackingDocs();
   }
 
   Future<void> _loadLocal() async {
@@ -462,6 +481,7 @@ class AdminHomeController extends GetxController {
         events.clear();
         alerts.clear();
         opportunityAlertVms.clear();
+        trackingDocsVms.clear();
         return;
       }
 
@@ -651,6 +671,73 @@ class AdminHomeController extends GetxController {
     }
   }
 
+  /// Carga documentos compliance EN SEGUIMIENTO (8–30 días) para el Home.
+  ///
+  /// Tercer canal del Home, ortogonal a [promotedAlertVms] (urgente, ≤7d /
+  /// vencidos / ausentes) y a [opportunityAlertVms] (señal comercial). Su
+  /// propósito es dar señal de seguimiento sin contaminar el conteo de riesgo.
+  ///
+  /// Filtros:
+  ///   - alertKind == compliance (descarta opportunity y exemption).
+  ///   - code ∈ {soatDueSoon, rtmDueSoon, rcContractualDueSoon,
+  ///     rcExtracontractualDueSoon} (compliance documental con vencimiento
+  ///     próximo — no incluye missing/expired/legal/embargo).
+  ///   - facts[daysRemaining] como int, en rango (7, 30].
+  ///
+  /// El rango (7, 30] excluye explícitamente lo que ya promueve a Home por
+  /// la regla `_withinThreshold` del [AlertPromotionService] — evita doble
+  /// conteo y mantiene "urgente vs seguimiento" como buckets disjuntos.
+  ///
+  /// Nota de performance:
+  /// Hace una llamada propia a [allAlertsForOrg], igual que [_loadOpportunities].
+  /// Se aceptan dos pasadas en V1; si el coste se vuelve relevante, refactorizar
+  /// a un único `_loadAllAlertsAndDispatch` que popule los tres canales.
+  ///
+  /// Falla silenciosamente en release.
+  Future<void> _loadTrackingDocs() async {
+    try {
+      final orgId = _orgId;
+      if (orgId == null) {
+        trackingDocsVms.clear();
+        return;
+      }
+      final all = await _di.homeAlertAggregationService.allAlertsForOrg(orgId);
+      final tracking = all.where((a) {
+        if (a.alertKind != AlertKind.compliance) return false;
+        if (!_isTrackingDocCode(a.code)) return false;
+        final days = a.facts[AlertFactKeys.daysRemaining];
+        if (days is! int) return false;
+        // (7, 30] — disjunto con la ventana de promotion (≤7).
+        return days > 7 && days <= 30;
+      }).toList();
+      final vms = DomainAlertMapper.fromDomainList(tracking);
+      trackingDocsVms.assignAll(vms);
+    } catch (e, st) {
+      assert(() {
+        debugPrint('[AdminTrackingDocs] load failed: $e');
+        debugPrint('$st');
+        return true;
+      }());
+    }
+  }
+
+  /// True si el code es compliance documental con `dueSoon` — los únicos
+  /// códigos elegibles para el bucket "Documentos por vencer" del Home.
+  ///
+  /// Excluye intencionalmente:
+  ///   - missing/expired (ya están en promotedAlertVms).
+  ///   - rtmExempt (es exención, no alerta).
+  ///   - legal/embargo (no son documentales en el sentido "documento que vence").
+  ///   - rcExtracontractualOpportunity (canal de oportunidad).
+  static bool _isTrackingDocCode(AlertCode code) => switch (code) {
+        AlertCode.soatDueSoon ||
+        AlertCode.rtmDueSoon ||
+        AlertCode.rcContractualDueSoon ||
+        AlertCode.rcExtracontractualDueSoon =>
+          true,
+        _ => false,
+      };
+
   // ──────────────────────────────────────────────────────────────────────────
   // HELPER: Portfolio stream reactivo
   // ──────────────────────────────────────────────────────────────────────────
@@ -745,65 +832,21 @@ class AdminHomeController extends GetxController {
     });
   }
 
-  // M-2: prevención de ejecución concurrente de changeWorkspace
-  bool _isChangingWorkspace = false;
-
+  /// @Deprecated — Fase 2 (KILL SWITCH ROL LEGACY).
+  ///
+  /// El "cambio de rol" dentro del shell admin desapareció: para operar como
+  /// proveedor el usuario navega a `Routes.providerMe` (el drawer expone esa
+  /// puerta cuando `ProviderContextStore.isProvider == true`). El cambio
+  /// cross-org local vive en `SessionContextController.applyLocalActiveContext()`
+  /// y se invoca desde una UI dedicada de selección de organización.
+  @Deprecated(
+    'changeWorkspace ya no aplica. Navegar entre admin/proveedor se hace '
+    'vía drawer + Routes; el cambio cross-org local vive en applyLocalActiveContext().',
+  )
   Future<void> changeWorkspace(String newRole) async {
-    if (newRole == activeWorkspace || _isChangingWorkspace) return;
-    _isChangingWorkspace = true;
-
-    try {
-      final session = Get.find<SessionContextController>();
-      final user = session.user;
-      if (user == null) return;
-
-      // Buscar membership sin depender de firstWhereOrNull
-      dynamic targetMembership;
-      for (final m in session.memberships) {
-        final hasRole =
-            m.roles.any((r) => r.toLowerCase() == newRole.toLowerCase());
-        if (hasRole) {
-          targetMembership = m;
-          break;
-        }
-      }
-
-      if (targetMembership != null) {
-        // ignore: avoid_dynamic_calls
-        final targetOrgId = targetMembership.orgId as String;
-        final currentOrgId = user.activeContext?.orgId ?? '';
-        final isCrossOrg =
-            currentOrgId.isNotEmpty && targetOrgId != currentOrgId;
-
-        if (isCrossOrg) {
-          // Org switch real — pasa por backend + JWT sync.
-          await session.switchOrganization(
-            organizationId: targetOrgId,
-            targetWorkspaceRole: newRole,
-          );
-        } else {
-          // Cambio de rol dentro de la misma org — local.
-          // ignore: avoid_dynamic_calls
-          final newContext = user.activeContext?.copyWith(
-            orgId: targetOrgId,
-            orgName: targetMembership.orgName as String,
-            rol: newRole,
-          );
-          if (newContext != null) {
-            await session.setActiveContext(newContext);
-          }
-        }
-
-        uiEvent.value = const AdminUiEvent.redirect(route: Routes.home);
-      }
-    } catch (_) {
-      uiEvent.value = const AdminUiEvent.snackbar(
-        title: 'Error',
-        message: 'No se pudo cambiar el espacio de trabajo',
-      );
-    } finally {
-      _isChangingWorkspace = false;
-    }
+    debugPrint(
+      '[AdminHomeCtrl] changeWorkspace ignorado (legacy no-op) — newRole=$newRole',
+    );
   }
 
   void goToHome() {

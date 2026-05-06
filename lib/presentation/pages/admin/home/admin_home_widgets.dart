@@ -134,7 +134,9 @@ class AdminHeaderSection extends StatelessWidget {
     final cs = theme.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      // Asimétrico (14/12): mantenemos respiración con el status bar arriba,
+      // comprimimos abajo donde no se nota — gana ~6px para asomar Mi red.
+      padding: const EdgeInsets.fromLTRB(0, 14, 0, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1081,6 +1083,267 @@ class AdminEmptyStateActionSheetContent extends StatelessWidget {
                   ),
                 ],
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// LIST BLOCK (bloque agrupado tipo lista iOS)
+// ============================================================================
+//
+// QUÉ HACE:
+// - Renderiza un contenedor único agrupado con header + filas separadas por
+//   divider interno (patrón iOS list section).
+// - Densidad compacta, borde sutil, sin sombras fuertes.
+// - Reutilizable para cualquier sección Home que necesite "una sola tarjeta
+//   con varias filas" en lugar de múltiples cards.
+//
+// QUÉ NO HACE:
+// - No conoce el contenido de las filas (responsabilidad del consumer).
+// - No decide visibilidad ni cuántos ítems renderizar.
+// - No define colores semánticos — los recibe el tile.
+//
+// PRINCIPIOS:
+// - 100% presentacional. Sin GetX, sin navegación, sin lógica.
+// - Theme-first: ColorScheme/TextTheme para dark mode y consistencia M3.
+
+/// Contenedor agrupado tipo lista iOS con HEADER INTERNO.
+///
+/// Patrón: el título (y subtítulo opcional) viven DENTRO del mismo contenedor
+/// que los ítems, separados por un divider. Más compacto que el patrón previo
+/// con título externo + bloque debajo. Coherente con la convención de "una
+/// sola tarjeta agrupada por sección" (estilo iOS list section / Saniti).
+class AdminListBlock extends StatelessWidget {
+  /// Título del bloque (header interno).
+  final String title;
+
+  /// Subtítulo opcional bajo el título — ej: contador agregado, descripción
+  /// breve. Se renderiza solo cuando es no-null y no-vacío.
+  final String? subtitle;
+
+  /// Acción opcional a la derecha del header (ej: "Ver todos").
+  final Widget? trailing;
+
+  /// Filas del bloque. Se separan automáticamente con dividers internos.
+  /// Un divider adicional separa el header de la primera fila (si hay filas).
+  final List<Widget> children;
+
+  const AdminListBlock({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final hasChildren = children.isNotEmpty;
+    final hasSubtitle = subtitle != null && subtitle!.isNotEmpty;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: cs.outlineVariant.withValues(alpha: 0.6),
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header interno: título + subtítulo opcional + trailing opcional.
+            // Densidad iOS-style — 12/12 simétrico mantiene respiración del
+            // subtítulo bajo el divider sin sentirse apretado.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        if (hasSubtitle) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle!,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (trailing != null) ...[
+                    const SizedBox(width: 8),
+                    trailing!,
+                  ],
+                ],
+              ),
+            ),
+
+            // Divider entre header e ítems (solo si hay filas)
+            if (hasChildren)
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: cs.outlineVariant.withValues(alpha: 0.5),
+              ),
+
+            // Filas con dividers internos entre ellas
+            ..._withDividers(context, children),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Intercala un divider sutil entre cada par de filas (no antes ni después).
+  /// Indent alineado al final del icono para consistencia con el patrón iOS.
+  List<Widget> _withDividers(BuildContext context, List<Widget> tiles) {
+    if (tiles.length <= 1) return tiles;
+    final cs = Theme.of(context).colorScheme;
+    final result = <Widget>[];
+    for (var i = 0; i < tiles.length; i++) {
+      result.add(tiles[i]);
+      if (i != tiles.length - 1) {
+        result.add(Divider(
+          height: 1,
+          thickness: 1,
+          indent: 58,
+          color: cs.outlineVariant.withValues(alpha: 0.5),
+        ));
+      }
+    }
+    return result;
+  }
+}
+
+/// Fila estándar dentro de un [AdminListBlock] — patrón iOS list tile.
+///
+/// Renderiza icono coloreado + título + subtítulo opcional + trailing opcional.
+/// Soporta tap (CTA implícito); cuando [onTap] es no-null muestra chevron.
+class AdminListBlockTile extends StatelessWidget {
+  /// Icono mostrado en el círculo izquierdo.
+  final IconData icon;
+
+  /// Color del icono y de su fondo (con alpha bajo). Si es null usa cs.primary.
+  final Color? iconColor;
+
+  /// Título principal de la fila.
+  final String title;
+
+  /// Subtítulo opcional (1 línea, truncado con ellipsis).
+  final String? subtitle;
+
+  /// Trailing opcional: valor numérico, label, o cualquier widget.
+  /// Si [onTap] está presente se agrega chevron automáticamente.
+  final Widget? trailing;
+
+  /// Callback de tap. Cuando es null, la fila no es interactiva (sin chevron).
+  final VoidCallback? onTap;
+
+  const AdminListBlockTile({
+    super.key,
+    required this.icon,
+    this.iconColor,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final color = iconColor ?? cs.primary;
+    final interactive = onTap != null;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          // vertical:10 — altura final del tile ~52px, por encima del mínimo
+          // de tap target de Material Design (48px). Densidad iOS sin riesgo.
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            children: [
+              // Icono con fondo coloreado (alpha bajo, densidad iOS)
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 18),
+              ),
+              const SizedBox(width: 12),
+
+              // Título + subtítulo
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (subtitle != null && subtitle!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              // Trailing custom + chevron si es interactivo
+              if (trailing != null) ...[
+                const SizedBox(width: 8),
+                trailing!,
+              ],
+              if (interactive) ...[
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: cs.onSurfaceVariant,
+                  size: 20,
+                ),
+              ],
             ],
           ),
         ),

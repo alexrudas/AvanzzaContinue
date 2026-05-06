@@ -15,12 +15,26 @@ import '../../../entities/alerts/alert_severity.dart';
 import '../../../entities/alerts/domain_alert.dart';
 import '../asset_alert_snapshot.dart';
 
-// Placas bajo diagnóstico activo — remover tras validar WPV583/WPV585/WGA960.
-const _kRtmDebugTargets = {'WPV583', 'WPV585', 'WGA960'};
+// @audit-temp [AUDIT_VRC_DEBUG] — diagnóstico end-to-end VRC → AlertCenter.
+// Eliminar tras validar las 4 placas. Buscar prefijo "[AUDIT_VRC_DEBUG]".
+const _kRtmDebugTargets = {'WPV760', 'WPV583', 'WPV585', 'WGA960'};
+bool _rtmAuditMatch(String? placa) =>
+    placa != null && _kRtmDebugTargets.contains(placa.trim().toUpperCase());
 
 DomainAlert? buildRtmAlert(AssetAlertSnapshot snapshot) {
   final nowUtc = DateTime.now().toUtc();
   final today = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day);
+
+  // @audit-temp [AUDIT_VRC_DEBUG]
+  final auditOn = _rtmAuditMatch(snapshot.placa);
+  if (auditOn) {
+    dev.log(
+      '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [RTM_EVAL] ENTER '
+      'rtmVigencia=${snapshot.rtmVigencia?.toIso8601String() ?? "null"} '
+      'rtmExemptUntil=${snapshot.rtmExemptUntil?.toIso8601String() ?? "null"}',
+      name: 'AUDIT_VRC',
+    );
+  }
 
   // ── 1. EXENCIÓN ───────────────────────────────────────────────────────────
   final exemptUntil = snapshot.rtmExemptUntil;
@@ -30,6 +44,14 @@ DomainAlert? buildRtmAlert(AssetAlertSnapshot snapshot) {
         DateTime.utc(exemptUntil.year, exemptUntil.month, exemptUntil.day);
 
     if (!exemptDay.isBefore(today)) {
+      // @audit-temp [AUDIT_VRC_DEBUG]
+      if (auditOn) {
+        dev.log(
+          '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [RTM_EVAL] '
+          'EXIT → rtmExempt (exemptUntil=$exemptUntil)',
+          name: 'AUDIT_VRC',
+        );
+      }
       final diasRestantes = exemptDay.difference(today).inDays;
 
       final dedupeKey = '${AlertCode.rtmExempt.wireName}:${snapshot.assetId}';
@@ -65,11 +87,14 @@ DomainAlert? buildRtmAlert(AssetAlertSnapshot snapshot) {
   final vigencia = snapshot.rtmVigencia;
 
   if (vigencia == null) {
-    if (_kRtmDebugTargets.contains(snapshot.assetPrimaryLabel.toUpperCase())) {
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    if (auditOn) {
       dev.log(
-        '[${snapshot.assetPrimaryLabel}] rtmVigencia=NULL → '
-        'generando rtmExpired FALSO (revisar runtMetaJson del assembler)',
-        name: 'RTM_EVALUATOR',
+        '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [RTM_EVAL] '
+        'rtmVigencia=NULL y sin exención → genera rtmExpired CRÍTICO. '
+        'Si el RTM real es vigente, el bug está aguas arriba '
+        '(assembler._parseRtmFromMeta o ingestión runtMetaJson).',
+        name: 'AUDIT_VRC',
       );
     }
     final dedupeKey = '${AlertCode.rtmExpired.wireName}:${snapshot.assetId}';
@@ -104,13 +129,17 @@ DomainAlert? buildRtmAlert(AssetAlertSnapshot snapshot) {
 
   final diasRestantes = vigenciaDay.difference(today).inDays;
 
-  if (_kRtmDebugTargets.contains(snapshot.assetPrimaryLabel.toUpperCase())) {
-    final codePreview = diasRestantes < 0 ? 'rtmExpired' : 'rtmDueSoon';
+  // @audit-temp [AUDIT_VRC_DEBUG]
+  if (auditOn) {
+    final willEmit = diasRestantes <= 30;
+    final codePreview = !willEmit
+        ? 'NULL (diasRestantes>30 → no urgencia)'
+        : (diasRestantes < 0 ? 'rtmExpired' : 'rtmDueSoon');
     dev.log(
-      '[${snapshot.assetPrimaryLabel}] '
+      '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [RTM_EVAL] '
       'vigencia_raw=$vigencia vigenciaDay=$vigenciaDay today=$today '
       'diasRestantes=$diasRestantes → code=$codePreview',
-      name: 'RTM_EVALUATOR',
+      name: 'AUDIT_VRC',
     );
   }
 

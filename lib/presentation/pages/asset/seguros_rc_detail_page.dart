@@ -37,6 +37,20 @@
 //   saneamiento del modelo de seguros. Complementa el tile Seguros RC del grid
 //   de estado del vehículo en AssetDetailPage. Los dos bloques permanentes
 //   permiten diagnosticar inconsistencias provenientes del RUNT.
+// ACTUALIZADO (2026-04): Entry-point canónico de alertas "Riesgo patrimonial"
+//   (rcExtracontractual*). DomainAlertMapper ahora enruta esos códigos a esta
+//   page vía /asset/insurance/rc, y el Upsell Card actúa como puente al flujo
+//   SRCE (/insurance/rc/quote/request). El branch tipado de
+//   _navigateToQuoteRequest (RcQuoteRequestArgs con VehicleSnapshot) quedó
+//   activo; se conserva el fallback Map minimal como defensa ante entradas
+//   sin AssetDetailRuntController hidratado.
+// ACTUALIZADO (2026-04): Hidratación unificada del VehicleSnapshot. Antes el
+//   snapshot solo se poblaba cuando AssetDetailRuntController estaba en memoria
+//   (entry canónico String). Ahora [_loadData] paraleliza fetch de pólizas +
+//   AssetRepository.getAssetDetails cuando la entrada es Map (alerta), vía
+//   [VehicleSnapshot.fromVehiculo]. Ambos caminos terminan en un snapshot
+//   válido, por lo que el Upsell Card lleva a RcQuoteRequestPage con el CTA
+//   habilitado en cualquier entry-point.
 // ============================================================================
 
 import 'package:flutter/foundation.dart';
@@ -46,6 +60,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/di/container.dart';
 import '../../../core/theme/spacing.dart';
+import '../../../domain/entities/asset/special/asset_vehiculo_entity.dart';
 import '../../../domain/entities/insurance/insurance_opportunity_lead.dart';
 import '../../../domain/entities/insurance/insurance_policy_entity.dart';
 import '../../../routes/app_routes.dart';
@@ -119,41 +134,69 @@ class _SegurosRcDetailPageState extends State<SegurosRcDetailPage> {
   @override
   void initState() {
     super.initState();
+    _initFromArgs();
+  }
+
+  /// Resuelve assetId y labels desde [Get.arguments] e intenta el fast-path
+  /// de hidratación vía [AssetDetailRuntController].
+  ///
+  /// Entradas soportadas:
+  ///   - `String assetId`          → entry canónico (AssetDetailPage → RUNT → Seguros RC).
+  ///     El controller RUNT está en memoria, aportamos labels y snapshot sin fetch.
+  ///   - `Map{assetId, primaryLabel, secondaryLabel}` → entry desde AlertCenter /
+  ///     FleetAlertDetailPage. El controller RUNT NO está en memoria; [_loadData]
+  ///     hidrata el snapshot desde [AssetRepository] como puente defensivo.
+  ///
+  /// La separación permite que [_loadData] paralelice fetch de pólizas +
+  /// carga del vehículo solo cuando es necesario.
+  void _initFromArgs() {
     final args = Get.arguments;
     String? assetId;
-    if (args is Map) {
-      // Entry point: AlertCenter — labels viajan en el Map junto al assetId.
-      assetId = args['assetId'] as String?;
-      _assetPrimaryLabel = (args['primaryLabel'] as String?) ?? '';
-      _assetSecondaryLabel = args['secondaryLabel'] as String?;
-    } else if (args is String && args.isNotEmpty) {
-      // Entry point: AssetDetailPage → labels y snapshot desde AssetDetailRuntController.
+
+    if (args is String && args.isNotEmpty) {
       assetId = args;
-      try {
-        final runtCtrl = Get.find<AssetDetailRuntController>();
-        _assetPrimaryLabel = runtCtrl.vehiclePrimaryLabel;
-        _assetSecondaryLabel = runtCtrl.vehicleSecondaryLabel;
-        _vehicleSnapshotForQuote = runtCtrl.vehicleSnapshotForQuote;
-      } catch (_) {}
+    } else if (args is Map) {
+      assetId = args['assetId'] as String?;
+      _assetPrimaryLabel = (args['primaryLabel'] as String?)?.trim() ?? '';
+      _assetSecondaryLabel = (args['secondaryLabel'] as String?)?.trim();
     }
-    if (assetId != null && assetId.isNotEmpty) {
-      _assetId = assetId;
-      _loadData(assetId);
-    } else {
+
+    if (assetId == null || assetId.isEmpty) {
       _state = _PageState.invalidArg;
+      return;
     }
+
+    _assetId = assetId;
+
+    // Fast-path: reusar AssetDetailRuntController si ya está registrado.
+    // Evita un fetch redundante al repositorio cuando la entrada viene del
+    // flujo canónico (AssetDetailPage → RuntConsultPage → Seguros RC).
+    try {
+      final runtCtrl = Get.find<AssetDetailRuntController>();
+      if (_assetPrimaryLabel.isEmpty) {
+        _assetPrimaryLabel = runtCtrl.vehiclePrimaryLabel;
+      }
+      _assetSecondaryLabel ??= runtCtrl.vehicleSecondaryLabel;
+      _vehicleSnapshotForQuote = runtCtrl.vehicleSnapshotForQuote;
+    } catch (_) {
+      // Controller no registrado — [_loadData] hidratará desde AssetRepository.
+    }
+
+    _loadData(assetId);
   }
 
   /// Navega al flujo de cotización SRCE pasando el contrato tipado.
   ///
-  /// Si el snapshot no está disponible (entrada desde AlertCenter sin
-  /// AssetDetailRuntController), el botón no se muestra — ver [showUpsell]
-  /// en [_RcContent].
+  /// Si [_vehicleSnapshotForQuote] está hidratado (entrada canónica vía
+  /// AssetDetailRuntController desde RuntConsultPage), se navega con
+  /// [RcQuoteRequestArgs] tipado y la page habilita el CTA de submit.
+  ///
+  /// Si no está disponible (entrada residual sin controller RUNT en memoria),
+  /// se navega con Map minimal — la page muestra banner de contrato inválido.
+  /// Comportamiento defensivo: el error al usuario es explícito, no silencioso.
   void _navigateToQuoteRequest() {
     final snapshot = _vehicleSnapshotForQuote;
 
-    // Si el snapshot no está disponible, navega igual con Map minimal.
-    // La request page muestra el error específico al usuario — no silenciamos aquí.
     if (snapshot == null) {
       Get.toNamed(
         Routes.rcQuoteRequest,
@@ -177,14 +220,31 @@ class _SegurosRcDetailPageState extends State<SegurosRcDetailPage> {
     );
   }
 
-  /// Carga todas las pólizas del activo y separa RC Contractual / Extracontractual.
+  /// Carga pólizas del activo y, si hace falta, hidrata el [VehicleSnapshot]
+  /// desde el repositorio.
+  ///
+  /// Paraleliza ambos fetches cuando el snapshot no vino pre-cargado desde
+  /// [AssetDetailRuntController] (entry desde AlertCenter). La hidratación
+  /// cierra el gap que antes dejaba el CTA de cotización deshabilitado.
   Future<void> _loadData(String assetId) async {
     try {
-      final all = await DIContainer()
-          .insuranceRepository
-          .fetchPoliciesByAsset(assetId);
+      final insuranceRepo = DIContainer().insuranceRepository;
+      final assetRepo = DIContainer().assetRepository;
+
+      final needsHydration = _vehicleSnapshotForQuote == null;
+
+      final policiesFuture = insuranceRepo.fetchPoliciesByAsset(assetId);
+      final detailsFuture =
+          needsHydration ? assetRepo.getAssetDetails(assetId) : null;
+
+      final all = await policiesFuture;
+      final details = await detailsFuture;
 
       if (!mounted) return;
+
+      if (details?.vehiculo != null) {
+        _hydrateFromVehiculo(details!.vehiculo!);
+      }
 
       final rcC = all
           .where((p) => p.policyType == InsurancePolicyType.rcContractual)
@@ -210,6 +270,25 @@ class _SegurosRcDetailPageState extends State<SegurosRcDetailPage> {
     }
   }
 
+  /// Hidrata [VehicleSnapshot] y labels desde una [AssetVehiculoEntity].
+  ///
+  /// Mantiene paridad semántica con
+  /// [AssetDetailRuntController.updateFromVehiculo]: ambos caminos construyen
+  /// el snapshot vía [VehicleSnapshot.fromVehiculo]. Los labels provenientes
+  /// del Map (entry alerta) tienen precedencia: solo se rellenan los vacíos.
+  void _hydrateFromVehiculo(AssetVehiculoEntity vehiculo) {
+    _vehicleSnapshotForQuote = VehicleSnapshot.fromVehiculo(vehiculo);
+
+    if (_assetPrimaryLabel.isEmpty && vehiculo.placa.isNotEmpty) {
+      _assetPrimaryLabel = vehiculo.placa;
+    }
+    _assetSecondaryLabel ??= buildVehicleSecondaryLabel(
+      vehiculo.marca,
+      vehiculo.modelo,
+      vehiculo.anio,
+    );
+  }
+
   /// Sort determinístico para listas de pólizas RC.
   ///
   /// Orden de criterios:
@@ -225,8 +304,7 @@ class _SegurosRcDetailPageState extends State<SegurosRcDetailPage> {
   void _sortRc(List<InsurancePolicyEntity> list) {
     list.sort((a, b) {
       // 1° fecha calendario local descendente
-      final cmp =
-          _calendarDay(b.fechaFin).compareTo(_calendarDay(a.fechaFin));
+      final cmp = _calendarDay(b.fechaFin).compareTo(_calendarDay(a.fechaFin));
       if (cmp != 0) return cmp;
 
       // 2° createdAt descendente — null → antigüedad máxima (sentinel)
@@ -360,8 +438,7 @@ class _RcContent extends StatelessWidget {
     // Upsell visible cuando rcE está vacío o la póliza más reciente está vencida.
     // Mismo criterio de vencimiento que _PolicyCard: _calendarDay(fechaFin) < hoy.
     final showUpsell = rcE.isEmpty ||
-        _calendarDay(rcE.first.fechaFin)
-            .isBefore(_calendarDay(DateTime.now()));
+        _calendarDay(rcE.first.fechaFin).isBefore(_calendarDay(DateTime.now()));
 
     return ListView(
       padding: const EdgeInsets.symmetric(
@@ -427,8 +504,7 @@ class _RcContent extends StatelessWidget {
           _SectionLabel(label: 'Historial', cs: cs, theme: theme),
           if (histC.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
-            _SubHistoryLabel(
-                label: 'RC Contractual', cs: cs, theme: theme),
+            _SubHistoryLabel(label: 'RC Contractual', cs: cs, theme: theme),
             const SizedBox(height: AppSpacing.xs),
             for (final p in histC) ...[
               _PolicyCard(
@@ -524,8 +600,7 @@ class _PolicyCard extends StatelessWidget {
 
     if (days < 0) {
       return _VigenciaInfo(
-        label:
-            'Vencida hace ${days.abs()} día${days.abs() == 1 ? '' : 's'}',
+        label: 'Vencida hace ${days.abs()} día${days.abs() == 1 ? '' : 's'}',
         badgeText: 'Vencida',
         color: cs.error,
       );
@@ -563,9 +638,8 @@ class _PolicyCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: isHighlighted
-            ? cs.surfaceContainerLow
-            : cs.surfaceContainerLowest,
+        color:
+            isHighlighted ? cs.surfaceContainerLow : cs.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isHighlighted
@@ -766,13 +840,12 @@ class _DateRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon,
-            size: 14, color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
+        Icon(icon, size: 14, color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
         const SizedBox(width: 6),
         Text(
           '$label: ',
-          style: theme.textTheme.labelSmall
-              ?.copyWith(color: cs.onSurfaceVariant),
+          style:
+              theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant),
         ),
         Text(
           value,

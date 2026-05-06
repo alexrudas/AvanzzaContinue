@@ -41,6 +41,8 @@
 //   severity low y promotionPolicy aggregateOnly.
 // ============================================================================
 
+import 'dart:developer' as dev;
+
 import 'package:uuid/uuid.dart';
 
 import '../../../entities/alerts/alert_audience.dart';
@@ -56,6 +58,17 @@ import '../../../entities/alerts/vehicle_service_category.dart';
 import '../../../entities/insurance/insurance_policy_entity.dart';
 import '../asset_alert_snapshot.dart';
 
+// @audit-temp [AUDIT_VRC_DEBUG] — diagnóstico end-to-end VRC → AlertCenter.
+// Eliminar tras validar las 4 placas. Buscar prefijo "[AUDIT_VRC_DEBUG]".
+const Set<String> _kRcAuditPlates = {
+  'WPV760',
+  'WPV583',
+  'WPV585',
+  'WGA960',
+};
+bool _rcAuditMatch(String? placa) =>
+    placa != null && _kRcAuditPlates.contains(placa.trim().toUpperCase());
+
 // ─────────────────────────────────────────────────────────────────────────────
 // API PÚBLICA
 // ─────────────────────────────────────────────────────────────────────────────
@@ -70,6 +83,18 @@ import '../asset_alert_snapshot.dart';
 List<DomainAlert> buildRcAlerts(AssetAlertSnapshot snapshot) {
   final alerts = <DomainAlert>[];
 
+  // @audit-temp [AUDIT_VRC_DEBUG]
+  final auditOn = _rcAuditMatch(snapshot.placa);
+  if (auditOn) {
+    dev.log(
+      '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [RC_EVAL] ENTER '
+      'rcContractual=${snapshot.rcContractualPolicy == null ? "null" : "id=${snapshot.rcContractualPolicy!.id} fechaFin=${snapshot.rcContractualPolicy!.fechaFin.toIso8601String()}"} '
+      'rcExtra=${snapshot.rcExtracontractualPolicy == null ? "null" : "id=${snapshot.rcExtracontractualPolicy!.id} fechaFin=${snapshot.rcExtracontractualPolicy!.fechaFin.toIso8601String()}"} '
+      'serviceCategory=${snapshot.vehicleServiceCategory.wireName}',
+      name: 'AUDIT_VRC',
+    );
+  }
+
   // ── RC Contractual ────────────────────────────────────────────────────────
   if (snapshot.rcContractualPolicy != null) {
     final alert = _evaluate(
@@ -80,6 +105,14 @@ List<DomainAlert> buildRcAlerts(AssetAlertSnapshot snapshot) {
       policyTypeWire: InsurancePolicyType.rcContractual.toWireString(),
     );
     if (alert != null) alerts.add(alert);
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    if (auditOn) {
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [RC_EVAL] '
+        'CONTRACTUAL → ${alert == null ? "null (>30 días, sin urgencia)" : "code=${alert.code.wireName} severity=${alert.severity.name}"}',
+        name: 'AUDIT_VRC',
+      );
+    }
   } else {
     final missing = _evaluateMissing(
       snapshot: snapshot,
@@ -88,6 +121,14 @@ List<DomainAlert> buildRcAlerts(AssetAlertSnapshot snapshot) {
       isContractual: true,
     );
     if (missing != null) alerts.add(missing);
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    if (auditOn) {
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [RC_EVAL] '
+        'CONTRACTUAL ausente → ${missing == null ? "null (no aplica para serviceCategory)" : "missing code=${missing.code.wireName}"}',
+        name: 'AUDIT_VRC',
+      );
+    }
   }
 
   // ── RC Extracontractual ───────────────────────────────────────────────────
@@ -100,6 +141,14 @@ List<DomainAlert> buildRcAlerts(AssetAlertSnapshot snapshot) {
       policyTypeWire: InsurancePolicyType.rcExtracontractual.toWireString(),
     );
     if (alert != null) alerts.add(alert);
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    if (auditOn) {
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [RC_EVAL] '
+        'EXTRACONTRACTUAL → ${alert == null ? "null (>30 días, sin urgencia)" : "code=${alert.code.wireName} severity=${alert.severity.name}"}',
+        name: 'AUDIT_VRC',
+      );
+    }
   } else {
     final missing = _evaluateMissing(
       snapshot: snapshot,
@@ -108,6 +157,24 @@ List<DomainAlert> buildRcAlerts(AssetAlertSnapshot snapshot) {
       isContractual: false,
     );
     if (missing != null) alerts.add(missing);
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    if (auditOn) {
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [RC_EVAL] '
+        'EXTRACONTRACTUAL ausente → ${missing == null ? "null (no aplica)" : "${missing.code.wireName} (kind=${missing.alertKind.name})"}',
+        name: 'AUDIT_VRC',
+      );
+    }
+  }
+
+  // @audit-temp [AUDIT_VRC_DEBUG]
+  if (auditOn) {
+    dev.log(
+      '[AUDIT_VRC_DEBUG] [${snapshot.placa}] [RC_EVAL] EXIT '
+      'alertsProduced=${alerts.length} '
+      'codes=${alerts.map((a) => a.code.wireName).toList()}',
+      name: 'AUDIT_VRC',
+    );
   }
 
   return alerts;

@@ -122,6 +122,17 @@ class AlertCenterController extends GetxController {
   /// Filtro activo de la UI.
   final activeFilter = AlertCenterFilter.all.obs;
 
+  /// Código de alerta específico activo — drill-down desde el Home agrupado.
+  ///
+  /// Cuando es no-null, [filteredAlerts] ignora [activeFilter] y solo retorna
+  /// las alertas cuyo [AlertCardVm.code] coincide. Se setea en [onInit] si
+  /// [Get.arguments] coincide con un [AlertCode] válido. Se limpia
+  /// automáticamente al invocar [setFilter] (interacción manual con chips).
+  ///
+  /// Diseño: NO se limpia en [loadAlerts] ni [refreshAlerts] — el drill-down
+  /// debe sobrevivir a un pull-to-refresh para preservar el contexto del usuario.
+  final Rx<AlertCode?> activeCodeFilter = Rx<AlertCode?>(null);
+
   // ── Dependencias ───────────────────────────────────────────────────────────
 
   /// Contexto de sesión actual.
@@ -133,12 +144,23 @@ class AlertCenterController extends GetxController {
 
   // ── Getters derivados ──────────────────────────────────────────────────────
 
-  /// Alertas filtradas por [activeFilter].
+  /// Alertas filtradas por [activeCodeFilter] (drill-down) o [activeFilter] (chips).
   ///
   /// Derivado puro: sin estado adicional, sin lista paralela.
+  /// Prioridad:
+  ///   1. [activeCodeFilter] != null → solo alertas con ese code exacto.
+  ///   2. [activeFilter] → categoría de la UI (chips).
   List<AlertCardVm> get filteredAlerts {
     final all = alerts;
 
+    // Prioridad 1: drill-down por código específico (entrada desde Home).
+    // Ignora la categoría de chips mientras esté activo.
+    final code = activeCodeFilter.value;
+    if (code != null) {
+      return all.where((v) => v.code == code).toList();
+    }
+
+    // Prioridad 2: filtro de categoría manual (chips).
     return switch (activeFilter.value) {
       AlertCenterFilter.all => all,
       AlertCenterFilter.critical =>
@@ -161,22 +183,53 @@ class AlertCenterController extends GetxController {
   /// Indica si no hay alertas cargadas actualmente.
   bool get isEmpty => alerts.isEmpty;
 
+  /// Título resuelto del [activeCodeFilter], o null si no hay drill-down activo.
+  ///
+  /// Consumido por la UI para renderizar el banner *"Filtrando: X · Quitar"*.
+  /// Reusa la fuente única de verdad para títulos de alertas
+  /// ([DomainAlertMapper.resolveTitle]) — no duplica el switch.
+  String? get activeCodeFilterLabel {
+    final code = activeCodeFilter.value;
+    if (code == null) return null;
+    return DomainAlertMapper.resolveTitle(code);
+  }
+
   // ── Ciclo de vida ──────────────────────────────────────────────────────────
 
   @override
   void onInit() {
     super.onInit();
 
-    // Soporte para navegación directa a un filtro específico.
-    // Uso: Get.toNamed(Routes.alertCenter, arguments: 'opportunities')
-    // El caller pasa el nombre del filtro como String; si coincide con un
-    // valor habilitado en V1, se activa antes de la primera carga.
+    // ── Parsing robusto del argumento de navegación ──────────────────────────
+    //
+    // Soporta tres formatos de String, en orden de prioridad:
+    //   1. AlertCenterFilter.name habilitado en V1 (ej: 'opportunities')
+    //      → setea activeFilter.
+    //   2. AlertCode.name (camelCase Dart por defecto, ej: 'soatExpired')
+    //      → setea activeCodeFilter (drill-down).
+    //   3. AlertCode.wireName (snake_case wire-stable, ej: 'soat_expired')
+    //      → setea activeCodeFilter (defensivo ante callers que envíen el
+    //        contrato wire en lugar del .name).
+    //
+    // CONVENCIÓN DE MANTENIMIENTO: los nombres de AlertCenterFilter NO deben
+    // colisionar con nombres de AlertCode. Si en el futuro se agrega un
+    // AlertCode con el mismo .name que un filter (ej: AlertCode.documents),
+    // filter tiene prioridad por orden de evaluación. Documentar el caso
+    // antes de introducir colisiones.
+    //
+    // Cualquier valor no reconocido cae silenciosamente en
+    // AlertCenterFilter.all (default) — coherente con el comportamiento previo.
     final arg = Get.arguments;
     if (arg is String && arg.isNotEmpty) {
-      final match = AlertCenterFilter.values.where(
-        (f) => f.name == arg && f.isEnabledInV1,
-      );
-      if (match.isNotEmpty) activeFilter.value = match.first;
+      final filterMatch = _tryParseFilter(arg);
+      if (filterMatch != null) {
+        activeFilter.value = filterMatch;
+      } else {
+        final codeMatch = _tryParseAlertCode(arg);
+        if (codeMatch != null) {
+          activeCodeFilter.value = codeMatch;
+        }
+      }
     }
 
     // V1:
@@ -191,8 +244,14 @@ class AlertCenterController extends GetxController {
   /// Cambia el filtro activo de la UI.
   ///
   /// Los filtros de Fase 6 se ignoran mientras estén deshabilitados.
+  /// Sale del modo drill-down: limpia [activeCodeFilter] cuando el usuario
+  /// interactúa manualmente con los chips.
   void setFilter(AlertCenterFilter filter) {
     if (!filter.isEnabledInV1) return;
+    // Drill-down y filtro manual son mutuamente excluyentes desde el punto de
+    // vista de UX. Refresh y carga inicial NO limpian activeCodeFilter para
+    // preservar el contexto del usuario en pull-to-refresh.
+    activeCodeFilter.value = null;
     activeFilter.value = filter;
   }
 
@@ -261,6 +320,33 @@ class AlertCenterController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  // ── Helpers de parsing del argumento ───────────────────────────────────────
+
+  /// Intenta resolver [arg] contra [AlertCenterFilter.name] habilitado en V1.
+  ///
+  /// Retorna null si no hay match. Iteración manual en lugar de
+  /// `firstWhere` para evitar la excepción que lanza ese método cuando no
+  /// encuentra elemento — fallback explícito al caller.
+  static AlertCenterFilter? _tryParseFilter(String arg) {
+    for (final f in AlertCenterFilter.values) {
+      if (f.name == arg && f.isEnabledInV1) return f;
+    }
+    return null;
+  }
+
+  /// Intenta resolver [arg] contra [AlertCode], aceptando dos formatos:
+  ///   - .name      → camelCase, default Dart (ej: 'soatExpired').
+  ///   - .wireName  → snake_case, contrato wire-stable (ej: 'soat_expired').
+  ///
+  /// Defensivo ante callers que envíen cualquiera de los dos formatos.
+  /// Retorna null si no hay match — el caller decide el fallback.
+  static AlertCode? _tryParseAlertCode(String arg) {
+    for (final c in AlertCode.values) {
+      if (c.name == arg || c.wireName == arg) return c;
+    }
+    return null;
   }
 
   // ── Helpers de categoría ───────────────────────────────────────────────────
