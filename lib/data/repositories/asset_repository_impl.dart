@@ -129,7 +129,7 @@ class AssetRepositoryImpl implements AssetRepository {
           assetType: assetType,
           cityId: cityId,
         );
-        _safeAdd(controller, locals.map((e) => e.toEntity()).toList());
+        _safeAdd(controller, await Future.wait(locals.map(_toEnrichedEntity)));
 
         final remotesResult = await remote.listAssetsByOrg(
           orgId,
@@ -144,7 +144,7 @@ class AssetRepositoryImpl implements AssetRepository {
           assetType: assetType,
           cityId: cityId,
         );
-        _safeAdd(controller, updated.map((e) => e.toEntity()).toList());
+        _safeAdd(controller, await Future.wait(updated.map(_toEnrichedEntity)));
       } finally {
         await _safeClose(controller);
       }
@@ -174,7 +174,7 @@ class AssetRepositoryImpl implements AssetRepository {
       await _syncAssets(locals, remotesResult.items);
     }());
 
-    return locals.map((e) => e.toEntity()).toList();
+    return Future.wait(locals.map(_toEnrichedEntity));
   }
 
   Future<void> _syncAssets(
@@ -889,18 +889,31 @@ class AssetRepositoryImpl implements AssetRepository {
     // timestamps, metadata). El content es placeholder — se reemplaza abajo.
     final base = model.toEntity();
 
-    // Paso 2: solo los vehículos tienen AssetVehiculoModel en Isar.
-    if (model.assetType != 'vehicle') {
-      if (kDebugMode) {
-        debugPrint(
-          '[AUDIT][ENRICH_ENTITY] assetId=${model.id} '
-          'assetType=${model.assetType} → no-vehicle, usando toEntity()',
-        );
-      }
-      return base;
+    // Paso 2: despachar al enriquecedor por tipo.
+    // Solo se enriquece cuando existe una fuente local real (AssetVehiculoModel,
+    // AssetInmuebleModel, AssetMaquinariaModel). Para tipos sin fuente real
+    // (equipment) se conserva el fallback de toEntity() — no se inventa data.
+    switch (model.assetType) {
+      case 'vehicle':
+        return _enrichVehicle(model, base);
+      case 'real_estate':
+        return _enrichRealEstate(model, base);
+      case 'machinery':
+        return _enrichMachinery(model, base);
+      default:
+        if (kDebugMode) {
+          debugPrint(
+            '[AUDIT][ENRICH_ENTITY] assetId=${model.id} '
+            'assetType=${model.assetType} → sin fuente enriquecida real, '
+            'usando toEntity()',
+          );
+        }
+        return base;
     }
+  }
 
-    // Paso 3: leer especialización vehicular de Isar.
+  // ── Enriquecedor: vehículo ────────────────────────────────────────────────
+  Future<AssetEntity> _enrichVehicle(AssetModel model, AssetEntity base) async {
     final veh = await local.getVehiculo(model.id);
 
     if (kDebugMode) {
@@ -983,6 +996,87 @@ class AssetRepositoryImpl implements AssetRepository {
       content: realContent,
       assetKey: realContent.assetKey,
       metadata: enrichedMeta,
+    );
+  }
+
+  // ── Enriquecedor: inmueble ────────────────────────────────────────────────
+  // Fuente real: AssetInmuebleModel (matrícula inmobiliaria, m², uso, estrato,
+  // valor catastral). Campos requeridos por RealEstateContent que NO están en
+  // el modelo (address, city) se marcan como 'PENDIENTE' — mismo precedente
+  // que color en vehicle sin RUNT: no se inventa contenido.
+  Future<AssetEntity> _enrichRealEstate(
+      AssetModel model, AssetEntity base) async {
+    final inm = await local.getInmueble(model.id);
+    if (inm == null) {
+      if (kDebugMode) {
+        debugPrint(
+          '[AUDIT][ENRICH_ENTITY] assetId=${model.id} type=real_estate '
+          'inmuebleFound=false → fallback a toEntity()',
+        );
+      }
+      return base;
+    }
+
+    final realContent = AssetContent.realEstate(
+      assetKey: inm.matriculaInmobiliaria,
+      address: 'PENDIENTE',
+      city: 'PENDIENTE',
+      area: inm.metrosCuadrados ?? 0.0,
+      usage: inm.uso,
+      stratum: inm.estrato,
+      cadastralValue: inm.valorCatastral,
+    );
+
+    if (kDebugMode) {
+      debugPrint(
+        '[AUDIT][ENRICH_ENTITY] ✅ assetId=${model.id} type=real_estate '
+        'matricula=${inm.matriculaInmobiliaria} uso=${inm.uso} '
+        'm2=${inm.metrosCuadrados}',
+      );
+    }
+
+    return base.copyWith(
+      content: realContent,
+      assetKey: realContent.assetKey,
+    );
+  }
+
+  // ── Enriquecedor: maquinaria ──────────────────────────────────────────────
+  // Fuente real: AssetMaquinariaModel (serie, marca, categoría, capacidad,
+  // certificado de operación). El modelo no persiste "model" (obligatorio en
+  // MachineryContent) → fallback 'PENDIENTE' sin inventar dato.
+  Future<AssetEntity> _enrichMachinery(
+      AssetModel model, AssetEntity base) async {
+    final maq = await local.getMaquinaria(model.id);
+    if (maq == null) {
+      if (kDebugMode) {
+        debugPrint(
+          '[AUDIT][ENRICH_ENTITY] assetId=${model.id} type=machinery '
+          'maquinariaFound=false → fallback a toEntity()',
+        );
+      }
+      return base;
+    }
+
+    final realContent = AssetContent.machinery(
+      assetKey: maq.serie,
+      brand: maq.marca,
+      model: 'PENDIENTE',
+      category: maq.categoria,
+      capacity: maq.capacidad,
+      operationCertificate: maq.certificadoOperacion,
+    );
+
+    if (kDebugMode) {
+      debugPrint(
+        '[AUDIT][ENRICH_ENTITY] ✅ assetId=${model.id} type=machinery '
+        'serie=${maq.serie} marca=${maq.marca} categoria=${maq.categoria}',
+      );
+    }
+
+    return base.copyWith(
+      content: realContent,
+      assetKey: realContent.assetKey,
     );
   }
 
