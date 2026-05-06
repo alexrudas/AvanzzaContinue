@@ -17,7 +17,27 @@ mixin _$MembershipEntity {
   String get userId;
   String get orgId;
   String get orgName;
+
+  /// Roles legacy como `List<String>` mientras dura la Fase 1 de transición.
+  ///
+  /// **PROHIBIDO leer este campo directamente para lógica de permisos.**
+  /// Cualquier consumidor que tome decisiones de autorización DEBE pasar
+  /// por `MembershipPolicy` (`lib/domain/policy/membership_policy.dart`),
+  /// que normaliza case + trim y respeta el bypass de fundador (isOwner).
+  ///
+  /// Lecturas directas autorizadas:
+  /// - Serialización (data layer mappers).
+  /// - El parser tolerante (`LegacyMembershipRoleParser`).
+  /// - El facade canónico (`MembershipPolicy`).
+  ///
+  /// Para listar roles en UI, también usar `MembershipPolicy.parsedRoles`.
+  /// Razón: comparar `'Admin' == 'admin'` falla en Dart string equality;
+  /// strings desconocidos son drift de datos que debe loggearse via
+  /// telemetría; el creador del workspace conserva acceso aunque sus
+  /// roles queden vacíos.
   List<String> get roles;
+  @Deprecated('Use Organization.capabilityProfiles. '
+      'Membership.providerProfiles is legacy and will be removed in Fase 2.')
   List<ProviderProfile> get providerProfiles;
   String get estatus; // activo | inactivo | invited | suspended | left
   Map<String, String> get primaryLocation; // { countryId, regionId?, cityId? }
@@ -93,6 +113,8 @@ abstract mixin class $MembershipEntityCopyWith<$Res> {
       String orgId,
       String orgName,
       List<String> roles,
+      @Deprecated('Use Organization.capabilityProfiles. '
+          'Membership.providerProfiles is legacy and will be removed in Fase 2.')
       List<ProviderProfile> providerProfiles,
       String estatus,
       Map<String, String> primaryLocation,
@@ -286,6 +308,8 @@ extension MembershipEntityPatterns on MembershipEntity {
             String orgId,
             String orgName,
             List<String> roles,
+            @Deprecated('Use Organization.capabilityProfiles. '
+                'Membership.providerProfiles is legacy and will be removed in Fase 2.')
             List<ProviderProfile> providerProfiles,
             String estatus,
             Map<String, String> primaryLocation,
@@ -336,6 +360,8 @@ extension MembershipEntityPatterns on MembershipEntity {
             String orgId,
             String orgName,
             List<String> roles,
+            @Deprecated('Use Organization.capabilityProfiles. '
+                'Membership.providerProfiles is legacy and will be removed in Fase 2.')
             List<ProviderProfile> providerProfiles,
             String estatus,
             Map<String, String> primaryLocation,
@@ -384,6 +410,8 @@ extension MembershipEntityPatterns on MembershipEntity {
             String orgId,
             String orgName,
             List<String> roles,
+            @Deprecated('Use Organization.capabilityProfiles. '
+                'Membership.providerProfiles is legacy and will be removed in Fase 2.')
             List<ProviderProfile> providerProfiles,
             String estatus,
             Map<String, String> primaryLocation,
@@ -422,6 +450,8 @@ class _MembershipEntity implements MembershipEntity {
       required this.orgId,
       required this.orgName,
       final List<String> roles = const <String>[],
+      @Deprecated('Use Organization.capabilityProfiles. '
+          'Membership.providerProfiles is legacy and will be removed in Fase 2.')
       final List<ProviderProfile> providerProfiles = const <ProviderProfile>[],
       required this.estatus,
       required final Map<String, String> primaryLocation,
@@ -441,7 +471,43 @@ class _MembershipEntity implements MembershipEntity {
   final String orgId;
   @override
   final String orgName;
+
+  /// Roles legacy como `List<String>` mientras dura la Fase 1 de transición.
+  ///
+  /// **PROHIBIDO leer este campo directamente para lógica de permisos.**
+  /// Cualquier consumidor que tome decisiones de autorización DEBE pasar
+  /// por `MembershipPolicy` (`lib/domain/policy/membership_policy.dart`),
+  /// que normaliza case + trim y respeta el bypass de fundador (isOwner).
+  ///
+  /// Lecturas directas autorizadas:
+  /// - Serialización (data layer mappers).
+  /// - El parser tolerante (`LegacyMembershipRoleParser`).
+  /// - El facade canónico (`MembershipPolicy`).
+  ///
+  /// Para listar roles en UI, también usar `MembershipPolicy.parsedRoles`.
+  /// Razón: comparar `'Admin' == 'admin'` falla en Dart string equality;
+  /// strings desconocidos son drift de datos que debe loggearse via
+  /// telemetría; el creador del workspace conserva acceso aunque sus
+  /// roles queden vacíos.
   final List<String> _roles;
+
+  /// Roles legacy como `List<String>` mientras dura la Fase 1 de transición.
+  ///
+  /// **PROHIBIDO leer este campo directamente para lógica de permisos.**
+  /// Cualquier consumidor que tome decisiones de autorización DEBE pasar
+  /// por `MembershipPolicy` (`lib/domain/policy/membership_policy.dart`),
+  /// que normaliza case + trim y respeta el bypass de fundador (isOwner).
+  ///
+  /// Lecturas directas autorizadas:
+  /// - Serialización (data layer mappers).
+  /// - El parser tolerante (`LegacyMembershipRoleParser`).
+  /// - El facade canónico (`MembershipPolicy`).
+  ///
+  /// Para listar roles en UI, también usar `MembershipPolicy.parsedRoles`.
+  /// Razón: comparar `'Admin' == 'admin'` falla en Dart string equality;
+  /// strings desconocidos son drift de datos que debe loggearse via
+  /// telemetría; el creador del workspace conserva acceso aunque sus
+  /// roles queden vacíos.
   @override
   @JsonKey()
   List<String> get roles {
@@ -453,6 +519,8 @@ class _MembershipEntity implements MembershipEntity {
   final List<ProviderProfile> _providerProfiles;
   @override
   @JsonKey()
+  @Deprecated('Use Organization.capabilityProfiles. '
+      'Membership.providerProfiles is legacy and will be removed in Fase 2.')
   List<ProviderProfile> get providerProfiles {
     if (_providerProfiles is EqualUnmodifiableListView)
       return _providerProfiles;
@@ -556,6 +624,8 @@ abstract mixin class _$MembershipEntityCopyWith<$Res>
       String orgId,
       String orgName,
       List<String> roles,
+      @Deprecated('Use Organization.capabilityProfiles. '
+          'Membership.providerProfiles is legacy and will be removed in Fase 2.')
       List<ProviderProfile> providerProfiles,
       String estatus,
       Map<String, String> primaryLocation,

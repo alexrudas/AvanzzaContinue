@@ -25,7 +25,13 @@
 // ENTERPRISE NOTES:
 // CREADO (2026-03): Fase 2 monetización SRCE — modelo base del flujo
 //   cotización → proveedor → cierre. No persiste en Isar en MVP.
+// ACTUALIZADO (2026-04): Añadido factory [VehicleSnapshot.fromVehiculo] como
+//   fuente única del mapping AssetVehiculoEntity → VehicleSnapshot. Usado por
+//   AssetDetailRuntController y SegurosRcDetailPage (entry point alerta) para
+//   garantizar paridad semántica entre ambos caminos de hidratación.
 // ============================================================================
+
+import '../asset/special/asset_vehiculo_entity.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STATUS ENUM
@@ -88,6 +94,27 @@ class VehicleSnapshot {
     required this.vehicleClass,
     required this.service,
   });
+
+  /// Construye un [VehicleSnapshot] desde una [AssetVehiculoEntity] del dominio.
+  ///
+  /// Fuente única del mapping Asset → Snapshot en toda la app. Usado por:
+  ///   - [AssetDetailRuntController.updateFromVehiculo] (flujo canónico RUNT)
+  ///   - [SegurosRcDetailPage] cuando entra desde AlertCenter y debe hidratar
+  ///     el snapshot sin controller RUNT en memoria.
+  ///
+  /// Los campos opcionales de la entidad ([vehicleClass], [serviceType]) se
+  /// normalizan a cadena vacía para mantener el contrato no-null del snapshot.
+  /// El backend decide si los exige en la cotización.
+  factory VehicleSnapshot.fromVehiculo(AssetVehiculoEntity v) {
+    return VehicleSnapshot(
+      plate: v.placa,
+      brand: v.marca,
+      model: v.modelo,
+      year: v.anio,
+      vehicleClass: v.vehicleClass ?? '',
+      service: v.serviceType ?? '',
+    );
+  }
 
   /// Serializa como objeto anidado para POST /insurance/leads.
   Map<String, dynamic> toJson() => {

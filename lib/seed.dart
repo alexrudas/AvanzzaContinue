@@ -57,17 +57,18 @@ Future<void> seedMain() async {
   await di.orgRepository.upsertOrg(org);
 
   // Membership
+  // Fase 2 (KILL SWITCH ROL LEGACY): seed sin roles. Capabilities y
+  // isProvider se derivan en runtime desde Core API.
   final membership = MembershipEntity(
     userId: 'user_demo',
     orgId: 'org_demo',
     orgName: 'Org Demo',
-    roles: const ['admin'],
+    roles: const <String>[],
     estatus: 'activo',
     primaryLocation: const {'countryId': 'CO', 'cityId': 'bogota'},
     createdAt: DateTime.now().toUtc(),
     updatedAt: DateTime.now().toUtc(),
   );
-  // No dedicated upsert; insert via remote by creating document directly
   await FirebaseFirestore.instance
       .collection('memberships')
       .doc('${membership.userId}_${membership.orgId}')
@@ -75,7 +76,6 @@ Future<void> seedMain() async {
     'userId': membership.userId,
     'orgId': membership.orgId,
     'orgName': membership.orgName,
-    'roles': membership.roles,
     'estatus': membership.estatus,
     'primaryLocation': membership.primaryLocation,
     'createdAt': membership.createdAt,

@@ -78,7 +78,6 @@ class ProductAccessPolicy {
   });
 
   /// Roles con privilegios de gestión — fallback Fase 1.
-  static const Set<String> _privilegedRoles = {'owner', 'admin'};
 
   /// Evalúa si [context] puede acceder a [feature].
   ///
@@ -182,26 +181,24 @@ class ProductAccessPolicy {
     return AccessDecision.allow(feature);
   }
 
-  // CreateAccountingEntry — gate por rol mínimo (Fase 1).
+  // CreateAccountingEntry / ManageOrganization
+  //
+  // Fase 2 (KILL SWITCH ROL LEGACY): el gate por `context.roles` se eliminó.
+  // El cliente ya no posee la noción de "owner/admin" como string; el gating
+  // fino lo hace Core API server-side mediante capabilities (la request a
+  // `/v1/...` retorna 403 con `CAPABILITY_NOT_GRANTED` si falta privilegio).
+  // El cliente delega: si el contexto pasa los guards estructurales, allow.
   AccessDecision _evalCreateAccountingEntry(
     FeatureKey feature,
     ProductAccessContext context,
   ) {
-    if (!context.roles.any(_privilegedRoles.contains)) {
-      return AccessDecision.deny(feature, AccessReasonCodes.roleInsufficient);
-    }
     return AccessDecision.allow(feature);
   }
 
-  // ManageOrganization — gate por rol mínimo.
-  // roles ya normalizados a lowercase por ProductAccessContextFactory.
   AccessDecision _evalManageOrganization(
     FeatureKey feature,
     ProductAccessContext context,
   ) {
-    if (!context.roles.any(_privilegedRoles.contains)) {
-      return AccessDecision.deny(feature, AccessReasonCodes.roleInsufficient);
-    }
     return AccessDecision.allow(feature);
   }
 

@@ -924,20 +924,34 @@ class _PortfolioAssetLivePageState extends State<PortfolioAssetLivePage> {
 
   /// Maneja el back del AppBar y el botón de sistema (Android).
   ///
-  /// Destino único: Home. Esta página no tiene un "atrás" legítimo — es un
-  /// punto terminal del flujo de registro batch. Home siempre es la pantalla
-  /// correcta después de finalizar (o abandonar) el batch.
+  /// Destino canónico: **Home** (`AppNavigator.goToHome` →
+  /// `Get.offAllNamed(Routes.home)` → HomeRouter → SplashBootstrapController
+  /// → workspaceShell admin).
+  ///
+  /// **Por qué Home y no `Routes.portfolioAssets` (la lista estática)**:
+  /// post-batch el usuario ya vio el modal "Registro finalizado" con el
+  /// resumen, y los activos registrados ya aparecen en ESTA misma página
+  /// (live page, vía StreamBuilder de Isar). La lista estática
+  /// `portfolio_asset_list_page` muestra exactamente los mismos activos
+  /// con el mismo título de portafolio — es vista redundante. Pasar por
+  /// ahí obliga al usuario a tocar back DOS veces para llegar al
+  /// workspace ("vuelve a la misma vista" — confusión UX confirmada).
+  ///
+  /// El round-trip por splash era preocupante en sesiones anteriores
+  /// porque el splash tenía gates defensivos (createPortfolio, profile,
+  /// countryCity) que podían rebotar al wizard legacy. Esos gates fueron
+  /// retirados (PostBootstrapRouter solo emite `providerMe` o
+  /// `workspaceShell`), así que el round-trip hoy es seguro.
   ///
   /// Comportamiento según el estado del batch:
   /// - Batch completado ([VrcBatchController.isTerminal] == true) → Home directo.
   /// - Batch en curso → diálogo de confirmación antes de salir.
   ///
-  /// [AppNavigator.goToHome] usa Get.offAllNamed, lo que dispara dispose() →
-  /// cancelPolling() + Get.delete<VrcBatchController>(force:true). La cadena
-  /// de limpieza existente funciona sin cambios adicionales.
+  /// `Get.offAllNamed` dispara dispose() → cancelPolling() +
+  /// Get.delete<VrcBatchController>(force:true). La cadena de limpieza
+  /// existente funciona sin cambios adicionales.
   Future<void> _handleBackNavigation() async {
     if (_batchCtrl.isTerminal) {
-      // Batch finalizado — no hay nada en curso que perder.
       AppNavigator.goToHome();
       return;
     }

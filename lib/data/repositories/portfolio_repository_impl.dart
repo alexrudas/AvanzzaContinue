@@ -25,8 +25,6 @@
 //   para recuperar portafolios con orgId:'' creados por race condition de arranque.
 // ============================================================================
 
-import 'package:uuid/uuid.dart';
-
 import '../../domain/entities/portfolio/portfolio_entity.dart';
 import '../../domain/repositories/portfolio_repository.dart';
 import '../models/portfolio/portfolio_model.dart';
@@ -34,29 +32,40 @@ import '../sources/local/portfolio_local_ds.dart';
 
 class PortfolioRepositoryImpl implements PortfolioRepository {
   final PortfolioLocalDataSource local;
-  final _uuid = const Uuid();
 
   PortfolioRepositoryImpl({required this.local});
 
   @override
   Future<PortfolioEntity> createPortfolio(PortfolioEntity portfolio) async {
-    // Generar UUID v4 para el nuevo portfolio
-    final id = _uuid.v4();
-
-    final model = PortfolioModel(
-      id: id,
-      portfolioType: _serializePortfolioType(portfolio.portfolioType),
-      portfolioName: portfolio.portfolioName,
-      countryId: portfolio.countryId,
-      cityId: portfolio.cityId,
-      orgId: portfolio.orgId,
-      status: 'DRAFT', // Siempre DRAFT al crear
-      assetsCount: 0, // Siempre 0 al crear
-      createdBy: portfolio.createdBy,
-      createdAt: DateTime.now().toUtc(),
-      updatedAt: DateTime.now().toUtc(),
-    );
-
+    // CONTRATO: respetar el id, status, assetsCount y timestamps que el
+    // caller ya estableció en la entity. El caller es la fuente de verdad —
+    // típicamente `CompleteOnboardingUC` genera el id con `_idGenerator()`,
+    // setea el status (`active` desde 2026-05) y persiste el portfolio
+    // como contenedor técnico. La navegación post-onboarding (resolver +
+    // FusionadoFlow) usa ESE mismo id para llegar a la página de registro
+    // VRC, que a su vez lo pasa a `incrementAssetsCountTx`.
+    //
+    // BUG HISTÓRICO (corregido 2026-05): este método regeneraba el UUID
+    // internamente (`_uuid.v4()`) y forzaba `status: 'DRAFT'` /
+    // `assetsCount: 0`, ignorando los valores de la entity. Resultado:
+    //   1) El portfolio quedaba persistido con un UUID DISTINTO al que
+    //      el caller tenía en memoria. Cualquier write subsiguiente
+    //      (`incrementAssetsCountTx`, `updateOwnerSnapshot`) buscaba el
+    //      portfolio por el UUID original y fallaba con
+    //      `portfolioUpdateFailed`. Síntoma: VRC consulta exitosa pero
+    //      el activo NO se persistía ("El portafolio no pudo
+    //      actualizarse correctamente" en logs).
+    //   2) El status se sobreescribía a DRAFT incluso cuando el caller
+    //      ya había decidido `active` — el splash gate de portafolio
+    //      (cuando estaba activo) nunca veía el portfolio como ACTIVE
+    //      hasta el primer activo registrado, y como el registro fallaba
+    //      por (1), nunca pasaba a ACTIVE.
+    //
+    // Fix: usar `PortfolioModel.fromEntity` (ya existente) que mapea
+    // 1:1 todos los campos respetando lo que el caller envía. El método
+    // `local.upsert` es idempotente — si la entity tiene un id que ya
+    // existe, lo reemplaza; si no, lo crea.
+    final model = PortfolioModel.fromEntity(portfolio);
     final saved = await local.upsert(model);
     return saved.toEntity();
   }
@@ -211,17 +220,5 @@ class PortfolioRepositoryImpl implements PortfolioRepository {
   @override
   Future<int> repairMissingOrgId(String userId, String correctOrgId) {
     return local.repairMissingOrgId(userId, correctOrgId);
-  }
-
-  // Helper para serializar PortfolioType
-  static String _serializePortfolioType(PortfolioType type) {
-    switch (type) {
-      case PortfolioType.vehiculos:
-        return 'VEHICULOS';
-      case PortfolioType.inmuebles:
-        return 'INMUEBLES';
-      case PortfolioType.operacionGeneral:
-        return 'OPERACION_GENERAL';
-    }
   }
 }

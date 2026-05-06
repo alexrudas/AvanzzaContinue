@@ -23,6 +23,8 @@
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../core_common/value_objects/asset_actor_role.dart';
+
 part 'portfolio_entity.freezed.dart';
 part 'portfolio_entity.g.dart';
 
@@ -99,6 +101,19 @@ abstract class PortfolioEntity with _$PortfolioEntity {
     /// bajo demanda (lazy) solo al navegar a SimitPersonDetailPage.
     /// Null para portfolios creados antes de esta feature (fallback: escalares).
     @Default(null) String? simitDetailJson,
+
+    /// Tipo de relación esperada del workspace con los activos que se
+    /// agreguen a este portafolio (owner / manager / tenant / driver / etc.).
+    ///
+    /// Es el "intent" capturado durante onboarding (Q3) o creación manual:
+    /// cuando VRC añade el primer asset al portfolio, este valor se usa para
+    /// crear el AssetActorLinkEntity correspondiente con `role` igual a este
+    /// kind, sin pedir al usuario que lo declare nuevamente.
+    ///
+    /// Null = portafolios legacy creados antes de esta feature, o portafolios
+    /// donde la relación se decidirá explícitamente al añadir cada activo.
+    /// Wire-stable: AssetActorRole es enum append-only.
+    @Default(null) AssetActorRole? expectedRelationKind,
   }) = _PortfolioEntity;
 
   factory PortfolioEntity.fromJson(Map<String, dynamic> json) =>

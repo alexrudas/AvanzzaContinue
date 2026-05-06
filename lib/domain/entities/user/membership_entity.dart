@@ -32,7 +32,29 @@ abstract class MembershipEntity with _$MembershipEntity {
     required String userId,
     required String orgId,
     required String orgName,
+
+    /// Roles legacy como `List<String>` mientras dura la Fase 1 de transición.
+    ///
+    /// **PROHIBIDO leer este campo directamente para lógica de permisos.**
+    /// Cualquier consumidor que tome decisiones de autorización DEBE pasar
+    /// por `MembershipPolicy` (`lib/domain/policy/membership_policy.dart`),
+    /// que normaliza case + trim y respeta el bypass de fundador (isOwner).
+    ///
+    /// Lecturas directas autorizadas:
+    /// - Serialización (data layer mappers).
+    /// - El parser tolerante (`LegacyMembershipRoleParser`).
+    /// - El facade canónico (`MembershipPolicy`).
+    ///
+    /// Para listar roles en UI, también usar `MembershipPolicy.parsedRoles`.
+    /// Razón: comparar `'Admin' == 'admin'` falla en Dart string equality;
+    /// strings desconocidos son drift de datos que debe loggearse via
+    /// telemetría; el creador del workspace conserva acceso aunque sus
+    /// roles queden vacíos.
     @Default(<String>[]) List<String> roles,
+    @Deprecated(
+      'Use Organization.capabilityProfiles. '
+      'Membership.providerProfiles is legacy and will be removed in Fase 2.',
+    )
     @Default(<ProviderProfile>[]) List<ProviderProfile> providerProfiles,
     required String estatus, // activo | inactivo | invited | suspended | left
     required Map<String, String>
