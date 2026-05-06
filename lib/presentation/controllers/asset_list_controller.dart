@@ -26,17 +26,24 @@
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:get/get.dart';
 
 import '../../core/di/container.dart';
 import '../../domain/entities/asset/asset_entity.dart';
+import '../../domain/entities/portfolio/portfolio_entity.dart';
 import 'session_context_controller.dart';
 
 class AssetListController extends GetxController {
   final RxList<AssetEntity> _assets = <AssetEntity>[].obs;
   List<AssetEntity> get assets => _assets;
 
+  /// Portafolios ACTIVE de la organización activa.
+  /// Alimentados por watchActivePortfoliosByOrg — reactivo a cambios en Isar.
+  final RxList<PortfolioEntity> portfolios = <PortfolioEntity>[].obs;
+
   StreamSubscription<List<AssetEntity>>? _assetsSub;
+  StreamSubscription<List<PortfolioEntity>>? _portfoliosSub;
   Worker? _workspaceWorker;
   late final SessionContextController _session;
 
@@ -75,9 +82,12 @@ class AssetListController extends GetxController {
 
     _assetsSub?.cancel();
     _assetsSub = null;
+    _portfoliosSub?.cancel();
+    _portfoliosSub = null;
 
     if (normalizedOrgId == null || normalizedOrgId.isEmpty) {
       _assets.clear();
+      portfolios.clear();
       return;
     }
 
@@ -87,6 +97,18 @@ class AssetListController extends GetxController {
         .listen((list) {
       _assets.assignAll(list);
     });
+
+    _portfoliosSub = DIContainer()
+        .portfolioRepository
+        .watchActivePortfoliosByOrg(normalizedOrgId)
+        .listen((list) => portfolios.assignAll(list));
+  }
+
+  /// Siembra la lista reactiva sin pasar por el stream de Isar.
+  /// Uso exclusivo en tests de presentación / navegación.
+  @visibleForTesting
+  void debugSeed(List<AssetEntity> list) {
+    _assets.assignAll(list);
   }
 
   Future<void> addAsset(AssetEntity asset) async {
@@ -100,6 +122,7 @@ class AssetListController extends GetxController {
   @override
   void onClose() {
     _assetsSub?.cancel();
+    _portfoliosSub?.cancel();
     _workspaceWorker?.dispose();
     super.onClose();
   }

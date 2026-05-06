@@ -7,6 +7,9 @@ import 'dart:async';
 ///
 /// This is a minimal, framework-agnostic utility. Plug your connectivity
 /// listener (e.g., connectivity_plus) to call setOnline(true/false).
+///
+import 'package:flutter/foundation.dart';
+
 class OfflineSyncService {
   final Duration retryDelay;
   final int maxRetries;
@@ -53,13 +56,14 @@ class OfflineSyncService {
       try {
         await job.op();
         _queue.removeAt(0);
-      } catch (_) {
+      } catch (e, st) {
+        debugPrint('[OfflineSync] write fail retry=${job.retries} error=$e');
+        debugPrintStack(stackTrace: st);
         job.retries++;
         if (job.retries > maxRetries) {
-          // drop the job after exceeding retries
+          debugPrint('[OfflineSync] dropping job after max retries');
           _queue.removeAt(0);
         } else {
-          // re-enqueue with delay
           await Future.delayed(retryDelay);
         }
       }

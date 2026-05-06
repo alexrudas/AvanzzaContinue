@@ -17,11 +17,10 @@ class EnsureRegisteredGuard {
     final user = session.user;
     final ctx = user?.activeContext;
 
-    // Si ya está registrado con contexto activo → ejecutar acción directamente
-    if (user != null &&
-        ctx != null &&
-        ctx.orgId.isNotEmpty &&
-        ctx.rol.isNotEmpty) {
+    // Fase 2 (KILL SWITCH ROL LEGACY): la prueba de "registrado" es tener
+    // user + orgId. El `rol` legacy ya no se persiste — capabilities y
+    // isProvider son las señales canónicas (resueltas en Core API).
+    if (user != null && ctx != null && ctx.orgId.isNotEmpty) {
       await action();
       return;
     }
@@ -63,8 +62,7 @@ class EnsureRegisteredGuard {
 
     if (updatedUser == null ||
         updatedCtx == null ||
-        updatedCtx.orgId.isEmpty ||
-        updatedCtx.rol.isEmpty) {
+        updatedCtx.orgId.isEmpty) {
       // Usuario abandonó el registro sin completarlo
       Get.snackbar(
         'Registro incompleto',
