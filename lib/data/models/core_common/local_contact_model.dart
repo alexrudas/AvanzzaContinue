@@ -122,6 +122,17 @@ class LocalContactModel {
   /// Isar vía `ProviderBranchEmbedded`.
   final List<ProviderBranchEmbedded> additionalBranches;
 
+  /// FK opcional al `ProviderProfile` canónico generado por backend tras
+  /// `provision()` exitoso. Indexado no-único para resolver
+  /// `platform:<providerProfileId>` → contact local en O(1) (caso de uso
+  /// crítico: bucketizer de Mi Red usa este link para conocer el
+  /// `supplierType` del actor cuando el wire no carga señal de tipo).
+  ///
+  /// Null en registros creados antes del flujo canónico o cuando el
+  /// `provision()` falló. Round-trip Entity↔Model lo preserva.
+  @Index()
+  final String? linkedProviderProfileId;
+
   LocalContactModel({
     this.isarId,
     required this.id,
@@ -151,6 +162,7 @@ class LocalContactModel {
     this.coverageCityIds = const <String>[],
     this.coverageAllCountry = false,
     this.additionalBranches = const <ProviderBranchEmbedded>[],
+    this.linkedProviderProfileId,
   });
 
   LocalContactEntity toEntity() => LocalContactEntity(
@@ -183,6 +195,7 @@ class LocalContactModel {
         additionalBranches: List<ProviderBranchEntity>.unmodifiable(
           additionalBranches.map((b) => b.toEntity()),
         ),
+        linkedProviderProfileId: linkedProviderProfileId,
       );
 
   factory LocalContactModel.fromEntity(LocalContactEntity e) =>
@@ -216,6 +229,7 @@ class LocalContactModel {
         additionalBranches: e.additionalBranches
             .map(ProviderBranchEmbedded.fromEntity)
             .toList(growable: false),
+        linkedProviderProfileId: e.linkedProviderProfileId,
       );
 
   factory LocalContactModel.fromJson(Map<String, dynamic> json) =>

@@ -83,73 +83,78 @@ const LocalContactModelSchema = CollectionSchema(
       name: r'isDeleted',
       type: IsarType.bool,
     ),
-    r'notesPrivate': PropertySchema(
+    r'linkedProviderProfileId': PropertySchema(
       id: 13,
+      name: r'linkedProviderProfileId',
+      type: IsarType.string,
+    ),
+    r'notesPrivate': PropertySchema(
+      id: 14,
       name: r'notesPrivate',
       type: IsarType.string,
     ),
     r'organizationId': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'organizationId',
       type: IsarType.string,
     ),
     r'primaryEmail': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'primaryEmail',
       type: IsarType.string,
     ),
     r'primaryPhoneE164': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'primaryPhoneE164',
       type: IsarType.string,
     ),
     r'regionId': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'regionId',
       type: IsarType.string,
     ),
     r'roleLabel': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'roleLabel',
       type: IsarType.string,
     ),
     r'secondaryPhoneE164': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'secondaryPhoneE164',
       type: IsarType.string,
     ),
     r'snapshotAdoptedAt': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'snapshotAdoptedAt',
       type: IsarType.dateTime,
     ),
     r'snapshotSourcePlatformActorId': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'snapshotSourcePlatformActorId',
       type: IsarType.string,
     ),
     r'supplierTypeWire': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'supplierTypeWire',
       type: IsarType.string,
     ),
     r'tagsPrivate': PropertySchema(
-      id: 23,
+      id: 24,
       name: r'tagsPrivate',
       type: IsarType.stringList,
     ),
     r'updatedAt': PropertySchema(
-      id: 24,
+      id: 25,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'website': PropertySchema(
-      id: 25,
+      id: 26,
       name: r'website',
       type: IsarType.string,
     ),
     r'workspaceId': PropertySchema(
-      id: 26,
+      id: 27,
       name: r'workspaceId',
       type: IsarType.string,
     )
@@ -262,6 +267,19 @@ const LocalContactModelSchema = CollectionSchema(
           caseSensitive: false,
         )
       ],
+    ),
+    r'linkedProviderProfileId': IndexSchema(
+      id: -6589625095103835272,
+      name: r'linkedProviderProfileId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'linkedProviderProfileId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
     )
   },
   links: {},
@@ -327,6 +345,12 @@ int _localContactModelEstimateSize(
     }
   }
   bytesCount += 3 + object.id.length * 3;
+  {
+    final value = object.linkedProviderProfileId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   {
     final value = object.notesPrivate;
     if (value != null) {
@@ -422,20 +446,21 @@ void _localContactModelSerialize(
   writer.writeString(offsets[10], object.docId);
   writer.writeString(offsets[11], object.id);
   writer.writeBool(offsets[12], object.isDeleted);
-  writer.writeString(offsets[13], object.notesPrivate);
-  writer.writeString(offsets[14], object.organizationId);
-  writer.writeString(offsets[15], object.primaryEmail);
-  writer.writeString(offsets[16], object.primaryPhoneE164);
-  writer.writeString(offsets[17], object.regionId);
-  writer.writeString(offsets[18], object.roleLabel);
-  writer.writeString(offsets[19], object.secondaryPhoneE164);
-  writer.writeDateTime(offsets[20], object.snapshotAdoptedAt);
-  writer.writeString(offsets[21], object.snapshotSourcePlatformActorId);
-  writer.writeString(offsets[22], object.supplierTypeWire);
-  writer.writeStringList(offsets[23], object.tagsPrivate);
-  writer.writeDateTime(offsets[24], object.updatedAt);
-  writer.writeString(offsets[25], object.website);
-  writer.writeString(offsets[26], object.workspaceId);
+  writer.writeString(offsets[13], object.linkedProviderProfileId);
+  writer.writeString(offsets[14], object.notesPrivate);
+  writer.writeString(offsets[15], object.organizationId);
+  writer.writeString(offsets[16], object.primaryEmail);
+  writer.writeString(offsets[17], object.primaryPhoneE164);
+  writer.writeString(offsets[18], object.regionId);
+  writer.writeString(offsets[19], object.roleLabel);
+  writer.writeString(offsets[20], object.secondaryPhoneE164);
+  writer.writeDateTime(offsets[21], object.snapshotAdoptedAt);
+  writer.writeString(offsets[22], object.snapshotSourcePlatformActorId);
+  writer.writeString(offsets[23], object.supplierTypeWire);
+  writer.writeStringList(offsets[24], object.tagsPrivate);
+  writer.writeDateTime(offsets[25], object.updatedAt);
+  writer.writeString(offsets[26], object.website);
+  writer.writeString(offsets[27], object.workspaceId);
 }
 
 LocalContactModel _localContactModelDeserialize(
@@ -465,20 +490,21 @@ LocalContactModel _localContactModelDeserialize(
     id: reader.readString(offsets[11]),
     isDeleted: reader.readBoolOrNull(offsets[12]) ?? false,
     isarId: id,
-    notesPrivate: reader.readStringOrNull(offsets[13]),
-    organizationId: reader.readStringOrNull(offsets[14]),
-    primaryEmail: reader.readStringOrNull(offsets[15]),
-    primaryPhoneE164: reader.readStringOrNull(offsets[16]),
-    regionId: reader.readStringOrNull(offsets[17]),
-    roleLabel: reader.readStringOrNull(offsets[18]),
-    secondaryPhoneE164: reader.readStringOrNull(offsets[19]),
-    snapshotAdoptedAt: reader.readDateTimeOrNull(offsets[20]),
-    snapshotSourcePlatformActorId: reader.readStringOrNull(offsets[21]),
-    supplierTypeWire: reader.readStringOrNull(offsets[22]),
-    tagsPrivate: reader.readStringList(offsets[23]) ?? const <String>[],
-    updatedAt: reader.readDateTime(offsets[24]),
-    website: reader.readStringOrNull(offsets[25]),
-    workspaceId: reader.readString(offsets[26]),
+    linkedProviderProfileId: reader.readStringOrNull(offsets[13]),
+    notesPrivate: reader.readStringOrNull(offsets[14]),
+    organizationId: reader.readStringOrNull(offsets[15]),
+    primaryEmail: reader.readStringOrNull(offsets[16]),
+    primaryPhoneE164: reader.readStringOrNull(offsets[17]),
+    regionId: reader.readStringOrNull(offsets[18]),
+    roleLabel: reader.readStringOrNull(offsets[19]),
+    secondaryPhoneE164: reader.readStringOrNull(offsets[20]),
+    snapshotAdoptedAt: reader.readDateTimeOrNull(offsets[21]),
+    snapshotSourcePlatformActorId: reader.readStringOrNull(offsets[22]),
+    supplierTypeWire: reader.readStringOrNull(offsets[23]),
+    tagsPrivate: reader.readStringList(offsets[24]) ?? const <String>[],
+    updatedAt: reader.readDateTime(offsets[25]),
+    website: reader.readStringOrNull(offsets[26]),
+    workspaceId: reader.readString(offsets[27]),
   );
   return object;
 }
@@ -537,18 +563,20 @@ P _localContactModelDeserializeProp<P>(
     case 19:
       return (reader.readStringOrNull(offset)) as P;
     case 20:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 21:
       return (reader.readStringOrNull(offset)) as P;
+    case 21:
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 22:
       return (reader.readStringOrNull(offset)) as P;
     case 23:
-      return (reader.readStringList(offset) ?? const <String>[]) as P;
-    case 24:
-      return (reader.readDateTime(offset)) as P;
-    case 25:
       return (reader.readStringOrNull(offset)) as P;
+    case 24:
+      return (reader.readStringList(offset) ?? const <String>[]) as P;
+    case 25:
+      return (reader.readDateTime(offset)) as P;
     case 26:
+      return (reader.readStringOrNull(offset)) as P;
+    case 27:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1294,6 +1322,73 @@ extension LocalContactModelQueryWhere
               indexName: r'workspaceId_isDeleted',
               lower: [workspaceId],
               upper: [workspaceId, isDeleted],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterWhereClause>
+      linkedProviderProfileIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'linkedProviderProfileId',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterWhereClause>
+      linkedProviderProfileIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'linkedProviderProfileId',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterWhereClause>
+      linkedProviderProfileIdEqualTo(String? linkedProviderProfileId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'linkedProviderProfileId',
+        value: [linkedProviderProfileId],
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterWhereClause>
+      linkedProviderProfileIdNotEqualTo(String? linkedProviderProfileId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'linkedProviderProfileId',
+              lower: [],
+              upper: [linkedProviderProfileId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'linkedProviderProfileId',
+              lower: [linkedProviderProfileId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'linkedProviderProfileId',
+              lower: [linkedProviderProfileId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'linkedProviderProfileId',
+              lower: [],
+              upper: [linkedProviderProfileId],
               includeUpper: false,
             ));
       }
@@ -2952,6 +3047,162 @@ extension LocalContactModelQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      linkedProviderProfileIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'linkedProviderProfileId',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      linkedProviderProfileIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'linkedProviderProfileId',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      linkedProviderProfileIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'linkedProviderProfileId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      linkedProviderProfileIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'linkedProviderProfileId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      linkedProviderProfileIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'linkedProviderProfileId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      linkedProviderProfileIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'linkedProviderProfileId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      linkedProviderProfileIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'linkedProviderProfileId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      linkedProviderProfileIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'linkedProviderProfileId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      linkedProviderProfileIdContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'linkedProviderProfileId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      linkedProviderProfileIdMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'linkedProviderProfileId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      linkedProviderProfileIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'linkedProviderProfileId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterFilterCondition>
+      linkedProviderProfileIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'linkedProviderProfileId',
+        value: '',
       ));
     });
   }
@@ -5145,6 +5396,20 @@ extension LocalContactModelQuerySortBy
   }
 
   QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortByLinkedProviderProfileId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'linkedProviderProfileId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      sortByLinkedProviderProfileIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'linkedProviderProfileId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
       sortByNotesPrivate() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'notesPrivate', Sort.asc);
@@ -5483,6 +5748,20 @@ extension LocalContactModelQuerySortThenBy
   }
 
   QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenByLinkedProviderProfileId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'linkedProviderProfileId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
+      thenByLinkedProviderProfileIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'linkedProviderProfileId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QAfterSortBy>
       thenByNotesPrivate() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'notesPrivate', Sort.asc);
@@ -5752,6 +6031,14 @@ extension LocalContactModelQueryWhereDistinct
   }
 
   QueryBuilder<LocalContactModel, LocalContactModel, QDistinct>
+      distinctByLinkedProviderProfileId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'linkedProviderProfileId',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<LocalContactModel, LocalContactModel, QDistinct>
       distinctByNotesPrivate({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'notesPrivate', caseSensitive: caseSensitive);
@@ -5951,6 +6238,13 @@ extension LocalContactModelQueryProperty
   }
 
   QueryBuilder<LocalContactModel, String?, QQueryOperations>
+      linkedProviderProfileIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'linkedProviderProfileId');
+    });
+  }
+
+  QueryBuilder<LocalContactModel, String?, QQueryOperations>
       notesPrivateProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'notesPrivate');
@@ -6100,6 +6394,7 @@ LocalContactModel _$LocalContactModelFromJson(Map<String, dynamic> json) =>
                   ProviderBranchEmbedded.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const <ProviderBranchEmbedded>[],
+      linkedProviderProfileId: json['linkedProviderProfileId'] as String?,
     );
 
 Map<String, dynamic> _$LocalContactModelToJson(LocalContactModel instance) =>
@@ -6133,4 +6428,5 @@ Map<String, dynamic> _$LocalContactModelToJson(LocalContactModel instance) =>
       'coverageAllCountry': instance.coverageAllCountry,
       'additionalBranches':
           instance.additionalBranches.map((e) => e.toJson()).toList(),
+      'linkedProviderProfileId': instance.linkedProviderProfileId,
     };

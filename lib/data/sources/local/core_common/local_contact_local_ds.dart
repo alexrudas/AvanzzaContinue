@@ -114,6 +114,21 @@ class LocalContactLocalDataSource {
         .watch(fireImmediately: true);
   }
 
+  /// Watch INCLUYENDO soft-deleted. Necesario para Mi Red Tab 5: el merger
+  /// usa contactos archivados para construir el "archive override" set —
+  /// oculta actores wire cuyo LocalContact local está archivado, aunque el
+  /// backend aún no haya procesado el archive.
+  ///
+  /// NO usar para queries operativas normales (usar [watchByWorkspace] que
+  /// filtra archivados). Solo para casos donde la intención local de
+  /// archivado debe arbitrar sobre el cache remoto.
+  Stream<List<LocalContactModel>> watchAllByWorkspace(String workspaceId) {
+    return _isar.localContactModels
+        .filter()
+        .workspaceIdEqualTo(workspaceId)
+        .watch(fireImmediately: true);
+  }
+
   /// organizationId null = contactos sueltos.
   Future<List<LocalContactModel>> listByOrganization(
     String workspaceId,
@@ -181,6 +196,27 @@ class LocalContactLocalDataSource {
         .findAll();
   }
 
+  /// Resuelve el `LocalContactModel` vinculado a un `providerProfileId`
+  /// canónico (campo `linkedProviderProfileId`, indexado).
+  ///
+  /// Uso primario: bucketizer de Mi Red, que recibe actores con
+  /// `ref=platform:<providerProfileId>` y necesita conocer su
+  /// `supplierType` desde la intención local guardada al registrar.
+  ///
+  /// Retorna `null` si no existe match. Devuelve solo registros NO
+  /// soft-deleted. Indexado: O(log n).
+  Future<LocalContactModel?> findByLinkedProviderProfileId(
+    String workspaceId,
+    String providerProfileId,
+  ) async {
+    return _isar.localContactModels
+        .filter()
+        .workspaceIdEqualTo(workspaceId)
+        .linkedProviderProfileIdEqualTo(providerProfileId)
+        .isDeletedEqualTo(false)
+        .findFirst();
+  }
+
   // ── HELPERS PRIVADOS ─────────────────────────────────────────────────────
 
   /// Copia TODOS los campos persistidos de `source` permitiendo overrides
@@ -228,6 +264,13 @@ class LocalContactLocalDataSource {
       coverageAllCountry: source.coverageAllCountry,
       // ── SEDES ADICIONALES — NO OLVIDAR ─────────────────────────────────
       additionalBranches: List.of(source.additionalBranches),
+      // ── LINK CANÓNICO A PROVIDER PROFILE — NO OLVIDAR ──────────────────
+      // Persistir el link tras `provision()` 2xx exitoso es lo que permite
+      // al bucketizer de Mi Red resolver `platform:<providerProfileId>` →
+      // contact local → `supplierType` en O(1). Olvidarlo en este helper
+      // hace que el campo se pierda silenciosamente al guardar — exactamente
+      // el bug histórico documentado en el encabezado.
+      linkedProviderProfileId: source.linkedProviderProfileId,
     );
   }
 }
