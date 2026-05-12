@@ -42,9 +42,32 @@ class NetworkException extends CoreCommonRemoteException {
   const NetworkException(super.message);
 }
 
-/// 401 o 403. Token ausente, inválido, expirado o sin claim activeOrgId.
+/// 401. Token ausente, inválido, expirado o sin claim activeOrgId.
+///
+/// SEMÁNTICA CANÓNICA: solo 401 (autenticación faltante o inválida). Para
+/// 403 (autenticado pero sin permiso) usa [ForbiddenException].
+///
+/// COMPAT: callers legacy (RelationshipApiClient, etc.) aún mapean 401+403
+/// a este tipo por inercia histórica. Migración a la separación 401/403 se
+/// hace por API client conforme se tocan; no se rompe behavior existente
+/// hasta que cada caller migre.
 class UnauthorizedException extends CoreCommonRemoteException {
   const UnauthorizedException(super.message);
+}
+
+/// 403. Autenticado correctamente pero sin permiso para el recurso/acción.
+///
+/// Distinta de [UnauthorizedException] porque la UX correcta es diferente:
+///   - 401 ⇒ sesión inválida → forzar re-login.
+///   - 403 ⇒ falta capability → mostrar estado "sin permiso" en la sección
+///     afectada SIN cerrar sesión, y permitir que otras secciones del
+///     mismo screen sigan funcionando (ej. /network OK pero /team 403).
+///
+/// Esta separación es obligatoria para Mi Red Operativa: /v1/network y
+/// /v1/team tienen capabilities distintas (`network.read` y `team.read`)
+/// y pueden fallar de forma independiente.
+class ForbiddenException extends CoreCommonRemoteException {
+  const ForbiddenException(super.message);
 }
 
 /// 4xx cliente (excluyendo 401/403). Body malformado, estado inválido, etc.

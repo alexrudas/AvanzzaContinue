@@ -399,17 +399,41 @@ class VrcBatchController extends GetxController {
       // Guardar contexto por placa para que los tiles muestren marca/línea/modelo.
       vehicleContexts[backend.plate.toUpperCase()] = vrcData;
 
-      // Cachear el owner del primer item succeeded — nunca sobreescribir.
-      if (!_ownerCached && backend.isSucceeded && vrcData.owner != null) {
-        ownerData.value = vrcData;
-        _ownerCached = true;
-        if (kDebugMode) {
-          debugPrint(
-            '[VRC_BATCH] ✅ ownerData ASIGNADO desde ${backend.plate} — '
-            'name=${vrcData.owner?.name} '
-            'licenses=${vrcData.owner?.runt?.licenses?.length ?? 0} '
-            'simitSummary=${vrcData.owner?.simit?.summary != null}',
-          );
+      // ── Cachear/Upgrade owner data (Fix C) ────────────────────────────────
+      // Comportamiento previo: solo cacheaba el primer item succeeded y nunca
+      // reemplazaba. Si esa primera placa terminaba ANTES que el SIMIT
+      // enrichment completara su scrape, el owner quedaba congelado con
+      // `simit.summary == null` aunque placas posteriores trajeran summary
+      // populado (porque enrichment ya había completado para entonces).
+      //
+      // Nuevo comportamiento:
+      //   - cache: sigue igual (primer item succeeded con owner != null)
+      //   - upgrade: si llega un item posterior con SIMIT más completo
+      //     (summary != null Y el cached lo tiene null), reemplazar.
+      //
+      // Esto cubre el race timing entre VRC item respondiendo y el
+      // SIMIT enrichment fire-and-forget que persiste a Redis.
+      if (backend.isSucceeded && vrcData.owner != null) {
+        final newHasSummary = vrcData.owner?.simit?.summary != null;
+        final cached = ownerData.value;
+        final cachedHasSummary = cached?.owner?.simit?.summary != null;
+
+        final shouldCache = !_ownerCached;
+        final shouldUpgrade =
+            _ownerCached && newHasSummary && !cachedHasSummary;
+
+        if (shouldCache || shouldUpgrade) {
+          ownerData.value = vrcData;
+          _ownerCached = true;
+          if (kDebugMode) {
+            debugPrint(
+              '[VRC_BATCH] ${shouldUpgrade ? "🔄 ownerData UPGRADED" : "✅ ownerData ASIGNADO"} '
+              'desde ${backend.plate} — '
+              'name=${vrcData.owner?.name} '
+              'licenses=${vrcData.owner?.runt?.licenses?.length ?? 0} '
+              'simitSummary=$newHasSummary',
+            );
+          }
         }
       } else if (kDebugMode && !_ownerCached && backend.isSucceeded) {
         debugPrint(

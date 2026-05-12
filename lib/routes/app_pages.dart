@@ -448,17 +448,24 @@ class AppPages {
     // CONTRACT: Routes.simitPersonDetail requiere argument
     //   Map{'data': VrcDataModel, 'checkedAt': DateTime?}
     // Uso: Get.toNamed(Routes.simitPersonDetail, arguments: {'data': ..., 'checkedAt': ...})
+    //
+    // Binding: SimitBinding registra SimitService + SimitRepository (lazy).
+    // Necesario porque el BottomSheet de detalle de multa hace Get.find<SimitRepository>().
     GetPage(
       name: Routes.simitPersonDetail,
       page: () => const SimitPersonDetailPage(),
+      binding: SimitBinding(),
     ),
 
     // CONTRACT: Routes.simitFineDetail requiere argument
     //   Map{'data': VrcDataModel, 'type': String, 'checkedAt': DateTime?}
     //   type: 'comparendos' | 'multas' | 'acuerdosDePago'
+    //
+    // Binding: ver nota en simitPersonDetail (mismo motivo).
     GetPage(
       name: Routes.simitFineDetail,
       page: () => const SimitFineDetailPage(),
+      binding: SimitBinding(),
     ),
 
     // ════════════════════════════════════════════════════════════════════════

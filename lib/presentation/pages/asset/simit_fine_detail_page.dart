@@ -29,6 +29,7 @@ import 'package:get/get.dart';
 
 import '../../../core/theme/spacing.dart';
 import '../../../data/vrc/models/vrc_models.dart';
+import '../../widgets/asset/simit_multa_detail_bottom_sheet.dart';
 
 class SimitFineDetailPage extends StatelessWidget {
   const SimitFineDetailPage({super.key});
@@ -107,7 +108,13 @@ class SimitFineDetailPage extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             ...fines.map((fine) => Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: _FineItemCard(fine: fine, type: type, theme: theme, cs: cs),
+                  child: _FineItemCard(
+                    fine: fine,
+                    type: type,
+                    ownerDocument: owner?.document,
+                    theme: theme,
+                    cs: cs,
+                  ),
                 )),
           ],
         ],
@@ -294,15 +301,33 @@ class _TypeSummaryCard extends StatelessWidget {
 class _FineItemCard extends StatelessWidget {
   final VrcSimitFineModel fine;
   final String type;
+  final String? ownerDocument;
   final ThemeData theme;
   final ColorScheme cs;
 
   const _FineItemCard({
     required this.fine,
     required this.type,
+    required this.ownerDocument,
     required this.theme,
     required this.cs,
   });
+
+  /// Tap → abre BottomSheet con detalle profundo. Requiere ownerDocument
+  /// + fine.id; si falta cualquiera, el tap queda inactivo (defensivo).
+  void _openDetailSheet(BuildContext context) {
+    final doc = ownerDocument?.trim();
+    final comparendoId = fine.id?.trim();
+    if (doc == null || doc.isEmpty || comparendoId == null || comparendoId.isEmpty) {
+      return;
+    }
+    showSimitMultaDetailBottomSheet(
+      context: context,
+      document: doc,
+      comparendoId: comparendoId,
+      infraccionLabel: fine.infraccion,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -311,6 +336,8 @@ class _FineItemCard extends StatelessWidget {
     final hasSeverityHigh = fine.severity?.toUpperCase() == 'HIGH' ||
         fine.severity?.toUpperCase() == 'CRITICAL';
     final severityColor = _severityColor(context, fine.severity);
+    final canTap = (ownerDocument?.isNotEmpty ?? false) &&
+        (fine.id?.isNotEmpty ?? false);
 
     return Card(
       elevation: 0,
@@ -321,7 +348,10 @@ class _FineItemCard extends StatelessWidget {
             ? BorderSide(color: cs.error.withValues(alpha: 0.3))
             : BorderSide.none,
       ),
-      child: Padding(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: canTap ? () => _openDetailSheet(context) : null,
+        child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -437,6 +467,7 @@ class _FineItemCard extends StatelessWidget {
               ),
             ],
           ],
+        ),
         ),
       ),
     );
