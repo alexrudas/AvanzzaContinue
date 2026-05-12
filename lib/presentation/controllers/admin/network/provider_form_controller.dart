@@ -89,9 +89,11 @@ import '../../../../domain/entities/core_common/value_objects/normalized_key.dar
 import '../../../../domain/entities/core_common/value_objects/supplier_type.dart';
 import '../../../../domain/entities/core_common/value_objects/target_local_kind.dart';
 import '../../../../domain/entities/core_common/value_objects/verified_key_type.dart';
+import '../../../../domain/entities/asset/asset_entity.dart' show AssetType;
 import '../../../../domain/entities/provider/provider_canonical_entity.dart';
 import '../../../../domain/entities/workspace/workspace_asset_type_entity.dart';
 import '../../../../domain/errors/remote_exceptions.dart';
+import '../../../../domain/repositories/asset_repository.dart';
 import '../../../../domain/repositories/core_common/local_contact_repository.dart';
 import '../../../../domain/repositories/provider/provider_canonical_repository.dart';
 import '../../../../domain/repositories/workspace/workspace_asset_type_repository.dart';
@@ -108,6 +110,17 @@ class ProviderFormController extends GetxController {
   final ProviderCanonicalRepository _providers;
   final MatchCandidateNestJsDataSource _matchCandidateProbe;
   final WorkspaceAssetTypeRepository _workspaceAssetTypes;
+
+  /// Repositorio local de activos. Permite derivar `availableAssetTypes`
+  /// desde el inventario Isar del workspace cuando el endpoint canónico
+  /// `GET /v1/core-common/workspaces/me/asset-types` falla o devuelve `[]`
+  /// por desfase de `AssetActorLink`. Local-first: el usuario que YA tiene
+  /// activos registrados puede asignar especialidades sin esperar a que el
+  /// backend reconcilie sus links.
+  ///
+  /// Nullable para preservar compatibilidad con tests existentes que no
+  /// inyectan repo de activos (paths donde la lógica de merge no aplica).
+  final AssetRepository? _assetRepository;
   final String _orgId;
   final String? _editingProviderId;
   final String _defaultCountryId;
@@ -139,6 +152,7 @@ class ProviderFormController extends GetxController {
     required ProviderCanonicalRepository providers,
     required MatchCandidateNestJsDataSource matchCandidateProbe,
     required WorkspaceAssetTypeRepository workspaceAssetTypes,
+    AssetRepository? assetRepository,
     required String orgId,
     String? editingProviderId,
     required String defaultCountryId,
@@ -151,6 +165,7 @@ class ProviderFormController extends GetxController {
         _providers = providers,
         _matchCandidateProbe = matchCandidateProbe,
         _workspaceAssetTypes = workspaceAssetTypes,
+        _assetRepository = assetRepository,
         _orgId = orgId,
         _editingProviderId = editingProviderId,
         _defaultCountryId = defaultCountryId,
@@ -367,33 +382,149 @@ class ProviderFormController extends GetxController {
     }
   }
 
-  /// Carga los assetTypes que el workspace activo opera, llamando al
-  /// endpoint canónico de Core API. Idempotente: se puede llamar
-  /// repetidamente (p. ej. desde un botón "Reintentar") sin efectos
+  /// Carga los assetTypes que el workspace activo opera, fusionando dos
+  /// fuentes:
+  ///
+  ///   1. **Local (Isar)** — síntesis desde el inventario de activos del
+  ///      workspace. Se construye un `WorkspaceAssetTypeEntity` raíz por
+  ///      cada `AssetType` enum distinto presente. Baseline inmediata,
+  ///      independiente de red.
+  ///   2. **Wire (Core API)** — `GET /v1/core-common/workspaces/me/asset-types`.
+  ///      Enriquece la lista con subtipos jerárquicos (`vehicle.car`, etc.)
+  ///      y nombres canónicos. La intersección por `id` la gana wire (su
+  ///      `name` y `parentId` son la versión "buena").
+  ///
+  /// REGLAS:
+  ///   - Si local tiene activos pero wire devuelve `[]` o falla → se
+  ///     conserva la lista local (UX no se rompe por desfase de
+  ///     `AssetActorLink` en backend).
+  ///   - Si local está vacío y wire devuelve `[]` → empty real (workspace
+  ///     sin activos), copy guía al usuario a registrar uno.
+  ///   - Si local está vacío y wire falla → error humano + retry.
+  ///   - `_assetRepository == null` (paths legacy/test) → comportamiento
+  ///     legacy puro (solo wire).
+  ///
+  /// Idempotente: re-invocable desde el botón "Reintentar" sin efectos
   /// secundarios. La UI escucha los Rx para reflejar loading/empty/error.
   Future<void> loadAvailableAssetTypes() async {
     availableAssetTypesLoading.value = true;
     availableAssetTypesError.value = null;
+
+    // ── 1) BASELINE LOCAL ──
+    // Construye la síntesis desde Isar antes de tocar la red. Si hay datos
+    // locales, ya hay UI utilizable aunque el wire falle.
+    final synth = await _buildLocalSynthAssetTypes();
+    if (synth.isNotEmpty) {
+      availableAssetTypes.assignAll(synth);
+    }
+
+    // ── 2) ENRIQUECIMIENTO WIRE ──
     try {
-      final list = await _workspaceAssetTypes.listActive();
-      availableAssetTypes.assignAll(list);
+      final wire = await _workspaceAssetTypes.listActive();
+      final merged = _mergeAssetTypes(synth: synth, wire: wire);
+      availableAssetTypes.assignAll(merged);
     } on UnauthorizedException catch (e) {
       debugPrint('[ProviderFormController] assetTypes UNAUTHORIZED: ${e.message}');
-      availableAssetTypesError.value = 'Tu sesión expiró.';
+      if (synth.isEmpty) {
+        availableAssetTypesError.value = 'Tu sesión expiró.';
+      }
     } on NetworkException catch (e) {
       debugPrint('[ProviderFormController] assetTypes NETWORK: ${e.message}');
-      availableAssetTypesError.value = 'Sin conexión.';
+      if (synth.isEmpty) {
+        availableAssetTypesError.value = 'Sin conexión.';
+      }
     } on ServerException catch (e) {
       debugPrint(
         '[ProviderFormController] assetTypes SERVER ${e.statusCode}: ${e.message}',
       );
-      availableAssetTypesError.value = 'Error del servidor.';
+      if (synth.isEmpty) {
+        availableAssetTypesError.value = 'Error del servidor.';
+      }
     } catch (e) {
       debugPrint('[ProviderFormController] assetTypes load fail: $e');
-      availableAssetTypesError.value = 'No se pudieron cargar los tipos de activo.';
+      if (synth.isEmpty) {
+        availableAssetTypesError.value =
+            'No se pudieron cargar los tipos de activo.';
+      }
     } finally {
       availableAssetTypesLoading.value = false;
     }
+  }
+
+  /// Sintetiza `WorkspaceAssetTypeEntity` desde los activos locales del
+  /// workspace. Solo genera nodos raíz (un nodo por cada valor distinto
+  /// de `AssetType` enum). Los subtipos (`vehicle.car`, etc.) los aporta
+  /// wire — no se inventan desde local porque la subclasificación vive
+  /// en `Asset.segmentId`/`AssetVehiculoEntity`, no en `AssetType`.
+  Future<List<WorkspaceAssetTypeEntity>> _buildLocalSynthAssetTypes() async {
+    final repo = _assetRepository;
+    if (repo == null) return const <WorkspaceAssetTypeEntity>[];
+    if (_orgId.isEmpty) return const <WorkspaceAssetTypeEntity>[];
+    try {
+      final assets = await repo.fetchAssetsByOrg(_orgId);
+      final present = <AssetType>{for (final a in assets) a.type};
+      // Orden estable: misma secuencia que el enum, garantiza UI
+      // determinística entre invocaciones.
+      return [
+        for (final t in AssetType.values)
+          if (present.contains(t)) _synthAssetType(t),
+      ];
+    } catch (e) {
+      debugPrint('[ProviderFormController] synth assetTypes fail: $e');
+      return const <WorkspaceAssetTypeEntity>[];
+    }
+  }
+
+  /// Mapea `AssetType` enum → `WorkspaceAssetTypeEntity` raíz.
+  /// `id` debe coincidir con el wire (`AssetType.id` en Postgres) para
+  /// que el merge por id funcione cuando wire también devuelva el root.
+  WorkspaceAssetTypeEntity _synthAssetType(AssetType t) {
+    switch (t) {
+      case AssetType.vehicle:
+        return const WorkspaceAssetTypeEntity(
+          id: 'vehicle',
+          name: 'Vehículos',
+          parentId: null,
+        );
+      case AssetType.realEstate:
+        return const WorkspaceAssetTypeEntity(
+          id: 'real_estate',
+          name: 'Inmuebles',
+          parentId: null,
+        );
+      case AssetType.machinery:
+        return const WorkspaceAssetTypeEntity(
+          id: 'machinery',
+          name: 'Maquinaria',
+          parentId: null,
+        );
+      case AssetType.equipment:
+        return const WorkspaceAssetTypeEntity(
+          id: 'equipment',
+          name: 'Equipos',
+          parentId: null,
+        );
+    }
+  }
+
+  /// Fusiona synth (local) y wire (backend) por `id`. Wire gana en el
+  /// solapamiento (es la versión canónica con `name` y `parentId`
+  /// oficiales). Synth aporta los nodos raíz ausentes en wire.
+  ///
+  /// Preserva el orden: primero los items de wire en su orden original,
+  /// luego los synth no presentes en wire (en orden de `AssetType` enum).
+  /// Esto mantiene el dropdown estable cuando wire emite y la lista
+  /// pasa de synth-only a wire+synth.
+  List<WorkspaceAssetTypeEntity> _mergeAssetTypes({
+    required List<WorkspaceAssetTypeEntity> synth,
+    required List<WorkspaceAssetTypeEntity> wire,
+  }) {
+    final wireIds = <String>{for (final w in wire) w.id};
+    return [
+      ...wire,
+      for (final s in synth)
+        if (!wireIds.contains(s.id)) s,
+    ];
   }
 
   Future<void> _hydrateFromExisting(String id) async {

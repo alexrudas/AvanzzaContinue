@@ -96,6 +96,10 @@ class ProviderFormBinding extends Bindings {
         // Reemplaza el dropdown hardcodeado (`kKnownAssetTypes`) por la
         // lista derivada de `AssetActorLink` (server-side query).
         workspaceAssetTypes: DIContainer().workspaceAssetTypeRepository,
+        // Local-first (2026-05-11): fuente Isar para derivar el dropdown
+        // de "Especialidades" cuando el wire (`AssetActorLink`) está
+        // desfasado o caído. El controller fusiona local+wire por id.
+        assetRepository: DIContainer().assetRepository,
         orgId: orgId,
         editingProviderId: editingId,
         defaultCountryId: countryId,

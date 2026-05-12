@@ -248,6 +248,23 @@ class _ProviderFormPageState extends State<ProviderFormPage> {
               _controller.mode.value == ProviderFormMode.edit) {
             return Text('Editar ${focused.humanLabel.toLowerCase()}');
           }
+          // Título contextual cuando viene initialKind desde Mi Red
+          // (FAB Proveedores de productos / servicios). Solo aplica en
+          // create — en edit el copy es 'Editar proveedor'.
+          if (_controller.mode.value == ProviderFormMode.create &&
+              _controller.isOfferKindLocked) {
+            switch (_controller.offerKind.value) {
+              case SpecialtyKind.product:
+                return const Text('Registrar proveedor de productos');
+              case SpecialtyKind.service:
+                return const Text('Registrar proveedor de servicios');
+              case SpecialtyKind.both:
+              case null:
+                // BOTH no se entrega desde Mi Red V1 (FAB solo expone
+                // productos o servicios). Fallback defensivo.
+                break;
+            }
+          }
           return Text(
             _controller.mode.value == ProviderFormMode.create
                 ? 'Nuevo proveedor'
@@ -605,7 +622,17 @@ class _ProviderFormPageState extends State<ProviderFormPage> {
           // limpia las specialties seleccionadas (regla del controller)
           // para evitar conservar referencias incompatibles con el
           // nuevo filtro.
-          _buildOfferKindTile(theme, kind, enabled: assetTypeChosen),
+          //
+          // Además, si el form fue abierto desde Mi Red con un kind
+          // contextualizado (FAB Productos / Servicios), el tile se
+          // deshabilita aunque el assetType esté elegido — el kind no
+          // se puede cambiar desde adentro del form. El controller
+          // tampoco lo permitiría: setOfferKind tiene un guard de lock.
+          _buildOfferKindTile(
+            theme,
+            kind,
+            enabled: assetTypeChosen && !_controller.isOfferKindLocked,
+          ),
           const SizedBox(height: 12),
           // ── Tile: tap para abrir selector ─────────────────────────
           // Deshabilitado hasta que ambos pre-filtros estén definidos.

@@ -211,9 +211,8 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
   /// "miproveedor.com" caigan en un intento de ruta local.
   Future<void> _openWebsite(String url) async {
     final trimmed = url.trim();
-    final normalized = trimmed.startsWith(RegExp(r'https?://'))
-        ? trimmed
-        : 'https://$trimmed';
+    final normalized =
+        trimmed.startsWith(RegExp(r'https?://')) ? trimmed : 'https://$trimmed';
     final uri = Uri.tryParse(normalized);
     if (uri == null) {
       if (!mounted) return;
