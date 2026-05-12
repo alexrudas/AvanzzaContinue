@@ -53,6 +53,12 @@ abstract class Routes {
   static const home = _Paths.home;
   static const orgSelect = _Paths.orgSelect;
 
+  /// Pantalla global de Cuenta / Perfil. Accesible desde el icono Perfil
+  /// del AppBar de cualquier workspace. Identidad, seguridad y contexto
+  /// resumido del usuario actual.
+  /// CONTRACT: no requiere arguments.
+  static const account = _Paths.account;
+
   // ══════════════════════════════════════════════════════════════════════════
   // PROVIDER WORKSPACES
   // ══════════════════════════════════════════════════════════════════════════
@@ -306,6 +312,7 @@ abstract class _Paths {
   static const splash = '/splash';
   static const home = '/home';
   static const orgSelect = '/org_select';
+  static const account = '/account';
 
   // Provider
   static const providerHomeArticles = '/provider/home/articles';

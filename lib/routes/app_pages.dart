@@ -34,6 +34,7 @@ import '../presentation/auth/pages/select_country_city_page.dart';
 import '../presentation/auth/pages/select_profile_page.dart';
 import '../presentation/auth/pages/summary_page.dart';
 import '../presentation/auth/pages/username_password_page.dart';
+import '../presentation/bindings/account/account_binding.dart';
 import '../presentation/bindings/admin/actor_detail_binding.dart';
 import '../presentation/bindings/admin/provider_detail_binding.dart';
 import '../presentation/bindings/admin/provider_form_binding.dart';
@@ -84,6 +85,7 @@ import '../presentation/pages/portfolio/wizard/runt_query_progress_page.dart';
 import '../presentation/pages/portfolio/wizard/runt_query_result_page.dart';
 import '../presentation/bindings/purchase_request_binding.dart';
 import '../presentation/bindings/purchase_request_detail_binding.dart';
+import '../presentation/pages/account/account_profile_page.dart';
 import '../presentation/pages/admin/network/actor_detail_page.dart';
 import '../presentation/pages/admin/network/network_operational_screen.dart';
 import '../presentation/pages/admin/network/provider_detail_page.dart';
@@ -135,6 +137,17 @@ class AppPages {
         name: Routes.countryCity, page: () => const SelectCountryCityPage()),
     GetPage(name: Routes.profile, page: () => const SelectProfilePage()),
     GetPage(name: Routes.orgSelect, page: () => const OrgSelectionPage()),
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ACCOUNT / PROFILE — pantalla global accesible desde el icono Perfil del
+    // AppBar de cualquier workspace. Identidad, seguridad y contexto del
+    // usuario actual. CONTRACT: no requiere arguments.
+    // ════════════════════════════════════════════════════════════════════════
+    GetPage(
+      name: Routes.account,
+      page: () => const AccountProfilePage(),
+      binding: AccountBinding(),
+    ),
 
     // LEGACY_ALIAS: Routes.role -> Canonical: Routes.profile
     GetPage(
