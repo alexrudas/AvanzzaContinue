@@ -36,6 +36,10 @@ import 'package:avanzza/data/models/maintenance/incidencia_model.dart';
 import 'package:avanzza/data/models/maintenance/maintenance_finished_model.dart';
 import 'package:avanzza/data/models/maintenance/maintenance_process_model.dart';
 import 'package:avanzza/data/models/maintenance/maintenance_programming_model.dart';
+// Mi Red — cache local Isar (sección network + team + meta por sección).
+import 'package:avanzza/data/models/network/network_actor_cache_model.dart';
+import 'package:avanzza/data/models/network/network_section_meta_model.dart';
+import 'package:avanzza/data/models/network/team_actor_cache_model.dart';
 import 'package:avanzza/data/models/org/organization_model.dart';
 import 'package:avanzza/data/models/portfolio/portfolio_model.dart';
 import 'package:avanzza/data/models/purchase/purchase_request_model.dart';
@@ -108,6 +112,12 @@ final allIsarSchemas = [
   MaintenanceProcessModelSchema,
   MaintenanceProgrammingModelSchema,
   MembershipModelSchema,
+
+  // Mi Red — cache local Isar (Hito local-first v1).
+  NetworkActorCacheModelSchema,
+  NetworkSectionMetaModelSchema,
+  TeamActorCacheModelSchema,
+
   OrganizationModelSchema,
   PortfolioModelSchema,
   PurchaseRequestModelSchema,
