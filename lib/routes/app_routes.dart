@@ -289,6 +289,15 @@ abstract class Routes {
   static const bottomNavDemo = _Paths.bottomNavDemo;
   static const demoSoat = _Paths.demoSoat;
 
+  // ── DEV-only — Diagnóstico Integrations API (RUNT/SIMIT) ───────────────
+  // Pantallas de consulta directa a Integrations API (sin VRC, sin Isar,
+  // sin Firestore). Visibles únicamente en kDebugMode desde el FAB
+  // "Consultar" del Home admin.
+  static const devRuntPersonDiagnostic = _Paths.devRuntPersonDiagnostic;
+  static const devRuntVehicleDiagnostic = _Paths.devRuntVehicleDiagnostic;
+  static const devSimitPersonDiagnostic = _Paths.devSimitPersonDiagnostic;
+  static const devSimitVehicleDiagnostic = _Paths.devSimitVehicleDiagnostic;
+
   /// Demo experimental del flujo de registro v2 (RUNT temprano + tabs).
   /// CONTRACT: no requiere arguments. Variante de QA que coexiste con el
   /// flujo canónico hasta que el FusionadoFlow esté hardenado.
@@ -416,4 +425,10 @@ abstract class _Paths {
   static const demoSoat = '/campaign/soat';
   static const demoRegistrationV2 = '/demo/registration-v2';
   static const demoRegistrationV2Fusionado = '/demo/registration-v2-fusionado';
+
+  // DEV-only — Diagnóstico Integrations API (RUNT/SIMIT)
+  static const devRuntPersonDiagnostic = '/dev/diagnostics/runt/person';
+  static const devRuntVehicleDiagnostic = '/dev/diagnostics/runt/vehicle';
+  static const devSimitPersonDiagnostic = '/dev/diagnostics/simit/person';
+  static const devSimitVehicleDiagnostic = '/dev/diagnostics/simit/vehicle';
 }

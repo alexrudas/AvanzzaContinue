@@ -100,6 +100,10 @@ import '../presentation/pages/provider/me/provider_me_page.dart';
 import '../presentation/pages/provider/specialties/select_specialties_page.dart';
 import '../presentation/pages/purchase/purchase_request_detail_page.dart';
 import '../presentation/pages/purchase_request_page.dart';
+import '../presentation/controllers/dev/simit_diagnostic_controller.dart';
+import '../presentation/pages/dev/integrations_diagnostics/runt_person_diagnostic_page.dart';
+import '../presentation/pages/dev/integrations_diagnostics/runt_vehicle_diagnostic_page.dart';
+import '../presentation/pages/dev/integrations_diagnostics/simit_diagnostic_page.dart';
 import '../presentation/pages/runt/runt_person_consult_page.dart';
 import '../presentation/pages/runt/runt_vehicle_consult_page.dart';
 import '../presentation/pages/simit/simit_consult_page.dart';
@@ -636,6 +640,26 @@ class AppPages {
     GetPage(
       name: Routes.demoRegistrationV2Fusionado,
       page: () => const FusionadoFlow(),
+    ),
+
+    // ── DEV-only — Diagnóstico Integrations API (RUNT/SIMIT) ──────────
+    // Visibles únicamente en kDebugMode desde el FAB Consultar del Home
+    // admin. NO persisten en Isar/Firestore.
+    GetPage(
+      name: Routes.devRuntPersonDiagnostic,
+      page: () => const RuntPersonDiagnosticPage(),
+    ),
+    GetPage(
+      name: Routes.devRuntVehicleDiagnostic,
+      page: () => const RuntVehicleDiagnosticPage(),
+    ),
+    GetPage(
+      name: Routes.devSimitPersonDiagnostic,
+      page: () => const SimitDiagnosticPage(mode: SimitQueryMode.person),
+    ),
+    GetPage(
+      name: Routes.devSimitVehicleDiagnostic,
+      page: () => const SimitDiagnosticPage(mode: SimitQueryMode.vehicle),
     ),
   ];
 }
