@@ -132,6 +132,43 @@ class FirebaseAuthDS {
     );
   }
 
+  /// Vincula una credencial email/password al [currentUser] activo,
+  /// preservando el UID Firebase original. Se usa para activar acceso de
+  /// escritorio en cuentas creadas vía OTP (que solo tienen `phone` provider).
+  ///
+  /// Errores típicos relanzados como [FirebaseAuthException]:
+  /// - `no-current-user`            → no hay sesión activa.
+  /// - `requires-recent-login`      → el SDK exige reautenticación reciente.
+  /// - `provider-already-linked`    → el UID ya tiene un credential password.
+  /// - `credential-already-in-use`  → el alias está vinculado a otro UID.
+  /// - `email-already-in-use`       → mismo caso pero detectado por servidor.
+  /// - `weak-password`              → contraseña no cumple la política.
+  Future<UserCredential> linkAliasEmailPassword({
+    required String aliasEmail,
+    required String password,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'no-current-user',
+        message: 'No hay sesión activa.',
+      );
+    }
+    final credential = EmailAuthProvider.credential(
+      email: aliasEmail,
+      password: password,
+    );
+    return user.linkWithCredential(credential);
+  }
+
+  /// `true` cuando el usuario actual ya tiene una credencial 'password'
+  /// vinculada (acceso desktop habilitado).
+  bool currentUserHasPasswordProvider() {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    return user.providerData.any((p) => p.providerId == 'password');
+  }
+
   // MFA (wrappers básicos). Existe en FirebaseAuth User (no en FirebaseAuth global)
   MultiFactor? get userMultiFactor => _auth.currentUser?.multiFactor;
 

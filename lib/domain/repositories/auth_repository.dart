@@ -1,5 +1,7 @@
 // domain/repositories/auth_repository.dart
 
+import '../entities/account/desktop_access_status.dart';
+
 /// Resultado idempotente de verificación de username.
 /// available          → username libre, puede crearse.
 /// ownedByCurrentUser → el doc ya existe con el uid del usuario actual, continuar.
@@ -36,6 +38,21 @@ abstract class AuthRepository {
 
   Future<void> sendMfaCode(SignInMfaResolver resolver);
   Future<String> verifyMfaCode(SignInMfaResolver resolver, String code);
+
+  // ── Desktop access (linkWithCredential canónico) ──────────────────────────
+
+  /// Vincula una credencial email/password al UID Firebase vigente
+  /// (preservando identidad), reserva el [username] como alias y persiste
+  /// el cambio en el perfil. Pensado para que un usuario autenticado vía
+  /// OTP móvil active su acceso de escritorio sin migrar UID.
+  ///
+  /// Lanza [AuthFailure] con mensaje localizado para los casos de error
+  /// recuperables por UI: `username_taken`, `requires-recent-login`,
+  /// `provider-already-linked`, `weak-password`, etc.
+  Future<DesktopAccessStatus> linkDesktopAccess({
+    required String username,
+    required String password,
+  });
 }
 
 class SendOtpResult {

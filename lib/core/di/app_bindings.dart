@@ -11,6 +11,12 @@ import 'package:avanzza/domain/usecases/load_initial_cache_uc.dart'
 import 'package:avanzza/domain/usecases/set_active_context_uc.dart'
     show SetActiveContextUC;
 import 'package:avanzza/domain/usecases/verify_otp_uc.dart' show VerifyOtpUC;
+import 'package:avanzza/core/platform/platform_capabilities.dart';
+import 'package:avanzza/core/services/auth/federated_auth_service.dart';
+import 'package:avanzza/core/services/notifications/notification_registration_service.dart';
+import 'package:avanzza/core/services/phone/phone_dialer_service.dart';
+import 'package:avanzza/core/services/platform_services_factory.dart';
+import 'package:avanzza/core/services/scanner/barcode_scanner_service.dart';
 import 'package:avanzza/infrastructure/contacts/flutter_contacts_picker.dart';
 import 'package:avanzza/presentation/auth/scanners/scanner_controller.dart';
 import 'package:avanzza/presentation/shared/widgets/phone/contact_picker.dart';
@@ -173,12 +179,43 @@ class AppBindings extends Bindings {
       fenix: true,
     );
 
-    // Contact picker (seam para `PhoneField`). Implementación real con
-    // `flutter_contacts`: abre el picker NATIVO del dispositivo, pide
-    // permisos on-demand y normaliza el número seleccionado a E.164
-    // canónico antes de devolverlo al widget.
+    // Contact picker (seam para `PhoneField`). Mobile: impl real con
+    // `flutter_contacts` que abre el picker nativo. Desktop: no-op que
+    // hace que el widget muestre "Selector no disponible en escritorio".
     Get.put<ContactPicker>(
-      const FlutterContactsPicker(),
+      PlatformCapabilities.supportsNativeContactsPicker
+          ? const FlutterContactsPicker()
+          : const NoOpContactPicker(),
+      permanent: true,
+    );
+
+    // Phone dialer cross-platform: Android usa llamada directa; iOS y
+    // desktop caen a `tel:` vía url_launcher.
+    Get.put<PhoneDialerService>(
+      PlatformServicesFactory.createPhoneDialer(),
+      permanent: true,
+    );
+
+    // Barcode scanner: Phase 0 deja el scanner real (MobileScanner) en
+    // las páginas existentes — esta interfaz se inyecta para que código
+    // nuevo y desktop pregunten `isAvailable` antes de abrir flujos.
+    Get.put<BarcodeScannerService>(
+      PlatformServicesFactory.createBarcodeScanner(),
+      permanent: true,
+    );
+
+    // Federated auth gate: la UI consulta `availableProviders` para
+    // decidir qué botones renderizar. En desktop el set queda vacío.
+    Get.put<FederatedAuthService>(
+      PlatformServicesFactory.createFederatedAuth(),
+      permanent: true,
+    );
+
+    // Notification registration (FCM): hoy Noop en todas las plataformas.
+    // Cuando se integre `firebase_messaging`, la factory devolverá la
+    // impl mobile solo cuando aplique.
+    Get.put<NotificationRegistrationService>(
+      PlatformServicesFactory.createNotificationRegistration(),
       permanent: true,
     );
 

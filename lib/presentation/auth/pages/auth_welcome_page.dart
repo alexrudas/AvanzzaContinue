@@ -23,6 +23,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/platform/platform_capabilities.dart';
 import '../../../routes/app_pages.dart';
 
 class AuthWelcomePage extends StatelessWidget {
@@ -84,7 +85,35 @@ class AuthWelcomePage extends StatelessWidget {
 
                   const SizedBox(height: 48),
 
-                  // ── CTA primario: Onboarding canónico (FusionadoFlow) ─────
+                  // ── CTA primario desktop: usuario y contraseña ───────────
+                  // Solo visible en escritorio. Phone OTP no está soportado
+                  // por `firebase_auth` en Windows (limitación documentada
+                  // del plugin; sí funciona en Android/iOS/Web/macOS) y los
+                  // proveedores federados nativos tampoco aplican en Windows
+                  // en Phase 0. Username/password (vía signInWithAliasEmail)
+                  // sí está soportado por el SDK en Windows, así que es el
+                  // único path operativo para companion administrativo.
+                  if (PlatformCapabilities.isDesktopCompanion) ...[
+                    FilledButton.icon(
+                      onPressed: () => Get.toNamed(Routes.loginUserPass),
+                      icon: const Icon(Icons.lock_outline_rounded),
+                      label: const Text('Iniciar sesión con usuario y contraseña'),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // ── CTA primario móvil: Onboarding canónico ──────────────
+                  // En móvil queda como CTA principal. En desktop también se
+                  // mantiene visible: el usuario puede intentar el flujo si
+                  // viene de un device que sí lo soporte, aunque
+                  // `verifyPhoneNumber` fallará en Windows. La degradación
+                  // está manejada por el catch genérico en welcome.
                   FilledButton.icon(
                     onPressed: () => Get.toNamed(Routes.registerOnboarding),
                     icon: const Icon(Icons.phone_android_rounded),
@@ -119,48 +148,57 @@ class AuthWelcomePage extends StatelessWidget {
 
                   const SizedBox(height: 8),
 
-                  // ── Google ────────────────────────────────────────────────
-                  OutlinedButton.icon(
-                    onPressed: () => Get.toNamed(Routes.enhancedRegistration),
-                    icon: const Icon(Icons.g_mobiledata_rounded, size: 26),
-                    label: const Text('Continuar con Google'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                  // ── Proveedores federados ─────────────────────────────────
+                  // Solo se renderizan en móvil. En desktop quedan ocultos
+                  // porque ninguno tiene impl funcional en Windows en Phase 0:
+                  //   - Google: requiere flujo OAuth desktop manual (Phase 1+)
+                  //   - Apple: solo iOS/macOS
+                  //   - Microsoft/Facebook: placeholders "Próximamente"
+                  if (!PlatformCapabilities.isDesktopCompanion) ...[
+                    // ── Google ────────────────────────────────────────────
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          Get.toNamed(Routes.enhancedRegistration),
+                      icon: const Icon(Icons.g_mobiledata_rounded, size: 26),
+                      label: const Text('Continuar con Google'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 12),
 
-                  // ── Apple ─────────────────────────────────────────────────
-                  _ComingSoonButton(
-                    icon: Icons.apple_rounded,
-                    label: 'Continuar con Apple',
-                    colorScheme: cs,
-                    theme: theme,
-                  ),
+                    // ── Apple ─────────────────────────────────────────────
+                    _ComingSoonButton(
+                      icon: Icons.apple_rounded,
+                      label: 'Continuar con Apple',
+                      colorScheme: cs,
+                      theme: theme,
+                    ),
 
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 12),
 
-                  // ── Microsoft ─────────────────────────────────────────────
-                  _ComingSoonButton(
-                    icon: Icons.window_rounded,
-                    label: 'Continuar con Microsoft',
-                    colorScheme: cs,
-                    theme: theme,
-                  ),
+                    // ── Microsoft ─────────────────────────────────────────
+                    _ComingSoonButton(
+                      icon: Icons.window_rounded,
+                      label: 'Continuar con Microsoft',
+                      colorScheme: cs,
+                      theme: theme,
+                    ),
 
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 12),
 
-                  // ── Facebook ──────────────────────────────────────────────
-                  _ComingSoonButton(
-                    icon: Icons.facebook_rounded,
-                    label: 'Continuar con Facebook',
-                    colorScheme: cs,
-                    theme: theme,
-                  ),
+                    // ── Facebook ──────────────────────────────────────────
+                    _ComingSoonButton(
+                      icon: Icons.facebook_rounded,
+                      label: 'Continuar con Facebook',
+                      colorScheme: cs,
+                      theme: theme,
+                    ),
+                  ],
 
                   const SizedBox(height: 40),
 

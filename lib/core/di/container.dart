@@ -8,6 +8,8 @@ import 'package:get/get.dart' hide Response;
 import 'package:isar_community/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../auth/id_token_cache.dart';
+
 import '../../data/sources/local/bootstrap/bootstrap_sync_state_local_ds.dart';
 import '../../data/sources/remote/bootstrap/bootstrap_api_client.dart';
 import '../../presentation/controllers/bootstrap/bootstrap_sync_controller.dart';
@@ -36,6 +38,8 @@ import '../../data/repositories/org_repository_impl.dart';
 import '../../data/datasources/integrations_remote_datasource.dart';
 import '../../data/local/integrations_local_datasource.dart';
 import '../../data/repositories/integrations_repository_impl.dart';
+import '../../data/simit/simit_detail_prefetch_service.dart';
+import '../../data/simit/simit_service.dart';
 import '../../data/repositories/portfolio_repository_impl.dart';
 import '../../data/repositories/purchase_repository_impl.dart';
 import '../../domain/repositories/integrations_repository.dart';
@@ -67,10 +71,16 @@ import '../../data/sources/remote/maintenance_remote_ds.dart';
 import '../../data/sources/remote/org_remote_ds.dart';
 import '../../data/repositories/core_common/asset_actor_link_repository_impl.dart';
 import '../../data/repositories/core_common/network_relationship_repository_impl.dart';
+import '../../data/repositories/network/network_repository_impl.dart';
+import '../../data/repositories/network/team_repository_impl.dart';
 import '../../data/sources/remote/core_common/asset_actor_link_api_client.dart';
 import '../../data/sources/remote/core_common/relationship_api_client.dart';
+import '../../data/sources/remote/network/network_api_client.dart';
+import '../../data/sources/remote/network/team_api_client.dart';
 import '../../domain/repositories/core_common/asset_actor_link_repository.dart';
 import '../../domain/repositories/core_common/network_relationship_repository.dart';
+import '../../domain/repositories/network/network_repository.dart';
+import '../../domain/repositories/network/team_repository.dart';
 import '../../data/sources/remote/purchase/purchase_api_client.dart';
 import '../../data/sources/remote/user_remote_ds.dart';
 import '../../data/sync/asset_audit_service.dart';
@@ -146,6 +156,10 @@ import '../../data/repositories/core_common/operational_relationship_repository_
 import '../../data/repositories/core_common/operational_request_repository_impl.dart';
 import '../../data/repositories/core_common/request_delivery_repository_impl.dart';
 import '../../data/sources/local/core_common/local_contact_local_ds.dart';
+import '../../data/sources/local/network/network_local_datasource.dart';
+import '../../data/sources/local/network/network_local_datasource_impl.dart';
+import '../../data/sources/local/network/team_local_datasource.dart';
+import '../../data/sources/local/network/team_local_datasource_impl.dart';
 import '../../data/sources/local/core_common/local_organization_local_ds.dart';
 import '../../data/sources/local/core_common/coordination_flow_local_ds.dart';
 import '../../data/sources/local/core_common/match_candidate_local_ds.dart';
@@ -239,6 +253,16 @@ class DIContainer {
   /// Cliente HTTP contra `/v1/core-common/relationships` (hito 3 CRUD).
   late final RelationshipApiClient networkRelationshipRemote;
 
+  // ── Mi Red Operativa v2 (Hito 5b — contrato Core API congelado) ──────────
+  /// Cliente HTTP contra `GET /v1/network` y `/v1/network/categories/summary`.
+  /// Stack paralelo al legacy NetworkRelationshipApi: separa permisos
+  /// (`network.read`) y formato del envelope (schemaVersion + cursor opaco).
+  late final NetworkApiClient networkApiClient;
+
+  /// Cliente HTTP contra `GET /v1/team` y `/v1/team/summary`. Capability
+  /// independiente (`team.read`): puede fallar 403 sin afectar /network.
+  late final TeamApiClient teamApiClient;
+
   late final AccountingLocalDataSource accountingLocal;
   late final AccountingRemoteDataSource accountingRemote;
 
@@ -280,6 +304,16 @@ class DIContainer {
   /// Nombrado "network" para no colisionar con OperationalRelationshipRepository
   /// preexistente (que sincroniza Firestore — caso distinto).
   late final NetworkRelationshipRepository networkRelationshipRepository;
+
+  /// Mi Red Operativa v2 — Red externa (Hito 5b, contrato Core API congelado).
+  /// Read-only en memoria (sin Isar). Stateless: cursor lo gestiona el
+  /// MiRedController. Independiente de [networkRelationshipRepository] (que
+  /// hace CRUD legacy, no listing paginado v2).
+  late final NetworkRepository networkRepository;
+
+  /// Mi Red Operativa v2 — Equipo interno (Hito 5b). Capability independiente
+  /// de network: 403 en /team NO bloquea /network.
+  late final TeamRepository teamRepository;
   late final AccountingRepository accountingRepository;
   late final InsuranceRepository insuranceRepository;
   late final ChatRepository chatRepository;
@@ -366,6 +400,12 @@ class DIContainer {
   late final LocalAccessSnapshotDS accessSnapshotLocalDs;
   late final AccessSnapshotService accessSnapshotService;
 
+  // ── Mi Red Operativa v2 — Data sources (local Isar, cache-first) ─────────
+  // Fuente local de actores network y team. Habilita read local-first +
+  // reconcile post-success en NetworkRepositoryImpl / TeamRepositoryImpl.
+  late final NetworkLocalDataSource networkLocalDs;
+  late final TeamLocalDataSource teamLocalDs;
+
   // ── Core Common v1 — Data sources (local) ─────────────────────────────────
   late final LocalOrganizationLocalDataSource localOrganizationLocal;
   late final LocalContactLocalDataSource localContactLocal;
@@ -444,11 +484,36 @@ Future<void> initDI({
   final coreDio = _buildCoreDio();
   final integrationsDio = _buildIntegrationsDio();
 
+  // ID token single-flight cache (compartido por TODOS los api clients).
+  // Sin esto, cada api client llama `user.getIdToken()` de forma
+  // independiente. Bajo fan-out (provider_form, mi red, etc.) eso son N
+  // invocaciones nativas paralelas al canal `firebase_auth_plugin/id-token`,
+  // que en `firebase_auth ^5.7.0` para Windows tiene un bug de threading
+  // documentado: el canal envía mensajes desde non-platform thread y
+  // puede arrastrar al SDK C++ de Firestore a un abort(). La cache reduce
+  // esa N a 1 (con TTL 50 min) y además beneficia móvil con menos latencia.
+  final idTokenCache = IdTokenCache(FirebaseAuth.instance);
+  IdTokenCache.registerInstance(idTokenCache);
+  Future<String?> currentIdToken() => idTokenCache.get();
+  Future<String?> refreshIdToken({bool forceRefresh = false}) =>
+      idTokenCache.get(forceRefresh: forceRefresh);
+
   if (!Get.isRegistered<Dio>(tag: 'core')) {
     Get.put<Dio>(coreDio, tag: 'core', permanent: true);
   }
   if (!Get.isRegistered<Dio>(tag: 'integrations')) {
     Get.put<Dio>(integrationsDio, tag: 'integrations', permanent: true);
+  }
+
+  // SIMIT detail prefetch service (singleton permanente).
+  // Disponible globalmente sin depender de SimitBinding — el bottom sheet
+  // y los controllers lo consultan via Get.find() para coordinar prefetch
+  // background y "join" de inflight cuando un tap llega antes de completar.
+  if (!Get.isRegistered<SimitDetailPrefetchService>()) {
+    Get.put<SimitDetailPrefetchService>(
+      SimitDetailPrefetchService(SimitService(integrationsDio)),
+      permanent: true,
+    );
   }
 
   if (!Get.isRegistered<OfflineSyncService>()) {
@@ -507,30 +572,30 @@ Future<void> initDI({
   // tag:'core' con baseUrl=ApiEndpoints.coreBaseUrl y Bearer Firebase.
   c.purchaseRemote = PurchaseApiClient(
     dio: coreDio,
-    getIdToken: () async {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return null;
-      return user.getIdToken();
-    },
+    getIdToken: currentIdToken,
   );
 
   // ── Core Common v1 — Mi Red Operativa (ADR actor-canon hito 5b) ──────────
   // Todos los Api Clients de Core Common usan el único Dio tag:'core'.
   c.assetActorLinkRemote = AssetActorLinkApiClient(
     dio: coreDio,
-    getIdToken: () async {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return null;
-      return user.getIdToken();
-    },
+    getIdToken: currentIdToken,
   );
   c.networkRelationshipRemote = RelationshipApiClient(
     dio: coreDio,
-    getIdToken: () async {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return null;
-      return user.getIdToken();
-    },
+    getIdToken: currentIdToken,
+  );
+
+  // Mi Red Operativa v2 (Hito 5b) — clientes HTTP contra contrato congelado.
+  // Reusan coreDio (mismo Bearer + interceptors) y el mismo proveedor de
+  // Firebase ID token. Sin cache local en este Hito.
+  c.networkApiClient = NetworkApiClient(
+    dio: coreDio,
+    getIdToken: currentIdToken,
+  );
+  c.teamApiClient = TeamApiClient(
+    dio: coreDio,
+    getIdToken: currentIdToken,
   );
 
   c.accountingLocal = AccountingLocalDataSource(isar);
@@ -606,19 +671,12 @@ Future<void> initDI({
   );
   c.accessApiClient = AccessApiClient(
     dio: coreDio,
-    getIdToken: () async {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return null;
-      return user.getIdToken();
-    },
+    getIdToken: currentIdToken,
   );
   c.accessRepository = AccessRepositoryImpl(client: c.accessApiClient);
 
-  Future<String?> refreshIdToken({bool forceRefresh = false}) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
-    return user.getIdToken(forceRefresh);
-  }
+  // `refreshIdToken` se define globalmente al inicio de initDI() para que
+  // delegue en `IdTokenCache` (single-flight). Aquí solo lo usamos.
 
   String? resolveLocalOrgId() {
     if (!Get.isRegistered<ActiveOrgIdProvider>()) return null;
@@ -701,6 +759,23 @@ Future<void> initDI({
     client: c.networkRelationshipRemote,
   );
 
+  // Mi Red Operativa v2 — DS local Isar (cache-first, Fase 4 Paso 3).
+  c.networkLocalDs = NetworkLocalDataSourceImpl(c.isar);
+  c.teamLocalDs = TeamLocalDataSourceImpl(c.isar);
+
+  // Mi Red Operativa v2 — Repos cache-first (Fase 4 Paso 3).
+  // - watchSection: stream local-first del DS.
+  // - refreshSection: HTTP → reconcileFromServer atómico.
+  // - fetchPage: legacy compat para callers existentes durante transición.
+  c.networkRepository = NetworkRepositoryImpl(
+    client: c.networkApiClient,
+    localDataSource: c.networkLocalDs,
+  );
+  c.teamRepository = TeamRepositoryImpl(
+    client: c.teamApiClient,
+    localDataSource: c.teamLocalDs,
+  );
+
   c.accountingRepository = AccountingRepositoryImpl(
     local: c.accountingLocal,
     remote: c.accountingRemote,
@@ -728,11 +803,7 @@ Future<void> initDI({
   c.specialtyCatalogRepository = SpecialtyCatalogRepositoryImpl(
     client: SpecialtyCatalogApiClient(
       dio: coreDio,
-      getIdToken: () async {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user == null) return null;
-        return user.getIdToken();
-      },
+      getIdToken: currentIdToken,
     ),
   );
 
@@ -745,11 +816,7 @@ Future<void> initDI({
   c.providerCanonicalRepository = ProviderCanonicalRepositoryImpl(
     client: ProviderCanonicalApiClient(
       dio: coreDio,
-      getIdToken: () async {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user == null) return null;
-        return user.getIdToken();
-      },
+      getIdToken: currentIdToken,
     ),
   );
 
@@ -759,11 +826,7 @@ Future<void> initDI({
   c.providerSelfRepository = ProviderSelfRepositoryImpl(
     api: ProviderSelfApiClient(
       dio: coreDio,
-      getIdToken: () async {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user == null) return null;
-        return user.getIdToken();
-      },
+      getIdToken: currentIdToken,
     ),
   );
 
@@ -774,11 +837,7 @@ Future<void> initDI({
   c.workspaceAssetTypeRepository = WorkspaceAssetTypeRepositoryImpl(
     client: WorkspaceAssetTypeApiClient(
       dio: coreDio,
-      getIdToken: () async {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user == null) return null;
-        return user.getIdToken();
-      },
+      getIdToken: currentIdToken,
     ),
   );
 
@@ -949,16 +1008,9 @@ Future<void> initDI({
       LocalOrganizationFirestoreDataSource(firestore);
   c.localContactFirestore = LocalContactFirestoreDataSource(firestore);
 
-  // DS remotos NestJS (impl HTTP real contra avanzza-core-api).
-  // getIdToken extrae el Firebase ID Token y el DS lo inyecta como
-  // Authorization: Bearer. Sin sesión activa → UnauthorizedException.
-  Future<String?> currentIdToken() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
-    return user.getIdToken();
-  }
   // Match Candidate + Coordination Flow usan el Dio tag:'core' (mismo que
-  // PurchaseApiClient y el resto de Core Common).
+  // PurchaseApiClient y el resto de Core Common). Reusan `currentIdToken`
+  // del cache global single-flight definido al inicio de initDI().
   c.matchCandidateNestJs = MatchCandidateNestJsDataSourceImpl(
     dio: coreDio,
     getIdToken: currentIdToken,
@@ -1189,7 +1241,11 @@ class _CoreBearerInterceptor extends Interceptor {
 
     String? token;
     try {
-      token = await FirebaseAuth.instance.currentUser?.getIdToken();
+      // Usa el cache global single-flight para deduplicar llamadas
+      // concurrentes a `getIdToken()` y reducir presión sobre el canal
+      // nativo (relevante en Windows por el bug de threading del
+      // plugin firebase_auth).
+      token = await IdTokenCache.instance.get();
     } catch (e) {
       debugPrint('[CORE] Bearer token fetch failed: $e');
       handler.reject(_synthetic401(options, 'TOKEN_FETCH_FAILED', '$e'));

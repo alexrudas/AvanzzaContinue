@@ -42,6 +42,7 @@ import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/platform/platform_capabilities.dart';
 import '../../../../domain/services/core_common/key_normalizer.dart';
 import 'contact_picker.dart';
 
@@ -420,7 +421,13 @@ class _PhoneFieldState extends State<PhoneField> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (widget.showImportFromContacts)
+        // El botón de importar contactos solo se renderiza si la plataforma
+        // expone un picker nativo (flutter_contacts: Android/iOS). En
+        // desktop el botón queda fuera del árbol — no hay forma de
+        // invocarlo accidentalmente ni de tocar el MethodChannel mobile-only,
+        // aunque la defensa de DI con NoOpContactPicker sigue intacta.
+        if (widget.showImportFromContacts &&
+            PlatformCapabilities.supportsNativeContactsPicker)
           Padding(
             padding: const EdgeInsets.only(top: 8, right: 4),
             child: IconButton.outlined(
