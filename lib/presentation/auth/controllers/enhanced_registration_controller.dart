@@ -274,9 +274,11 @@ class EnhancedRegistrationController extends GetxController {
 
       final firebaseAuthDS = Get.find<FirebaseAuthDS>();
 
-      // Crear alias email (username@avanzza.local)
+      // Alias canónico: `${username}@avz.local`. Mismo dominio que
+      // AuthRepositoryImpl._aliasFromUsername para evitar accounts huérfanas
+      // cuando el usuario luego intente iniciar sesión por la ruta canónica.
       final username = email.value.split('@').first;
-      final aliasEmail = '$username@avanzza.local';
+      final aliasEmail = '${username.toLowerCase()}@avz.local';
 
       await firebaseAuthDS.signUpWithAliasEmail(
         aliasEmail: aliasEmail,

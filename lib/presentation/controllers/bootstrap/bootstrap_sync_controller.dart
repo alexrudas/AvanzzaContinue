@@ -250,13 +250,40 @@ class BootstrapSyncController extends GetxController
       _log(event: 'BOOTSTRAP_RETRY_SKIP', reason: 'missing_uid_or_payload');
       return;
     }
+    // Manual retry: el usuario tocó "Reintentar". Si el counter está
+    // exhausto, lo reseteamos — la intención explícita del usuario
+    // destraba el lock de max-attempts (que existe para frenar bucles
+    // automáticos, no para bloquear acciones manuales).
+    await _resetIfAttemptsExhausted(_currentUid!);
     _log(event: 'BOOTSTRAP_RETRY', userId: _currentUid, attempt: attempts.value);
     await _run(_currentUid!);
   }
 
   /// Hook público para llamar desde el workspace shell en su `initState`.
   Future<void> kickIfRetryable() async {
+    // Lifecycle kick (workspace enter / resume): si quedó atascado en
+    // failed con counter exhausto desde una sesión anterior, resetear
+    // antes de evaluar shouldKick. Sin esto el banner stale "Error del
+    // servidor (200)" sobrevive aunque el problema raíz ya esté resuelto.
+    if (_currentUid != null) {
+      await _resetIfAttemptsExhausted(_currentUid!);
+    }
     _kickIfRetryable();
+  }
+
+  /// Reset puntual del counter cuando una sesión previa lo dejó al tope.
+  /// No-op si el estado no es `failed` o el counter no está exhausto.
+  Future<void> _resetIfAttemptsExhausted(String uid) async {
+    if (status.value != BootstrapSyncStatus.failed) return;
+    if (attempts.value < _maxAttempts) return;
+    await _persistTransition(
+      uid: uid,
+      next: BootstrapSyncStatusModel.failed,
+      attempts: 0,
+      clearError: true,
+    );
+    attempts.value = 0;
+    lastError.value = null;
   }
 
   /// Reset completo (logout). Borra fila Isar + estado en memoria + timer.

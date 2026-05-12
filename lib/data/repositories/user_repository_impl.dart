@@ -24,21 +24,40 @@ class UserRepositoryImpl implements UserRepository {
   final UserRemoteDataSource remote;
   UserRepositoryImpl({required this.local, required this.remote});
 
+  /// Watcher reactivo real sobre Isar. Delega en
+  /// `UserLocalDataSource.watchUser(uid)`, que envuelve la query con
+  /// `.watch(fireImmediately: true)` y emite cada vez que la txn local
+  /// modifica el `UserModel` correspondiente.
+  ///
+  /// El sync remoto es un KICK lateral one-shot: si trae cambios, los
+  /// persiste vía `local.upsertUser(...)` y eso reabre el watcher con la
+  /// emisión actualizada — sin tocar el contrato del stream local. Si
+  /// falla (offline / 4xx / red caída), el watcher sigue vivo con la
+  /// SSOT local.
+  ///
+  /// Lifecycle:
+  ///   · La suscripción se cancela desde el consumer (p. ej.
+  ///     `SessionContextController._userSub.cancel()` en logout o re-init).
+  ///   · El stream cierra automáticamente si Isar se cierra (shutdown).
+  ///   · No hay StreamController custom → no hay riesgo de leaks por
+  ///     controllers que no se cierran.
   @override
-  Stream<UserEntity?> watchUser(String uid) async* {
-    final controller = StreamController<UserEntity?>();
-    Future(() async {
-      final l = await local.getUser(uid);
-      controller.add(l?.toEntity());
+  Stream<UserEntity?> watchUser(String uid) {
+    unawaited(_kickRemoteSync(uid));
+    return local.watchUser(uid).map((m) => m?.toEntity());
+  }
+
+  /// Sync remoto best-effort. Cualquier resultado válido se escribe a
+  /// Isar; la escritura es la que dispara la emisión en el watcher local.
+  /// Errores se silencian: el cache local es la SSOT visible y un re-kick
+  /// posterior (reconexión / próxima sesión) recuperará la convergencia.
+  Future<void> _kickRemoteSync(String uid) async {
+    try {
       final r = await remote.getUser(uid);
-      if (r != null) {
-        await local.upsertUser(r);
-        final updated = await local.getUser(uid);
-        controller.add(updated?.toEntity());
-      }
-      await controller.close();
-    });
-    yield* controller.stream;
+      if (r != null) await local.upsertUser(r);
+    } catch (_) {
+      // Sin red u otro fallo → no propagamos. El watcher local sigue vivo.
+    }
   }
 
   @override

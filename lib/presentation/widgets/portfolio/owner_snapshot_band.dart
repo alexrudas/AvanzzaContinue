@@ -128,7 +128,11 @@ class OwnerSnapshotBand extends StatelessWidget {
                   valueColor:
                       portfolio.simitHasFines == true ? cs.error : null,
                   subtitle: _simitSubtitleText(portfolio),
-                  onTap: portfolio.simitHasFines != null
+                  // Tap activo siempre que tengamos documento del owner. La
+                  // pantalla destino maneja simit==null con empty state +
+                  // CTA "Consultar SIMIT" (refresh selectivo, sin VRC full).
+                  onTap: (portfolio.ownerDocument != null &&
+                          portfolio.ownerDocument!.trim().isNotEmpty)
                       ? () => Get.toNamed(
                             Routes.simitPersonDetail,
                             arguments: {
@@ -178,9 +182,24 @@ class OwnerSnapshotBand extends StatelessWidget {
     return cs.onSurfaceVariant;
   }
 
+  /// Texto principal de la card SIMIT.
+  ///
+  /// Estados (de más fuerte a más débil señal):
+  /// - `simitHasFines == null` → datos no consultados aún (o consulta falló
+  ///   antes y nunca se persistió). Usuario puede tocar para "Consultar SIMIT".
+  /// - `simitHasFines == false` → consulta confirmó cero infracciones.
+  /// - `simitHasFines == true` con `formattedTotal` → mostrar el total.
+  /// - `simitHasFines == true` sin total pero con conteo → mostrar conteo.
+  /// - resto → "Ver multas" (último recurso semántico).
   String _simitValueText(PortfolioEntity p) {
+    if (p.simitHasFines == null) return 'Consultar SIMIT';
     if (p.simitHasFines == false) return 'Sin multas';
-    return p.simitFormattedTotal ?? 'Ver detalle';
+    if (p.simitFormattedTotal != null) return p.simitFormattedTotal!;
+    final count = p.simitFinesCount ??
+        ((p.simitComparendosCount ?? 0) + (p.simitMultasCount ?? 0));
+    return count > 0
+        ? '$count infracción${count != 1 ? 'es' : ''}'
+        : 'Ver multas';
   }
 
   String? _simitSubtitleText(PortfolioEntity p) {

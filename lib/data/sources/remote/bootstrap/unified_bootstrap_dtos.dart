@@ -99,26 +99,35 @@ class UnifiedBootstrapResultDto {
   factory UnifiedBootstrapResultDto.fromJson(Map<String, dynamic> json) {
     final userId = json['userId'];
     final workspaceId = json['workspaceId'];
-    final orgId = json['orgId'];
-    if (userId is! String || workspaceId is! String || orgId is! String) {
+    // Backend emite 'activeOrgId' (canónico en AuthBootstrapService.BootstrapResult);
+    // 'orgId' se acepta como alias por compatibilidad con cualquier consumidor
+    // que aún use ese nombre. Esto resuelve el parse failure que el
+    // BootstrapSyncController mapeaba a "Error del servidor (200)".
+    final orgIdAny = json['activeOrgId'] ?? json['orgId'];
+    if (userId is! String || workspaceId is! String || orgIdAny is! String) {
       throw const FormatException(
-        'bootstrap response missing required ids (userId/workspaceId/orgId).',
+        'bootstrap response missing required ids '
+        '(userId/workspaceId/activeOrgId|orgId).',
       );
     }
     final rawProviderId = json['providerId'];
     final providerId = rawProviderId is String && rawProviderId.isNotEmpty
         ? rawProviderId
         : null;
+    // 'status' es telemetría opcional. El backend actual no lo emite; si llega
+    // se honra, si no se asume 'existing' (idempotencia: re-bootstrap del
+    // mismo authUid devuelve la fila existente).
     final statusWire = json['status'];
     final status = switch (statusWire) {
       'CREATED' => UnifiedBootstrapStatus.created,
       'EXISTING' => UnifiedBootstrapStatus.existing,
-      _ => throw FormatException('unknown status=$statusWire'),
+      null => UnifiedBootstrapStatus.existing,
+      _ => UnifiedBootstrapStatus.existing,
     };
     return UnifiedBootstrapResultDto(
       userId: userId,
       workspaceId: workspaceId,
-      orgId: orgId,
+      orgId: orgIdAny,
       providerId: providerId,
       status: status,
       requiresTokenRefresh: json['requiresTokenRefresh'] == true,

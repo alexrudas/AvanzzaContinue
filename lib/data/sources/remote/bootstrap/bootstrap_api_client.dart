@@ -3,7 +3,7 @@
 // BOOTSTRAP API CLIENT — wire layer del endpoint unificado.
 //
 // QUÉ HACE:
-//   POST /v1/bootstrap → orquesta create/find User + Workspace + Membership
+//   POST /v1/auth/bootstrap → orquesta create/find User + Workspace + Membership
 //   + (opcional) ProviderProfile en una sola llamada idempotente. Usa el
 //   `coreDio` (con `_CoreBearerInterceptor` que inyecta Authorization
 //   Bearer firebase-id-token).
@@ -44,7 +44,7 @@ class BootstrapApiClient {
     final Response<dynamic> res;
     try {
       res = await _dio.post<dynamic>(
-        '/v1/bootstrap',
+        '/v1/auth/bootstrap',
         data: request.toJson(),
       );
     } on DioException catch (e) {

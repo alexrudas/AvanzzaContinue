@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+
+import '../../../core/platform/platform_capabilities.dart';
 import '../controllers/registration_controller.dart';
 
 class IdScanPage extends StatefulWidget {
@@ -54,25 +56,42 @@ class _IdScanPageState extends State<IdScanPage> {
                 const SizedBox(width: 8),
                 IconButton(
                   icon: const Icon(Icons.qr_code_scanner),
-                  onPressed: () async {
-                    await showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (ctx) => SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.75,
-                        child: MobileScanner(
-                          onDetect: (capture) {
-                            final barcodes = capture.barcodes;
-                            if (barcodes.isNotEmpty) {
-                              final raw = barcodes.first.rawValue ?? '';
-                              _barcodeCtrl.text = raw;
-                              Navigator.of(ctx).pop();
-                            }
-                          },
-                        ),
-                      ),
-                    );
-                  },
+                  // En desktop el escáner de cámara no está disponible;
+                  // el usuario teclea el código manualmente y la UI lo
+                  // explica con un snackbar en lugar de abrir un modal
+                  // que dependa de MobileScanner (que tirará
+                  // MissingPluginException en Windows).
+                  onPressed: !PlatformCapabilities.supportsCameraBarcodeScanner
+                      ? () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'El escáner de cámara está disponible en la '
+                                'app móvil. En escritorio teclea el código '
+                                'manualmente.',
+                              ),
+                            ),
+                          );
+                        }
+                      : () async {
+                          await showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            builder: (ctx) => SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.75,
+                              child: MobileScanner(
+                                onDetect: (capture) {
+                                  final barcodes = capture.barcodes;
+                                  if (barcodes.isNotEmpty) {
+                                    final raw = barcodes.first.rawValue ?? '';
+                                    _barcodeCtrl.text = raw;
+                                    Navigator.of(ctx).pop();
+                                  }
+                                },
+                              ),
+                            ),
+                          );
+                        },
                 )
               ],
             ),

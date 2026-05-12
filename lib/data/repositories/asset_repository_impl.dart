@@ -119,9 +119,9 @@ class AssetRepositoryImpl implements AssetRepository {
     String orgId, {
     String? assetType,
     String? cityId,
-  }) async* {
-    final controller = StreamController<List<AssetEntity>>();
-
+  }) {
+    // Sync remoto fire-and-forget: cuando lleguen los datos, _syncAssets escribe
+    // en Isar y el watch de abajo emite automáticamente. No bloquea el read path.
     unawaited(() async {
       try {
         final locals = await local.listAssetsByOrg(
@@ -129,28 +129,22 @@ class AssetRepositoryImpl implements AssetRepository {
           assetType: assetType,
           cityId: cityId,
         );
-        _safeAdd(controller, await Future.wait(locals.map(_toEnrichedEntity)));
-
         final remotesResult = await remote.listAssetsByOrg(
           orgId,
           assetType: assetType,
           cityId: cityId,
         );
-
         await _syncAssets(locals, remotesResult.items);
-
-        final updated = await local.listAssetsByOrg(
-          orgId,
-          assetType: assetType,
-          cityId: cityId,
-        );
-        _safeAdd(controller, await Future.wait(updated.map(_toEnrichedEntity)));
-      } finally {
-        await _safeClose(controller);
+      } catch (_) {
+        // Sync best-effort: la UI ya está leyendo Isar reactivo.
       }
     }());
 
-    yield* controller.stream;
+    // Watch real sobre Isar: emite inmediatamente y reacciona a cualquier
+    // cambio futuro (inserciones del registro, upserts del sync, borrados).
+    return local
+        .watchAssetsByOrg(orgId, assetType: assetType, cityId: cityId)
+        .asyncMap((models) => Future.wait(models.map(_toEnrichedEntity)));
   }
 
   @override

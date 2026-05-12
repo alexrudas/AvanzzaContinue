@@ -54,14 +54,15 @@ class AssetListController extends GetxController {
     super.onInit();
     _session = Get.find<SessionContextController>();
 
-    // Suscripción inicial con el orgId ya disponible en sesión.
-    _subscribeToOrg(_session.activeWorkspaceContext.value?.orgId);
+    // Fuente de verdad del orgId: user.activeContext.orgId (partition key,
+    // independiente del rol UX). Usar activeWorkspaceContext aquí dejaba el
+    // listado vacío cuando rol estaba pendiente, aunque hubiera activos.
+    _subscribeToOrg(_session.userRx.value?.activeContext?.orgId);
 
-    // Reaccionar a cambios de workspace/org activo.
-    // Guardamos el Worker para liberarlo explícitamente en onClose().
+    // Reaccionar a cambios del usuario (login, switch de org, hidratación).
     _workspaceWorker = ever(
-      _session.activeWorkspaceContext,
-      (ctx) => _subscribeToOrg(ctx?.orgId),
+      _session.userRx,
+      (u) => _subscribeToOrg(u?.activeContext?.orgId),
     );
   }
 

@@ -20,6 +20,23 @@ class AssetLocalDataSource {
     return q.findAll();
   }
 
+  /// Stream reactivo de activos de una organización.
+  ///
+  /// Emite inmediatamente con [fireImmediately: true] y luego cada vez que
+  /// Isar detecta cambios (inserciones, actualizaciones, borrados) en assets
+  /// cuyo [orgId] coincide. Mismos filtros opcionales que [listAssetsByOrg].
+  ///
+  /// La suscripción debe cancelarse al hacer dispose del listener.
+  Stream<List<AssetModel>> watchAssetsByOrg(String orgId,
+      {String? assetType, String? cityId}) {
+    final q = isar.assetModels
+        .filter()
+        .orgIdEqualTo(orgId)
+        .optional(assetType != null, (q) => q.assetTypeEqualTo(assetType!))
+        .optional(cityId != null, (q) => q.cityIdEqualTo(cityId!));
+    return q.watch(fireImmediately: true);
+  }
+
   /// Lista activos que pertenecen al portafolio indicado (consulta puntual).
   ///
   /// Usa el índice [portfolioId] de [AssetModel] para una consulta eficiente.

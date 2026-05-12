@@ -41,6 +41,7 @@ import '../../application/services/access/access_gateway.dart';
 import '../../application/services/access/access_snapshot_service.dart';
 import '../../application/services/access/provider_context_store.dart';
 import '../../core/di/container.dart';
+import '../../core/platform/platform_capabilities.dart';
 import '../../data/datasources/local/registration_intent_ds.dart';
 import '../../data/datasources/local/registration_progress_ds.dart';
 import '../../data/models/auth/registration_progress_model.dart';
@@ -90,8 +91,16 @@ class SplashBootstrapController extends GetxController {
     // ── Gate 1: Auth ────────────────────────────────────────────────────────
     final fbUser = FirebaseAuth.instance.currentUser;
     if (fbUser == null) {
-      _logGate('auth', Routes.welcome, reason: 'no_firebase_user');
-      Get.offAllNamed(Routes.welcome);
+      // Bifurcación de entrypoint por familia de plataforma. Desktop
+      // companion aterriza directo en su login username/password (OTP no
+      // está soportado por firebase_auth en Windows, y los proveedores
+      // federados nativos tampoco aplican en Phase 0). Móvil mantiene la
+      // welcome page con OTP + Google + onboarding completo.
+      final dest = PlatformCapabilities.isDesktopCompanion
+          ? Routes.desktopLogin
+          : Routes.welcome;
+      _logGate('auth', dest, reason: 'no_firebase_user');
+      Get.offAllNamed(dest);
       return;
     }
     final maskedUid =
