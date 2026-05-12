@@ -28,6 +28,7 @@ abstract class Routes {
   static const registerEmail = _Paths.registerEmail;
   static const registerIdScan = _Paths.registerIdScan;
   static const loginUserPass = _Paths.loginUserPass;
+  static const desktopLogin = _Paths.desktopLogin;
   static const loginMfa = _Paths.loginMfa;
   static const registerSummary = _Paths.registerSummary;
   static const holderType = _Paths.holderType;
@@ -238,6 +239,19 @@ abstract class Routes {
   /// CONTRACT: Get.toNamed(Routes.actorDetail, arguments: {'actor': NetworkActorVm}).
   static const actorDetail = _Paths.actorDetail;
 
+  /// Mi Red Operativa v2 (Hito 5b — contrato Core API congelado).
+  /// Pantalla con dos secciones independientes: Red externa + Equipo interno.
+  /// CONTRACT: no requiere arguments. MiRedBinding resuelve repos desde
+  /// DIContainer.
+  static const miRed = _Paths.miRed;
+
+  /// Detalle read-only de un proveedor canónico desde Mi Red.
+  /// Carga via `GET /v1/providers/:providerProfileId`. Independiente del
+  /// stack legacy LocalContact/Isar — no usar para flujos de edición.
+  /// CONTRACT: Get.toNamed(Routes.networkProviderDetail,
+  ///   arguments: {'providerProfileId': '<id>'})
+  static const networkProviderDetail = _Paths.networkProviderDetail;
+
   /// Directorio dedicado de PROVEEDORES del workspace (primer rostro visible
   /// del arquetipo transversal comercial/servicio). Fuente de verdad
   /// compartida con el selector de Pedidos: `LocalContactRepository`.
@@ -301,6 +315,7 @@ abstract class _Paths {
   static const registerEmail = '/auth/register/email';
   static const registerIdScan = '/auth/register/id-scan';
   static const loginUserPass = '/auth/login';
+  static const desktopLogin = '/auth/desktop-login';
   static const loginMfa = '/auth/login/mfa';
   static const registerSummary = '/auth/register/summary';
   static const holderType = '/auth/holder-type';
@@ -385,6 +400,10 @@ abstract class _Paths {
   static const providersDirectory = '/network/providers';
   static const providerDetail = '/network/providers/detail';
   static const providerForm = '/network/providers/form';
+
+  // Mi Red Operativa v2 (Hito 5b)
+  static const miRed = '/mi-red';
+  static const networkProviderDetail = '/mi-red/provider';
 
   // Provider — Catálogo / Specialties
   static const selectSpecialties = '/provider/specialties/select';

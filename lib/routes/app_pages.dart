@@ -25,6 +25,7 @@ import '../presentation/auth/pages/auth_welcome_page.dart';
 import '../presentation/auth/pages/email_optional_page.dart';
 import '../presentation/auth/pages/enhanced_registration_page.dart';
 import '../presentation/auth/pages/id_scan_page.dart';
+import '../presentation/auth/pages/desktop_login_page.dart';
 import '../presentation/auth/pages/login_username_password_page.dart';
 import '../presentation/auth/pages/mfa_otp_page.dart';
 import '../presentation/auth/pages/otp_verify_page.dart';
@@ -36,6 +37,8 @@ import '../presentation/auth/pages/summary_page.dart';
 import '../presentation/auth/pages/username_password_page.dart';
 import '../presentation/bindings/account/account_binding.dart';
 import '../presentation/bindings/admin/actor_detail_binding.dart';
+import '../presentation/bindings/network/mi_red_binding.dart';
+import '../presentation/bindings/network/network_provider_detail_binding.dart';
 import '../presentation/bindings/admin/provider_detail_binding.dart';
 import '../presentation/bindings/admin/provider_form_binding.dart';
 import '../presentation/bindings/admin/providers_directory_binding.dart';
@@ -87,6 +90,8 @@ import '../presentation/bindings/purchase_request_binding.dart';
 import '../presentation/bindings/purchase_request_detail_binding.dart';
 import '../presentation/pages/account/account_profile_page.dart';
 import '../presentation/pages/admin/network/actor_detail_page.dart';
+import '../presentation/pages/network/v2/mi_red_page.dart';
+import '../presentation/pages/network/v2/network_provider_detail_page.dart';
 import '../presentation/pages/admin/network/network_operational_screen.dart';
 import '../presentation/pages/admin/network/provider_detail_page.dart';
 import '../presentation/pages/admin/network/provider_form_page.dart';
@@ -170,6 +175,9 @@ class AppPages {
     GetPage(
         name: Routes.loginUserPass,
         page: () => const LoginUsernamePasswordPage()),
+    GetPage(
+        name: Routes.desktopLogin,
+        page: () => const DesktopLoginPage()),
     GetPage(name: Routes.loginMfa, page: () => const MfaOtpPage()),
     GetPage(name: Routes.registerSummary, page: () => const SummaryPage()),
 
@@ -536,6 +544,25 @@ class AppPages {
       name: Routes.actorDetail,
       page: () => const ActorDetailPage(),
       binding: ActorDetailBinding(),
+    ),
+
+    // Mi Red Operativa v2 (Hito 5b — contrato Core API congelado).
+    // CONTRACT: no requiere arguments. MiRedBinding resuelve repos desde
+    // DIContainer; el controller dispara loadInitial() en el primer frame.
+    GetPage(
+      name: Routes.miRed,
+      page: () => const MiRedPage(),
+      binding: MiRedBinding(),
+    ),
+
+    // Detalle read-only de proveedor (Mi Red V1). Consume el endpoint
+    // canónico `GET /v1/providers/:providerProfileId` vía
+    // ProviderCanonicalRepository. NO depende de LocalContact/Isar.
+    // CONTRACT: arguments = {'providerProfileId': '<id>'}.
+    GetPage(
+      name: Routes.networkProviderDetail,
+      page: () => const NetworkProviderDetailPage(),
+      binding: NetworkProviderDetailBinding(),
     ),
 
     // CONTRACT: Routes.providersDirectory no requiere arguments — el binding
