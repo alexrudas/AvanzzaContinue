@@ -15,11 +15,11 @@
 //     → consulta asíncrona basada en jobs
 //     → usado por el wizard de registro de activos
 //
-// ENDPOINTS ESPERADOS EN BACKEND
-//   POST /runt/query
+// ENDPOINTS CONSUMIDOS
+//   POST /api/runt/query
 //     → crea job y devuelve jobId
 //
-//   GET /runt/query/:id/status
+//   GET /api/runt/query/:id/status
 //     → devuelve estado actual + progreso por bloques + datos parciales/finales
 //
 // PRINCIPIOS
@@ -27,11 +27,8 @@
 // - No contiene caché: eso pertenece al repositorio/draft.
 // - No contiene lógica de UI.
 // - Defensivo ante payloads inesperados del backend.
-// - Diseñado para integrarse con un backend que puede evolucionar.
-//
-// NOTA DE DISEÑO
-// Se permite `baseUrl` inyectado, con default centralizado en ApiEndpoints,
-// para mantener consistencia y facilitar testeo/inyección.
+// - No construye baseUrl: el [Dio] inyectado trae origin de Integrations.
+//   El service solo pasa el path absoluto con su prefijo (`/api/runt/...`).
 // ============================================================================
 
 import 'dart:convert';
@@ -39,28 +36,21 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../core/config/api_endpoints.dart';
 import '../../core/exceptions/api_exceptions.dart';
 import 'models/runt_job_models.dart';
 
 class RuntQueryService {
   final Dio _dio;
-  final String _baseUrl;
 
   /// Servicio HTTP para consultas RUNT basadas en jobs.
   ///
-  /// [baseUrl] permite override explícito para tests o entornos especiales.
-  /// Si no se provee, usa [ApiEndpoints.runtBaseUrl].
-  RuntQueryService(
-    this._dio, {
-    String? baseUrl,
-  }) : _baseUrl = (baseUrl ?? ApiEndpoints.runtBaseUrl).trim();
-
-  /// URL base efectiva usada por el servicio.
-  String get baseUrl => _baseUrl;
+  /// Recibe el [Dio] con baseUrl = origin de Integrations y
+  /// `ApiKeyInterceptor` ya configurados. Los paths absolutos
+  /// (`/api/runt/query/...`) los construye este service.
+  RuntQueryService(this._dio);
 
   // ---------------------------------------------------------------------------
-  // POST /runt/query — inicia un job de consulta
+  // POST /api/runt/query — inicia un job de consulta
   // ---------------------------------------------------------------------------
 
   /// Crea un job de consulta RUNT en el backend.
@@ -84,7 +74,7 @@ class RuntQueryService {
       portalType: portalType,
     );
 
-    final url = '$_baseUrl/api/runt/query';
+    final url = '/api/runt/query';
 
     try {
       final response = await _dio.post(
@@ -147,7 +137,7 @@ class RuntQueryService {
       );
     }
 
-    final url = '$_baseUrl/api/runt/query/$normalizedJobId/status';
+    final url = '/api/runt/query/$normalizedJobId/status';
 
     // [DIAG-E1] URL exacta que se va a llamar
     debugPrint('[DIAG][getJobStatus] >>> GET $url');

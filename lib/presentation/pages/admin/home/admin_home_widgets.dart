@@ -8,6 +8,9 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/radius.dart';
+import '../../../../core/theme/spacing.dart';
+
 // ============================================================================
 // DESIGN SYSTEM (solo gradiente brand y colores semánticos de red operativa)
 // ============================================================================
@@ -134,7 +137,9 @@ class AdminHeaderSection extends StatelessWidget {
     final cs = theme.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      // Asimétrico (14/12): mantenemos respiración con el status bar arriba,
+      // comprimimos abajo donde no se nota — gana ~6px para asomar Mi red.
+      padding: const EdgeInsets.fromLTRB(0, 14, 0, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1090,58 +1095,363 @@ class AdminEmptyStateActionSheetContent extends StatelessWidget {
 }
 
 // ============================================================================
-// PREMIUM FAB
+// LIST BLOCK (bloque agrupado tipo lista iOS)
 // ============================================================================
+//
+// QUÉ HACE:
+// - Renderiza un contenedor único agrupado con header + filas separadas por
+//   divider interno (patrón iOS list section).
+// - Densidad compacta, borde sutil, sin sombras fuertes.
+// - Reutilizable para cualquier sección Home que necesite "una sola tarjeta
+//   con varias filas" en lugar de múltiples cards.
+//
+// QUÉ NO HACE:
+// - No conoce el contenido de las filas (responsabilidad del consumer).
+// - No decide visibilidad ni cuántos ítems renderizar.
+// - No define colores semánticos — los recibe el tile.
+//
+// PRINCIPIOS:
+// - 100% presentacional. Sin GetX, sin navegación, sin lógica.
+// - Theme-first: ColorScheme/TextTheme para dark mode y consistencia M3.
 
-class AdminPremiumFAB extends StatelessWidget {
+/// Contenedor agrupado tipo lista iOS con HEADER INTERNO.
+///
+/// Patrón: el título (y subtítulo opcional) viven DENTRO del mismo contenedor
+/// que los ítems, separados por un divider. Más compacto que el patrón previo
+/// con título externo + bloque debajo. Coherente con la convención de "una
+/// sola tarjeta agrupada por sección" (estilo iOS list section / Saniti).
+class AdminListBlock extends StatelessWidget {
+  /// Título del bloque (header interno).
+  final String title;
+
+  /// Subtítulo opcional bajo el título — ej: contador agregado, descripción
+  /// breve. Se renderiza solo cuando es no-null y no-vacío.
+  final String? subtitle;
+
+  /// Acción opcional a la derecha del header (ej: "Ver todos").
+  final Widget? trailing;
+
+  /// Filas del bloque. Se separan automáticamente con dividers internos.
+  /// Un divider adicional separa el header de la primera fila (si hay filas).
+  final List<Widget> children;
+
+  const AdminListBlock({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final hasChildren = children.isNotEmpty;
+    final hasSubtitle = subtitle != null && subtitle!.isNotEmpty;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: cs.outlineVariant.withValues(alpha: 0.6),
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header interno: título + subtítulo opcional + trailing opcional.
+            // Densidad iOS-style — 12/12 simétrico mantiene respiración del
+            // subtítulo bajo el divider sin sentirse apretado.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        if (hasSubtitle) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle!,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (trailing != null) ...[
+                    const SizedBox(width: 8),
+                    trailing!,
+                  ],
+                ],
+              ),
+            ),
+
+            // Divider entre header e ítems (solo si hay filas)
+            if (hasChildren)
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: cs.outlineVariant.withValues(alpha: 0.5),
+              ),
+
+            // Filas con dividers internos entre ellas
+            ..._withDividers(context, children),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Intercala un divider sutil entre cada par de filas (no antes ni después).
+  /// Indent alineado al final del icono para consistencia con el patrón iOS.
+  List<Widget> _withDividers(BuildContext context, List<Widget> tiles) {
+    if (tiles.length <= 1) return tiles;
+    final cs = Theme.of(context).colorScheme;
+    final result = <Widget>[];
+    for (var i = 0; i < tiles.length; i++) {
+      result.add(tiles[i]);
+      if (i != tiles.length - 1) {
+        result.add(Divider(
+          height: 1,
+          thickness: 1,
+          indent: 58,
+          color: cs.outlineVariant.withValues(alpha: 0.5),
+        ));
+      }
+    }
+    return result;
+  }
+}
+
+/// Fila estándar dentro de un [AdminListBlock] — patrón iOS list tile.
+///
+/// Renderiza icono coloreado + título + subtítulo opcional + trailing opcional.
+/// Soporta tap (CTA implícito); cuando [onTap] es no-null muestra chevron.
+class AdminListBlockTile extends StatelessWidget {
+  /// Icono mostrado en el círculo izquierdo.
+  final IconData icon;
+
+  /// Color del icono y de su fondo (con alpha bajo). Si es null usa cs.primary.
+  final Color? iconColor;
+
+  /// Título principal de la fila.
+  final String title;
+
+  /// Subtítulo opcional (1 línea, truncado con ellipsis).
+  final String? subtitle;
+
+  /// Trailing opcional: valor numérico, label, o cualquier widget.
+  /// Si [onTap] está presente se agrega chevron automáticamente.
+  final Widget? trailing;
+
+  /// Callback de tap. Cuando es null, la fila no es interactiva (sin chevron).
   final VoidCallback? onTap;
 
-  const AdminPremiumFAB({super.key, this.onTap});
+  const AdminListBlockTile({
+    super.key,
+    required this.icon,
+    this.iconColor,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final color = iconColor ?? cs.primary;
+    final interactive = onTap != null;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          // vertical:10 — altura final del tile ~52px, por encima del mínimo
+          // de tap target de Material Design (48px). Densidad iOS sin riesgo.
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            children: [
+              // Icono con fondo coloreado (alpha bajo, densidad iOS)
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 18),
+              ),
+              const SizedBox(width: 12),
+
+              // Título + subtítulo
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (subtitle != null && subtitle!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              // Trailing custom + chevron si es interactivo
+              if (trailing != null) ...[
+                const SizedBox(width: 8),
+                trailing!,
+              ],
+              if (interactive) ...[
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: cs.onSurfaceVariant,
+                  size: 20,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// BOTTOM ACTION BUTTON — Acción inferior compartida (primary / secondary)
+// ----------------------------------------------------------------------------
+// Componente reusable para acciones operacionales del shell. Sustituye al
+// antiguo "AdminPremiumFAB" con gradiente flashy.
+//
+// Lenguaje visual: enterprise / Linear / Stripe / Ramp.
+// - Sin gradiente, sin glow, sin pill extremo.
+// - Geometría unificada: AppRadius.md (12), 18px icon, 14sp w600 label.
+// - Primary: solid `cs.primary` + sombra mínima.
+// - Secondary: tonal (`cs.surfaceContainerHighest`) + hairline `outlineVariant`.
+// - Ambas variantes comparten paddings y altura para conversar visualmente.
+// ============================================================================
+
+enum AdminBottomActionVariant { primary, secondary }
+
+class AdminBottomActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final AdminBottomActionVariant variant;
+  final String? tooltip;
+  final String? semanticsLabel;
+
+  const AdminBottomActionButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.variant = AdminBottomActionVariant.primary,
+    this.tooltip,
+    this.semanticsLabel,
+  });
 
   bool get _isEnabled => onTap != null;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isPrimary = variant == AdminBottomActionVariant.primary;
+
+    final bg = isPrimary ? cs.primary : cs.surfaceContainerHighest;
+    final fg = isPrimary ? cs.onPrimary : cs.onSurface;
+    final radius = BorderRadius.circular(AppRadius.md);
+
+    final shadows = isPrimary
+        ? <BoxShadow>[
+            BoxShadow(
+              color: cs.shadow.withValues(alpha: 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ]
+        : const <BoxShadow>[];
 
     return Semantics(
-      label: 'Crear nuevo elemento',
+      label: semanticsLabel ?? label,
       button: _isEnabled,
       enabled: _isEnabled,
       child: Tooltip(
-        message: 'Nuevo',
+        message: tooltip ?? label,
         child: Opacity(
           opacity: _isEnabled ? 1.0 : 0.5,
-          child: Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(30),
-            elevation: 4,
-            shadowColor: cs.shadow,
-            child: Ink(
-              decoration: BoxDecoration(
-                gradient: AdminHomeDS.primaryGradient,
-                borderRadius: BorderRadius.circular(30),
-              ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: radius,
+              border: isPrimary
+                  ? null
+                  : Border.all(color: cs.outlineVariant, width: 1),
+              boxShadow: shadows,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: radius,
               child: InkWell(
                 onTap: onTap,
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: radius,
                 splashColor: _isEnabled ? null : Colors.transparent,
                 highlightColor: _isEnabled ? null : Colors.transparent,
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: 10,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.add, color: cs.onPrimary, size: 22),
-                      const SizedBox(width: 10),
+                      Icon(icon, color: fg, size: 18),
+                      const SizedBox(width: AppSpacing.sm),
                       Text(
-                        'Registrar',
+                        label,
                         style: TextStyle(
-                          color: cs.onPrimary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.3,
+                          color: fg,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.1,
                         ),
                       ),
                     ],
@@ -1152,6 +1462,31 @@ class AdminPremiumFAB extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ============================================================================
+// ADMIN PREMIUM FAB (compatibilidad) → ahora delega en AdminBottomActionButton
+// ----------------------------------------------------------------------------
+// Se mantiene el nombre para no romper call-sites. El gradiente y el glow
+// quedaron retirados; visualmente es una acción "Registrar" sobria.
+// ============================================================================
+
+class AdminPremiumFAB extends StatelessWidget {
+  final VoidCallback? onTap;
+
+  const AdminPremiumFAB({super.key, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return AdminBottomActionButton(
+      icon: Icons.add_rounded,
+      label: 'Registrar',
+      onTap: onTap,
+      variant: AdminBottomActionVariant.primary,
+      tooltip: 'Nuevo',
+      semanticsLabel: 'Crear nuevo elemento',
     );
   }
 }

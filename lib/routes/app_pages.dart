@@ -9,33 +9,44 @@
 
 import 'package:avanzza/core/campaign/demo/demo_soat_campaign.dart';
 import 'package:avanzza/domain/shared/enums/asset_type.dart';
+// TEMPORARY — Demo del flujo de registro v2. Borrar junto con la carpeta.
+import 'package:avanzza/presentation/demo_registration_v2/demo_registration_v2_flow.dart';
+import 'package:avanzza/presentation/demo_registration_v2/fusionado/fusionado_flow.dart';
 import 'package:avanzza/presentation/pages/asset_list_page.dart';
-import 'package:avanzza/presentation/pages/workspaces/provider_articles_workspace_page.dart'
-    show ProviderArticlesWorkspacePage;
-import 'package:avanzza/presentation/pages/workspaces/provider_services_workspace_page.dart';
+import 'package:avanzza/presentation/pages/assets_by_type_page.dart';
 import 'package:flutter/foundation.dart';
 // NOTE: material.dart is imported ONLY for debug-only error page; in release we redirect without UI.
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../domain/entities/workspace/workspace_type.dart';
 import '../presentation/auth/bindings/enhanced_registration_binding.dart';
 import '../presentation/auth/pages/auth_welcome_page.dart';
 import '../presentation/auth/pages/email_optional_page.dart';
 import '../presentation/auth/pages/enhanced_registration_page.dart';
 import '../presentation/auth/pages/id_scan_page.dart';
+import '../presentation/auth/pages/desktop_login_page.dart';
 import '../presentation/auth/pages/login_username_password_page.dart';
 import '../presentation/auth/pages/mfa_otp_page.dart';
 import '../presentation/auth/pages/otp_verify_page.dart';
 import '../presentation/auth/pages/phone_input_page.dart';
 import '../presentation/auth/pages/provider_coverage_page.dart';
-import '../presentation/auth/pages/provider_profile_page.dart';
 import '../presentation/auth/pages/select_country_city_page.dart';
 import '../presentation/auth/pages/select_profile_page.dart';
 import '../presentation/auth/pages/summary_page.dart';
 import '../presentation/auth/pages/username_password_page.dart';
+import '../presentation/bindings/account/account_binding.dart';
+import '../presentation/bindings/admin/actor_detail_binding.dart';
+import '../presentation/bindings/network/mi_red_binding.dart';
+import '../presentation/bindings/network/network_provider_detail_binding.dart';
+import '../presentation/bindings/admin/provider_detail_binding.dart';
+import '../presentation/bindings/admin/provider_form_binding.dart';
+import '../presentation/bindings/admin/providers_directory_binding.dart';
 import '../presentation/bindings/alert_center_binding.dart';
-import '../presentation/bindings/fleet_alert_binding.dart';
 import '../presentation/bindings/asset/asset_registration_binding.dart';
+import '../presentation/bindings/fleet_alert_binding.dart';
+import '../presentation/bindings/provider/provider_me_binding.dart';
+import '../presentation/bindings/provider/select_specialties_binding.dart';
 import '../presentation/bindings/home_binding.dart';
 import '../presentation/bindings/insurance/rc_quote_request_binding.dart';
 import '../presentation/bindings/insurance/rc_quote_status_binding.dart';
@@ -76,15 +87,31 @@ import '../presentation/pages/portfolio/wizard/create_portfolio_step2_page.dart'
 import '../presentation/pages/portfolio/wizard/runt_query_progress_page.dart';
 import '../presentation/pages/portfolio/wizard/runt_query_result_page.dart';
 import '../presentation/bindings/purchase_request_binding.dart';
+import '../presentation/bindings/purchase_request_detail_binding.dart';
+import '../presentation/pages/account/account_profile_page.dart';
+import '../presentation/pages/admin/network/actor_detail_page.dart';
+import '../presentation/pages/network/v2/mi_red_page.dart';
+import '../presentation/pages/network/v2/network_provider_detail_page.dart';
+import '../presentation/pages/admin/network/network_operational_screen.dart';
+import '../presentation/pages/admin/network/provider_detail_page.dart';
+import '../presentation/pages/admin/network/provider_form_page.dart';
+import '../presentation/pages/admin/network/providers_directory_page.dart';
+import '../presentation/pages/provider/me/provider_me_page.dart';
+import '../presentation/pages/provider/specialties/select_specialties_page.dart';
+import '../presentation/pages/purchase/purchase_request_detail_page.dart';
 import '../presentation/pages/purchase_request_page.dart';
+import '../presentation/controllers/dev/simit_diagnostic_controller.dart';
+import '../presentation/pages/dev/integrations_diagnostics/runt_person_diagnostic_page.dart';
+import '../presentation/pages/dev/integrations_diagnostics/runt_vehicle_diagnostic_page.dart';
+import '../presentation/pages/dev/integrations_diagnostics/simit_diagnostic_page.dart';
 import '../presentation/pages/runt/runt_person_consult_page.dart';
 import '../presentation/pages/runt/runt_vehicle_consult_page.dart';
 import '../presentation/pages/simit/simit_consult_page.dart';
 import '../presentation/pages/splash/splash_bootstrap_page.dart';
 import '../presentation/pages/tenant/home/tenant_home_page.dart';
 import '../presentation/bindings/admin/network_operational_binding.dart';
-import '../presentation/pages/admin/network/network_operational_screen.dart';
-import '../presentation/pages/admin/network/owner_detail_page.dart';
+import '../presentation/workspace/workspace_config.dart';
+import '../presentation/workspace/workspace_shell.dart';
 // LEGACY: vrc_consult_page.dart y vrc_result_page.dart comentados — flujo VRC individual inactivo
 // import '../presentation/pages/vrc/vrc_consult_page.dart';
 // import '../presentation/pages/vrc/vrc_result_page.dart';
@@ -120,6 +147,17 @@ class AppPages {
     GetPage(name: Routes.profile, page: () => const SelectProfilePage()),
     GetPage(name: Routes.orgSelect, page: () => const OrgSelectionPage()),
 
+    // ════════════════════════════════════════════════════════════════════════
+    // ACCOUNT / PROFILE — pantalla global accesible desde el icono Perfil del
+    // AppBar de cualquier workspace. Identidad, seguridad y contexto del
+    // usuario actual. CONTRACT: no requiere arguments.
+    // ════════════════════════════════════════════════════════════════════════
+    GetPage(
+      name: Routes.account,
+      page: () => const AccountProfilePage(),
+      binding: AccountBinding(),
+    ),
+
     // LEGACY_ALIAS: Routes.role -> Canonical: Routes.profile
     GetPage(
         name: Routes.role,
@@ -141,6 +179,9 @@ class AppPages {
     GetPage(
         name: Routes.loginUserPass,
         page: () => const LoginUsernamePasswordPage()),
+    GetPage(
+        name: Routes.desktopLogin,
+        page: () => const DesktopLoginPage()),
     GetPage(name: Routes.loginMfa, page: () => const MfaOtpPage()),
     GetPage(name: Routes.registerSummary, page: () => const SummaryPage()),
 
@@ -149,9 +190,6 @@ class AppPages {
         name: Routes.holderType,
         page: () => const _LegacyRedirectPage(to: Routes.profile)),
 
-    // Provider
-    GetPage(
-        name: Routes.providerProfile, page: () => const ProviderProfilePage()),
     GetPage(
       name: Routes.enhancedRegistration,
       page: () => const EnhancedRegistrationPage(),
@@ -161,28 +199,72 @@ class AppPages {
         name: Routes.providerCoverage,
         page: () => const ProviderCoveragePage()),
 
-    // Canonical: Routes.providerWorkspaceArticles (provider articles workspace)
+    // ── PROVIDER WORKSPACE SHELL ────────────────────────────────────────
+    //
+    // Dos rutas reales — diferenciadas por `WorkspaceType` aunque hoy
+    // compartan tabs (Fase 2 — UNIFIED PROVIDER SHELL):
+    //   · providerWorkspaceServices → WorkspaceType.workshop  (servicios)
+    //   · providerWorkspaceArticles → WorkspaceType.supplier  (artículos)
+    //
+    // El splash decide cuál abrir leyendo
+    // `org.capabilityProfiles[].providerSpec.providerType`. El gate
+    // `ProviderBootstrapGate` verifica `GET /v1/providers/me` antes de
+    // pintar; si `isProvider=false` redirige a `/provider/bootstrap`.
+    GetPage(
+      name: Routes.providerWorkspaceServices,
+      page: () => WorkspaceShell(
+        config: NavigationRegistry.configFor(
+              WorkspaceType.workshop,
+            ) ??
+            workspaceFor(rol: 'proveedor'),
+      ),
+    ),
     GetPage(
       name: Routes.providerWorkspaceArticles,
-      page: () => const ProviderArticlesWorkspacePage(),
+      page: () => WorkspaceShell(
+        config: NavigationRegistry.configFor(
+              WorkspaceType.supplier,
+            ) ??
+            workspaceFor(rol: 'proveedor'),
+      ),
     ),
-    // LEGACY_ALIAS: Routes.providerHomeArticles -> Canonical: Routes.providerWorkspaceArticles
+
+    // LEGACY_ALIAS: Routes.providerHome* -> Canonical: providerWorkspaceServices
     GetPage(
       name: Routes.providerHomeArticles,
       page: () =>
           const _LegacyRedirectPage(to: Routes.providerWorkspaceArticles),
     ),
-
-    // Canonical: Routes.providerWorkspaceServices (provider services workspace)
-    GetPage(
-      name: Routes.providerWorkspaceServices,
-      page: () => const ProviderServicesWorkspacePage(),
-    ),
-    // LEGACY_ALIAS: Routes.providerHomeServices -> Canonical: Routes.providerWorkspaceServices
     GetPage(
       name: Routes.providerHomeServices,
       page: () =>
           const _LegacyRedirectPage(to: Routes.providerWorkspaceServices),
+    ),
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PROVIDER SELF (MF1 — bootstrap + me)
+    // ════════════════════════════════════════════════════════════════════════
+    //
+    // LEGACY WIZARD BLOCKED (2026-05):
+    // Routes.providerBootstrap renderizaba un wizard de 3 pasos que está
+    // OFICIALMENTE MUERTO. El bootstrap de provider hoy ocurre server-side
+    // en POST /v1/bootstrap (orquestado por `BootstrapSyncController` en
+    // background — ver bloque V2.1). Cualquier navegación a esta ruta es
+    // un BUG de routing — un flujo zombie que reintroduce fricción que
+    // el usuario rechazó.
+    //
+    // Política: redirigir SIEMPRE a `providerWorkspaceServices`. La pieza
+    // de bootstrap real ya corrió o está corriendo; el banner del shell
+    // muestra el estado.
+    GetPage(
+      name: Routes.providerBootstrap,
+      page: () =>
+          const _LegacyRedirectPage(to: Routes.providerWorkspaceServices),
+    ),
+    GetPage(
+      name: Routes.providerMe,
+      page: () => const ProviderMePage(),
+      binding: ProviderMeBinding(),
     ),
 
     // ════════════════════════════════════════════════════════════════════════
@@ -201,7 +283,24 @@ class AppPages {
       page: () => const PurchaseRequestPage(),
       binding: PurchaseRequestBinding(),
     ),
+
+    // Detalle de PR con el loop admin-captura (register quote → award →
+    // emitir OC/OT → cerrar). CONTRACT: Get.toNamed(Routes.purchaseDetail,
+    // arguments: String requestId).
+    GetPage(
+      name: Routes.purchaseDetail,
+      page: () => const PurchaseRequestDetailPage(),
+      binding: PurchaseRequestDetailBinding(),
+    ),
+
     GetPage(name: Routes.assets, page: () => const AssetListPage()),
+
+    // CONTRACT: Routes.assetsByType requiere argument AssetType (enum).
+    // Vista dedicada del tipo seleccionado desde la pantalla agrupada.
+    GetPage(
+      name: Routes.assetsByType,
+      page: () => const AssetsByTypePage(),
+    ),
 
     // Tenant Home
     GetPage(
@@ -361,17 +460,24 @@ class AppPages {
     // CONTRACT: Routes.simitPersonDetail requiere argument
     //   Map{'data': VrcDataModel, 'checkedAt': DateTime?}
     // Uso: Get.toNamed(Routes.simitPersonDetail, arguments: {'data': ..., 'checkedAt': ...})
+    //
+    // Binding: SimitBinding registra SimitService + SimitRepository (lazy).
+    // Necesario porque el BottomSheet de detalle de multa hace Get.find<SimitRepository>().
     GetPage(
       name: Routes.simitPersonDetail,
       page: () => const SimitPersonDetailPage(),
+      binding: SimitBinding(),
     ),
 
     // CONTRACT: Routes.simitFineDetail requiere argument
     //   Map{'data': VrcDataModel, 'type': String, 'checkedAt': DateTime?}
     //   type: 'comparendos' | 'multas' | 'acuerdosDePago'
+    //
+    // Binding: ver nota en simitPersonDetail (mismo motivo).
     GetPage(
       name: Routes.simitFineDetail,
       page: () => const SimitFineDetailPage(),
+      binding: SimitBinding(),
     ),
 
     // ════════════════════════════════════════════════════════════════════════
@@ -435,18 +541,126 @@ class AppPages {
       binding: NetworkOperationalBinding(),
     ),
 
-    // CONTRACT: Routes.ownerDetail requiere argument
-    //   Map{'owner': OwnerNetworkVm}
-    // Uso: Get.toNamed(Routes.ownerDetail, arguments: {'owner': ownerVm})
+    // CONTRACT (ADR actor-canon §10): Routes.actorDetail requiere argument
+    //   Map{'actor': NetworkActorVm}
+    // Uso: Get.toNamed(Routes.actorDetail, arguments: {'actor': actorVm})
     GetPage(
-      name: Routes.ownerDetail,
-      page: () => const OwnerDetailPage(),
+      name: Routes.actorDetail,
+      page: () => const ActorDetailPage(),
+      binding: ActorDetailBinding(),
+    ),
+
+    // Mi Red Operativa v2 (Hito 5b — contrato Core API congelado).
+    // CONTRACT: no requiere arguments. MiRedBinding resuelve repos desde
+    // DIContainer; el controller dispara loadInitial() en el primer frame.
+    GetPage(
+      name: Routes.miRed,
+      page: () => const MiRedPage(),
+      binding: MiRedBinding(),
+    ),
+
+    // Detalle read-only de proveedor (Mi Red V1). Consume el endpoint
+    // canónico `GET /v1/providers/:providerProfileId` vía
+    // ProviderCanonicalRepository. NO depende de LocalContact/Isar.
+    // CONTRACT: arguments = {'providerProfileId': '<id>'}.
+    GetPage(
+      name: Routes.networkProviderDetail,
+      page: () => const NetworkProviderDetailPage(),
+      binding: NetworkProviderDetailBinding(),
+    ),
+
+    // CONTRACT: Routes.providersDirectory no requiere arguments — el binding
+    // resuelve orgId desde SessionContextController. Primer rostro visible
+    // del arquetipo transversal comercial/servicio (Fase 1 = Proveedores);
+    // vistas futuras (Taller/Técnico/Asesor) reutilizarán el mismo controller
+    // parametrizando `roleLabel` sin duplicar página.
+    GetPage(
+      name: Routes.providersDirectory,
+      page: () => const ProvidersDirectoryPage(),
+      binding: ProvidersDirectoryBinding(),
+    ),
+
+    // CONTRACT: Routes.providerDetail requiere arguments = {'providerId': '<id>'}.
+    // Ficha lectora por secciones (Datos básicos, Contacto, Ubicación, Tipo y
+    // categorías, Cobertura, Observaciones) con CTAs "Editar"/"Eliminar".
+    GetPage(
+      name: Routes.providerDetail,
+      page: () => const ProviderDetailPage(),
+      binding: ProviderDetailBinding(),
+    ),
+
+    // CONTRACT: Routes.providerForm.
+    //   Sin arguments → alta completa.
+    //   arguments = {'providerId': '<id>'} → edición completa.
+    // Reutiliza el camino canónico `SaveLocalContactWithProbe` (cero write
+    // paralelo a la SSOT LocalContact).
+    GetPage(
+      name: Routes.providerForm,
+      page: () => const ProviderFormPage(),
+      binding: ProviderFormBinding(),
+    ),
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PROVIDER — CATÁLOGO / SPECIALTIES
+    // ════════════════════════════════════════════════════════════════════════
+
+    // CONTRACT: Routes.selectSpecialties requiere arguments con assetType.
+    //   Get.toNamed(Routes.selectSpecialties, arguments: {
+    //     'assetType': '<assetType-id, p.ej. vehicle.car>',
+    //   })
+    // RESULT: Set<String> de specialty IDs seleccionados (vía Get.back).
+    GetPage(
+      name: Routes.selectSpecialties,
+      page: () => const SelectSpecialtiesPage(),
+      binding: SelectSpecialtiesBinding(),
     ),
 
     // ════════════════════════════════════════════════════════════════════════
     // DEMO
     // ════════════════════════════════════════════════════════════════════════
     GetPage(name: Routes.demoSoat, page: () => const DemoSoatCampaignPage()),
+
+    // TEMPORARY — Demo experimental del flujo de registro v2 (RUNT temprano +
+    // tabs). Coexiste con el flujo canónico hasta que el FusionadoFlow esté
+    // hardenado. Borrar junto con `lib/presentation/demo_registration_v2/`.
+    GetPage(
+      name: Routes.demoRegistrationV2,
+      page: () => const DemoRegistrationV2Flow(),
+    ),
+
+    // ── ONBOARDING CANÓNICO (FusionadoFlow promovido a registro real) ───
+    // Demo 2 fusionado pasa de "experimental debug" a entrada principal
+    // desde AuthWelcomePage. La ruta legacy [demoRegistrationV2Fusionado]
+    // sigue accesible como alias para QA hasta que el FusionadoFlow esté
+    // hardenado y se retire la variante experimental.
+    GetPage(
+      name: Routes.registerOnboarding,
+      page: () => const FusionadoFlow(),
+    ),
+    GetPage(
+      name: Routes.demoRegistrationV2Fusionado,
+      page: () => const FusionadoFlow(),
+    ),
+
+    // ── DEV-only — Diagnóstico Integrations API (RUNT/SIMIT) ──────────
+    // Visibles únicamente en kDebugMode desde el FAB Consultar del Home
+    // admin. NO persisten en Isar/Firestore.
+    GetPage(
+      name: Routes.devRuntPersonDiagnostic,
+      page: () => const RuntPersonDiagnosticPage(),
+    ),
+    GetPage(
+      name: Routes.devRuntVehicleDiagnostic,
+      page: () => const RuntVehicleDiagnosticPage(),
+    ),
+    GetPage(
+      name: Routes.devSimitPersonDiagnostic,
+      page: () => const SimitDiagnosticPage(mode: SimitQueryMode.person),
+    ),
+    GetPage(
+      name: Routes.devSimitVehicleDiagnostic,
+      page: () => const SimitDiagnosticPage(mode: SimitQueryMode.vehicle),
+    ),
   ];
 }
 

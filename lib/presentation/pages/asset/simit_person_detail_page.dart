@@ -24,6 +24,7 @@
 //   arguments: {'data': VrcDataModel, 'checkedAt': DateTime?})
 // ============================================================================
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -32,6 +33,7 @@ import '../../../core/platform/owner_refresh_service.dart';
 import '../../../core/theme/spacing.dart';
 import '../../../core/utils/simit_freshness_policy.dart';
 import '../../../data/vrc/models/vrc_models.dart';
+import '../../widgets/asset/simit_multa_detail_bottom_sheet.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE
@@ -69,24 +71,42 @@ class _SimitPersonDetailPageState extends State<SimitPersonDetailPage> {
   /// El OwnerRefreshService se ejecuta como singleton en DIContainer —
   /// si el usuario navega fuera, la persistencia completa igualmente.
   /// Al volver, los datos frescos se leen desde el portfolio snapshot.
+  ///
+  /// **DEFENSA**: try/catch global garantiza que `_isRefreshing` siempre se
+  /// libere, incluso si el flow lanza un Error (no Exception) que escape el
+  /// catch interno de OwnerRefreshService. Sin esto, un TypeError en el
+  /// mapper dejaba el spinner infinito.
   Future<void> _handleRefresh() async {
     final document = _data?.owner?.document;
     if (document == null || document.isEmpty || _portfolioId == null) return;
 
     setState(() => _isRefreshing = true);
 
-    final result = await DIContainer().ownerRefreshService.refreshSimit(
-          portfolioId: _portfolioId!,
-          document: document,
-        );
+    RefreshResult<VrcOwnerSimitModel>? result;
+    Object? caught;
+
+    try {
+      result = await DIContainer().ownerRefreshService.refreshSimit(
+            portfolioId: _portfolioId!,
+            document: document,
+          );
+    } catch (e, st) {
+      caught = e;
+      if (kDebugMode) {
+        debugPrint('[HANDLE_REFRESH] caught (${e.runtimeType}): $e');
+        debugPrint('[HANDLE_REFRESH] stacktrace:\n$st');
+      }
+    }
 
     if (!mounted) return; // Widget destruido — datos ya persistidos.
 
+    final success =
+        result is RefreshSuccess<VrcOwnerSimitModel> ? result : null;
+
     setState(() {
       _isRefreshing = false;
-      if (result is RefreshSuccess<VrcOwnerSimitModel>) {
-        // Actualizar datos locales para rebuild inmediato.
-        _checkedAt = result.refreshedAt;
+      if (success != null) {
+        _checkedAt = success.refreshedAt;
         final currentOwner = _data?.owner;
         _data = VrcDataModel(
           owner: VrcOwnerModel(
@@ -94,31 +114,41 @@ class _SimitPersonDetailPageState extends State<SimitPersonDetailPage> {
             document: currentOwner?.document,
             documentType: currentOwner?.documentType,
             runt: currentOwner?.runt,
-            simit: result.data,
+            simit: success.data,
           ),
         );
       }
     });
 
-    if (result is RefreshError) {
-      final err = result as RefreshError;
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              err.isExternal
-                  ? 'No se pudo conectar con SIMIT. Intenta más tarde.'
-                  : 'Error al actualizar datos SIMIT.',
-            ),
+    // Feedback al usuario según outcome — caught primero, luego RefreshError,
+    // finalmente success.
+    if (!mounted) return;
+
+    if (caught != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            kDebugMode
+                ? 'Error técnico: ${caught.runtimeType}'
+                : 'Error inesperado al actualizar SIMIT.',
           ),
-        );
-      }
-    } else if (result is RefreshSuccess) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Datos SIMIT actualizados')),
-        );
-      }
+        ),
+      );
+    } else if (result is RefreshError) {
+      final err = result as RefreshError;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            err.isExternal
+                ? 'No se pudo conectar con SIMIT. Intenta más tarde.'
+                : 'Error al actualizar datos SIMIT.',
+          ),
+        ),
+      );
+    } else if (success != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Datos SIMIT actualizados')),
+      );
     }
   }
 
@@ -136,6 +166,12 @@ class _SimitPersonDetailPageState extends State<SimitPersonDetailPage> {
     final simit = owner?.simit;
     final summary = simit?.summary;
     final allFines = simit?.fines ?? const [];
+
+    // ── "Consulta exitosa sin obligaciones" (Fix B) ─────────────────────────
+    // Contrato backend: `simit:{ summary:null, fines:[] }` representa éxito
+    // confirmado SIN multas. NO debe colapsar a "No hay datos SIMIT".
+    final bool simitConsultedEmpty =
+        simit != null && summary == null && allFines.isEmpty;
 
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
@@ -238,11 +274,23 @@ class _SimitPersonDetailPageState extends State<SimitPersonDetailPage> {
 
           // ── Body ───────────────────────────────────────────────────────────
           Expanded(
-            child: summary == null
-                ? _NoDataState(theme: theme, cs: cs)
-                : isSummaryOnly
-                    ? _SummaryOnlyState(theme: theme, cs: cs)
-                    : filteredFines.isEmpty
+            child: (summary == null && !simitConsultedEmpty)
+                ? _NoDataState(
+                    theme: theme,
+                    cs: cs,
+                    isLoading: _isRefreshing,
+                    // CTA habilitado sólo si tenemos identidad para consultar.
+                    onConsult: (owner?.document != null &&
+                            owner!.document!.trim().isNotEmpty &&
+                            _portfolioId != null)
+                        ? _handleRefresh
+                        : null,
+                  )
+                : simitConsultedEmpty
+                    ? _SuccessEmptyState(theme: theme, cs: cs)
+                    : isSummaryOnly
+                        ? _SummaryOnlyState(theme: theme, cs: cs)
+                        : filteredFines.isEmpty
                         ? _EmptyFilter(
                             tabIndex: _tabIndex, theme: theme, cs: cs)
                         : ListView.separated(
@@ -264,6 +312,7 @@ class _SimitPersonDetailPageState extends State<SimitPersonDetailPage> {
                               }
                               return _FineItemCard(
                                 fine: filteredFines[i],
+                                ownerDocument: _data?.owner?.document,
                                 theme: theme,
                                 cs: cs,
                               );
@@ -503,22 +552,49 @@ class _FilterTabBar extends StatelessWidget {
 
 class _FineItemCard extends StatelessWidget {
   final VrcSimitFineModel fine;
+  final String? ownerDocument;
   final ThemeData theme;
   final ColorScheme cs;
 
-  const _FineItemCard(
-      {required this.fine, required this.theme, required this.cs});
+  const _FineItemCard({
+    required this.fine,
+    required this.ownerDocument,
+    required this.theme,
+    required this.cs,
+  });
+
+  /// Tap → abre BottomSheet con detalle profundo.
+  /// Requiere [ownerDocument] + [fine.id]. Si falta cualquiera, el tap
+  /// no hace nada (defensivo — no debería pasar en flujo normal).
+  void _openDetailSheet(BuildContext context) {
+    final doc = ownerDocument?.trim();
+    final comparendoId = fine.id?.trim();
+    if (doc == null || doc.isEmpty || comparendoId == null || comparendoId.isEmpty) {
+      return;
+    }
+    showSimitMultaDetailBottomSheet(
+      context: context,
+      document: doc,
+      comparendoId: comparendoId,
+      infraccionLabel: fine.infraccion,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final (typeLabel, typeBg, typeFg) = _typeStyle(context, fine.tipo);
     final valor = fine.valorAPagar ?? fine.valor;
+    final canTap = (ownerDocument?.isNotEmpty ?? false) &&
+        (fine.id?.isNotEmpty ?? false);
 
     return Card(
       elevation: 0,
       color: cs.surfaceContainer,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Padding(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: canTap ? () => _openDetailSheet(context) : null,
+        child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -598,6 +674,7 @@ class _FineItemCard extends StatelessWidget {
             ],
           ],
         ),
+        ),
       ),
     );
   }
@@ -666,10 +743,28 @@ class _FreshnessBadge extends StatelessWidget {
 // EMPTY STATES
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Empty state cuando `summary == null` — soporta 3 sub-estados:
+///
+/// 1. **Loading** (`isLoading == true`): se está consultando SIMIT en este
+///    momento (~50s). Muestra spinner prominente + nota de duración.
+/// 2. **Consultable** (`onConsult != null`): hay identidad (document +
+///    portfolioId) → muestra CTA "Consultar SIMIT" que dispara refresh
+///    selectivo (sin VRC completo).
+/// 3. **No consultable** (`onConsult == null`): falta identidad para
+///    consultar (caso navegación desde live page sin portfolioId). Muestra
+///    mensaje informativo, sin botón.
 class _NoDataState extends StatelessWidget {
   final ThemeData theme;
   final ColorScheme cs;
-  const _NoDataState({required this.theme, required this.cs});
+  final bool isLoading;
+  final VoidCallback? onConsult;
+
+  const _NoDataState({
+    required this.theme,
+    required this.cs,
+    this.isLoading = false,
+    this.onConsult,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -679,17 +774,104 @@ class _NoDataState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.receipt_long_outlined,
-                size: 48, color: cs.onSurfaceVariant.withValues(alpha: 0.4)),
-            const SizedBox(height: AppSpacing.md),
-            Text('Sin datos SIMIT',
+            if (isLoading) ...[
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  color: cs.primary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Consultando SIMIT…',
                 style: theme.textTheme.titleSmall
-                    ?.copyWith(color: cs.onSurfaceVariant)),
+                    ?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Puede tardar hasta un minuto la primera vez.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ] else ...[
+              Icon(Icons.receipt_long_outlined,
+                  size: 48, color: cs.onSurfaceVariant.withValues(alpha: 0.4)),
+              const SizedBox(height: AppSpacing.md),
+              Text('No hay datos SIMIT',
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(color: cs.onSurfaceVariant)),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                onConsult != null
+                    ? 'Aún no se ha consultado el estado SIMIT de este propietario.'
+                    : 'No fue posible obtener información SIMIT para este propietario.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              if (onConsult != null) ...[
+                const SizedBox(height: AppSpacing.lg),
+                FilledButton.icon(
+                  onPressed: onConsult,
+                  icon: const Icon(Icons.search_rounded),
+                  label: const Text('Consultar SIMIT'),
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUCCESS EMPTY — consulta SIMIT exitosa sin obligaciones
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Contrato backend: `simit:{ summary:null, fines:[] }` representa CONSULTA
+// EXITOSA sin obligaciones, NO ausencia de consulta. Antes este caso caía
+// en _NoDataState ("No hay datos SIMIT") aunque el VRC scrape hubiera
+// completado correctamente con cero multas.
+//
+// Distinto de _SummaryOnlyState (registro legacy con summary pero sin
+// fines blob) y de _NoDataState (jamás consultado o falló).
+
+class _SuccessEmptyState extends StatelessWidget {
+  final ThemeData theme;
+  final ColorScheme cs;
+  const _SuccessEmptyState({required this.theme, required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle_outline_rounded,
+                size: 56, color: Colors.green.shade600),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Sin obligaciones registradas',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: cs.onSurface,
+              ),
+            ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'No fue posible obtener información SIMIT para este propietario.',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: cs.onSurfaceVariant.withValues(alpha: 0.7)),
+              'Consulta SIMIT exitosa: el propietario no tiene comparendos, '
+              'multas ni acuerdos de pago pendientes.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: cs.onSurfaceVariant.withValues(alpha: 0.8),
+              ),
               textAlign: TextAlign.center,
             ),
           ],

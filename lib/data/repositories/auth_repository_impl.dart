@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../../domain/entities/account/desktop_access_status.dart';
 import '../../domain/errors/auth_failure.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth/firebase_auth_ds.dart';
@@ -217,6 +218,131 @@ class AuthRepositoryImpl implements AuthRepository {
       return cred.user!.uid;
     }
     throw StateError('Resolver inválido');
+  }
+
+  // ─── Desktop access — linkWithCredential canónico ──────────────────────────
+  //
+  // Caso de uso: usuario autenticado vía OTP móvil quiere activar
+  // username/password para login desktop. Preservamos el UID Firebase y solo
+  // agregamos la credencial 'password'. NUNCA crear cuenta nueva — eso
+  // rompería identidad y desconectaría todo el grafo de memberships.
+
+  @override
+  Future<DesktopAccessStatus> linkDesktopAccess({
+    required String username,
+    required String password,
+  }) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUid = currentUser?.uid;
+    if (currentUser == null || currentUid == null) {
+      throw const AuthFailure(
+        'no-current-user',
+        'No hay sesión activa.',
+      );
+    }
+
+    final normalizedUsername = username.trim().toLowerCase();
+    if (normalizedUsername.length < 3) {
+      throw const AuthFailure(
+        'invalid-username',
+        'El nombre de usuario debe tener al menos 3 caracteres.',
+      );
+    }
+    if (password.length < 8) {
+      throw const AuthFailure(
+        'weak-password',
+        'La contraseña debe tener al menos 8 caracteres.',
+      );
+    }
+
+    // Cortocircuito: si el UID ya tiene credencial 'password', no reintentamos
+    // linking. La UI debería ofrecer "Cambiar contraseña" (futuro), no
+    // "Activar acceso".
+    if (currentUser.providerData.any((p) => p.providerId == 'password')) {
+      throw const AuthFailure(
+        'provider-already-linked',
+        'Este usuario ya tiene acceso de escritorio configurado.',
+      );
+    }
+
+    final check =
+        await checkUsernameAvailability(normalizedUsername, currentUid);
+    if (check == UsernameCheckResult.takenByOtherUser) {
+      throw const AuthFailure(
+        'username_taken',
+        'Este nombre de usuario ya está en uso.',
+      );
+    }
+
+    final alias = _aliasFromUsername(normalizedUsername);
+
+    try {
+      await authDS.linkAliasEmailPassword(
+        aliasEmail: alias,
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'requires-recent-login':
+          throw const AuthFailure(
+            'requires-recent-login',
+            'Por seguridad, vuelve a verificar tu teléfono e intenta de nuevo.',
+          );
+        case 'provider-already-linked':
+          throw const AuthFailure(
+            'provider-already-linked',
+            'Este usuario ya tiene acceso de escritorio configurado.',
+          );
+        case 'credential-already-in-use':
+        case 'email-already-in-use':
+          throw const AuthFailure(
+            'username_taken',
+            'Este nombre de usuario ya está en uso.',
+          );
+        case 'weak-password':
+          throw const AuthFailure(
+            'weak-password',
+            'La contraseña no cumple los requisitos mínimos.',
+          );
+        case 'network-request-failed':
+          throw const AuthFailure(
+            'network-request-failed',
+            'Sin conexión. Verifica tu red e intenta de nuevo.',
+          );
+        default:
+          throw AuthFailure(
+            e.code,
+            'No se pudo activar el acceso para escritorio.',
+          );
+      }
+    }
+
+    // Reserva atómica del username. Idempotente cuando ya es nuestro;
+    // defensivo contra carreras si otro flujo lo tomó entre la verificación
+    // previa y este punto.
+    await userFS.db.runTransaction((txn) async {
+      final docRef =
+          userFS.db.collection('usernames').doc(normalizedUsername);
+      final snap = await txn.get(docRef);
+      if (!snap.exists) {
+        txn.set(docRef, {
+          'uid': currentUid,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } else if (snap.data()?['uid'] != currentUid) {
+        throw const AuthFailure(
+          'username_taken',
+          'Este nombre de usuario ya está en uso.',
+        );
+      }
+    });
+
+    await userFS.updateProfile(currentUid, {
+      'username': normalizedUsername,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    return DesktopAccessStatus.configured(username: normalizedUsername);
   }
 }
 

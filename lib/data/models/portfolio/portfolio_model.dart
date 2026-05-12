@@ -27,6 +27,7 @@ import 'package:isar_community/isar.dart' as isar;
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
+import '../../../domain/entities/core_common/value_objects/asset_actor_role.dart';
 import '../../../domain/entities/portfolio/portfolio_entity.dart';
 
 part 'portfolio_model.g.dart';
@@ -101,6 +102,18 @@ class PortfolioModel {
   /// automáticamente a campos nuevos (backward-compatible, sin migración).
   final String? simitDetailJson;
 
+  /// Wire name del [AssetActorRole] esperado al añadir activos al portfolio.
+  /// Persistido como String (no como índice de enum) para wire-stability:
+  /// añadir/quitar valores en AssetActorRole no afecta registros existentes.
+  ///
+  /// Valores válidos: ver `AssetActorRole.allWireNames`.
+  /// Null = portfolios legacy o donde la relación se decidirá al añadir
+  /// cada asset.
+  /// Wire desconocido (futuro valor que la build actual no conoce) ⇒
+  /// `toEntity()` lo expone como null silencioso vía
+  /// `AssetActorRoleX.tryFromWire`. No-throw por contrato.
+  final String? expectedRelationKindWire;
+
   PortfolioModel({
     this.isarId,
     required this.id,
@@ -127,6 +140,7 @@ class PortfolioModel {
     this.simitCheckedAt,
     this.licenseCheckedAt,
     this.simitDetailJson,
+    this.expectedRelationKindWire,
   });
 
   /// Mapper: Model -> Entity
@@ -156,6 +170,8 @@ class PortfolioModel {
       simitCheckedAt: simitCheckedAt,
       licenseCheckedAt: licenseCheckedAt,
       simitDetailJson: simitDetailJson,
+      expectedRelationKind:
+          AssetActorRoleX.tryFromWire(expectedRelationKindWire),
     );
   }
 
@@ -186,6 +202,7 @@ class PortfolioModel {
       simitCheckedAt: entity.simitCheckedAt?.toUtc(),
       licenseCheckedAt: entity.licenseCheckedAt?.toUtc(),
       simitDetailJson: entity.simitDetailJson,
+      expectedRelationKindWire: entity.expectedRelationKind?.wireName,
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/platform/platform_capabilities.dart';
 import '../../auth/controllers/enhanced_registration_controller.dart';
 import 'auth_method_button.dart';
 
@@ -16,8 +17,15 @@ class FederatedAuthButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<EnhancedRegistrationController>();
     final theme = Theme.of(context);
+
+    // En desktop la auth federada no está disponible en Phase 0. La UI
+    // ofrece un único copy claro en lugar de botones muertos.
+    if (!PlatformCapabilities.supportsFederatedAuth) {
+      return _DesktopUnsupportedNotice(theme: theme);
+    }
+
+    final controller = Get.find<EnhancedRegistrationController>();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -37,14 +45,17 @@ class FederatedAuthButtons extends StatelessWidget {
 
         const SizedBox(height: 12),
 
-        // Apple Sign-In (próximamente)
-        _ComingSoonMethodButton(
-          label: 'Continuar con Apple',
-          icon: const Icon(Icons.apple, color: Colors.black, size: 24),
-          theme: theme,
-        ),
+        // Apple Sign-In (próximamente). En no-iOS/macOS también queda como
+        // "Próximamente" para no romper la consistencia visual del grupo.
+        if (PlatformCapabilities.supportsAppleSignIn)
+          _ComingSoonMethodButton(
+            label: 'Continuar con Apple',
+            icon: const Icon(Icons.apple, color: Colors.black, size: 24),
+            theme: theme,
+          ),
 
-        const SizedBox(height: 12),
+        if (PlatformCapabilities.supportsAppleSignIn)
+          const SizedBox(height: 12),
 
         // Facebook Sign-In (próximamente)
         _ComingSoonMethodButton(
@@ -59,6 +70,45 @@ class FederatedAuthButtons extends StatelessWidget {
       ],
     );
   }
+}
+
+class _DesktopUnsupportedNotice extends StatelessWidget {
+  final ThemeData theme;
+  const _DesktopUnsupportedNotice({required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: BorderSide(color: cs.outlineVariant).toBorder(),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.smartphone, color: cs.onSurfaceVariant),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'El inicio de sesión con Google, Apple y Facebook está '
+              'disponible en la app móvil. En escritorio usa tu número de '
+              'teléfono o usuario y contraseña.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+extension _SideToBorder on BorderSide {
+  Border toBorder() => Border.fromBorderSide(this);
 }
 
 /// Botón de método de auth no disponible aún.

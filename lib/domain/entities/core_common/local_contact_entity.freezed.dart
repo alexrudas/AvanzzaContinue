@@ -58,7 +58,98 @@ mixin _$LocalContactEntity {
   bool get isDeleted;
 
   /// Timestamp del soft-delete. Null mientras isDeleted=false.
-  DateTime? get deletedAt;
+  DateTime?
+      get deletedAt; // ── v2 PERFIL ESTRUCTURADO (flujo Proveedores) ─────────────────────────
+  /// Clasificación comercial operativa. Null = sin clasificar (legado o
+  /// alta rápida). Ver `SupplierType` para el wire contract.
+  SupplierType? get supplierType;
+
+  /// Categorías verticales libres (repuestos, lubricantes, taller...).
+  /// Acepta cualquier string; la UI ofrece sugerencias pero no impone.
+  /// Vacío = sin categorías.
+  List<String> get categories;
+
+  /// País del proveedor. Reusa IDs del catálogo geo del proyecto.
+  String? get countryId;
+
+  /// Región/Departamento.
+  String? get regionId;
+
+  /// Ciudad principal (sede).
+  String? get cityId;
+
+  /// Dirección de calle libre (complemento a cityId/regionId). No se parsea.
+  String? get addressLine;
+
+  /// Teléfono alternativo E.164. No es llave de matching.
+  String? get secondaryPhoneE164;
+
+  /// URL del sitio web del proveedor. Texto libre, sin validación remota.
+  String? get website;
+
+  /// IDs de ciudades donde el proveedor ofrece servicio. Puede estar
+  /// vacía (ej. proveedor solo de productos). Cuando está vacía, asumir
+  /// que la cobertura es cityId (ver completeness helper).
+  ///
+  /// Semántica con `coverageAllCountry`:
+  ///   - `coverageAllCountry=true`  → esta lista DEBE estar vacía (canon).
+  ///   - `coverageAllCountry=false` → selección manual opcional.
+  List<String> get coverageCityIds;
+
+  /// Modo "Envíos a todo el país". Cuando es true, `coverageCityIds`
+  /// debe ignorarse (canon: el controller lo vacía al activar el toggle).
+  /// Campo público (se sincroniza vía Firestore).
+  bool get coverageAllCountry;
+
+  /// FK opcional al `ProviderProfile` canónico (Postgres) que representa
+  /// este contacto en la red comercial (Avanzza Core API).
+  ///
+  /// Semántica:
+  ///   - `null` = aún no provisionado contra Core API (default).
+  ///   - String = el `providerProfileId` retornado por
+  ///     `POST /v1/providers`. Usado por `ProviderFormController` para:
+  ///       1. Saltar el POST en edit mode → ir directo a `GET + PUT`.
+  ///       2. Hidratar `specialtyIds` desde `GET /v1/providers/:id`.
+  ///
+  /// Default `null` ⇒ retrocompatible con registros legacy: contactos
+  /// creados antes del flujo canónico simplemente nacen sin vinculación.
+  /// Sin migración destructiva.
+  ///
+  /// IMPORTANTE: este campo se persiste SOLO tras un `provision()` 2xx
+  /// exitoso (ver `ProviderFormController.save()`). Si el POST falla o
+  /// si `replaceSpecialties` falla luego, la regla canónica es:
+  ///   - POST falló → NO tocar este campo (queda null o el valor previo).
+  ///   - POST OK + PUT specialties falló → este campo SÍ se actualiza
+  ///     porque el provider ya existe; el siguiente save salta el POST
+  ///     y reintenta solo el PUT (idempotente backend).
+  String? get linkedProviderProfileId;
+
+  /// Sedes ADICIONALES del proveedor. La sede PRINCIPAL vive IMPLÍCITA
+  /// en los campos geo + `primaryPhoneE164` del propio `LocalContactEntity`
+  /// (retrocompat con registros ya persistidos). Esta lista cubre solo
+  /// las sedes extra — visualmente se muestran bajo una sección
+  /// "Otras sedes".
+  ///
+  /// DECISIÓN EXPLÍCITA — ASIMETRÍA INCREMENTAL:
+  ///   Existe a propósito una asimetría entre la sede principal
+  ///   (campos sueltos del proveedor) y las sedes adicionales (objetos
+  ///   en esta lista). La razón es cero migración destructiva sobre los
+  ///   registros de proveedor ya guardados en producción. Cuando el
+  ///   producto justifique un refactor a un modelo simétrico
+  ///   (`mainBranch: ProviderBranchEntity` + `additionalBranches: List`),
+  ///   esa migración debe hacerse con un paso de hidratación explícito
+  ///   que mueva los campos actuales a `mainBranch.*`. HOY NO es el
+  ///   momento: romper la SSOT y los datos persistidos para ganar
+  ///   simetría estética no justifica el riesgo.
+  ///
+  /// Semántica:
+  ///   - La identidad de cada sede es el `id` (uuid) del
+  ///     `ProviderBranchEntity`.
+  ///   - Cobertura, supplierType y categorías NO se duplican por sede:
+  ///     son del proveedor como entidad comercial.
+  ///   - Notas operativas de la sede (`notes`) son públicas; las privadas
+  ///     del proveedor siguen en `notesPrivate`.
+  List<ProviderBranchEntity> get additionalBranches;
 
   /// Create a copy of LocalContactEntity
   /// with the given fields replaced by the non-null parameter values.
@@ -107,33 +198,69 @@ mixin _$LocalContactEntity {
             (identical(other.isDeleted, isDeleted) ||
                 other.isDeleted == isDeleted) &&
             (identical(other.deletedAt, deletedAt) ||
-                other.deletedAt == deletedAt));
+                other.deletedAt == deletedAt) &&
+            (identical(other.supplierType, supplierType) ||
+                other.supplierType == supplierType) &&
+            const DeepCollectionEquality()
+                .equals(other.categories, categories) &&
+            (identical(other.countryId, countryId) ||
+                other.countryId == countryId) &&
+            (identical(other.regionId, regionId) ||
+                other.regionId == regionId) &&
+            (identical(other.cityId, cityId) || other.cityId == cityId) &&
+            (identical(other.addressLine, addressLine) ||
+                other.addressLine == addressLine) &&
+            (identical(other.secondaryPhoneE164, secondaryPhoneE164) ||
+                other.secondaryPhoneE164 == secondaryPhoneE164) &&
+            (identical(other.website, website) || other.website == website) &&
+            const DeepCollectionEquality()
+                .equals(other.coverageCityIds, coverageCityIds) &&
+            (identical(other.coverageAllCountry, coverageAllCountry) ||
+                other.coverageAllCountry == coverageAllCountry) &&
+            (identical(
+                    other.linkedProviderProfileId, linkedProviderProfileId) ||
+                other.linkedProviderProfileId == linkedProviderProfileId) &&
+            const DeepCollectionEquality()
+                .equals(other.additionalBranches, additionalBranches));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      workspaceId,
-      displayName,
-      createdAt,
-      updatedAt,
-      organizationId,
-      roleLabel,
-      primaryPhoneE164,
-      primaryEmail,
-      docId,
-      notesPrivate,
-      const DeepCollectionEquality().hash(tagsPrivate),
-      snapshotSourcePlatformActorId,
-      snapshotAdoptedAt,
-      isDeleted,
-      deletedAt);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        workspaceId,
+        displayName,
+        createdAt,
+        updatedAt,
+        organizationId,
+        roleLabel,
+        primaryPhoneE164,
+        primaryEmail,
+        docId,
+        notesPrivate,
+        const DeepCollectionEquality().hash(tagsPrivate),
+        snapshotSourcePlatformActorId,
+        snapshotAdoptedAt,
+        isDeleted,
+        deletedAt,
+        supplierType,
+        const DeepCollectionEquality().hash(categories),
+        countryId,
+        regionId,
+        cityId,
+        addressLine,
+        secondaryPhoneE164,
+        website,
+        const DeepCollectionEquality().hash(coverageCityIds),
+        coverageAllCountry,
+        linkedProviderProfileId,
+        const DeepCollectionEquality().hash(additionalBranches)
+      ]);
 
   @override
   String toString() {
-    return 'LocalContactEntity(id: $id, workspaceId: $workspaceId, displayName: $displayName, createdAt: $createdAt, updatedAt: $updatedAt, organizationId: $organizationId, roleLabel: $roleLabel, primaryPhoneE164: $primaryPhoneE164, primaryEmail: $primaryEmail, docId: $docId, notesPrivate: $notesPrivate, tagsPrivate: $tagsPrivate, snapshotSourcePlatformActorId: $snapshotSourcePlatformActorId, snapshotAdoptedAt: $snapshotAdoptedAt, isDeleted: $isDeleted, deletedAt: $deletedAt)';
+    return 'LocalContactEntity(id: $id, workspaceId: $workspaceId, displayName: $displayName, createdAt: $createdAt, updatedAt: $updatedAt, organizationId: $organizationId, roleLabel: $roleLabel, primaryPhoneE164: $primaryPhoneE164, primaryEmail: $primaryEmail, docId: $docId, notesPrivate: $notesPrivate, tagsPrivate: $tagsPrivate, snapshotSourcePlatformActorId: $snapshotSourcePlatformActorId, snapshotAdoptedAt: $snapshotAdoptedAt, isDeleted: $isDeleted, deletedAt: $deletedAt, supplierType: $supplierType, categories: $categories, countryId: $countryId, regionId: $regionId, cityId: $cityId, addressLine: $addressLine, secondaryPhoneE164: $secondaryPhoneE164, website: $website, coverageCityIds: $coverageCityIds, coverageAllCountry: $coverageAllCountry, linkedProviderProfileId: $linkedProviderProfileId, additionalBranches: $additionalBranches)';
   }
 }
 
@@ -159,7 +286,19 @@ abstract mixin class $LocalContactEntityCopyWith<$Res> {
       String? snapshotSourcePlatformActorId,
       DateTime? snapshotAdoptedAt,
       bool isDeleted,
-      DateTime? deletedAt});
+      DateTime? deletedAt,
+      SupplierType? supplierType,
+      List<String> categories,
+      String? countryId,
+      String? regionId,
+      String? cityId,
+      String? addressLine,
+      String? secondaryPhoneE164,
+      String? website,
+      List<String> coverageCityIds,
+      bool coverageAllCountry,
+      String? linkedProviderProfileId,
+      List<ProviderBranchEntity> additionalBranches});
 }
 
 /// @nodoc
@@ -191,6 +330,18 @@ class _$LocalContactEntityCopyWithImpl<$Res>
     Object? snapshotAdoptedAt = freezed,
     Object? isDeleted = null,
     Object? deletedAt = freezed,
+    Object? supplierType = freezed,
+    Object? categories = null,
+    Object? countryId = freezed,
+    Object? regionId = freezed,
+    Object? cityId = freezed,
+    Object? addressLine = freezed,
+    Object? secondaryPhoneE164 = freezed,
+    Object? website = freezed,
+    Object? coverageCityIds = null,
+    Object? coverageAllCountry = null,
+    Object? linkedProviderProfileId = freezed,
+    Object? additionalBranches = null,
   }) {
     return _then(_self.copyWith(
       id: null == id
@@ -257,6 +408,54 @@ class _$LocalContactEntityCopyWithImpl<$Res>
           ? _self.deletedAt
           : deletedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      supplierType: freezed == supplierType
+          ? _self.supplierType
+          : supplierType // ignore: cast_nullable_to_non_nullable
+              as SupplierType?,
+      categories: null == categories
+          ? _self.categories
+          : categories // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      countryId: freezed == countryId
+          ? _self.countryId
+          : countryId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      regionId: freezed == regionId
+          ? _self.regionId
+          : regionId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      cityId: freezed == cityId
+          ? _self.cityId
+          : cityId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      addressLine: freezed == addressLine
+          ? _self.addressLine
+          : addressLine // ignore: cast_nullable_to_non_nullable
+              as String?,
+      secondaryPhoneE164: freezed == secondaryPhoneE164
+          ? _self.secondaryPhoneE164
+          : secondaryPhoneE164 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      website: freezed == website
+          ? _self.website
+          : website // ignore: cast_nullable_to_non_nullable
+              as String?,
+      coverageCityIds: null == coverageCityIds
+          ? _self.coverageCityIds
+          : coverageCityIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      coverageAllCountry: null == coverageAllCountry
+          ? _self.coverageAllCountry
+          : coverageAllCountry // ignore: cast_nullable_to_non_nullable
+              as bool,
+      linkedProviderProfileId: freezed == linkedProviderProfileId
+          ? _self.linkedProviderProfileId
+          : linkedProviderProfileId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      additionalBranches: null == additionalBranches
+          ? _self.additionalBranches
+          : additionalBranches // ignore: cast_nullable_to_non_nullable
+              as List<ProviderBranchEntity>,
     ));
   }
 }
@@ -370,7 +569,19 @@ extension LocalContactEntityPatterns on LocalContactEntity {
             String? snapshotSourcePlatformActorId,
             DateTime? snapshotAdoptedAt,
             bool isDeleted,
-            DateTime? deletedAt)?
+            DateTime? deletedAt,
+            SupplierType? supplierType,
+            List<String> categories,
+            String? countryId,
+            String? regionId,
+            String? cityId,
+            String? addressLine,
+            String? secondaryPhoneE164,
+            String? website,
+            List<String> coverageCityIds,
+            bool coverageAllCountry,
+            String? linkedProviderProfileId,
+            List<ProviderBranchEntity> additionalBranches)?
         $default, {
     required TResult orElse(),
   }) {
@@ -393,7 +604,19 @@ extension LocalContactEntityPatterns on LocalContactEntity {
             _that.snapshotSourcePlatformActorId,
             _that.snapshotAdoptedAt,
             _that.isDeleted,
-            _that.deletedAt);
+            _that.deletedAt,
+            _that.supplierType,
+            _that.categories,
+            _that.countryId,
+            _that.regionId,
+            _that.cityId,
+            _that.addressLine,
+            _that.secondaryPhoneE164,
+            _that.website,
+            _that.coverageCityIds,
+            _that.coverageAllCountry,
+            _that.linkedProviderProfileId,
+            _that.additionalBranches);
       case _:
         return orElse();
     }
@@ -430,7 +653,19 @@ extension LocalContactEntityPatterns on LocalContactEntity {
             String? snapshotSourcePlatformActorId,
             DateTime? snapshotAdoptedAt,
             bool isDeleted,
-            DateTime? deletedAt)
+            DateTime? deletedAt,
+            SupplierType? supplierType,
+            List<String> categories,
+            String? countryId,
+            String? regionId,
+            String? cityId,
+            String? addressLine,
+            String? secondaryPhoneE164,
+            String? website,
+            List<String> coverageCityIds,
+            bool coverageAllCountry,
+            String? linkedProviderProfileId,
+            List<ProviderBranchEntity> additionalBranches)
         $default,
   ) {
     final _that = this;
@@ -452,7 +687,19 @@ extension LocalContactEntityPatterns on LocalContactEntity {
             _that.snapshotSourcePlatformActorId,
             _that.snapshotAdoptedAt,
             _that.isDeleted,
-            _that.deletedAt);
+            _that.deletedAt,
+            _that.supplierType,
+            _that.categories,
+            _that.countryId,
+            _that.regionId,
+            _that.cityId,
+            _that.addressLine,
+            _that.secondaryPhoneE164,
+            _that.website,
+            _that.coverageCityIds,
+            _that.coverageAllCountry,
+            _that.linkedProviderProfileId,
+            _that.additionalBranches);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -488,7 +735,19 @@ extension LocalContactEntityPatterns on LocalContactEntity {
             String? snapshotSourcePlatformActorId,
             DateTime? snapshotAdoptedAt,
             bool isDeleted,
-            DateTime? deletedAt)?
+            DateTime? deletedAt,
+            SupplierType? supplierType,
+            List<String> categories,
+            String? countryId,
+            String? regionId,
+            String? cityId,
+            String? addressLine,
+            String? secondaryPhoneE164,
+            String? website,
+            List<String> coverageCityIds,
+            bool coverageAllCountry,
+            String? linkedProviderProfileId,
+            List<ProviderBranchEntity> additionalBranches)?
         $default,
   ) {
     final _that = this;
@@ -510,7 +769,19 @@ extension LocalContactEntityPatterns on LocalContactEntity {
             _that.snapshotSourcePlatformActorId,
             _that.snapshotAdoptedAt,
             _that.isDeleted,
-            _that.deletedAt);
+            _that.deletedAt,
+            _that.supplierType,
+            _that.categories,
+            _that.countryId,
+            _that.regionId,
+            _that.cityId,
+            _that.addressLine,
+            _that.secondaryPhoneE164,
+            _that.website,
+            _that.coverageCityIds,
+            _that.coverageAllCountry,
+            _that.linkedProviderProfileId,
+            _that.additionalBranches);
       case _:
         return null;
     }
@@ -536,8 +807,24 @@ class _LocalContactEntity implements LocalContactEntity {
       this.snapshotSourcePlatformActorId,
       this.snapshotAdoptedAt,
       this.isDeleted = false,
-      this.deletedAt})
-      : _tagsPrivate = tagsPrivate;
+      this.deletedAt,
+      this.supplierType,
+      final List<String> categories = const <String>[],
+      this.countryId,
+      this.regionId,
+      this.cityId,
+      this.addressLine,
+      this.secondaryPhoneE164,
+      this.website,
+      final List<String> coverageCityIds = const <String>[],
+      this.coverageAllCountry = false,
+      this.linkedProviderProfileId,
+      final List<ProviderBranchEntity> additionalBranches =
+          const <ProviderBranchEntity>[]})
+      : _tagsPrivate = tagsPrivate,
+        _categories = categories,
+        _coverageCityIds = coverageCityIds,
+        _additionalBranches = additionalBranches;
   factory _LocalContactEntity.fromJson(Map<String, dynamic> json) =>
       _$LocalContactEntityFromJson(json);
 
@@ -611,6 +898,167 @@ class _LocalContactEntity implements LocalContactEntity {
   /// Timestamp del soft-delete. Null mientras isDeleted=false.
   @override
   final DateTime? deletedAt;
+// ── v2 PERFIL ESTRUCTURADO (flujo Proveedores) ─────────────────────────
+  /// Clasificación comercial operativa. Null = sin clasificar (legado o
+  /// alta rápida). Ver `SupplierType` para el wire contract.
+  @override
+  final SupplierType? supplierType;
+
+  /// Categorías verticales libres (repuestos, lubricantes, taller...).
+  /// Acepta cualquier string; la UI ofrece sugerencias pero no impone.
+  /// Vacío = sin categorías.
+  final List<String> _categories;
+
+  /// Categorías verticales libres (repuestos, lubricantes, taller...).
+  /// Acepta cualquier string; la UI ofrece sugerencias pero no impone.
+  /// Vacío = sin categorías.
+  @override
+  @JsonKey()
+  List<String> get categories {
+    if (_categories is EqualUnmodifiableListView) return _categories;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_categories);
+  }
+
+  /// País del proveedor. Reusa IDs del catálogo geo del proyecto.
+  @override
+  final String? countryId;
+
+  /// Región/Departamento.
+  @override
+  final String? regionId;
+
+  /// Ciudad principal (sede).
+  @override
+  final String? cityId;
+
+  /// Dirección de calle libre (complemento a cityId/regionId). No se parsea.
+  @override
+  final String? addressLine;
+
+  /// Teléfono alternativo E.164. No es llave de matching.
+  @override
+  final String? secondaryPhoneE164;
+
+  /// URL del sitio web del proveedor. Texto libre, sin validación remota.
+  @override
+  final String? website;
+
+  /// IDs de ciudades donde el proveedor ofrece servicio. Puede estar
+  /// vacía (ej. proveedor solo de productos). Cuando está vacía, asumir
+  /// que la cobertura es cityId (ver completeness helper).
+  ///
+  /// Semántica con `coverageAllCountry`:
+  ///   - `coverageAllCountry=true`  → esta lista DEBE estar vacía (canon).
+  ///   - `coverageAllCountry=false` → selección manual opcional.
+  final List<String> _coverageCityIds;
+
+  /// IDs de ciudades donde el proveedor ofrece servicio. Puede estar
+  /// vacía (ej. proveedor solo de productos). Cuando está vacía, asumir
+  /// que la cobertura es cityId (ver completeness helper).
+  ///
+  /// Semántica con `coverageAllCountry`:
+  ///   - `coverageAllCountry=true`  → esta lista DEBE estar vacía (canon).
+  ///   - `coverageAllCountry=false` → selección manual opcional.
+  @override
+  @JsonKey()
+  List<String> get coverageCityIds {
+    if (_coverageCityIds is EqualUnmodifiableListView) return _coverageCityIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_coverageCityIds);
+  }
+
+  /// Modo "Envíos a todo el país". Cuando es true, `coverageCityIds`
+  /// debe ignorarse (canon: el controller lo vacía al activar el toggle).
+  /// Campo público (se sincroniza vía Firestore).
+  @override
+  @JsonKey()
+  final bool coverageAllCountry;
+
+  /// FK opcional al `ProviderProfile` canónico (Postgres) que representa
+  /// este contacto en la red comercial (Avanzza Core API).
+  ///
+  /// Semántica:
+  ///   - `null` = aún no provisionado contra Core API (default).
+  ///   - String = el `providerProfileId` retornado por
+  ///     `POST /v1/providers`. Usado por `ProviderFormController` para:
+  ///       1. Saltar el POST en edit mode → ir directo a `GET + PUT`.
+  ///       2. Hidratar `specialtyIds` desde `GET /v1/providers/:id`.
+  ///
+  /// Default `null` ⇒ retrocompatible con registros legacy: contactos
+  /// creados antes del flujo canónico simplemente nacen sin vinculación.
+  /// Sin migración destructiva.
+  ///
+  /// IMPORTANTE: este campo se persiste SOLO tras un `provision()` 2xx
+  /// exitoso (ver `ProviderFormController.save()`). Si el POST falla o
+  /// si `replaceSpecialties` falla luego, la regla canónica es:
+  ///   - POST falló → NO tocar este campo (queda null o el valor previo).
+  ///   - POST OK + PUT specialties falló → este campo SÍ se actualiza
+  ///     porque el provider ya existe; el siguiente save salta el POST
+  ///     y reintenta solo el PUT (idempotente backend).
+  @override
+  final String? linkedProviderProfileId;
+
+  /// Sedes ADICIONALES del proveedor. La sede PRINCIPAL vive IMPLÍCITA
+  /// en los campos geo + `primaryPhoneE164` del propio `LocalContactEntity`
+  /// (retrocompat con registros ya persistidos). Esta lista cubre solo
+  /// las sedes extra — visualmente se muestran bajo una sección
+  /// "Otras sedes".
+  ///
+  /// DECISIÓN EXPLÍCITA — ASIMETRÍA INCREMENTAL:
+  ///   Existe a propósito una asimetría entre la sede principal
+  ///   (campos sueltos del proveedor) y las sedes adicionales (objetos
+  ///   en esta lista). La razón es cero migración destructiva sobre los
+  ///   registros de proveedor ya guardados en producción. Cuando el
+  ///   producto justifique un refactor a un modelo simétrico
+  ///   (`mainBranch: ProviderBranchEntity` + `additionalBranches: List`),
+  ///   esa migración debe hacerse con un paso de hidratación explícito
+  ///   que mueva los campos actuales a `mainBranch.*`. HOY NO es el
+  ///   momento: romper la SSOT y los datos persistidos para ganar
+  ///   simetría estética no justifica el riesgo.
+  ///
+  /// Semántica:
+  ///   - La identidad de cada sede es el `id` (uuid) del
+  ///     `ProviderBranchEntity`.
+  ///   - Cobertura, supplierType y categorías NO se duplican por sede:
+  ///     son del proveedor como entidad comercial.
+  ///   - Notas operativas de la sede (`notes`) son públicas; las privadas
+  ///     del proveedor siguen en `notesPrivate`.
+  final List<ProviderBranchEntity> _additionalBranches;
+
+  /// Sedes ADICIONALES del proveedor. La sede PRINCIPAL vive IMPLÍCITA
+  /// en los campos geo + `primaryPhoneE164` del propio `LocalContactEntity`
+  /// (retrocompat con registros ya persistidos). Esta lista cubre solo
+  /// las sedes extra — visualmente se muestran bajo una sección
+  /// "Otras sedes".
+  ///
+  /// DECISIÓN EXPLÍCITA — ASIMETRÍA INCREMENTAL:
+  ///   Existe a propósito una asimetría entre la sede principal
+  ///   (campos sueltos del proveedor) y las sedes adicionales (objetos
+  ///   en esta lista). La razón es cero migración destructiva sobre los
+  ///   registros de proveedor ya guardados en producción. Cuando el
+  ///   producto justifique un refactor a un modelo simétrico
+  ///   (`mainBranch: ProviderBranchEntity` + `additionalBranches: List`),
+  ///   esa migración debe hacerse con un paso de hidratación explícito
+  ///   que mueva los campos actuales a `mainBranch.*`. HOY NO es el
+  ///   momento: romper la SSOT y los datos persistidos para ganar
+  ///   simetría estética no justifica el riesgo.
+  ///
+  /// Semántica:
+  ///   - La identidad de cada sede es el `id` (uuid) del
+  ///     `ProviderBranchEntity`.
+  ///   - Cobertura, supplierType y categorías NO se duplican por sede:
+  ///     son del proveedor como entidad comercial.
+  ///   - Notas operativas de la sede (`notes`) son públicas; las privadas
+  ///     del proveedor siguen en `notesPrivate`.
+  @override
+  @JsonKey()
+  List<ProviderBranchEntity> get additionalBranches {
+    if (_additionalBranches is EqualUnmodifiableListView)
+      return _additionalBranches;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_additionalBranches);
+  }
 
   /// Create a copy of LocalContactEntity
   /// with the given fields replaced by the non-null parameter values.
@@ -663,33 +1111,69 @@ class _LocalContactEntity implements LocalContactEntity {
             (identical(other.isDeleted, isDeleted) ||
                 other.isDeleted == isDeleted) &&
             (identical(other.deletedAt, deletedAt) ||
-                other.deletedAt == deletedAt));
+                other.deletedAt == deletedAt) &&
+            (identical(other.supplierType, supplierType) ||
+                other.supplierType == supplierType) &&
+            const DeepCollectionEquality()
+                .equals(other._categories, _categories) &&
+            (identical(other.countryId, countryId) ||
+                other.countryId == countryId) &&
+            (identical(other.regionId, regionId) ||
+                other.regionId == regionId) &&
+            (identical(other.cityId, cityId) || other.cityId == cityId) &&
+            (identical(other.addressLine, addressLine) ||
+                other.addressLine == addressLine) &&
+            (identical(other.secondaryPhoneE164, secondaryPhoneE164) ||
+                other.secondaryPhoneE164 == secondaryPhoneE164) &&
+            (identical(other.website, website) || other.website == website) &&
+            const DeepCollectionEquality()
+                .equals(other._coverageCityIds, _coverageCityIds) &&
+            (identical(other.coverageAllCountry, coverageAllCountry) ||
+                other.coverageAllCountry == coverageAllCountry) &&
+            (identical(
+                    other.linkedProviderProfileId, linkedProviderProfileId) ||
+                other.linkedProviderProfileId == linkedProviderProfileId) &&
+            const DeepCollectionEquality()
+                .equals(other._additionalBranches, _additionalBranches));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      workspaceId,
-      displayName,
-      createdAt,
-      updatedAt,
-      organizationId,
-      roleLabel,
-      primaryPhoneE164,
-      primaryEmail,
-      docId,
-      notesPrivate,
-      const DeepCollectionEquality().hash(_tagsPrivate),
-      snapshotSourcePlatformActorId,
-      snapshotAdoptedAt,
-      isDeleted,
-      deletedAt);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        workspaceId,
+        displayName,
+        createdAt,
+        updatedAt,
+        organizationId,
+        roleLabel,
+        primaryPhoneE164,
+        primaryEmail,
+        docId,
+        notesPrivate,
+        const DeepCollectionEquality().hash(_tagsPrivate),
+        snapshotSourcePlatformActorId,
+        snapshotAdoptedAt,
+        isDeleted,
+        deletedAt,
+        supplierType,
+        const DeepCollectionEquality().hash(_categories),
+        countryId,
+        regionId,
+        cityId,
+        addressLine,
+        secondaryPhoneE164,
+        website,
+        const DeepCollectionEquality().hash(_coverageCityIds),
+        coverageAllCountry,
+        linkedProviderProfileId,
+        const DeepCollectionEquality().hash(_additionalBranches)
+      ]);
 
   @override
   String toString() {
-    return 'LocalContactEntity(id: $id, workspaceId: $workspaceId, displayName: $displayName, createdAt: $createdAt, updatedAt: $updatedAt, organizationId: $organizationId, roleLabel: $roleLabel, primaryPhoneE164: $primaryPhoneE164, primaryEmail: $primaryEmail, docId: $docId, notesPrivate: $notesPrivate, tagsPrivate: $tagsPrivate, snapshotSourcePlatformActorId: $snapshotSourcePlatformActorId, snapshotAdoptedAt: $snapshotAdoptedAt, isDeleted: $isDeleted, deletedAt: $deletedAt)';
+    return 'LocalContactEntity(id: $id, workspaceId: $workspaceId, displayName: $displayName, createdAt: $createdAt, updatedAt: $updatedAt, organizationId: $organizationId, roleLabel: $roleLabel, primaryPhoneE164: $primaryPhoneE164, primaryEmail: $primaryEmail, docId: $docId, notesPrivate: $notesPrivate, tagsPrivate: $tagsPrivate, snapshotSourcePlatformActorId: $snapshotSourcePlatformActorId, snapshotAdoptedAt: $snapshotAdoptedAt, isDeleted: $isDeleted, deletedAt: $deletedAt, supplierType: $supplierType, categories: $categories, countryId: $countryId, regionId: $regionId, cityId: $cityId, addressLine: $addressLine, secondaryPhoneE164: $secondaryPhoneE164, website: $website, coverageCityIds: $coverageCityIds, coverageAllCountry: $coverageAllCountry, linkedProviderProfileId: $linkedProviderProfileId, additionalBranches: $additionalBranches)';
   }
 }
 
@@ -717,7 +1201,19 @@ abstract mixin class _$LocalContactEntityCopyWith<$Res>
       String? snapshotSourcePlatformActorId,
       DateTime? snapshotAdoptedAt,
       bool isDeleted,
-      DateTime? deletedAt});
+      DateTime? deletedAt,
+      SupplierType? supplierType,
+      List<String> categories,
+      String? countryId,
+      String? regionId,
+      String? cityId,
+      String? addressLine,
+      String? secondaryPhoneE164,
+      String? website,
+      List<String> coverageCityIds,
+      bool coverageAllCountry,
+      String? linkedProviderProfileId,
+      List<ProviderBranchEntity> additionalBranches});
 }
 
 /// @nodoc
@@ -749,6 +1245,18 @@ class __$LocalContactEntityCopyWithImpl<$Res>
     Object? snapshotAdoptedAt = freezed,
     Object? isDeleted = null,
     Object? deletedAt = freezed,
+    Object? supplierType = freezed,
+    Object? categories = null,
+    Object? countryId = freezed,
+    Object? regionId = freezed,
+    Object? cityId = freezed,
+    Object? addressLine = freezed,
+    Object? secondaryPhoneE164 = freezed,
+    Object? website = freezed,
+    Object? coverageCityIds = null,
+    Object? coverageAllCountry = null,
+    Object? linkedProviderProfileId = freezed,
+    Object? additionalBranches = null,
   }) {
     return _then(_LocalContactEntity(
       id: null == id
@@ -815,6 +1323,54 @@ class __$LocalContactEntityCopyWithImpl<$Res>
           ? _self.deletedAt
           : deletedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      supplierType: freezed == supplierType
+          ? _self.supplierType
+          : supplierType // ignore: cast_nullable_to_non_nullable
+              as SupplierType?,
+      categories: null == categories
+          ? _self._categories
+          : categories // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      countryId: freezed == countryId
+          ? _self.countryId
+          : countryId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      regionId: freezed == regionId
+          ? _self.regionId
+          : regionId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      cityId: freezed == cityId
+          ? _self.cityId
+          : cityId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      addressLine: freezed == addressLine
+          ? _self.addressLine
+          : addressLine // ignore: cast_nullable_to_non_nullable
+              as String?,
+      secondaryPhoneE164: freezed == secondaryPhoneE164
+          ? _self.secondaryPhoneE164
+          : secondaryPhoneE164 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      website: freezed == website
+          ? _self.website
+          : website // ignore: cast_nullable_to_non_nullable
+              as String?,
+      coverageCityIds: null == coverageCityIds
+          ? _self._coverageCityIds
+          : coverageCityIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      coverageAllCountry: null == coverageAllCountry
+          ? _self.coverageAllCountry
+          : coverageAllCountry // ignore: cast_nullable_to_non_nullable
+              as bool,
+      linkedProviderProfileId: freezed == linkedProviderProfileId
+          ? _self.linkedProviderProfileId
+          : linkedProviderProfileId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      additionalBranches: null == additionalBranches
+          ? _self._additionalBranches
+          : additionalBranches // ignore: cast_nullable_to_non_nullable
+              as List<ProviderBranchEntity>,
     ));
   }
 }

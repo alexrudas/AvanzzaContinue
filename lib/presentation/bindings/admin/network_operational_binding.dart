@@ -1,26 +1,18 @@
 // ============================================================================
 // lib/presentation/bindings/admin/network_operational_binding.dart
-// NETWORK OPERATIONAL BINDING — GetX Binding
-//
+// NETWORK OPERATIONAL BINDING v2 — ADR actor-canon §10 + §11
+// ============================================================================
 // QUÉ HACE:
-// - Registra [NetworkOperationalController] con las dependencias resueltas
-//   en el momento de navegación a la pantalla.
-// - Resuelve orgId desde [SessionContextController] (ya registrado por
-//   HomeBinding) y lo pasa al controller como String.
-// - Obtiene [PortfolioRepository] desde [DIContainer] — patrón de governance.
+//   - Registra [NetworkOperationalController] con las 4 fuentes canónicas de
+//     §10.1 (AssetActorLink, NetworkRelationship, LocalContact, LocalOrganization)
+//     resueltas desde DIContainer.
+//   - Resuelve orgId desde SessionContextController.
 //
 // QUÉ NO HACE:
-// - No inyecta SessionContextController en el controller — solo lee el orgId.
-// - No duplica suscripciones — el controller gestiona su propio stream.
+//   - NO resuelve PortfolioRepository (ADR §11 — bypass retirado en 5c).
+//   - NO inyecta SessionContextController al controller: solo lee orgId aquí.
 //
-// PRINCIPIOS:
-// - Opción A: orgId fijo en el momento de navegación. El usuario no cambia
-//   de organización mid-session sin regresar a Home.
-// - PortfolioRepository desde DIContainer(), SessionContextController
-//   desde Get.find() — conforme a la gobernanza del proyecto.
-//
-// ENTERPRISE NOTES:
-// CREADO (2026-04): Sprint 1 módulo "Mi red operativa" — Propietarios.
+// See docs/adr/0001-actor-canon.md §10 + §11.
 // ============================================================================
 
 import 'package:get/get.dart';
@@ -37,10 +29,15 @@ class NetworkOperationalBinding extends Bindings {
     final orgId =
         Get.find<SessionContextController>().user?.activeContext?.orgId ?? '';
 
+    final c = DIContainer();
+
     Get.lazyPut(
       () => NetworkOperationalController(
-        DIContainer().portfolioRepository,
-        orgId,
+        assetActorLinks: c.assetActorLinkRepository,
+        localContacts: c.localContactRepository,
+        localOrganizations: c.localOrganizationRepository,
+        networkRelationships: c.networkRelationshipRepository,
+        orgId: orgId,
       ),
       fenix: true,
     );

@@ -62,6 +62,17 @@ import '../../repositories/asset_repository.dart';
 import '../../repositories/insurance_repository.dart';
 import 'asset_alert_snapshot.dart';
 
+// @audit-temp [AUDIT_VRC_DEBUG] — diagnóstico end-to-end VRC → AlertCenter.
+// Eliminar tras validar las 4 placas. Buscar prefijo "[AUDIT_VRC_DEBUG]".
+const Set<String> _kAuditVrcPlates = {
+  'WPV760',
+  'WPV583',
+  'WPV585',
+  'WGA960',
+};
+bool _auditMatch(String? placa) =>
+    placa != null && _kAuditVrcPlates.contains(placa.trim().toUpperCase());
+
 /// Ensambla un [AssetAlertSnapshot] desde repositorios de dominio reales.
 ///
 /// Instanciar vía [DIContainer] — no usar directamente en widgets.
@@ -88,13 +99,55 @@ class AssetAlertSnapshotAssembler {
   }) async {
     // 1. Cargar activo
     final asset = await _assetRepository.getAsset(assetId);
-    if (asset == null) return null;
+    if (asset == null) {
+      // @audit-temp [AUDIT_VRC_DEBUG]
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [<unknown>] [ASSEMBLER] '
+        'assemble(assetId=$assetId orgId=$orgId) → asset=null '
+        '(activo no encontrado). Retorna snapshot=null. '
+        'CONSECUENCIA: orchestrator no ejecuta evaluators → 0 alertas.',
+        name: 'AUDIT_VRC',
+      );
+      return null;
+    }
 
     final details = await _assetRepository.getAssetDetails(assetId);
     final vehiculo = details.vehiculo;
 
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    final auditPlate = vehiculo?.placa;
+    final auditOn = _auditMatch(auditPlate);
+    if (auditOn) {
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [$auditPlate] [ASSEMBLER] ENTER assemble '
+        'assetId=$assetId orgId=$orgId '
+        'runtMetaJson=${vehiculo?.runtMetaJson != null ? "present(len=${vehiculo!.runtMetaJson!.length})" : "null"}',
+        name: 'AUDIT_VRC',
+      );
+    }
+
     // 2. Pólizas
     final policies = await _insuranceRepository.fetchPoliciesByAsset(assetId);
+
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    if (auditOn) {
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [$auditPlate] [ASSEMBLER] '
+        'fetchPoliciesByAsset returned ${policies.length} policies',
+        name: 'AUDIT_VRC',
+      );
+      for (var i = 0; i < policies.length; i++) {
+        final p = policies[i];
+        dev.log(
+          '[AUDIT_VRC_DEBUG] [$auditPlate] [ASSEMBLER] '
+          'policy[$i] id=${p.id} tipo=${p.tipo} '
+          'fechaFin=${p.fechaFin.toIso8601String()} '
+          'fechaInicio=${p.fechaInicio.toIso8601String()} '
+          'estado=${p.estado} aseguradora="${p.aseguradora}"',
+          name: 'AUDIT_VRC',
+        );
+      }
+    }
 
     final soat = _selectRelevantPolicy(policies, InsurancePolicyType.soat);
     final rcContractual =
@@ -102,11 +155,32 @@ class AssetAlertSnapshotAssembler {
     final rcExtracontractual =
         _selectRelevantPolicy(policies, InsurancePolicyType.rcExtracontractual);
 
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    if (auditOn) {
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [$auditPlate] [ASSEMBLER] '
+        'selected.soat=${soat == null ? "null" : "id=${soat.id} fechaFin=${soat.fechaFin.toIso8601String()}"} '
+        'selected.rcContractual=${rcContractual == null ? "null" : "id=${rcContractual.id} fechaFin=${rcContractual.fechaFin.toIso8601String()}"} '
+        'selected.rcExtra=${rcExtracontractual == null ? "null" : "id=${rcExtracontractual.id} fechaFin=${rcExtracontractual.fechaFin.toIso8601String()}"}',
+        name: 'AUDIT_VRC',
+      );
+    }
+
     // 3. Parseos
     final rtmResult = _parseRtmFromMeta(
       vehiculo?.runtMetaJson,
       debugPlaca: vehiculo?.placa,
     );
+
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    if (auditOn) {
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [$auditPlate] [ASSEMBLER] '
+        'rtmResult.vigencia=${rtmResult.vigencia?.toIso8601String() ?? "null"} '
+        'rtmResult.certificado=${rtmResult.certificado ?? "null"}',
+        name: 'AUDIT_VRC',
+      );
+    }
     final legalResult = _parseLegalFromMeta(
       vehiculo?.runtMetaJson,
       propertyLiens: vehiculo?.propertyLiens,
@@ -149,6 +223,28 @@ class AssetAlertSnapshotAssembler {
       vigencia: rtmResult.vigencia,
       initialRegistrationDateRaw: initialRegistrationDateRaw,
     );
+
+    // @audit-temp [AUDIT_VRC_DEBUG]
+    if (auditOn) {
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [$auditPlate] [ASSEMBLER] '
+        'serviceCategory=${vehicleServiceCategory.wireName} '
+        'rtmExemptUntil=${rtmExemptUntil?.toIso8601String() ?? "null"} '
+        'initialRegistrationDateRaw=${initialRegistrationDateRaw ?? "null"}',
+        name: 'AUDIT_VRC',
+      );
+      dev.log(
+        '[AUDIT_VRC_DEBUG] [$auditPlate] [ASSEMBLER] EXIT '
+        'snapshot.placa=${vehiculo?.placa} '
+        'soatPolicy=${soat == null ? "null" : "id=${soat.id}"} '
+        'rcContractual=${rcContractual == null ? "null" : "id=${rcContractual.id}"} '
+        'rcExtra=${rcExtracontractual == null ? "null" : "id=${rcExtracontractual.id}"} '
+        'rtmVigencia=${rtmResult.vigencia?.toIso8601String() ?? "null"} '
+        'rtmExemptUntil=${rtmExemptUntil?.toIso8601String() ?? "null"} '
+        'hasLegalLimitations=${legalResult.hasLimitations}',
+        name: 'AUDIT_VRC',
+      );
+    }
 
     return AssetAlertSnapshot(
       assetId: assetId,
@@ -292,23 +388,53 @@ class AssetAlertSnapshotAssembler {
       return const _RtmParseResult();
     }
 
-    // Placas bajo diagnóstico activo — remover tras validar WPV583/WPV585/WGA960.
-    const debugTargets = {'WPV583', 'WPV585', 'WGA960'};
-    final isDebug =
-        debugPlaca != null && debugTargets.contains(debugPlaca.toUpperCase());
+    // @audit-temp [AUDIT_VRC_DEBUG] — extendido a las 4 placas auditadas.
+    final isDebug = _auditMatch(debugPlaca);
 
     try {
       final decoded = jsonDecode(runtMetaJson) as Map<String, dynamic>;
       final rtmList = decoded['runt_rtm'];
+
+      // @audit-temp [AUDIT_VRC_DEBUG]
+      if (isDebug) {
+        dev.log(
+          '[AUDIT_VRC_DEBUG] [$debugPlaca] [ASSEMBLER_RTM] '
+          'runtMetaJson decoded keys=${decoded.keys.toList()} '
+          'runt_rtm.type=${rtmList.runtimeType} '
+          'runt_rtm.length=${rtmList is List ? rtmList.length : "n/a"}',
+          name: 'AUDIT_VRC',
+        );
+      }
+
       if (rtmList is! List || rtmList.isEmpty) {
+        // @audit-temp [AUDIT_VRC_DEBUG]
+        if (isDebug) {
+          dev.log(
+            '[AUDIT_VRC_DEBUG] [$debugPlaca] [ASSEMBLER_RTM] '
+            'runt_rtm ausente o vacío → vigencia=null. '
+            'CONSECUENCIA: rtmExpired FALSO si no hay exención.',
+            name: 'AUDIT_VRC',
+          );
+        }
         return const _RtmParseResult();
       }
 
       DateTime? bestVigencia;
       String? bestCertificado;
 
-      for (final entry in rtmList) {
-        if (entry is! Map) continue;
+      for (var idx = 0; idx < rtmList.length; idx++) {
+        final entry = rtmList[idx];
+        if (entry is! Map) {
+          // @audit-temp [AUDIT_VRC_DEBUG]
+          if (isDebug) {
+            dev.log(
+              '[AUDIT_VRC_DEBUG] [$debugPlaca] [ASSEMBLER_RTM] '
+              'rtm[$idx] no es Map (runtimeType=${entry.runtimeType}) — skip',
+              name: 'AUDIT_VRC',
+            );
+          }
+          continue;
+        }
         final m = Map<String, dynamic>.from(entry);
 
         // FIX (2026-04): 'expirationDate' es la clave usada por el wizard async
@@ -325,11 +451,14 @@ class AssetAlertSnapshotAssembler {
         final vigencia =
             vigenciaStr != null ? _parseRtmDate(vigenciaStr) : null;
 
+        // @audit-temp [AUDIT_VRC_DEBUG]
         if (isDebug) {
           dev.log(
-            '[$debugPlaca] keys=${m.keys.toList()} '
-            'vigenciaStr=$vigenciaStr vigenciaParsed=$vigencia',
-            name: 'RTM_ASSEMBLER',
+            '[AUDIT_VRC_DEBUG] [$debugPlaca] [ASSEMBLER_RTM] '
+            'rtm[$idx] keys=${m.keys.toList()} '
+            'vigenciaStr=${vigenciaStr ?? "null"} '
+            'vigenciaParsed=${vigencia?.toIso8601String() ?? "null"}',
+            name: 'AUDIT_VRC',
           );
         }
 

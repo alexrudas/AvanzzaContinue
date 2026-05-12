@@ -1,10 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
-
-import '../../../domain/errors/auth_failure.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+
+import '../../../domain/errors/auth_failure.dart';
 
 /// FirebaseAuthDS - Data Source para autenticación con Firebase
 ///
@@ -37,9 +37,14 @@ class FirebaseAuthDS {
     await _auth.verifyPhoneNumber(
       phoneNumber: phoneNumber,
       verificationCompleted: (PhoneAuthCredential credential) async {
-        if (kDebugMode) debugPrint('[PhoneAuth] verificationCompleted (auto-verify)');
+        if (kDebugMode)
+          debugPrint('[PhoneAuth] verificationCompleted (auto-verify)');
         try {
           final result = await _auth.signInWithCredential(credential);
+          // Fuerza refresco inmediato del ID token tras el auto-verify para
+          // que el próximo request HTTP salga con un token fresco. Nunca
+          // imprimir el token en logs (higiene de seguridad).
+          await result.user?.getIdToken(true);
           final uid = result.user?.uid;
           if (uid != null) onAutoVerified(uid);
         } on FirebaseAuthException catch (e) {
@@ -99,6 +104,10 @@ class FirebaseAuthDS {
       smsCode: smsCode,
     );
     final result = await _auth.signInWithCredential(credential);
+    // Refresca el ID token tras la verificación OTP para que el primer
+    // request HTTP protegido salga con un token ya caliente. Nunca imprimir
+    // el token en logs (higiene de seguridad).
+    await result.user?.getIdToken(true);
     return result.user!.uid;
   }
 
@@ -121,6 +130,43 @@ class FirebaseAuthDS {
       email: aliasEmail,
       password: password,
     );
+  }
+
+  /// Vincula una credencial email/password al [currentUser] activo,
+  /// preservando el UID Firebase original. Se usa para activar acceso de
+  /// escritorio en cuentas creadas vía OTP (que solo tienen `phone` provider).
+  ///
+  /// Errores típicos relanzados como [FirebaseAuthException]:
+  /// - `no-current-user`            → no hay sesión activa.
+  /// - `requires-recent-login`      → el SDK exige reautenticación reciente.
+  /// - `provider-already-linked`    → el UID ya tiene un credential password.
+  /// - `credential-already-in-use`  → el alias está vinculado a otro UID.
+  /// - `email-already-in-use`       → mismo caso pero detectado por servidor.
+  /// - `weak-password`              → contraseña no cumple la política.
+  Future<UserCredential> linkAliasEmailPassword({
+    required String aliasEmail,
+    required String password,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'no-current-user',
+        message: 'No hay sesión activa.',
+      );
+    }
+    final credential = EmailAuthProvider.credential(
+      email: aliasEmail,
+      password: password,
+    );
+    return user.linkWithCredential(credential);
+  }
+
+  /// `true` cuando el usuario actual ya tiene una credencial 'password'
+  /// vinculada (acceso desktop habilitado).
+  bool currentUserHasPasswordProvider() {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    return user.providerData.any((p) => p.providerId == 'password');
   }
 
   // MFA (wrappers básicos). Existe en FirebaseAuth User (no en FirebaseAuth global)
@@ -347,9 +393,10 @@ class FirebaseAuthDS {
   /// - [getIdTokenResult]: retorna el resultado decodificado para LEER campos
   ///   como activeContext.organizationId, role, membershipStatus.
   ///
-  /// Usar [forceRefresh: true] obligatoriamente después de llamar al backend
-  /// switchActiveOrganization, para garantizar que los claims reflejen el nuevo
-  /// orgId escrito por Firebase Admin setCustomUserClaims().
+  /// Usar [forceRefresh: true] cuando se necesite garantizar que los claims
+  /// reflejen un cambio reciente escrito por Firebase Admin
+  /// `setCustomUserClaims()` fuera de banda (p. ej. tras un proceso de
+  /// onboarding ejecutado en el servidor).
   ///
   /// Sin [forceRefresh], el SDK puede devolver claims del token cacheado (viejo).
   Future<IdTokenResult?> getIdTokenResult({bool forceRefresh = false}) async {

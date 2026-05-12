@@ -45,8 +45,16 @@ import '../../../domain/entities/asset/asset_entity.dart';
 import '../../../domain/entities/asset/special/asset_inmueble_entity.dart';
 import '../../../domain/entities/asset/special/asset_maquinaria_entity.dart';
 import '../../../domain/entities/asset/special/asset_vehiculo_entity.dart';
+import '../../../domain/entities/core_common/value_objects/actor_ref_kind_value.dart';
+import '../../../domain/entities/core_common/value_objects/asset_actor_role.dart';
+import '../../../domain/entities/core_common/value_objects/asset_class.dart';
+import '../../../domain/entities/core_common/value_objects/target_local_kind.dart';
 import '../../../domain/errors/asset_creation_exception.dart';
+import '../../../domain/errors/remote_exceptions.dart';
 import '../../../domain/repositories/asset_repository.dart';
+import '../../../domain/repositories/core_common/asset_actor_link_repository.dart';
+import '../../../domain/services/purchase/vehicle_spec_derivation.dart';
+import '../../../domain/value/purchase/vehicle_spec.dart';
 import '../../../domain/value/registration/asset_runt_snapshot.dart';
 import '../sources/local/portfolio_local_ds.dart';
 
@@ -62,11 +70,24 @@ class AssetRepositoryImpl implements AssetRepository {
   /// Se mantiene como dependencia explícita para testabilidad.
   final PortfolioLocalDataSource portfolioLocalDS;
 
+  /// Repo canónico de vínculos actor↔activo (Core API). Se usa para
+  /// declarar `source=user_declared` cada vez que el workspace registra
+  /// un activo: alimenta la derivación C2 que hace
+  /// `GET /v1/core-common/workspaces/me/asset-types`. Sin este vínculo,
+  /// el workspace no aparece "operando" ese assetType ante el form de
+  /// proveedor (sección Especialidades quedaría con el dropdown vacío).
+  ///
+  /// La invocación va por `enqueueSync()` — es offline-first, no
+  /// bloquea el registro local. Backend es idempotente sobre la clave
+  /// lógica, así que reintentos no duplican.
+  final AssetActorLinkRepository assetActorLinks;
+
   AssetRepositoryImpl({
     required this.local,
     required this.remote,
     required this.enqueueSync,
     required this.portfolioLocalDS,
+    required this.assetActorLinks,
   });
 
   // ---------------------------------------------------------------------------
@@ -98,9 +119,9 @@ class AssetRepositoryImpl implements AssetRepository {
     String orgId, {
     String? assetType,
     String? cityId,
-  }) async* {
-    final controller = StreamController<List<AssetEntity>>();
-
+  }) {
+    // Sync remoto fire-and-forget: cuando lleguen los datos, _syncAssets escribe
+    // en Isar y el watch de abajo emite automáticamente. No bloquea el read path.
     unawaited(() async {
       try {
         final locals = await local.listAssetsByOrg(
@@ -108,28 +129,22 @@ class AssetRepositoryImpl implements AssetRepository {
           assetType: assetType,
           cityId: cityId,
         );
-        _safeAdd(controller, locals.map((e) => e.toEntity()).toList());
-
         final remotesResult = await remote.listAssetsByOrg(
           orgId,
           assetType: assetType,
           cityId: cityId,
         );
-
         await _syncAssets(locals, remotesResult.items);
-
-        final updated = await local.listAssetsByOrg(
-          orgId,
-          assetType: assetType,
-          cityId: cityId,
-        );
-        _safeAdd(controller, updated.map((e) => e.toEntity()).toList());
-      } finally {
-        await _safeClose(controller);
+      } catch (_) {
+        // Sync best-effort: la UI ya está leyendo Isar reactivo.
       }
     }());
 
-    yield* controller.stream;
+    // Watch real sobre Isar: emite inmediatamente y reacciona a cualquier
+    // cambio futuro (inserciones del registro, upserts del sync, borrados).
+    return local
+        .watchAssetsByOrg(orgId, assetType: assetType, cityId: cityId)
+        .asyncMap((models) => Future.wait(models.map(_toEnrichedEntity)));
   }
 
   @override
@@ -153,7 +168,7 @@ class AssetRepositoryImpl implements AssetRepository {
       await _syncAssets(locals, remotesResult.items);
     }());
 
-    return locals.map((e) => e.toEntity()).toList();
+    return Future.wait(locals.map(_toEnrichedEntity));
   }
 
   Future<void> _syncAssets(
@@ -672,6 +687,30 @@ class AssetRepositoryImpl implements AssetRepository {
     enqueueSync(() => remote.upsertAsset(assetModel));
     enqueueSync(() => remote.upsertVehiculo(vehiculoModel));
 
+    // ── DECLARAR VÍNCULO CANÓNICO ASSET↔WORKSPACE (Core API, Hito 1.x) ──
+    // Para que `GET /v1/core-common/workspaces/me/asset-types` deje de
+    // devolver `[]` y el form de proveedor pueda ofrecer specialties, el
+    // workspace DEBE figurar como "operando" este AssetType en la tabla
+    // canónica `asset_actor_link`. Encolamos un POST con
+    // `source=user_declared`. La taxonomía la gobierna 100 % el backend
+    // — el cliente envía el alias `AssetClass.vehicle` y backend lo
+    // resuelve al `AssetType.id` raíz canónico vía
+    // `ASSET_CLASS_TO_ROOT_ID`. Cero clasificación en cliente.
+    //
+    // Idempotente server-side: re-envíos con la misma clave lógica
+    // ((orgId, assetId, role, assetTypeId resuelto, refs locales))
+    // devuelven la fila existente sin duplicar.
+    //
+    // Errores no fatales (Network / Server / Unauthorized): se loguean
+    // y se descartan dentro del job para que el `OfflineSyncService` los
+    // reintente con su política habitual y NO bloqueen el alta del
+    // activo (que ya quedó persistido en Isar + Firestore).
+    enqueueSync(() => enqueueDeclareAssetActorLink(
+          assetId: assetId,
+          orgId: orgId,
+          assetClass: AssetClass.vehicle,
+        ));
+
     if (kDebugMode) {
       debugPrint(
         '[AUDIT][CREATE_ASSET] ✅ Isar write OK\n'
@@ -698,6 +737,25 @@ class AssetRepositoryImpl implements AssetRepository {
     }
 
     return assetEntity;
+  }
+
+  @override
+  Future<List<VehicleSpec>> fetchVehicleSpecsByOrg(String orgId) async {
+    // ── Derivación en memoria ────────────────────────────────────────────────
+    // No persiste una colección dedicada de VehicleSpec: trabaja sobre la cache
+    // Isar ya existente (AssetModel filtrado por tipo + AssetVehiculoModel por
+    // assetId). El caller invoca este método una vez al abrir el selector.
+    if (orgId.trim().isEmpty) return const <VehicleSpec>[];
+
+    final assetModels = await local.listAssetsByOrg(orgId, assetType: 'vehicle');
+    if (assetModels.isEmpty) return const <VehicleSpec>[];
+
+    final vehicles = <AssetVehiculoEntity>[];
+    for (final m in assetModels) {
+      final veh = await local.getVehiculo(m.id);
+      if (veh != null) vehicles.add(veh.toEntity());
+    }
+    return VehicleSpecDerivation.fromVehicles(vehicles);
   }
 
   @override
@@ -825,18 +883,31 @@ class AssetRepositoryImpl implements AssetRepository {
     // timestamps, metadata). El content es placeholder — se reemplaza abajo.
     final base = model.toEntity();
 
-    // Paso 2: solo los vehículos tienen AssetVehiculoModel en Isar.
-    if (model.assetType != 'vehicle') {
-      if (kDebugMode) {
-        debugPrint(
-          '[AUDIT][ENRICH_ENTITY] assetId=${model.id} '
-          'assetType=${model.assetType} → no-vehicle, usando toEntity()',
-        );
-      }
-      return base;
+    // Paso 2: despachar al enriquecedor por tipo.
+    // Solo se enriquece cuando existe una fuente local real (AssetVehiculoModel,
+    // AssetInmuebleModel, AssetMaquinariaModel). Para tipos sin fuente real
+    // (equipment) se conserva el fallback de toEntity() — no se inventa data.
+    switch (model.assetType) {
+      case 'vehicle':
+        return _enrichVehicle(model, base);
+      case 'real_estate':
+        return _enrichRealEstate(model, base);
+      case 'machinery':
+        return _enrichMachinery(model, base);
+      default:
+        if (kDebugMode) {
+          debugPrint(
+            '[AUDIT][ENRICH_ENTITY] assetId=${model.id} '
+            'assetType=${model.assetType} → sin fuente enriquecida real, '
+            'usando toEntity()',
+          );
+        }
+        return base;
     }
+  }
 
-    // Paso 3: leer especialización vehicular de Isar.
+  // ── Enriquecedor: vehículo ────────────────────────────────────────────────
+  Future<AssetEntity> _enrichVehicle(AssetModel model, AssetEntity base) async {
     final veh = await local.getVehiculo(model.id);
 
     if (kDebugMode) {
@@ -919,6 +990,87 @@ class AssetRepositoryImpl implements AssetRepository {
       content: realContent,
       assetKey: realContent.assetKey,
       metadata: enrichedMeta,
+    );
+  }
+
+  // ── Enriquecedor: inmueble ────────────────────────────────────────────────
+  // Fuente real: AssetInmuebleModel (matrícula inmobiliaria, m², uso, estrato,
+  // valor catastral). Campos requeridos por RealEstateContent que NO están en
+  // el modelo (address, city) se marcan como 'PENDIENTE' — mismo precedente
+  // que color en vehicle sin RUNT: no se inventa contenido.
+  Future<AssetEntity> _enrichRealEstate(
+      AssetModel model, AssetEntity base) async {
+    final inm = await local.getInmueble(model.id);
+    if (inm == null) {
+      if (kDebugMode) {
+        debugPrint(
+          '[AUDIT][ENRICH_ENTITY] assetId=${model.id} type=real_estate '
+          'inmuebleFound=false → fallback a toEntity()',
+        );
+      }
+      return base;
+    }
+
+    final realContent = AssetContent.realEstate(
+      assetKey: inm.matriculaInmobiliaria,
+      address: 'PENDIENTE',
+      city: 'PENDIENTE',
+      area: inm.metrosCuadrados ?? 0.0,
+      usage: inm.uso,
+      stratum: inm.estrato,
+      cadastralValue: inm.valorCatastral,
+    );
+
+    if (kDebugMode) {
+      debugPrint(
+        '[AUDIT][ENRICH_ENTITY] ✅ assetId=${model.id} type=real_estate '
+        'matricula=${inm.matriculaInmobiliaria} uso=${inm.uso} '
+        'm2=${inm.metrosCuadrados}',
+      );
+    }
+
+    return base.copyWith(
+      content: realContent,
+      assetKey: realContent.assetKey,
+    );
+  }
+
+  // ── Enriquecedor: maquinaria ──────────────────────────────────────────────
+  // Fuente real: AssetMaquinariaModel (serie, marca, categoría, capacidad,
+  // certificado de operación). El modelo no persiste "model" (obligatorio en
+  // MachineryContent) → fallback 'PENDIENTE' sin inventar dato.
+  Future<AssetEntity> _enrichMachinery(
+      AssetModel model, AssetEntity base) async {
+    final maq = await local.getMaquinaria(model.id);
+    if (maq == null) {
+      if (kDebugMode) {
+        debugPrint(
+          '[AUDIT][ENRICH_ENTITY] assetId=${model.id} type=machinery '
+          'maquinariaFound=false → fallback a toEntity()',
+        );
+      }
+      return base;
+    }
+
+    final realContent = AssetContent.machinery(
+      assetKey: maq.serie,
+      brand: maq.marca,
+      model: 'PENDIENTE',
+      category: maq.categoria,
+      capacity: maq.capacidad,
+      operationCertificate: maq.certificadoOperacion,
+    );
+
+    if (kDebugMode) {
+      debugPrint(
+        '[AUDIT][ENRICH_ENTITY] ✅ assetId=${model.id} type=machinery '
+        'serie=${maq.serie} marca=${maq.marca} categoria=${maq.categoria}',
+      );
+    }
+
+    return base.copyWith(
+      content: realContent,
+      assetKey: realContent.assetKey,
     );
   }
 
@@ -1101,5 +1253,82 @@ class AssetRepositoryImpl implements AssetRepository {
     if (fechaFin.isBefore(now)) return 'vencido';
     if (fechaFin.isBefore(now.add(const Duration(days: 30)))) return 'por_vencer';
     return 'vigente';
+  }
+
+  // ---------------------------------------------------------------------------
+  // CORE API — declarar AssetActorLink user_declared
+  // ---------------------------------------------------------------------------
+
+  /// Encola el POST canónico que declara que [orgId] opera el activo
+  /// [assetId] bajo [assetClass]. La resolución `assetClass → AssetType.id`
+  /// la hace el backend; el cliente solo envía el alias.
+  ///
+  /// Diseño de errores (offline-first):
+  ///   - `BadRequestException(code='ASSET_TYPE_NOT_FOUND')`: gap del seed
+  ///     en backend. Se loguea WARN con `via` para que ops detecte qué
+  ///     seed falta. NO se rethrow — el activo ya está en Isar/Firestore.
+  ///   - `BadRequestException(code='INVALID_ACTOR_REF_SHAPE' |
+  ///     'INVALID_ASSET_TYPE_INPUT')`: bug del cliente. Se loguea ERROR.
+  ///     NO se rethrow para no bloquear sync.
+  ///   - `UnauthorizedException`: capability `asset_actor_link.create`
+  ///     faltante (workspace pre-bootstrap). Se loguea WARN con
+  ///     instrucción de correr `backfill-provider-capabilities.ts`.
+  ///   - `NetworkException` / `ServerException`: rethrow para que
+  ///     `OfflineSyncService` reintente con backoff exponencial.
+  ///   - Cualquier otro: rethrow.
+  ///
+  /// Idempotente server-side: re-envíos con misma clave lógica devuelven
+  /// la fila existente con HTTP 200 sin duplicar.
+  ///
+  /// Anotado @visibleForTesting porque es la API que consume el job de
+  /// `enqueueSync`. Los tests del repo lo invocan directamente para
+  /// verificar payload + error mapping sin levantar Isar.
+  @visibleForTesting
+  Future<void> enqueueDeclareAssetActorLink({
+    required String assetId,
+    required String orgId,
+    required AssetClass assetClass,
+  }) async {
+    try {
+      final link = await assetActorLinks.create(
+        assetId: assetId,
+        assetClass: assetClass,
+        role: AssetActorRole.owner,
+        actorRefKind: ActorRefKindValue.local,
+        localKind: TargetLocalKind.organization,
+        localId: orgId,
+      );
+      if (kDebugMode) {
+        debugPrint(
+          '[AssetActorLink][SYNC] declared org=$orgId assetId=$assetId '
+          'assetClass=${assetClass.wireName} → linkId=${link.id}',
+        );
+      }
+    } on UnauthorizedException catch (e) {
+      // Capability `asset_actor_link.create` falta para este workspace.
+      // No rethrow: el sync no se beneficia de reintentar lo mismo.
+      debugPrint(
+        '[AssetActorLink][SYNC] UNAUTHORIZED — capability '
+        '`asset_actor_link.create` falta para org=$orgId. Correr '
+        '`pnpm ts-node scripts/backfill-provider-capabilities.ts`. '
+        'Detalle: ${e.message}',
+      );
+    } on BadRequestException catch (e) {
+      // Errores no recuperables del payload. Posibles códigos:
+      //   ASSET_TYPE_NOT_FOUND      → falta seed del AssetType raíz.
+      //   INVALID_ACTOR_REF_SHAPE   → bug del cliente.
+      //   INVALID_ASSET_TYPE_INPUT  → bug del cliente (XOR).
+      // No rethrow: reintentar con el mismo payload no resuelve.
+      debugPrint(
+        '[AssetActorLink][SYNC] BAD_REQUEST code=${e.code} '
+        'org=$orgId assetId=$assetId — ${e.message}',
+      );
+    } on NetworkException {
+      // Sin conexión. El SyncService reintentará.
+      rethrow;
+    } on ServerException {
+      // 5xx — reintentable.
+      rethrow;
+    }
   }
 }

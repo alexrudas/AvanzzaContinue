@@ -16,6 +16,8 @@
 
 import 'dart:async';
 
+import 'package:avanzza/application/core_common/actor_ref_factory.dart';
+import 'package:avanzza/domain/entities/core_common/actor_ref.dart';
 import 'package:avanzza/domain/entities/core_common/local_contact_entity.dart';
 import 'package:avanzza/domain/entities/purchase/create_purchase_request_input.dart';
 import 'package:avanzza/domain/entities/user/active_context.dart';
@@ -165,7 +167,9 @@ void main() {
     expect(controller.selectedVendorIds, hasLength(2));
   });
 
-  test('submitRequest propaga input canónico al repo', () async {
+  test(
+      'submitRequest propaga input canónico al repo con vendorActorRefs '
+      '(flujo normal: attestSelf=false, NO vendorContactIds legacy)', () async {
     _fillValidForm(controller);
     contactsRepo.emit([_contact(id: 'ct-1'), _contact(id: 'ct-2')]);
     await Future<void>.delayed(const Duration(milliseconds: 10));
@@ -181,7 +185,25 @@ void main() {
     expect(input.type, PurchaseRequestTypeInput.product);
     expect(input.category, 'medicamentos');
     expect(input.originType, PurchaseRequestOriginInput.general);
-    expect(input.vendorContactIds, ['ct-1', 'ct-2']);
+
+    // ADR actor-canon: el controller emite vendorActorRefs y NO vendorContactIds.
+    expect(input.vendorContactIds, isNull);
+    expect(input.vendorActorRefs, isNotNull);
+    expect(input.vendorActorRefs!, hasLength(2));
+    expect(
+      input.vendorActorRefs!.first,
+      const ActorRef.local(localKind: LocalKind.contact, localId: 'ct-1'),
+    );
+    expect(
+      input.vendorActorRefs!.last,
+      const ActorRef.local(localKind: LocalKind.contact, localId: 'ct-2'),
+    );
+
+    // ADR actor-canon §8: attestSelf es excepción, NO default. En flujo
+    // normal NO debe viajar al input (queda como false → DTO lo omite del
+    // wire). Esto es la regla — si cambia, el controller está violando el ADR.
+    expect(input.attestSelf, isFalse);
+
     expect(input.items, hasLength(1));
     expect(input.items.first.description, 'Guantes nitrilo');
     expect(input.items.first.quantity, 2);
@@ -279,5 +301,63 @@ void main() {
     final err = controller.validate();
     expect(err, isNotNull);
     expect(err!.toLowerCase(), contains('destinatario'));
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // ADR actor-canon §8 — escenario EXPLÍCITO de primer write post-alta
+  //
+  // El controller de PurchaseRequest NO opera en modo "fresh" hoy (la pantalla
+  // selecciona contactos ya creados). Pero el factory es el único lugar que
+  // toma la decisión de attestSelf, y cualquier vertical que componga
+  // CreatePurchaseRequestInput debe pasar por él. Este bloque documenta el
+  // contrato del factory desde la vista del consumidor de input canónico.
+  // ──────────────────────────────────────────────────────────────────────────
+
+  group('ActorRefFactory — uso explícito desde un caller tipo "fresh"', () {
+    test(
+        'fromFreshlyCreatedLocalContactIds + withBuiltActorRefs propaga '
+        'attestSelf=true al input (primer write post-alta)', () {
+      final built = ActorRefFactory.fromFreshlyCreatedLocalContactIds(
+        const ['ct-new'],
+      );
+      expect(built.attestSelf, isTrue);
+      expect(built.refs, [
+        const ActorRef.local(
+            localKind: LocalKind.contact, localId: 'ct-new'),
+      ]);
+
+      final input = CreatePurchaseRequestInput.withBuiltActorRefs(
+        title: 'x',
+        type: PurchaseRequestTypeInput.product,
+        originType: PurchaseRequestOriginInput.general,
+        items: const [
+          CreatePurchaseRequestItemInput(
+              description: 'd', quantity: 1, unit: 'u'),
+        ],
+        built: built,
+      );
+      expect(input.attestSelf, isTrue);
+    });
+
+    test(
+        'fromKnownLocalContactIds + withBuiltActorRefs propaga attestSelf=false '
+        'al input (flujo normal, regla del ADR)', () {
+      final built = ActorRefFactory.fromKnownLocalContactIds(
+        const ['ct-known'],
+      );
+      expect(built.attestSelf, isFalse);
+
+      final input = CreatePurchaseRequestInput.withBuiltActorRefs(
+        title: 'x',
+        type: PurchaseRequestTypeInput.product,
+        originType: PurchaseRequestOriginInput.general,
+        items: const [
+          CreatePurchaseRequestItemInput(
+              description: 'd', quantity: 1, unit: 'u'),
+        ],
+        built: built,
+      );
+      expect(input.attestSelf, isFalse);
+    });
   });
 }

@@ -110,10 +110,14 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
           await isar.workspaceLiteModels.delete(workspace.id);
         }
 
-        // Limpiar de MRU
+        // Limpiar de MRU.
+        // Isar devuelve mruQueue como fixed-length list — no se puede mutar
+        // in-place. Copiar a growable (List.of), mutar, y reasignar.
         var state = await isar.workspaceStateModels.get(1);
         if (state != null) {
-          state.mruQueue.remove(id);
+          final queue = List<String>.of(state.mruQueue);
+          queue.remove(id);
+          state.mruQueue = queue;
           state.updatedAt = DateTime.now().toUtc();
           await isar.workspaceStateModels.put(state);
         }
@@ -137,17 +141,23 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
         var state = await isar.workspaceStateModels.get(1);
         state ??= WorkspaceStateModel();
 
-        // Remover si ya existe (para evitar duplicados)
-        state.mruQueue.remove(id);
+        // Isar devuelve mruQueue como fixed-length list — no se puede mutar
+        // in-place. Copiar a growable (List.of), hacer todas las mutaciones,
+        // y reasignar. Una sola copia, sin llamadas a .sublist en medio.
+        final queue = List<String>.of(state.mruQueue);
 
-        // Agregar al inicio (más reciente)
-        state.mruQueue.insert(0, id);
+        // Remover si ya existe (para evitar duplicados).
+        queue.remove(id);
 
-        // Limitar a máximo 5
-        if (state.mruQueue.length > _maxMRUSize) {
-          state.mruQueue = state.mruQueue.sublist(0, _maxMRUSize);
+        // Agregar al inicio (más reciente).
+        queue.insert(0, id);
+
+        // Limitar a máximo _maxMRUSize.
+        if (queue.length > _maxMRUSize) {
+          queue.removeRange(_maxMRUSize, queue.length);
         }
 
+        state.mruQueue = queue;
         state.updatedAt = DateTime.now().toUtc();
         await isar.workspaceStateModels.put(state);
       });
@@ -190,32 +200,37 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
   @override
   Future<void> upsertWorkspace(WorkspaceLiteEntity workspace) async {
     try {
-      final model = WorkspaceLiteModel.fromEntity(workspace);
-
-      await isar.writeTxn(() async {
-        // Buscar existente por workspaceId
-        final existing = await isar.workspaceLiteModels
-            .filter()
-            .workspaceIdEqualTo(workspace.id)
-            .findFirst();
-
-        if (existing != null) {
-          // Preservar el ID de Isar y actualizar campos
-          model.id = existing.id;
-        }
-
-        await isar.workspaceLiteModels.put(model);
-      });
+      await isar.writeTxn(() => _putWorkspaceInTxn(workspace));
     } catch (e) {
       debugPrint('[WorkspaceRepository] Error upserting workspace: $e');
       rethrow;
     }
   }
 
+  /// Escribe el workspace dentro de una [writeTxn] ya activa.
+  ///
+  /// Isar NO soporta `writeTxn` anidado: abrir una txn dentro de otra lanza
+  /// `IsarError: Cannot perform this operation from within an active transaction`.
+  /// Este helper asume que ya existe txn abierta y por eso NO la abre; los
+  /// métodos públicos (`upsertWorkspace`, `syncFromMemberships`) la
+  /// envuelven una sola vez en su nivel más externo.
+  Future<void> _putWorkspaceInTxn(WorkspaceLiteEntity workspace) async {
+    final model = WorkspaceLiteModel.fromEntity(workspace);
+    final existing = await isar.workspaceLiteModels
+        .filter()
+        .workspaceIdEqualTo(workspace.id)
+        .findFirst();
+    if (existing != null) {
+      // Preservar el ID de Isar y actualizar campos.
+      model.id = existing.id;
+    }
+    await isar.workspaceLiteModels.put(model);
+  }
+
   @override
   Future<void> syncFromMemberships(List<String> roles) async {
     try {
-      // Convertir roles a workspaces lite
+      // Convertir roles a workspaces lite.
       final workspaces = roles.map((role) {
         return WorkspaceLiteEntity(
           id: _normalizeRole(role),
@@ -226,12 +241,13 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
       }).toList();
 
       await isar.writeTxn(() async {
-        // Limpiar workspaces existentes
+        // Limpiar workspaces existentes.
         await isar.workspaceLiteModels.clear();
 
-        // Insertar nuevos workspaces
+        // Insertar nuevos workspaces usando el helper sin nueva txn —
+        // ya estamos dentro de writeTxn y Isar no soporta anidamiento.
         for (final workspace in workspaces) {
-          await upsertWorkspace(workspace);
+          await _putWorkspaceInTxn(workspace);
         }
       });
     } catch (e) {

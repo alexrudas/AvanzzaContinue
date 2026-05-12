@@ -102,6 +102,56 @@ const PurchaseRequestModelSchema = CollectionSchema(
       id: 16,
       name: r'updatedAt',
       type: IsarType.dateTime,
+    ),
+    r'vehicleSpecEngineCc': PropertySchema(
+      id: 17,
+      name: r'vehicleSpecEngineCc',
+      type: IsarType.long,
+    ),
+    r'vehicleSpecId': PropertySchema(
+      id: 18,
+      name: r'vehicleSpecId',
+      type: IsarType.string,
+    ),
+    r'vehicleSpecLabel': PropertySchema(
+      id: 19,
+      name: r'vehicleSpecLabel',
+      type: IsarType.string,
+    ),
+    r'vehicleSpecLinkedAssetsCount': PropertySchema(
+      id: 20,
+      name: r'vehicleSpecLinkedAssetsCount',
+      type: IsarType.long,
+    ),
+    r'vehicleSpecMake': PropertySchema(
+      id: 21,
+      name: r'vehicleSpecMake',
+      type: IsarType.string,
+    ),
+    r'vehicleSpecModel': PropertySchema(
+      id: 22,
+      name: r'vehicleSpecModel',
+      type: IsarType.string,
+    ),
+    r'vehicleSpecMotorization': PropertySchema(
+      id: 23,
+      name: r'vehicleSpecMotorization',
+      type: IsarType.string,
+    ),
+    r'vehicleSpecTransmission': PropertySchema(
+      id: 24,
+      name: r'vehicleSpecTransmission',
+      type: IsarType.string,
+    ),
+    r'vehicleSpecVersion': PropertySchema(
+      id: 25,
+      name: r'vehicleSpecVersion',
+      type: IsarType.string,
+    ),
+    r'vehicleSpecYear': PropertySchema(
+      id: 26,
+      name: r'vehicleSpecYear',
+      type: IsarType.long,
     )
   },
   estimateSize: _purchaseRequestModelEstimateSize,
@@ -157,6 +207,19 @@ const PurchaseRequestModelSchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'status',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'vehicleSpecId': IndexSchema(
+      id: 5120545643371834555,
+      name: r'vehicleSpecId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'vehicleSpecId',
           type: IndexType.hash,
           caseSensitive: true,
         )
@@ -225,6 +288,48 @@ int _purchaseRequestModelEstimateSize(
   bytesCount += 3 + object.status.length * 3;
   bytesCount += 3 + object.title.length * 3;
   bytesCount += 3 + object.typeWire.length * 3;
+  {
+    final value = object.vehicleSpecId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.vehicleSpecLabel;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.vehicleSpecMake;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.vehicleSpecModel;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.vehicleSpecMotorization;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.vehicleSpecTransmission;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.vehicleSpecVersion;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -251,6 +356,16 @@ void _purchaseRequestModelSerialize(
   writer.writeString(offsets[14], object.title);
   writer.writeString(offsets[15], object.typeWire);
   writer.writeDateTime(offsets[16], object.updatedAt);
+  writer.writeLong(offsets[17], object.vehicleSpecEngineCc);
+  writer.writeString(offsets[18], object.vehicleSpecId);
+  writer.writeString(offsets[19], object.vehicleSpecLabel);
+  writer.writeLong(offsets[20], object.vehicleSpecLinkedAssetsCount);
+  writer.writeString(offsets[21], object.vehicleSpecMake);
+  writer.writeString(offsets[22], object.vehicleSpecModel);
+  writer.writeString(offsets[23], object.vehicleSpecMotorization);
+  writer.writeString(offsets[24], object.vehicleSpecTransmission);
+  writer.writeString(offsets[25], object.vehicleSpecVersion);
+  writer.writeLong(offsets[26], object.vehicleSpecYear);
 }
 
 PurchaseRequestModel _purchaseRequestModelDeserialize(
@@ -278,6 +393,16 @@ PurchaseRequestModel _purchaseRequestModelDeserialize(
     title: reader.readString(offsets[14]),
     typeWire: reader.readString(offsets[15]),
     updatedAt: reader.readDateTimeOrNull(offsets[16]),
+    vehicleSpecEngineCc: reader.readLongOrNull(offsets[17]),
+    vehicleSpecId: reader.readStringOrNull(offsets[18]),
+    vehicleSpecLabel: reader.readStringOrNull(offsets[19]),
+    vehicleSpecLinkedAssetsCount: reader.readLongOrNull(offsets[20]),
+    vehicleSpecMake: reader.readStringOrNull(offsets[21]),
+    vehicleSpecModel: reader.readStringOrNull(offsets[22]),
+    vehicleSpecMotorization: reader.readStringOrNull(offsets[23]),
+    vehicleSpecTransmission: reader.readStringOrNull(offsets[24]),
+    vehicleSpecVersion: reader.readStringOrNull(offsets[25]),
+    vehicleSpecYear: reader.readLongOrNull(offsets[26]),
   );
   return object;
 }
@@ -323,6 +448,26 @@ P _purchaseRequestModelDeserializeProp<P>(
       return (reader.readString(offset)) as P;
     case 16:
       return (reader.readDateTimeOrNull(offset)) as P;
+    case 17:
+      return (reader.readLongOrNull(offset)) as P;
+    case 18:
+      return (reader.readStringOrNull(offset)) as P;
+    case 19:
+      return (reader.readStringOrNull(offset)) as P;
+    case 20:
+      return (reader.readLongOrNull(offset)) as P;
+    case 21:
+      return (reader.readStringOrNull(offset)) as P;
+    case 22:
+      return (reader.readStringOrNull(offset)) as P;
+    case 23:
+      return (reader.readStringOrNull(offset)) as P;
+    case 24:
+      return (reader.readStringOrNull(offset)) as P;
+    case 25:
+      return (reader.readStringOrNull(offset)) as P;
+    case 26:
+      return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -673,6 +818,73 @@ extension PurchaseRequestModelQueryWhere
               indexName: r'status',
               lower: [],
               upper: [status],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterWhereClause>
+      vehicleSpecIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'vehicleSpecId',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterWhereClause>
+      vehicleSpecIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'vehicleSpecId',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterWhereClause>
+      vehicleSpecIdEqualTo(String? vehicleSpecId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'vehicleSpecId',
+        value: [vehicleSpecId],
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterWhereClause>
+      vehicleSpecIdNotEqualTo(String? vehicleSpecId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'vehicleSpecId',
+              lower: [],
+              upper: [vehicleSpecId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'vehicleSpecId',
+              lower: [vehicleSpecId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'vehicleSpecId',
+              lower: [vehicleSpecId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'vehicleSpecId',
+              lower: [],
+              upper: [vehicleSpecId],
               includeUpper: false,
             ));
       }
@@ -2935,6 +3147,1324 @@ extension PurchaseRequestModelQueryFilter on QueryBuilder<PurchaseRequestModel,
       ));
     });
   }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecEngineCcIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'vehicleSpecEngineCc',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecEngineCcIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'vehicleSpecEngineCc',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecEngineCcEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleSpecEngineCc',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecEngineCcGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'vehicleSpecEngineCc',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecEngineCcLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'vehicleSpecEngineCc',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecEngineCcBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'vehicleSpecEngineCc',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'vehicleSpecId',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'vehicleSpecId',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleSpecId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'vehicleSpecId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'vehicleSpecId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'vehicleSpecId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'vehicleSpecId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'vehicleSpecId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+          QAfterFilterCondition>
+      vehicleSpecIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'vehicleSpecId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+          QAfterFilterCondition>
+      vehicleSpecIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'vehicleSpecId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleSpecId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'vehicleSpecId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecLabelIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'vehicleSpecLabel',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecLabelIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'vehicleSpecLabel',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecLabelEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleSpecLabel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecLabelGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'vehicleSpecLabel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecLabelLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'vehicleSpecLabel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecLabelBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'vehicleSpecLabel',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecLabelStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'vehicleSpecLabel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecLabelEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'vehicleSpecLabel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+          QAfterFilterCondition>
+      vehicleSpecLabelContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'vehicleSpecLabel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+          QAfterFilterCondition>
+      vehicleSpecLabelMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'vehicleSpecLabel',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecLabelIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleSpecLabel',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecLabelIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'vehicleSpecLabel',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecLinkedAssetsCountIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'vehicleSpecLinkedAssetsCount',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecLinkedAssetsCountIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'vehicleSpecLinkedAssetsCount',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecLinkedAssetsCountEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleSpecLinkedAssetsCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecLinkedAssetsCountGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'vehicleSpecLinkedAssetsCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecLinkedAssetsCountLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'vehicleSpecLinkedAssetsCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecLinkedAssetsCountBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'vehicleSpecLinkedAssetsCount',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMakeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'vehicleSpecMake',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMakeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'vehicleSpecMake',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMakeEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleSpecMake',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMakeGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'vehicleSpecMake',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMakeLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'vehicleSpecMake',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMakeBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'vehicleSpecMake',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMakeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'vehicleSpecMake',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMakeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'vehicleSpecMake',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+          QAfterFilterCondition>
+      vehicleSpecMakeContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'vehicleSpecMake',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+          QAfterFilterCondition>
+      vehicleSpecMakeMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'vehicleSpecMake',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMakeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleSpecMake',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMakeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'vehicleSpecMake',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecModelIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'vehicleSpecModel',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecModelIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'vehicleSpecModel',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecModelEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleSpecModel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecModelGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'vehicleSpecModel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecModelLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'vehicleSpecModel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecModelBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'vehicleSpecModel',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecModelStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'vehicleSpecModel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecModelEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'vehicleSpecModel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+          QAfterFilterCondition>
+      vehicleSpecModelContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'vehicleSpecModel',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+          QAfterFilterCondition>
+      vehicleSpecModelMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'vehicleSpecModel',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecModelIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleSpecModel',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecModelIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'vehicleSpecModel',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMotorizationIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'vehicleSpecMotorization',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMotorizationIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'vehicleSpecMotorization',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMotorizationEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleSpecMotorization',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMotorizationGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'vehicleSpecMotorization',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMotorizationLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'vehicleSpecMotorization',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMotorizationBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'vehicleSpecMotorization',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMotorizationStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'vehicleSpecMotorization',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMotorizationEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'vehicleSpecMotorization',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+          QAfterFilterCondition>
+      vehicleSpecMotorizationContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'vehicleSpecMotorization',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+          QAfterFilterCondition>
+      vehicleSpecMotorizationMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'vehicleSpecMotorization',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMotorizationIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleSpecMotorization',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecMotorizationIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'vehicleSpecMotorization',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecTransmissionIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'vehicleSpecTransmission',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecTransmissionIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'vehicleSpecTransmission',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecTransmissionEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleSpecTransmission',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecTransmissionGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'vehicleSpecTransmission',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecTransmissionLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'vehicleSpecTransmission',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecTransmissionBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'vehicleSpecTransmission',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecTransmissionStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'vehicleSpecTransmission',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecTransmissionEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'vehicleSpecTransmission',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+          QAfterFilterCondition>
+      vehicleSpecTransmissionContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'vehicleSpecTransmission',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+          QAfterFilterCondition>
+      vehicleSpecTransmissionMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'vehicleSpecTransmission',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecTransmissionIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleSpecTransmission',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecTransmissionIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'vehicleSpecTransmission',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecVersionIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'vehicleSpecVersion',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecVersionIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'vehicleSpecVersion',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecVersionEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleSpecVersion',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecVersionGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'vehicleSpecVersion',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecVersionLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'vehicleSpecVersion',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecVersionBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'vehicleSpecVersion',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecVersionStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'vehicleSpecVersion',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecVersionEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'vehicleSpecVersion',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+          QAfterFilterCondition>
+      vehicleSpecVersionContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'vehicleSpecVersion',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+          QAfterFilterCondition>
+      vehicleSpecVersionMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'vehicleSpecVersion',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecVersionIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleSpecVersion',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecVersionIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'vehicleSpecVersion',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecYearIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'vehicleSpecYear',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecYearIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'vehicleSpecYear',
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecYearEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vehicleSpecYear',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecYearGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'vehicleSpecYear',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecYearLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'vehicleSpecYear',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel,
+      QAfterFilterCondition> vehicleSpecYearBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'vehicleSpecYear',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
 }
 
 extension PurchaseRequestModelQueryObject on QueryBuilder<PurchaseRequestModel,
@@ -3180,6 +4710,146 @@ extension PurchaseRequestModelQuerySortBy
       sortByUpdatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecEngineCc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecEngineCc', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecEngineCcDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecEngineCc', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecLabel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecLabel', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecLabelDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecLabel', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecLinkedAssetsCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecLinkedAssetsCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecLinkedAssetsCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecLinkedAssetsCount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecMake() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecMake', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecMakeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecMake', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecModel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecModel', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecModelDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecModel', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecMotorization() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecMotorization', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecMotorizationDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecMotorization', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecTransmission() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecTransmission', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecTransmissionDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecTransmission', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecVersion() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecVersion', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecVersionDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecVersion', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecYear() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecYear', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      sortByVehicleSpecYearDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecYear', Sort.desc);
     });
   }
 }
@@ -3437,6 +5107,146 @@ extension PurchaseRequestModelQuerySortThenBy
       return query.addSortBy(r'updatedAt', Sort.desc);
     });
   }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecEngineCc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecEngineCc', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecEngineCcDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecEngineCc', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecLabel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecLabel', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecLabelDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecLabel', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecLinkedAssetsCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecLinkedAssetsCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecLinkedAssetsCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecLinkedAssetsCount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecMake() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecMake', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecMakeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecMake', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecModel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecModel', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecModelDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecModel', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecMotorization() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecMotorization', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecMotorizationDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecMotorization', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecTransmission() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecTransmission', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecTransmissionDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecTransmission', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecVersion() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecVersion', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecVersionDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecVersion', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecYear() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecYear', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QAfterSortBy>
+      thenByVehicleSpecYearDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vehicleSpecYear', Sort.desc);
+    });
+  }
 }
 
 extension PurchaseRequestModelQueryWhereDistinct
@@ -3560,6 +5370,83 @@ extension PurchaseRequestModelQueryWhereDistinct
       distinctByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'updatedAt');
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QDistinct>
+      distinctByVehicleSpecEngineCc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'vehicleSpecEngineCc');
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QDistinct>
+      distinctByVehicleSpecId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'vehicleSpecId',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QDistinct>
+      distinctByVehicleSpecLabel({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'vehicleSpecLabel',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QDistinct>
+      distinctByVehicleSpecLinkedAssetsCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'vehicleSpecLinkedAssetsCount');
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QDistinct>
+      distinctByVehicleSpecMake({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'vehicleSpecMake',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QDistinct>
+      distinctByVehicleSpecModel({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'vehicleSpecModel',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QDistinct>
+      distinctByVehicleSpecMotorization({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'vehicleSpecMotorization',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QDistinct>
+      distinctByVehicleSpecTransmission({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'vehicleSpecTransmission',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QDistinct>
+      distinctByVehicleSpecVersion({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'vehicleSpecVersion',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, PurchaseRequestModel, QDistinct>
+      distinctByVehicleSpecYear() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'vehicleSpecYear');
     });
   }
 }
@@ -3687,6 +5574,76 @@ extension PurchaseRequestModelQueryProperty on QueryBuilder<
       return query.addPropertyName(r'updatedAt');
     });
   }
+
+  QueryBuilder<PurchaseRequestModel, int?, QQueryOperations>
+      vehicleSpecEngineCcProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'vehicleSpecEngineCc');
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, String?, QQueryOperations>
+      vehicleSpecIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'vehicleSpecId');
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, String?, QQueryOperations>
+      vehicleSpecLabelProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'vehicleSpecLabel');
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, int?, QQueryOperations>
+      vehicleSpecLinkedAssetsCountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'vehicleSpecLinkedAssetsCount');
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, String?, QQueryOperations>
+      vehicleSpecMakeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'vehicleSpecMake');
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, String?, QQueryOperations>
+      vehicleSpecModelProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'vehicleSpecModel');
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, String?, QQueryOperations>
+      vehicleSpecMotorizationProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'vehicleSpecMotorization');
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, String?, QQueryOperations>
+      vehicleSpecTransmissionProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'vehicleSpecTransmission');
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, String?, QQueryOperations>
+      vehicleSpecVersionProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'vehicleSpecVersion');
+    });
+  }
+
+  QueryBuilder<PurchaseRequestModel, int?, QQueryOperations>
+      vehicleSpecYearProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'vehicleSpecYear');
+    });
+  }
 }
 
 // **************************************************************************
@@ -3714,6 +5671,17 @@ PurchaseRequestModel _$PurchaseRequestModelFromJson(
       respuestasCount: (json['respuestasCount'] as num?)?.toInt() ?? 0,
       createdAt: const DateTimeTimestampConverter().fromJson(json['createdAt']),
       updatedAt: const DateTimeTimestampConverter().fromJson(json['updatedAt']),
+      vehicleSpecId: json['vehicleSpecId'] as String?,
+      vehicleSpecLabel: json['vehicleSpecLabel'] as String?,
+      vehicleSpecMake: json['vehicleSpecMake'] as String?,
+      vehicleSpecModel: json['vehicleSpecModel'] as String?,
+      vehicleSpecYear: (json['vehicleSpecYear'] as num?)?.toInt(),
+      vehicleSpecVersion: json['vehicleSpecVersion'] as String?,
+      vehicleSpecMotorization: json['vehicleSpecMotorization'] as String?,
+      vehicleSpecEngineCc: (json['vehicleSpecEngineCc'] as num?)?.toInt(),
+      vehicleSpecTransmission: json['vehicleSpecTransmission'] as String?,
+      vehicleSpecLinkedAssetsCount:
+          (json['vehicleSpecLinkedAssetsCount'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$PurchaseRequestModelToJson(
@@ -3739,4 +5707,14 @@ Map<String, dynamic> _$PurchaseRequestModelToJson(
           const DateTimeTimestampConverter().toJson(instance.createdAt),
       'updatedAt':
           const DateTimeTimestampConverter().toJson(instance.updatedAt),
+      'vehicleSpecId': instance.vehicleSpecId,
+      'vehicleSpecLabel': instance.vehicleSpecLabel,
+      'vehicleSpecMake': instance.vehicleSpecMake,
+      'vehicleSpecModel': instance.vehicleSpecModel,
+      'vehicleSpecYear': instance.vehicleSpecYear,
+      'vehicleSpecVersion': instance.vehicleSpecVersion,
+      'vehicleSpecMotorization': instance.vehicleSpecMotorization,
+      'vehicleSpecEngineCc': instance.vehicleSpecEngineCc,
+      'vehicleSpecTransmission': instance.vehicleSpecTransmission,
+      'vehicleSpecLinkedAssetsCount': instance.vehicleSpecLinkedAssetsCount,
     };

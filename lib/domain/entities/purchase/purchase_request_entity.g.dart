@@ -44,6 +44,37 @@ Map<String, dynamic> _$PurchaseRequestDeliveryEntityToJson(
       'info': instance.info,
     };
 
+_PurchaseRequestVehicleSpecSnapshot
+    _$PurchaseRequestVehicleSpecSnapshotFromJson(Map<String, dynamic> json) =>
+        _PurchaseRequestVehicleSpecSnapshot(
+          vehicleSpecId: json['vehicleSpecId'] as String,
+          displayLabel: json['displayLabel'] as String,
+          make: json['make'] as String,
+          model: json['model'] as String,
+          year: (json['year'] as num).toInt(),
+          version: json['version'] as String?,
+          motorization: json['motorization'] as String?,
+          engineDisplacementCc: (json['engineDisplacementCc'] as num?)?.toInt(),
+          transmission: json['transmission'] as String?,
+          linkedAssetsCountSnapshot:
+              (json['linkedAssetsCountSnapshot'] as num?)?.toInt(),
+        );
+
+Map<String, dynamic> _$PurchaseRequestVehicleSpecSnapshotToJson(
+        _PurchaseRequestVehicleSpecSnapshot instance) =>
+    <String, dynamic>{
+      'vehicleSpecId': instance.vehicleSpecId,
+      'displayLabel': instance.displayLabel,
+      'make': instance.make,
+      'model': instance.model,
+      'year': instance.year,
+      'version': instance.version,
+      'motorization': instance.motorization,
+      'engineDisplacementCc': instance.engineDisplacementCc,
+      'transmission': instance.transmission,
+      'linkedAssetsCountSnapshot': instance.linkedAssetsCountSnapshot,
+    };
+
 _PurchaseRequestEntity _$PurchaseRequestEntityFromJson(
         Map<String, dynamic> json) =>
     _PurchaseRequestEntity(
@@ -78,6 +109,10 @@ _PurchaseRequestEntity _$PurchaseRequestEntityFromJson(
       updatedAt: json['updatedAt'] == null
           ? null
           : DateTime.parse(json['updatedAt'] as String),
+      vehicleSpec: json['vehicleSpec'] == null
+          ? null
+          : PurchaseRequestVehicleSpecSnapshot.fromJson(
+              json['vehicleSpec'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$PurchaseRequestEntityToJson(
@@ -99,6 +134,7 @@ Map<String, dynamic> _$PurchaseRequestEntityToJson(
       'respuestasCount': instance.respuestasCount,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
+      'vehicleSpec': instance.vehicleSpec,
     };
 
 const _$PurchaseRequestTypeInputEnumMap = {

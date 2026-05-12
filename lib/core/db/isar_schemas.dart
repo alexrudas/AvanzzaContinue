@@ -1,4 +1,6 @@
 import 'package:avanzza/data/local/integrations_local_datasource.dart';
+import 'package:avanzza/data/models/access/access_context_snapshot_model.dart';
+import 'package:avanzza/data/models/bootstrap/bootstrap_sync_state_model.dart';
 import 'package:avanzza/data/models/accounting/accounting_entry_model.dart';
 import 'package:avanzza/data/models/accounting/adjustment_model.dart';
 import 'package:avanzza/data/models/ai/ai_advisor_model.dart';
@@ -34,6 +36,10 @@ import 'package:avanzza/data/models/maintenance/incidencia_model.dart';
 import 'package:avanzza/data/models/maintenance/maintenance_finished_model.dart';
 import 'package:avanzza/data/models/maintenance/maintenance_process_model.dart';
 import 'package:avanzza/data/models/maintenance/maintenance_programming_model.dart';
+// Mi Red — cache local Isar (sección network + team + meta por sección).
+import 'package:avanzza/data/models/network/network_actor_cache_model.dart';
+import 'package:avanzza/data/models/network/network_section_meta_model.dart';
+import 'package:avanzza/data/models/network/team_actor_cache_model.dart';
 import 'package:avanzza/data/models/org/organization_model.dart';
 import 'package:avanzza/data/models/portfolio/portfolio_model.dart';
 import 'package:avanzza/data/models/purchase/purchase_request_model.dart';
@@ -51,6 +57,14 @@ import '../../infrastructure/isar/entities/outbox_event_entity.dart';
 import '../../infrastructure/local/isar/models/sync/sync_outbox_entry_model.dart';
 
 final allIsarSchemas = [
+  // Access — snapshot persistido del estado de acceso del caller (caché Isar
+  // del workspace access para arranque local-first sin depender de Core API).
+  AccessContextSnapshotModelSchema,
+
+  // Bootstrap — estado persistente del POST /v1/bootstrap (sync de fondo).
+  // Sobrevive a kills y rehidrata el state machine al cold start.
+  BootstrapSyncStateModelSchema,
+
   // Integrations — RUNT Persona + SIMIT cache (generados por build_runner)
   IntegrationsRuntPersonCacheModelSchema,
   IntegrationsSimitCacheModelSchema,
@@ -98,6 +112,12 @@ final allIsarSchemas = [
   MaintenanceProcessModelSchema,
   MaintenanceProgrammingModelSchema,
   MembershipModelSchema,
+
+  // Mi Red — cache local Isar (Hito local-first v1).
+  NetworkActorCacheModelSchema,
+  NetworkSectionMetaModelSchema,
+  TeamActorCacheModelSchema,
+
   OrganizationModelSchema,
   PortfolioModelSchema,
   PurchaseRequestModelSchema,

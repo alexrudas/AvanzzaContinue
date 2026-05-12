@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:avanzza/core/di/container.dart';
 import 'package:avanzza/data/datasources/local/isar_session_ds.dart';
-import 'package:avanzza/data/models/role_permission_model.dart';
 import 'package:avanzza/data/models/user/active_context_model.dart';
 import 'package:avanzza/data/models/user/membership_model.dart';
 import 'package:avanzza/data/models/user/user_model.dart';
@@ -25,42 +24,40 @@ class UserRepositoryImpl implements UserRepository {
   final UserRemoteDataSource remote;
   UserRepositoryImpl({required this.local, required this.remote});
 
-  // MERGE: fix append workspace - normalización canónica de roles
-  String _normalizeRole(String role) {
-    final low = role.toLowerCase();
-    if (low.contains('admin')) return 'Administrador';
-    if (low.contains('propietario') || low.contains('owner')) {
-      return 'Propietario';
-    }
-    if (low.contains('proveedor') || low.contains('provider')) {
-      return 'Proveedor';
-    }
-    if (low.contains('arrendatario') || low.contains('tenant')) {
-      return 'Arrendatario';
-    }
-    if (low.contains('aseguradora') || low.contains('insurance')) {
-      return 'Aseguradora';
-    }
-    if (low.contains('abogado') || low.contains('lawyer')) return 'Abogado';
-    if (low.contains('asesor')) return 'Asesor de seguros';
-    return role.isEmpty ? role : role[0].toUpperCase() + role.substring(1);
+  /// Watcher reactivo real sobre Isar. Delega en
+  /// `UserLocalDataSource.watchUser(uid)`, que envuelve la query con
+  /// `.watch(fireImmediately: true)` y emite cada vez que la txn local
+  /// modifica el `UserModel` correspondiente.
+  ///
+  /// El sync remoto es un KICK lateral one-shot: si trae cambios, los
+  /// persiste vía `local.upsertUser(...)` y eso reabre el watcher con la
+  /// emisión actualizada — sin tocar el contrato del stream local. Si
+  /// falla (offline / 4xx / red caída), el watcher sigue vivo con la
+  /// SSOT local.
+  ///
+  /// Lifecycle:
+  ///   · La suscripción se cancela desde el consumer (p. ej.
+  ///     `SessionContextController._userSub.cancel()` en logout o re-init).
+  ///   · El stream cierra automáticamente si Isar se cierra (shutdown).
+  ///   · No hay StreamController custom → no hay riesgo de leaks por
+  ///     controllers que no se cierran.
+  @override
+  Stream<UserEntity?> watchUser(String uid) {
+    unawaited(_kickRemoteSync(uid));
+    return local.watchUser(uid).map((m) => m?.toEntity());
   }
 
-  @override
-  Stream<UserEntity?> watchUser(String uid) async* {
-    final controller = StreamController<UserEntity?>();
-    Future(() async {
-      final l = await local.getUser(uid);
-      controller.add(l?.toEntity());
+  /// Sync remoto best-effort. Cualquier resultado válido se escribe a
+  /// Isar; la escritura es la que dispara la emisión en el watcher local.
+  /// Errores se silencian: el cache local es la SSOT visible y un re-kick
+  /// posterior (reconexión / próxima sesión) recuperará la convergencia.
+  Future<void> _kickRemoteSync(String uid) async {
+    try {
       final r = await remote.getUser(uid);
-      if (r != null) {
-        await local.upsertUser(r);
-        final updated = await local.getUser(uid);
-        controller.add(updated?.toEntity());
-      }
-      await controller.close();
-    });
-    yield* controller.stream;
+      if (r != null) await local.upsertUser(r);
+    } catch (_) {
+      // Sin red u otro fallo → no propagamos. El watcher local sigue vivo.
+    }
   }
 
   @override
@@ -291,12 +288,15 @@ class UserRepositoryImpl implements UserRepository {
     await isarSession.saveProfileCache(m);
   }
 
+  /// @Deprecated — Fase 2 (KILL SWITCH ROL LEGACY).
+  ///
+  /// Las "permissions por rol" se reemplazaron por capabilities derivadas en
+  /// runtime desde Core API (`SessionCapabilitiesStore`). Este método
+  /// retorna lista vacía y no toca Firestore.
   @override
   Future<List<RolePermissionEntity>> loadRolePermissions(
       List<String> roles) async {
-    final userFirestore = Get.find<UserFirestoreDS>();
-    final list = await userFirestore.getRolePermissions(roles);
-    return list.map((RolePermissionModel e) => e.toEntity()).toList();
+    return const <RolePermissionEntity>[];
   }
 
   @override
@@ -327,134 +327,33 @@ class UserRepositoryImpl implements UserRepository {
     }
   }
 
-  // MERGE: fix append workspace - updateMembershipRoles con roles canónicos y merge parcial
+  /// @Deprecated — Fase 2 (KILL SWITCH ROL LEGACY).
+  /// No-op: el binding `User → Workspace` en Core API es 1:1 vía `Membership`;
+  /// no hay equivalente para "agregar un rol string a la membership".
   @override
   Future<void> updateMembershipRoles(
       String uid, String orgId, List<String> roles) async {
-    final localMemberships = await local.memberships(uid);
-    final membership =
-        localMemberships.firstWhereOrNull((m) => m.orgId == orgId);
-    if (membership == null) return;
-
-    // MERGE: normalizar y deduplicar roles a forma canónica
-    final canonical = roles.map(_normalizeRole).toSet().toList()..sort();
-
-    // MERGE: actualizar local con roles canónicos (recrear modelo)
-    final updated = MembershipModel(
-      isarId: membership.isarId,
-      id: membership.id,
-      userId: membership.userId,
-      orgId: membership.orgId,
-      orgName: membership.orgName,
-      roles: canonical,
-      estatus: membership.estatus,
-      primaryLocationJson: membership.primaryLocationJson,
-      orgRef: membership.orgRef,
-      orgRefPath: membership.orgRefPath,
-      createdAt: membership.createdAt,
-      updatedAt: DateTime.now().toUtc(),
-    );
-    await local.upsertMembership(updated);
-
-    // MERGE: actualizar remoto con MERGE parcial (no replace completo)
-    try {
-      await remote.db.collection('memberships').doc(membership.id).set({
-        'roles': canonical,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true)); // MERGE parcial, preserva otros campos
-    } catch (_) {
-      DIContainer().syncService.enqueue(() async {
-        await remote.db.collection('memberships').doc(membership.id).set({
-          'roles': canonical,
-          'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-      });
-    }
+    // intencionalmente no-op
   }
 
-  // MERGE: fix append workspace - updateProviderProfile con arrayUnion aditivo
+  /// @Deprecated — Fase 2 (KILL SWITCH ROL LEGACY).
+  /// No-op: el `ProviderProfile` se crea vía `POST /v1/providers/bootstrap`
+  /// (ver `ProviderSelfRepository`).
   @override
   Future<void> updateProviderProfile(
       String uid, String orgId, String providerType) async {
-    final localMemberships = await local.memberships(uid);
-    final membership =
-        localMemberships.firstWhereOrNull((m) => m.orgId == orgId);
-    if (membership == null) return;
-
-    // MERGE: usar arrayUnion para añadir sin reemplazar histórico
-    try {
-      await remote.db.collection('memberships').doc(membership.id).set({
-        'providerProfiles': FieldValue.arrayUnion([
-          {
-            'providerType': providerType,
-            'updatedAt': FieldValue.serverTimestamp(),
-          }
-        ]),
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true)); // MERGE aditivo
-    } catch (_) {
-      DIContainer().syncService.enqueue(() async {
-        await remote.db.collection('memberships').doc(membership.id).set({
-          'providerProfiles': FieldValue.arrayUnion([
-            {
-              'providerType': providerType,
-              'updatedAt': FieldValue.serverTimestamp(),
-            }
-          ]),
-          'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-      });
-    }
+    // intencionalmente no-op
   }
 
-  // NEW: remove role from membership using arrayRemove + merge, and update local cache
+  /// @Deprecated — Fase 2 (KILL SWITCH ROL LEGACY).
+  /// No-op: para revocar la operación como proveedor el endpoint canónico es
+  /// `POST /v1/providers/:id/revoke-agent` o desactivar `ProviderProfile`.
   @override
-  Future<void> removeRoleFromMembership(
-      {required String uid,
-      required String orgId,
-      required String role}) async {
-    // Buscar membership local para obtener id del documento en 'memberships'
-    final localMemberships = await local.memberships(uid);
-    final membership =
-        localMemberships.firstWhereOrNull((m) => m.orgId == orgId);
-    if (membership == null) return;
-
-    final canonical = _normalizeRole(role);
-
-    // Remoto: arrayRemove sobre el doc de memberships/{membership.id}
-    try {
-      await remote.db.collection('memberships').doc(membership.id).set({
-        'roles': FieldValue.arrayRemove([canonical]),
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-    } catch (_) {
-      // Encolar si falla la escritura remota
-      DIContainer().syncService.enqueue(() async {
-        await remote.db.collection('memberships').doc(membership.id).set({
-          'roles': FieldValue.arrayRemove([canonical]),
-          'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-      });
-    }
-
-    // Local: remover el rol y persistir en cache local
-    final currentRoles = List<String>.from(membership.roles);
-    currentRoles
-        .removeWhere((r) => r.trim().toLowerCase() == canonical.toLowerCase());
-    final updated = MembershipModel(
-      isarId: membership.isarId,
-      id: membership.id,
-      userId: membership.userId,
-      orgId: membership.orgId,
-      orgName: membership.orgName,
-      roles: currentRoles,
-      estatus: membership.estatus,
-      primaryLocationJson: membership.primaryLocationJson,
-      orgRef: membership.orgRef,
-      orgRefPath: membership.orgRefPath,
-      createdAt: membership.createdAt,
-      updatedAt: DateTime.now().toUtc(),
-    );
-    await local.upsertMembership(updated);
+  Future<void> removeRoleFromMembership({
+    required String uid,
+    required String orgId,
+    required String role,
+  }) async {
+    // intencionalmente no-op
   }
 }

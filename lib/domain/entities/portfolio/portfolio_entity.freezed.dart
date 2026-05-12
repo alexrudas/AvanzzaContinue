@@ -68,6 +68,19 @@ mixin _$PortfolioEntity {
   /// Null para portfolios creados antes de esta feature (fallback: escalares).
   String? get simitDetailJson;
 
+  /// Tipo de relación esperada del workspace con los activos que se
+  /// agreguen a este portafolio (owner / manager / tenant / driver / etc.).
+  ///
+  /// Es el "intent" capturado durante onboarding (Q3) o creación manual:
+  /// cuando VRC añade el primer asset al portfolio, este valor se usa para
+  /// crear el AssetActorLinkEntity correspondiente con `role` igual a este
+  /// kind, sin pedir al usuario que lo declare nuevamente.
+  ///
+  /// Null = portafolios legacy creados antes de esta feature, o portafolios
+  /// donde la relación se decidirá explícitamente al añadir cada activo.
+  /// Wire-stable: AssetActorRole es enum append-only.
+  AssetActorRole? get expectedRelationKind;
+
   /// Create a copy of PortfolioEntity
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -127,7 +140,9 @@ mixin _$PortfolioEntity {
             (identical(other.licenseCheckedAt, licenseCheckedAt) ||
                 other.licenseCheckedAt == licenseCheckedAt) &&
             (identical(other.simitDetailJson, simitDetailJson) ||
-                other.simitDetailJson == simitDetailJson));
+                other.simitDetailJson == simitDetailJson) &&
+            (identical(other.expectedRelationKind, expectedRelationKind) ||
+                other.expectedRelationKind == expectedRelationKind));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -157,12 +172,13 @@ mixin _$PortfolioEntity {
         simitFormattedTotal,
         simitCheckedAt,
         licenseCheckedAt,
-        simitDetailJson
+        simitDetailJson,
+        expectedRelationKind
       ]);
 
   @override
   String toString() {
-    return 'PortfolioEntity(id: $id, portfolioType: $portfolioType, portfolioName: $portfolioName, countryId: $countryId, cityId: $cityId, orgId: $orgId, status: $status, assetsCount: $assetsCount, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt, ownerName: $ownerName, ownerDocument: $ownerDocument, ownerDocumentType: $ownerDocumentType, licenseStatus: $licenseStatus, licenseExpiryDate: $licenseExpiryDate, simitHasFines: $simitHasFines, simitFinesCount: $simitFinesCount, simitComparendosCount: $simitComparendosCount, simitMultasCount: $simitMultasCount, simitFormattedTotal: $simitFormattedTotal, simitCheckedAt: $simitCheckedAt, licenseCheckedAt: $licenseCheckedAt, simitDetailJson: $simitDetailJson)';
+    return 'PortfolioEntity(id: $id, portfolioType: $portfolioType, portfolioName: $portfolioName, countryId: $countryId, cityId: $cityId, orgId: $orgId, status: $status, assetsCount: $assetsCount, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt, ownerName: $ownerName, ownerDocument: $ownerDocument, ownerDocumentType: $ownerDocumentType, licenseStatus: $licenseStatus, licenseExpiryDate: $licenseExpiryDate, simitHasFines: $simitHasFines, simitFinesCount: $simitFinesCount, simitComparendosCount: $simitComparendosCount, simitMultasCount: $simitMultasCount, simitFormattedTotal: $simitFormattedTotal, simitCheckedAt: $simitCheckedAt, licenseCheckedAt: $licenseCheckedAt, simitDetailJson: $simitDetailJson, expectedRelationKind: $expectedRelationKind)';
   }
 }
 
@@ -196,7 +212,8 @@ abstract mixin class $PortfolioEntityCopyWith<$Res> {
       String? simitFormattedTotal,
       DateTime? simitCheckedAt,
       DateTime? licenseCheckedAt,
-      String? simitDetailJson});
+      String? simitDetailJson,
+      AssetActorRole? expectedRelationKind});
 }
 
 /// @nodoc
@@ -236,6 +253,7 @@ class _$PortfolioEntityCopyWithImpl<$Res>
     Object? simitCheckedAt = freezed,
     Object? licenseCheckedAt = freezed,
     Object? simitDetailJson = freezed,
+    Object? expectedRelationKind = freezed,
   }) {
     return _then(_self.copyWith(
       id: null == id
@@ -334,6 +352,10 @@ class _$PortfolioEntityCopyWithImpl<$Res>
           ? _self.simitDetailJson
           : simitDetailJson // ignore: cast_nullable_to_non_nullable
               as String?,
+      expectedRelationKind: freezed == expectedRelationKind
+          ? _self.expectedRelationKind
+          : expectedRelationKind // ignore: cast_nullable_to_non_nullable
+              as AssetActorRole?,
     ));
   }
 }
@@ -455,7 +477,8 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             String? simitFormattedTotal,
             DateTime? simitCheckedAt,
             DateTime? licenseCheckedAt,
-            String? simitDetailJson)?
+            String? simitDetailJson,
+            AssetActorRole? expectedRelationKind)?
         $default, {
     required TResult orElse(),
   }) {
@@ -486,7 +509,8 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             _that.simitFormattedTotal,
             _that.simitCheckedAt,
             _that.licenseCheckedAt,
-            _that.simitDetailJson);
+            _that.simitDetailJson,
+            _that.expectedRelationKind);
       case _:
         return orElse();
     }
@@ -531,7 +555,8 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             String? simitFormattedTotal,
             DateTime? simitCheckedAt,
             DateTime? licenseCheckedAt,
-            String? simitDetailJson)
+            String? simitDetailJson,
+            AssetActorRole? expectedRelationKind)
         $default,
   ) {
     final _that = this;
@@ -561,7 +586,8 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             _that.simitFormattedTotal,
             _that.simitCheckedAt,
             _that.licenseCheckedAt,
-            _that.simitDetailJson);
+            _that.simitDetailJson,
+            _that.expectedRelationKind);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -605,7 +631,8 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             String? simitFormattedTotal,
             DateTime? simitCheckedAt,
             DateTime? licenseCheckedAt,
-            String? simitDetailJson)?
+            String? simitDetailJson,
+            AssetActorRole? expectedRelationKind)?
         $default,
   ) {
     final _that = this;
@@ -635,7 +662,8 @@ extension PortfolioEntityPatterns on PortfolioEntity {
             _that.simitFormattedTotal,
             _that.simitCheckedAt,
             _that.licenseCheckedAt,
-            _that.simitDetailJson);
+            _that.simitDetailJson,
+            _that.expectedRelationKind);
       case _:
         return null;
     }
@@ -669,7 +697,8 @@ class _PortfolioEntity implements PortfolioEntity {
       this.simitFormattedTotal = null,
       this.simitCheckedAt = null,
       this.licenseCheckedAt = null,
-      this.simitDetailJson = null});
+      this.simitDetailJson = null,
+      this.expectedRelationKind = null});
   factory _PortfolioEntity.fromJson(Map<String, dynamic> json) =>
       _$PortfolioEntityFromJson(json);
 
@@ -767,6 +796,21 @@ class _PortfolioEntity implements PortfolioEntity {
   @JsonKey()
   final String? simitDetailJson;
 
+  /// Tipo de relación esperada del workspace con los activos que se
+  /// agreguen a este portafolio (owner / manager / tenant / driver / etc.).
+  ///
+  /// Es el "intent" capturado durante onboarding (Q3) o creación manual:
+  /// cuando VRC añade el primer asset al portfolio, este valor se usa para
+  /// crear el AssetActorLinkEntity correspondiente con `role` igual a este
+  /// kind, sin pedir al usuario que lo declare nuevamente.
+  ///
+  /// Null = portafolios legacy creados antes de esta feature, o portafolios
+  /// donde la relación se decidirá explícitamente al añadir cada activo.
+  /// Wire-stable: AssetActorRole es enum append-only.
+  @override
+  @JsonKey()
+  final AssetActorRole? expectedRelationKind;
+
   /// Create a copy of PortfolioEntity
   /// with the given fields replaced by the non-null parameter values.
   @override
@@ -830,7 +874,9 @@ class _PortfolioEntity implements PortfolioEntity {
             (identical(other.licenseCheckedAt, licenseCheckedAt) ||
                 other.licenseCheckedAt == licenseCheckedAt) &&
             (identical(other.simitDetailJson, simitDetailJson) ||
-                other.simitDetailJson == simitDetailJson));
+                other.simitDetailJson == simitDetailJson) &&
+            (identical(other.expectedRelationKind, expectedRelationKind) ||
+                other.expectedRelationKind == expectedRelationKind));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -860,12 +906,13 @@ class _PortfolioEntity implements PortfolioEntity {
         simitFormattedTotal,
         simitCheckedAt,
         licenseCheckedAt,
-        simitDetailJson
+        simitDetailJson,
+        expectedRelationKind
       ]);
 
   @override
   String toString() {
-    return 'PortfolioEntity(id: $id, portfolioType: $portfolioType, portfolioName: $portfolioName, countryId: $countryId, cityId: $cityId, orgId: $orgId, status: $status, assetsCount: $assetsCount, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt, ownerName: $ownerName, ownerDocument: $ownerDocument, ownerDocumentType: $ownerDocumentType, licenseStatus: $licenseStatus, licenseExpiryDate: $licenseExpiryDate, simitHasFines: $simitHasFines, simitFinesCount: $simitFinesCount, simitComparendosCount: $simitComparendosCount, simitMultasCount: $simitMultasCount, simitFormattedTotal: $simitFormattedTotal, simitCheckedAt: $simitCheckedAt, licenseCheckedAt: $licenseCheckedAt, simitDetailJson: $simitDetailJson)';
+    return 'PortfolioEntity(id: $id, portfolioType: $portfolioType, portfolioName: $portfolioName, countryId: $countryId, cityId: $cityId, orgId: $orgId, status: $status, assetsCount: $assetsCount, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt, ownerName: $ownerName, ownerDocument: $ownerDocument, ownerDocumentType: $ownerDocumentType, licenseStatus: $licenseStatus, licenseExpiryDate: $licenseExpiryDate, simitHasFines: $simitHasFines, simitFinesCount: $simitFinesCount, simitComparendosCount: $simitComparendosCount, simitMultasCount: $simitMultasCount, simitFormattedTotal: $simitFormattedTotal, simitCheckedAt: $simitCheckedAt, licenseCheckedAt: $licenseCheckedAt, simitDetailJson: $simitDetailJson, expectedRelationKind: $expectedRelationKind)';
   }
 }
 
@@ -901,7 +948,8 @@ abstract mixin class _$PortfolioEntityCopyWith<$Res>
       String? simitFormattedTotal,
       DateTime? simitCheckedAt,
       DateTime? licenseCheckedAt,
-      String? simitDetailJson});
+      String? simitDetailJson,
+      AssetActorRole? expectedRelationKind});
 }
 
 /// @nodoc
@@ -941,6 +989,7 @@ class __$PortfolioEntityCopyWithImpl<$Res>
     Object? simitCheckedAt = freezed,
     Object? licenseCheckedAt = freezed,
     Object? simitDetailJson = freezed,
+    Object? expectedRelationKind = freezed,
   }) {
     return _then(_PortfolioEntity(
       id: null == id
@@ -1039,6 +1088,10 @@ class __$PortfolioEntityCopyWithImpl<$Res>
           ? _self.simitDetailJson
           : simitDetailJson // ignore: cast_nullable_to_non_nullable
               as String?,
+      expectedRelationKind: freezed == expectedRelationKind
+          ? _self.expectedRelationKind
+          : expectedRelationKind // ignore: cast_nullable_to_non_nullable
+              as AssetActorRole?,
     ));
   }
 }

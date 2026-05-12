@@ -1,111 +1,112 @@
-/// Configuración centralizada de endpoints para la API de Avanzza.
-///
-/// Esta clase proporciona las URLs base para acceder a los diferentes
-/// servicios de la API backend de Avanzza (RUNT, SIMIT, GPS, etc.).
-///
-/// ## Arquitectura de API
-///
-/// Todos los servicios (RUNT, SIMIT, etc.) están montados sobre la misma
-/// API Node.js, solo difieren en sus paths:
-/// - RUNT: `{base}/runt/...`
-/// - SIMIT: `{base}/simit/...`
-///
-/// Por lo tanto, todos los servicios comparten el mismo `baseUrl`.
-///
-/// ## Configuración por Ambiente
-///
-/// La URL base se configura mediante la variable de entorno `AVANZZA_API_URL`:
-///
-/// **Desarrollo local (emulador Android):**
-/// ```bash
-/// flutter run
-/// # Usa el valor por defecto: http://10.0.2.2:3000
-/// ```
-///
-/// **Desarrollo local (web/iOS):**
-/// ```bash
-/// flutter run --dart-define=AVANZZA_API_URL=http://localhost:3000
-/// ```
-///
-/// **Staging:**
-/// ```bash
-/// flutter run --dart-define=AVANZZA_API_URL=https://api-staging.avanzza.com
-/// ```
-///
-/// **Producción:**
-/// ```bash
-/// flutter build apk --dart-define=AVANZZA_API_URL=https://api.avanzza.com
-/// ```
-///
-/// ## CI/CD
-///
-/// En pipelines de CI/CD, define la variable según el ambiente:
-/// ```yaml
-/// - flutter build apk --dart-define=AVANZZA_API_URL=$API_URL
-/// ```
-class ApiEndpoints {
-  // ==================== CONFIGURACIÓN BASE ====================
+// ============================================================================
+// lib/core/config/api_endpoints.dart
+// API ENDPOINTS — Hosts (origin) por dominio. Fuente única de verdad.
+//
+// QUÉ HACE:
+// - Expone el origin (scheme + host + port) de cada API de Avanzza.
+// - Cada origin es configurable por `--dart-define` propio.
+//
+// QUÉ NO HACE:
+// - No define path prefixes (`/api`, `/v1`): eso es responsabilidad del
+//   consumer que conoce el endpoint concreto.
+// - No define aliases por servicio (`runtBaseUrl`, `simitBaseUrl`): el
+//   consumer pasa path absoluto explícito (`/api/runt/...`, `/v1/vrc/...`).
+// - No define timeouts ni headers ni api keys.
+//
+// PRINCIPIOS:
+// - Una API = un origin = una variable de entorno.
+// - Prefijos de ruta viven en el código del service, no acá.
+// - Cero workarounds: nada de `Uri.parse(...).origin` ni aliases débiles.
+//
+// ENTERPRISE NOTES:
+// MODIFICADO (2026-04): Eliminado workaround `_integrationsOrigin` y aliases
+// `runtBaseUrl`/`simitBaseUrl`. Consumers migrados a paths absolutos.
+// ============================================================================
 
-  /// URL base de la API de Avanzza.
+class ApiEndpoints {
+  // ==================== CORE API ====================
+
+  /// Core API — dominio principal (Pedidos, Proveedores, Coordinación).
+  /// Auth: Bearer Firebase. Endpoints nativos bajo `/v1/...`.
   ///
-  /// Esta URL es compartida por todos los servicios (RUNT, SIMIT, GPS, etc.).
-  /// Los servicios individuales agregan sus propios paths sobre esta base.
-  ///
-  /// **Valor por defecto (desarrollo):**
-  /// - `http://10.0.2.2:3000` - Emulador Android apuntando a localhost:3000 del host
-  ///
-  /// **Para web o iOS en desarrollo:**
-  /// - Usar `--dart-define=AVANZZA_API_URL=http://localhost:3000`
-  ///
-  /// **Para producción:**
-  /// - Usar `--dart-define=AVANZZA_API_URL=https://api.tu-dominio.com`
-  static String get _baseApiUrl {
+  /// Ejemplos de uso:
+  /// - POST `{coreBaseUrl}/v1/purchase-requests`
+  /// - GET  `{coreBaseUrl}/v1/sourcing-awards/:id`
+  static String get coreBaseUrl {
     return const String.fromEnvironment(
-      'AVANZZA_API_URL',
-      // Por defecto apunta a localhost del host desde emulador Android
-      // Para web/iOS, usar localhost:3000 con --dart-define
-      defaultValue: "http://178.156.227.90",
+      'AVANZZA_CORE_URL',
+      defaultValue: 'http://192.168.1.57:3000',
     );
   }
 
-  // ==================== SERVICIOS ESPECÍFICOS ====================
+  // ==================== INTEGRATIONS API ====================
 
-  /// URL base para el servicio de RUNT (Registro Único Nacional de Tránsito).
+  /// Integrations API — RUNT / SIMIT / VRC (scraping externo).
+  /// Auth: X-API-Key. **Origin puro, sin path prefix.**
   ///
-  /// Proporciona acceso a información sobre:
-  /// - Conductores y sus licencias
-  /// - Vehículos y su historial (SOAT, RTM, etc.)
+  /// El consumer arma el path completo con su prefijo:
+  /// - RUNT Persona:   `{integrationsBaseUrl}/api/runt/person/consult/...`
+  /// - SIMIT:          `{integrationsBaseUrl}/api/simit/multas/...`
+  /// - VRC individual: `{integrationsBaseUrl}/api/vrc/...`
+  /// - RUNT Query:     `{integrationsBaseUrl}/api/runt/query/...`
+  /// - VRC Batches:    `{integrationsBaseUrl}/v1/vrc-batches/...`
   ///
-  /// **Endpoints típicos:**
-  /// - `GET {runtBaseUrl}/runt/person/consult/:document/:typeDcm`
-  /// - `GET {runtBaseUrl}/runt/vehicle/:type/:plaque/:license/:typeDcm`
-  ///
-  /// **Uso en binding:**
-  /// ```dart
-  /// RuntService(Get.find<Dio>(), baseUrl: ApiEndpoints.runtBaseUrl)
-  /// ```
-  static String get runtBaseUrl => _baseApiUrl;
+  /// Validado en el primer acceso: el valor NO debe terminar en `/api`,
+  /// `/api/` ni en `/` (trailing slash) — cualquiera de esos casos produciría
+  /// URLs deformadas (`/api/api/...` o `//api/...`) y 404 silenciosos en
+  /// release. Si la variable está mal configurada, la app falla al arrancar
+  /// con un mensaje accionable en vez de romperse a mitad de una consulta.
+  static String get integrationsBaseUrl => _integrationsBaseUrl;
 
-  /// URL base para Avanzza Core API (insurance/leads, y futuros endpoints propios).
-  ///
-  /// Separada semánticamente de [runtBaseUrl] aunque hoy apunten al mismo host.
-  /// Los servicios Core NO usan X-API-Key — son recursos internos del backend.
-  static String get coreBaseUrl => _baseApiUrl;
+  /// Cached + validated al primer acceso. `static final` garantiza una sola
+  /// evaluación; si la validación lanza, se relanza en cada acceso posterior.
+  static final String _integrationsBaseUrl = _resolveIntegrationsBaseUrl();
 
-  /// URL base para Firebase Cloud Functions del backend de Avanzza.
-  ///
-  /// Diferente de [coreBaseUrl] — apunta directamente al host de Cloud Functions
-  /// (no al servidor Core API de Node.js). Usa Bearer token de Firebase Auth.
-  ///
-  /// **Desarrollo con emulador Firebase:**
-  /// ```bash
-  /// flutter run --dart-define=AVANZZA_FUNCTIONS_URL=http://10.0.2.2:5001/avanzzaplus-98e47/southamerica-east1
-  /// # iOS/Web:
-  /// flutter run --dart-define=AVANZZA_FUNCTIONS_URL=http://localhost:5001/avanzzaplus-98e47/southamerica-east1
-  /// ```
-  ///
-  /// **Producción (default):**
-  /// `https://southamerica-east1-avanzzaplus-98e47.cloudfunctions.net`
+  static String _resolveIntegrationsBaseUrl() {
+    const url = String.fromEnvironment(
+      'AVANZZA_INTEGRATIONS_URL',
+      defaultValue: 'http://178.156.227.90',
+    );
+
+    if (url.isEmpty) {
+      throw StateError(
+        'AVANZZA_INTEGRATIONS_URL está vacío. '
+        'Debe ser el origin del host (ej: "http://178.156.227.90").',
+      );
+    }
+
+    if (url.endsWith('/api') || url.endsWith('/api/')) {
+      throw StateError(
+        'AVANZZA_INTEGRATIONS_URL mal configurado: "$url".\n'
+        'NO debe terminar en "/api" — ese prefijo lo agrega cada service '
+        'explícitamente en su path (/api/runt/..., /api/simit/..., '
+        '/api/vrc/..., /v1/vrc-batches/...).\n'
+        'Valor correcto: "http://host" (sin /api).\n'
+        'Si sigues viendo este error, revisa tu flag '
+        '--dart-define=AVANZZA_INTEGRATIONS_URL=...',
+      );
+    }
+
+    if (url.endsWith('/')) {
+      throw StateError(
+        'AVANZZA_INTEGRATIONS_URL no debe terminar en "/": "$url". '
+        'Produce URLs con doble slash ("//api/..."). '
+        'Valor correcto: "http://host" (sin slash final).',
+      );
+    }
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      throw StateError(
+        'AVANZZA_INTEGRATIONS_URL debe empezar con http:// o https://: "$url".',
+      );
+    }
+
+    return url;
+  }
+
+  // ==================== FIREBASE FUNCTIONS ====================
+
+  /// Firebase Cloud Functions. Auth: Bearer Firebase (automático).
   static String get firebaseBackendUrl {
     return const String.fromEnvironment(
       'AVANZZA_FUNCTIONS_URL',
@@ -114,63 +115,24 @@ class ApiEndpoints {
     );
   }
 
-  /// URL base para el servicio de SIMIT (Sistema Integrado de Multas de Tránsito).
-  ///
-  /// Proporciona acceso a información sobre:
-  /// - Multas de tránsito
-  /// - Comparendos
-  /// - Acuerdos de pago
-  /// - Historial de infracciones
-  ///
-  /// **Endpoints típicos:**
-  /// - `GET {simitBaseUrl}/simit/multas/:license`
-  ///
-  /// **Uso en binding:**
-  /// ```dart
-  /// SimitService(Get.find<Dio>(), baseUrl: ApiEndpoints.simitBaseUrl)
-  /// ```
-  static String get simitBaseUrl => _baseApiUrl;
+  // ==================== NOTAS DE DESARROLLO ====================
 
-  // ==================== DESARROLLO LOCAL ====================
-
-  /// **Nota para desarrollo local:**
+  /// CONFIGURACIÓN POR AMBIENTE
   ///
-  /// Si necesitas cambiar el host/puerto durante desarrollo sin recompilar:
+  /// Dispositivo físico contra Core local + Integrations público:
+  ///   flutter run \
+  ///     --dart-define=AVANZZA_CORE_URL=http://192.168.1.57:3000 \
+  ///     --dart-define=AVANZZA_INTEGRATIONS_URL=http://178.156.227.90
   ///
-  /// **Opción 1: Variable de entorno (recomendado)**
-  /// ```bash
-  /// flutter run --dart-define=AVANZZA_API_URL=http://localhost:3000
-  /// ```
+  /// Emulador Android:
+  ///   AVANZZA_CORE_URL=http://10.0.2.2:3000
   ///
-  /// **Opción 2: Modificar temporalmente el defaultValue**
-  /// ```dart
-  /// // En _baseApiUrl, cambiar temporalmente:
-  /// defaultValue: 'http://localhost:3000',  // Web/iOS
-  /// // o
-  /// defaultValue: 'http://192.168.1.100:3000',  // IP local de tu máquina
-  /// ```
+  /// Producción:
+  ///   AVANZZA_CORE_URL=https://core.avanzza.com
+  ///   AVANZZA_INTEGRATIONS_URL=https://integrations.avanzza.com
   ///
-  /// **URLs comunes de desarrollo:**
-  /// - Emulador Android → `http://10.0.2.2:3000`
-  /// - iOS Simulator → `http://localhost:3000`
-  /// - Web → `http://localhost:3000`
-  /// - Dispositivo físico → `http://192.168.x.x:3000` (IP de tu PC en la red local)
-
-  // ==================== SERVICIOS FUTUROS ====================
-
-  /// Conforme se integren más servicios, agregar getters aquí:
-  ///
-  /// ```dart
-  /// /// URL base para el servicio de GPS y seguimiento de flotas.
-  /// static String get gpsBaseUrl => _baseApiUrl;
-  ///
-  /// /// URL base para el servicio de pagos y transacciones.
-  /// static String get paymentsBaseUrl => _baseApiUrl;
-  ///
-  /// /// URL base para el servicio de notificaciones push.
-  /// static String get notificationsBaseUrl => _baseApiUrl;
-  /// ```
-  ///
-  /// Todos comparten el mismo `_baseApiUrl`, solo varían los paths dentro
-  /// de cada Service.
+  /// ⚠️ MIGRACIÓN: `AVANZZA_INTEGRATIONS_URL` ya NO debe incluir `/api`.
+  /// Antes: `http://178.156.227.90/api`
+  /// Ahora: `http://178.156.227.90`
+  /// El prefijo `/api` lo agrega cada consumer en su path.
 }

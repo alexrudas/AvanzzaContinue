@@ -20,11 +20,19 @@ import 'package:flutter/services.dart';
 
 class OtpInputWidget extends StatefulWidget {
   final void Function(String code) onCompleted;
+
+  /// Callback opcional: se invoca en cada cambio del código (parcial o completo),
+  /// incluyendo borrados via backspace y paste. El consumidor puede usarlo
+  /// para habilitar/deshabilitar un botón "Verificar" según `code.length`.
+  /// `onCompleted` sigue invocándose solo cuando el código está completo.
+  final void Function(String code)? onChanged;
+
   final int length;
 
   const OtpInputWidget({
     super.key,
     required this.onCompleted,
+    this.onChanged,
     this.length = 6,
   });
 
@@ -53,6 +61,8 @@ class _OtpInputWidgetState extends State<OtpInputWidget> {
             idx > 0) {
           _ctls[idx - 1].clear();
           _nodes[idx - 1].requestFocus();
+          // Notificar cambio (código parcial tras borrar la casilla anterior).
+          widget.onChanged?.call(_ctls.map((c) => c.text).join());
           return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;
@@ -78,6 +88,9 @@ class _OtpInputWidgetState extends State<OtpInputWidget> {
     for (int i = 0; i < len; i++) {
       _ctls[i].text = i < code.length ? code[i] : '';
     }
+
+    // Notificar cambio tras distribuir los dígitos pegados.
+    widget.onChanged?.call(_ctls.map((c) => c.text).join());
 
     // Enfocar la siguiente casilla vacía (o la última si todas llenas)
     final focusIdx = code.length < len ? code.length : len - 1;
@@ -106,6 +119,9 @@ class _OtpInputWidgetState extends State<OtpInputWidget> {
   // ---------------------------------------------------------------------------
 
   void _onChanged(int idx, String value) {
+    // Notificar cambio en cada keystroke (parcial o completo).
+    widget.onChanged?.call(_ctls.map((c) => c.text).join());
+
     if (value.isEmpty) return; // borrado normal; backspace lo maneja onKeyEvent
     // Auto-advance al siguiente
     if (idx < widget.length - 1) {

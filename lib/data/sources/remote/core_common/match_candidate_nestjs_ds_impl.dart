@@ -12,6 +12,9 @@
 //     nestjs_exceptions.dart y las propaga.
 //   - NO retorna null como fallback de error.
 //   - NO retry ni encolado — el Repository y/o el caso de uso deciden.
+//   - NO inyecta X-API-Key aquí: el header lo pone el Dio que recibe por
+//     constructor. El wiring en DIContainer es responsable de registrar
+//     ApiKeyInterceptor en esa instancia — si falta, el backend responde 401.
 //
 // DERIVACIÓN DEL workspaceId:
 //   El backend deriva el workspaceId del claim activeOrgId del JWT.

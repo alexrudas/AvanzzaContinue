@@ -63,6 +63,23 @@ class PurchaseRequestModel {
   @DateTimeTimestampConverter()
   final DateTime? updatedAt;
 
+  // ── VehicleSpec snapshot (local only) ────────────────────────────────────
+  // Campos flat nullable — solo poblados cuando el pedido fue creado con
+  // target = VehicleSpec (inventario/stock). El backend canónico NO los recibe
+  // ni los devuelve hoy; por eso se persisten solo en Isar para que el detalle
+  // del PR siga siendo legible offline sin tener que recalcular la derivación.
+  @Index()
+  final String? vehicleSpecId;
+  final String? vehicleSpecLabel;
+  final String? vehicleSpecMake;
+  final String? vehicleSpecModel;
+  final int? vehicleSpecYear;
+  final String? vehicleSpecVersion;
+  final String? vehicleSpecMotorization;
+  final int? vehicleSpecEngineCc;
+  final String? vehicleSpecTransmission;
+  final int? vehicleSpecLinkedAssetsCount;
+
   PurchaseRequestModel({
     this.isarId,
     required this.id,
@@ -82,6 +99,16 @@ class PurchaseRequestModel {
     this.respuestasCount = 0,
     this.createdAt,
     this.updatedAt,
+    this.vehicleSpecId,
+    this.vehicleSpecLabel,
+    this.vehicleSpecMake,
+    this.vehicleSpecModel,
+    this.vehicleSpecYear,
+    this.vehicleSpecVersion,
+    this.vehicleSpecMotorization,
+    this.vehicleSpecEngineCc,
+    this.vehicleSpecTransmission,
+    this.vehicleSpecLinkedAssetsCount,
   });
 
   factory PurchaseRequestModel.fromJson(Map<String, dynamic> json) =>
@@ -95,6 +122,10 @@ class PurchaseRequestModel {
   domain.PurchaseRequestEntity toEntity() {
     final hasDelivery = (deliveryCity ?? '').isNotEmpty &&
         (deliveryAddress ?? '').isNotEmpty;
+    final hasSpec = vehicleSpecId != null &&
+        vehicleSpecMake != null &&
+        vehicleSpecModel != null &&
+        vehicleSpecYear != null;
     return domain.PurchaseRequestEntity(
       id: id,
       orgId: orgId,
@@ -119,6 +150,21 @@ class PurchaseRequestModel {
       respuestasCount: respuestasCount,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      vehicleSpec: hasSpec
+          ? domain.PurchaseRequestVehicleSpecSnapshot(
+              vehicleSpecId: vehicleSpecId!,
+              displayLabel: vehicleSpecLabel ??
+                  '${vehicleSpecMake!} ${vehicleSpecModel!} $vehicleSpecYear',
+              make: vehicleSpecMake!,
+              model: vehicleSpecModel!,
+              year: vehicleSpecYear!,
+              version: vehicleSpecVersion,
+              motorization: vehicleSpecMotorization,
+              engineDisplacementCc: vehicleSpecEngineCc,
+              transmission: vehicleSpecTransmission,
+              linkedAssetsCountSnapshot: vehicleSpecLinkedAssetsCount,
+            )
+          : null,
     );
   }
 

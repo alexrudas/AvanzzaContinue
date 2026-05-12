@@ -47,6 +47,12 @@
 // ACTUALIZADO (2026-04): Fase 6 UX — daysRemaining y expiryDate propagados como
 //   campos estructurados en AlertCardVm. _safeParseDateOnly + _parseExpiryDate
 //   con logging defensivo debug-only.
+// ACTUALIZADO (2026-04): rcExtracontractual* CTAs reenrutados a
+//   /asset/insurance/rc (SegurosRcDetailPage). Motivo: la ruta transaccional
+//   /insurance/rc/quote/request exige VehicleSnapshot que AlertCenter no puede
+//   proveer → causaba contrato inválido y CTA deshabilitado. El detalle hidrata
+//   el snapshot vía AssetDetailRuntController y contiene el Upsell Card que
+//   actúa como puente canónico al flujo SRCE.
 // ============================================================================
 
 import '../../../domain/entities/alerts/alert_code.dart';
@@ -67,7 +73,7 @@ abstract final class DomainAlertMapper {
   /// No filtra, no recalcula severidad, no cambia prioridad.
   static AlertCardVm fromDomain(DomainAlert alert) {
     return AlertCardVm(
-      title: _resolveTitle(alert.code),
+      title: resolveTitle(alert.code),
       // El subtítulo conoce el código para renderizar correctamente casos
       // especiales como RTM exenta (no suena como alerta de vencimiento normal).
       subtitle: _resolveSubtitle(alert.code, alert.facts),
@@ -104,11 +110,15 @@ abstract final class DomainAlertMapper {
   ///
   /// V1: resolución directa en español por AlertCode.
   ///
+  /// API pública: consumida por [fromDomain] y por la UI (banner de drill-down
+  /// del Centro de Alertas). Mantener como única fuente de verdad para títulos
+  /// de alertas — no duplicar el switch en otros sitios.
+  ///
   /// NOTA DE DEUDA — titleKey / bodyKey de DomainAlert:
   /// Los campos titleKey y bodyKey existen en DomainAlert para futura
   /// integración con el sistema i18n real, pero NO se consumen en V1.
   /// En V2, reemplazar este switch por: `i18n.resolve(alert.titleKey)`.
-  static String _resolveTitle(AlertCode code) => switch (code) {
+  static String resolveTitle(AlertCode code) => switch (code) {
         AlertCode.soatExpired => 'SOAT vencido',
         AlertCode.soatDueSoon => 'SOAT próximo a vencer',
         AlertCode.rtmExpired => 'Técnico-mecánica vencida',
@@ -225,16 +235,18 @@ abstract final class DomainAlertMapper {
 
   /// Resuelve la etiqueta del CTA de acción para el [AlertCode].
   ///
-  /// CRITERIO: CTA que inicia resolución real, no solo navegación informativa.
+  /// CRITERIO: CTA que abre la página de detalle canónica del documento.
+  /// Cuando el detalle contiene un puente activo al flujo de resolución,
+  /// el usuario completa la acción desde allí (ver SegurosRcDetailPage).
   ///
-  /// OPERATIVO (flujo de resolución existente hoy):
-  ///   rcExtracontractual* → 'Solicitar cotización' → /insurance/rc/quote/request
-  ///
-  /// INFORMATIVO (ruta de detalle, flujo de resolución pendiente):
-  ///   soat*         → 'Cotizar SOAT'          → pendiente flujo cotización SOAT
-  ///   rtm*          → 'Solicitar gestión RTM'  → pendiente flujo servicio RTM
-  ///   rcContractual → 'Solicitar cotización'   → pendiente flujo RC contractual
-  ///   legal*        → 'Solicitar revisión'     → pendiente flujo acompañamiento legal
+  /// INFORMATIVO (abre detalle; flujo de resolución desde la page destino):
+  ///   soat*                → 'Ver estado SOAT'          → /asset/insurance/soat
+  ///   rtm*                 → 'Ver estado RTM'           → /asset/rtm/detail
+  ///   rcContractual*       → 'Ver póliza RC contractual'→ /asset/insurance/rc
+  ///   rcExtracontractual*  → 'Ver seguros RC'           → /asset/insurance/rc
+  ///     (SegurosRcDetailPage contiene el Upsell Card que abre el flujo SRCE
+  ///     con el VehicleSnapshot hidratado por AssetDetailRuntController)
+  ///   legal*               → 'Ver estado legal'         → /asset/legal
   ///
   /// Null para códigos reservados sin ruta implementada en V1.
   static String? _resolveActionLabel(AlertCode code) => switch (code) {
@@ -253,12 +265,12 @@ abstract final class DomainAlertMapper {
         AlertCode.rcContractualMissing =>
           'Ver póliza RC contractual',
 
-        // OPERATIVO — flujo SRCE activo (/insurance/rc/quote/request)
+        // INFORMATIVO — abre SegurosRcDetailPage (puente al flujo SRCE vía Upsell)
         AlertCode.rcExtracontractualExpired ||
         AlertCode.rcExtracontractualDueSoon ||
         AlertCode.rcExtracontractualMissing ||
         AlertCode.rcExtracontractualOpportunity =>
-          'Solicitar cotización RC',
+          'Ver seguros RC',
 
         // INFORMATIVO — pendiente flujo acompañamiento legal
         AlertCode.embargoActive ||
@@ -270,16 +282,19 @@ abstract final class DomainAlertMapper {
 
   /// Resuelve la ruta canónica de navegación para el CTA de acción.
   ///
-  /// OPERATIVO hoy (flujo de resolución real abierto desde el CTA):
-  ///   rcExtracontractual* → /insurance/rc/quote/request
-  ///     Arguments: {assetId, primaryLabel, secondaryLabel} (sin vehicleSnapshot)
-  ///     Compatible con el contrato de RcQuoteRequestPage.
+  /// Todos los códigos documentales abren la página de detalle correspondiente.
+  /// El detalle es el puente canónico al flujo de resolución cuando existe:
+  ///   soat*                → /asset/insurance/soat   (PENDIENTE: flujo SOAT)
+  ///   rtm*                 → /asset/rtm/detail       (PENDIENTE: flujo RTM)
+  ///   rcContractual*       → /asset/insurance/rc     (PENDIENTE: flujo RC-C)
+  ///   rcExtracontractual*  → /asset/insurance/rc     (SegurosRcDetailPage)
+  ///     El Upsell Card de esa page abre /insurance/rc/quote/request con el
+  ///     VehicleSnapshot hidratado por AssetDetailRuntController.
+  ///   legal*               → /asset/legal            (PENDIENTE: flujo legal)
   ///
-  /// INFORMATIVO hoy (página de detalle — flujo de resolución pendiente):
-  ///   soat*         → /asset/insurance/soat  (PENDIENTE: flujo cotización SOAT)
-  ///   rtm*          → /asset/rtm/detail      (PENDIENTE: flujo servicio RTM)
-  ///   rcContractual → /asset/insurance/rc    (PENDIENTE: flujo RC contractual)
-  ///   legal*        → /asset/legal           (PENDIENTE: flujo legal)
+  /// Arguments pasados por AlertCenterPage / FleetAlertDetailPage:
+  ///   {assetId, primaryLabel, secondaryLabel}
+  /// Formato compatible con el entry-point Map de cada page de detalle.
   ///
   /// Null solo si [_resolveActionLabel] retorna null.
   static String? _resolveActionRoute(AlertCode code, String sourceEntityId) =>
@@ -301,14 +316,13 @@ abstract final class DomainAlertMapper {
         AlertCode.rcContractualMissing =>
           '/asset/insurance/rc',
 
-        // OPERATIVO — flujo SRCE activo
-        // Arguments pasados por AlertCenterPage y FleetAlertDetailPage:
-        //   {assetId, primaryLabel, secondaryLabel} — compatibles con RcQuoteRequestPage
+        // INFORMATIVO — abre SegurosRcDetailPage (puente al flujo SRCE vía Upsell).
+        // Arguments compatibles con el entry-point Map de SegurosRcDetailPage.
         AlertCode.rcExtracontractualExpired ||
         AlertCode.rcExtracontractualDueSoon ||
         AlertCode.rcExtracontractualMissing ||
         AlertCode.rcExtracontractualOpportunity =>
-          '/insurance/rc/quote/request',
+          '/asset/insurance/rc',
 
         // INFORMATIVO — detalle legal (pendiente flujo acompañamiento)
         AlertCode.embargoActive ||

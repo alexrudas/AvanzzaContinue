@@ -25,6 +25,15 @@ mixin _$OrganizationEntity {
   String? get nitOrTaxId; // NUEVO
   Map<String, dynamic>? get metadata;
 
+  /// Capacidades que el Workspace ofrece al mercado (provider/advisor/
+  /// broker/legal/insurer). Default seguro: lista vacía (workspace sin
+  /// oferta declarada al mercado, ej. workspace personal).
+  /// Aplicada `@CapabilityProfileListConverter()` para serialización
+  /// canónica de la lista; cada item debe cumplir el contrato estricto
+  /// de CapabilityProfile (kind discriminator + exactamente 1 spec poblada).
+  @CapabilityProfileListConverter()
+  List<CapabilityProfile> get capabilityProfiles;
+
   /// Contrato de acceso de la organización.
   /// Default seguro: deny-by-default (localOnly, sin IA, sin capacidades, 0 assets/members).
   OrganizationAccessContract get contract;
@@ -62,6 +71,8 @@ mixin _$OrganizationEntity {
             (identical(other.nitOrTaxId, nitOrTaxId) ||
                 other.nitOrTaxId == nitOrTaxId) &&
             const DeepCollectionEquality().equals(other.metadata, metadata) &&
+            const DeepCollectionEquality()
+                .equals(other.capabilityProfiles, capabilityProfiles) &&
             (identical(other.contract, contract) ||
                 other.contract == contract) &&
             (identical(other.isActive, isActive) ||
@@ -86,6 +97,7 @@ mixin _$OrganizationEntity {
       logoUrl,
       nitOrTaxId,
       const DeepCollectionEquality().hash(metadata),
+      const DeepCollectionEquality().hash(capabilityProfiles),
       contract,
       isActive,
       createdAt,
@@ -93,7 +105,7 @@ mixin _$OrganizationEntity {
 
   @override
   String toString() {
-    return 'OrganizationEntity(id: $id, nombre: $nombre, tipo: $tipo, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerUid: $ownerUid, logoUrl: $logoUrl, nitOrTaxId: $nitOrTaxId, metadata: $metadata, contract: $contract, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'OrganizationEntity(id: $id, nombre: $nombre, tipo: $tipo, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerUid: $ownerUid, logoUrl: $logoUrl, nitOrTaxId: $nitOrTaxId, metadata: $metadata, capabilityProfiles: $capabilityProfiles, contract: $contract, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -114,6 +126,8 @@ abstract mixin class $OrganizationEntityCopyWith<$Res> {
       String? logoUrl,
       String? nitOrTaxId,
       Map<String, dynamic>? metadata,
+      @CapabilityProfileListConverter()
+      List<CapabilityProfile> capabilityProfiles,
       OrganizationAccessContract contract,
       bool isActive,
       DateTime? createdAt,
@@ -145,6 +159,7 @@ class _$OrganizationEntityCopyWithImpl<$Res>
     Object? logoUrl = freezed,
     Object? nitOrTaxId = freezed,
     Object? metadata = freezed,
+    Object? capabilityProfiles = null,
     Object? contract = null,
     Object? isActive = null,
     Object? createdAt = freezed,
@@ -191,6 +206,10 @@ class _$OrganizationEntityCopyWithImpl<$Res>
           ? _self.metadata
           : metadata // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>?,
+      capabilityProfiles: null == capabilityProfiles
+          ? _self.capabilityProfiles
+          : capabilityProfiles // ignore: cast_nullable_to_non_nullable
+              as List<CapabilityProfile>,
       contract: null == contract
           ? _self.contract
           : contract // ignore: cast_nullable_to_non_nullable
@@ -325,6 +344,8 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             String? logoUrl,
             String? nitOrTaxId,
             Map<String, dynamic>? metadata,
+            @CapabilityProfileListConverter()
+            List<CapabilityProfile> capabilityProfiles,
             OrganizationAccessContract contract,
             bool isActive,
             DateTime? createdAt,
@@ -346,6 +367,7 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             _that.logoUrl,
             _that.nitOrTaxId,
             _that.metadata,
+            _that.capabilityProfiles,
             _that.contract,
             _that.isActive,
             _that.createdAt,
@@ -381,6 +403,8 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             String? logoUrl,
             String? nitOrTaxId,
             Map<String, dynamic>? metadata,
+            @CapabilityProfileListConverter()
+            List<CapabilityProfile> capabilityProfiles,
             OrganizationAccessContract contract,
             bool isActive,
             DateTime? createdAt,
@@ -401,6 +425,7 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             _that.logoUrl,
             _that.nitOrTaxId,
             _that.metadata,
+            _that.capabilityProfiles,
             _that.contract,
             _that.isActive,
             _that.createdAt,
@@ -435,6 +460,8 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             String? logoUrl,
             String? nitOrTaxId,
             Map<String, dynamic>? metadata,
+            @CapabilityProfileListConverter()
+            List<CapabilityProfile> capabilityProfiles,
             OrganizationAccessContract contract,
             bool isActive,
             DateTime? createdAt,
@@ -455,6 +482,7 @@ extension OrganizationEntityPatterns on OrganizationEntity {
             _that.logoUrl,
             _that.nitOrTaxId,
             _that.metadata,
+            _that.capabilityProfiles,
             _that.contract,
             _that.isActive,
             _that.createdAt,
@@ -479,11 +507,15 @@ class _OrganizationEntity implements OrganizationEntity {
       this.logoUrl,
       this.nitOrTaxId,
       final Map<String, dynamic>? metadata,
+      @CapabilityProfileListConverter()
+      final List<CapabilityProfile> capabilityProfiles =
+          const <CapabilityProfile>[],
       this.contract = const OrganizationAccessContract(),
       this.isActive = true,
       this.createdAt,
       this.updatedAt})
-      : _metadata = metadata;
+      : _metadata = metadata,
+        _capabilityProfiles = capabilityProfiles;
   factory _OrganizationEntity.fromJson(Map<String, dynamic> json) =>
       _$OrganizationEntityFromJson(json);
 
@@ -516,6 +548,30 @@ class _OrganizationEntity implements OrganizationEntity {
     if (_metadata is EqualUnmodifiableMapView) return _metadata;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableMapView(value);
+  }
+
+  /// Capacidades que el Workspace ofrece al mercado (provider/advisor/
+  /// broker/legal/insurer). Default seguro: lista vacía (workspace sin
+  /// oferta declarada al mercado, ej. workspace personal).
+  /// Aplicada `@CapabilityProfileListConverter()` para serialización
+  /// canónica de la lista; cada item debe cumplir el contrato estricto
+  /// de CapabilityProfile (kind discriminator + exactamente 1 spec poblada).
+  final List<CapabilityProfile> _capabilityProfiles;
+
+  /// Capacidades que el Workspace ofrece al mercado (provider/advisor/
+  /// broker/legal/insurer). Default seguro: lista vacía (workspace sin
+  /// oferta declarada al mercado, ej. workspace personal).
+  /// Aplicada `@CapabilityProfileListConverter()` para serialización
+  /// canónica de la lista; cada item debe cumplir el contrato estricto
+  /// de CapabilityProfile (kind discriminator + exactamente 1 spec poblada).
+  @override
+  @JsonKey()
+  @CapabilityProfileListConverter()
+  List<CapabilityProfile> get capabilityProfiles {
+    if (_capabilityProfiles is EqualUnmodifiableListView)
+      return _capabilityProfiles;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_capabilityProfiles);
   }
 
   /// Contrato de acceso de la organización.
@@ -565,6 +621,8 @@ class _OrganizationEntity implements OrganizationEntity {
             (identical(other.nitOrTaxId, nitOrTaxId) ||
                 other.nitOrTaxId == nitOrTaxId) &&
             const DeepCollectionEquality().equals(other._metadata, _metadata) &&
+            const DeepCollectionEquality()
+                .equals(other._capabilityProfiles, _capabilityProfiles) &&
             (identical(other.contract, contract) ||
                 other.contract == contract) &&
             (identical(other.isActive, isActive) ||
@@ -589,6 +647,7 @@ class _OrganizationEntity implements OrganizationEntity {
       logoUrl,
       nitOrTaxId,
       const DeepCollectionEquality().hash(_metadata),
+      const DeepCollectionEquality().hash(_capabilityProfiles),
       contract,
       isActive,
       createdAt,
@@ -596,7 +655,7 @@ class _OrganizationEntity implements OrganizationEntity {
 
   @override
   String toString() {
-    return 'OrganizationEntity(id: $id, nombre: $nombre, tipo: $tipo, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerUid: $ownerUid, logoUrl: $logoUrl, nitOrTaxId: $nitOrTaxId, metadata: $metadata, contract: $contract, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'OrganizationEntity(id: $id, nombre: $nombre, tipo: $tipo, countryId: $countryId, regionId: $regionId, cityId: $cityId, ownerUid: $ownerUid, logoUrl: $logoUrl, nitOrTaxId: $nitOrTaxId, metadata: $metadata, capabilityProfiles: $capabilityProfiles, contract: $contract, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -619,6 +678,8 @@ abstract mixin class _$OrganizationEntityCopyWith<$Res>
       String? logoUrl,
       String? nitOrTaxId,
       Map<String, dynamic>? metadata,
+      @CapabilityProfileListConverter()
+      List<CapabilityProfile> capabilityProfiles,
       OrganizationAccessContract contract,
       bool isActive,
       DateTime? createdAt,
@@ -651,6 +712,7 @@ class __$OrganizationEntityCopyWithImpl<$Res>
     Object? logoUrl = freezed,
     Object? nitOrTaxId = freezed,
     Object? metadata = freezed,
+    Object? capabilityProfiles = null,
     Object? contract = null,
     Object? isActive = null,
     Object? createdAt = freezed,
@@ -697,6 +759,10 @@ class __$OrganizationEntityCopyWithImpl<$Res>
           ? _self._metadata
           : metadata // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>?,
+      capabilityProfiles: null == capabilityProfiles
+          ? _self._capabilityProfiles
+          : capabilityProfiles // ignore: cast_nullable_to_non_nullable
+              as List<CapabilityProfile>,
       contract: null == contract
           ? _self.contract
           : contract // ignore: cast_nullable_to_non_nullable

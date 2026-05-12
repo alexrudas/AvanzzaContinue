@@ -44,10 +44,8 @@
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 
-import '../../../core/config/api_endpoints.dart';
 import '../../../core/di/container.dart';
 import '../../../data/gateways/runt_async_query_gateway_impl.dart';
-import '../../../data/remote/interceptors/api_key_interceptor.dart';
 import '../../../data/runt/runt_query_service.dart';
 import '../../../domain/repositories/asset_registration_draft_repository.dart';
 import '../../controllers/runt/runt_query_controller.dart';
@@ -59,15 +57,10 @@ class RuntQueryBinding extends Bindings {
     // Infraestructura HTTP
     // ─────────────────────────────────────────────────────────────────────────
     //
-    // Servicio concreto de consulta RUNT basada en jobs.
-    // Vive dentro del scope de este binding porque es específico del wizard.
+    // RuntQueryService reutiliza el Dio tag:'integrations' registrado por
+    // el container global. Sin Dios ad-hoc ni baseUrl inyectado.
     Get.lazyPut<RuntQueryService>(
-      () => RuntQueryService(
-        // Instancia Dio aislada con X-API-Key — NO usa el Dio global para
-        // evitar contaminar otras requests de la app con este header.
-        Dio()..interceptors.add(ApiKeyInterceptor()),
-        baseUrl: ApiEndpoints.runtBaseUrl,
-      ),
+      () => RuntQueryService(Get.find<Dio>(tag: 'integrations')),
     );
 
     // ─────────────────────────────────────────────────────────────────────────

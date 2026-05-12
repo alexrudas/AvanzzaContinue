@@ -80,11 +80,16 @@ class _SelectRolePageState extends State<SelectRolePage> {
                       final role = _role!;
                       await _reg.setRole(role);
 
-                      if (role == 'proveedor') {
-                        // Proveedor sigue el wizard de segmentación
-                        Get.toNamed(Routes.providerProfile);
-                        return;
-                      }
+                      // CORRECCIÓN MF1 (2026-04-27):
+                      //   El legacy provider profile queda reemplazado.
+                      //   En este flujo de exploración pre-registro,
+                      //   proveedor sigue el mismo camino que los demás
+                      //   roles (Routes.home). Cuando el user complete
+                      //   registro y tenga workspace, el
+                      //   `ProviderBootstrapGate` (MF1) que envuelve los
+                      //   workspace shells `supplier`/`workshop` lo
+                      //   redirige al wizard `/provider/bootstrap`
+                      //   automáticamente.
 
                       // Aseguradora y Asesor de seguros usan providerType 'articulos'
                       if (role == 'aseguradora' || role == 'asesor_seguros') {
@@ -96,7 +101,15 @@ class _SelectRolePageState extends State<SelectRolePage> {
                         await _reg.setProviderType('servicios');
                       }
 
-                      // Entrar a workspace sin registrarse (exploración)
+                      // Log de continuidad (contrato MF1).
+                      debugPrint(
+                        '[AuthRoleSelection] continue tapped (explore) '
+                        'selectedUserType=${_reg.titularType.value} '
+                        'selectedRole=$role '
+                        'targetRoute=${Routes.home}',
+                      );
+
+                      // Entrar a workspace sin registrarse (exploración).
                       Get.offAllNamed(Routes.home);
                     },
               child: const Text('Continuar'),

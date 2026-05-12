@@ -57,6 +57,33 @@ abstract class PurchaseRequestDeliveryEntity
       _$PurchaseRequestDeliveryEntityFromJson(json);
 }
 
+/// Snapshot de VehicleSpec dentro de una PurchaseRequest leída.
+///
+/// Este bloque solo se puebla para pedidos de inventario/stock cuyo target es
+/// una especificación de vehículo derivada del parque real del workspace.
+/// Vive solo en la cache local (el backend canónico aún no lo conoce); sirve
+/// para que la UI de detalle pueda seguir mostrando contexto offline.
+@freezed
+abstract class PurchaseRequestVehicleSpecSnapshot
+    with _$PurchaseRequestVehicleSpecSnapshot {
+  const factory PurchaseRequestVehicleSpecSnapshot({
+    required String vehicleSpecId,
+    required String displayLabel,
+    required String make,
+    required String model,
+    required int year,
+    String? version,
+    String? motorization,
+    int? engineDisplacementCc,
+    String? transmission,
+    int? linkedAssetsCountSnapshot,
+  }) = _PurchaseRequestVehicleSpecSnapshot;
+
+  factory PurchaseRequestVehicleSpecSnapshot.fromJson(
+          Map<String, dynamic> json) =>
+      _$PurchaseRequestVehicleSpecSnapshotFromJson(json);
+}
+
 @freezed
 abstract class PurchaseRequestEntity with _$PurchaseRequestEntity {
   const factory PurchaseRequestEntity({
@@ -83,6 +110,10 @@ abstract class PurchaseRequestEntity with _$PurchaseRequestEntity {
     @Default(0) int respuestasCount,
     DateTime? createdAt,
     DateTime? updatedAt,
+
+    /// Target opcional: VehicleSpec snapshot cuando el pedido fue para
+    /// inventario/stock de un grupo marca/modelo/año.
+    PurchaseRequestVehicleSpecSnapshot? vehicleSpec,
   }) = _PurchaseRequestEntity;
 
   factory PurchaseRequestEntity.fromJson(Map<String, dynamic> json) =>

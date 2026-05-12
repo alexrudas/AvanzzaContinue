@@ -28,6 +28,27 @@ LocalContactRemoteDto _$LocalContactRemoteDtoFromJson(
       deletedAt: json['deletedAt'] == null
           ? null
           : DateTime.parse(json['deletedAt'] as String),
+      supplierTypeWire: json['supplierTypeWire'] as String?,
+      categories: (json['categories'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[],
+      countryId: json['countryId'] as String?,
+      regionId: json['regionId'] as String?,
+      cityId: json['cityId'] as String?,
+      addressLine: json['addressLine'] as String?,
+      secondaryPhoneE164: json['secondaryPhoneE164'] as String?,
+      website: json['website'] as String?,
+      coverageCityIds: (json['coverageCityIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[],
+      coverageAllCountry: json['coverageAllCountry'] as bool? ?? false,
+      additionalBranches: (json['additionalBranches'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProviderBranchEntity.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <ProviderBranchEntity>[],
     );
 
 Map<String, dynamic> _$LocalContactRemoteDtoToJson(
@@ -47,4 +68,16 @@ Map<String, dynamic> _$LocalContactRemoteDtoToJson(
       'snapshotAdoptedAt': instance.snapshotAdoptedAt?.toIso8601String(),
       'isDeleted': instance.isDeleted,
       'deletedAt': instance.deletedAt?.toIso8601String(),
+      'supplierTypeWire': instance.supplierTypeWire,
+      'categories': instance.categories,
+      'countryId': instance.countryId,
+      'regionId': instance.regionId,
+      'cityId': instance.cityId,
+      'addressLine': instance.addressLine,
+      'secondaryPhoneE164': instance.secondaryPhoneE164,
+      'website': instance.website,
+      'coverageCityIds': instance.coverageCityIds,
+      'coverageAllCountry': instance.coverageAllCountry,
+      'additionalBranches':
+          instance.additionalBranches.map((e) => e.toJson()).toList(),
     };

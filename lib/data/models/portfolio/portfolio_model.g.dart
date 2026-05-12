@@ -42,98 +42,103 @@ const PortfolioModelSchema = CollectionSchema(
       name: r'createdBy',
       type: IsarType.string,
     ),
-    r'id': PropertySchema(
+    r'expectedRelationKindWire': PropertySchema(
       id: 5,
+      name: r'expectedRelationKindWire',
+      type: IsarType.string,
+    ),
+    r'id': PropertySchema(
+      id: 6,
       name: r'id',
       type: IsarType.string,
     ),
     r'licenseCheckedAt': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'licenseCheckedAt',
       type: IsarType.dateTime,
     ),
     r'licenseExpiryDate': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'licenseExpiryDate',
       type: IsarType.string,
     ),
     r'licenseStatus': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'licenseStatus',
       type: IsarType.string,
     ),
     r'orgId': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'orgId',
       type: IsarType.string,
     ),
     r'ownerDocument': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'ownerDocument',
       type: IsarType.string,
     ),
     r'ownerDocumentType': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'ownerDocumentType',
       type: IsarType.string,
     ),
     r'ownerName': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'ownerName',
       type: IsarType.string,
     ),
     r'portfolioName': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'portfolioName',
       type: IsarType.string,
     ),
     r'portfolioType': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'portfolioType',
       type: IsarType.string,
     ),
     r'simitCheckedAt': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'simitCheckedAt',
       type: IsarType.dateTime,
     ),
     r'simitComparendosCount': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'simitComparendosCount',
       type: IsarType.long,
     ),
     r'simitDetailJson': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'simitDetailJson',
       type: IsarType.string,
     ),
     r'simitFinesCount': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'simitFinesCount',
       type: IsarType.long,
     ),
     r'simitFormattedTotal': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'simitFormattedTotal',
       type: IsarType.string,
     ),
     r'simitHasFines': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'simitHasFines',
       type: IsarType.bool,
     ),
     r'simitMultasCount': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'simitMultasCount',
       type: IsarType.long,
     ),
     r'status': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'status',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 23,
+      id: 24,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -232,6 +237,12 @@ int _portfolioModelEstimateSize(
   bytesCount += 3 + object.cityId.length * 3;
   bytesCount += 3 + object.countryId.length * 3;
   bytesCount += 3 + object.createdBy.length * 3;
+  {
+    final value = object.expectedRelationKindWire;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.id.length * 3;
   {
     final value = object.licenseExpiryDate;
@@ -293,25 +304,26 @@ void _portfolioModelSerialize(
   writer.writeString(offsets[2], object.countryId);
   writer.writeDateTime(offsets[3], object.createdAt);
   writer.writeString(offsets[4], object.createdBy);
-  writer.writeString(offsets[5], object.id);
-  writer.writeDateTime(offsets[6], object.licenseCheckedAt);
-  writer.writeString(offsets[7], object.licenseExpiryDate);
-  writer.writeString(offsets[8], object.licenseStatus);
-  writer.writeString(offsets[9], object.orgId);
-  writer.writeString(offsets[10], object.ownerDocument);
-  writer.writeString(offsets[11], object.ownerDocumentType);
-  writer.writeString(offsets[12], object.ownerName);
-  writer.writeString(offsets[13], object.portfolioName);
-  writer.writeString(offsets[14], object.portfolioType);
-  writer.writeDateTime(offsets[15], object.simitCheckedAt);
-  writer.writeLong(offsets[16], object.simitComparendosCount);
-  writer.writeString(offsets[17], object.simitDetailJson);
-  writer.writeLong(offsets[18], object.simitFinesCount);
-  writer.writeString(offsets[19], object.simitFormattedTotal);
-  writer.writeBool(offsets[20], object.simitHasFines);
-  writer.writeLong(offsets[21], object.simitMultasCount);
-  writer.writeString(offsets[22], object.status);
-  writer.writeDateTime(offsets[23], object.updatedAt);
+  writer.writeString(offsets[5], object.expectedRelationKindWire);
+  writer.writeString(offsets[6], object.id);
+  writer.writeDateTime(offsets[7], object.licenseCheckedAt);
+  writer.writeString(offsets[8], object.licenseExpiryDate);
+  writer.writeString(offsets[9], object.licenseStatus);
+  writer.writeString(offsets[10], object.orgId);
+  writer.writeString(offsets[11], object.ownerDocument);
+  writer.writeString(offsets[12], object.ownerDocumentType);
+  writer.writeString(offsets[13], object.ownerName);
+  writer.writeString(offsets[14], object.portfolioName);
+  writer.writeString(offsets[15], object.portfolioType);
+  writer.writeDateTime(offsets[16], object.simitCheckedAt);
+  writer.writeLong(offsets[17], object.simitComparendosCount);
+  writer.writeString(offsets[18], object.simitDetailJson);
+  writer.writeLong(offsets[19], object.simitFinesCount);
+  writer.writeString(offsets[20], object.simitFormattedTotal);
+  writer.writeBool(offsets[21], object.simitHasFines);
+  writer.writeLong(offsets[22], object.simitMultasCount);
+  writer.writeString(offsets[23], object.status);
+  writer.writeDateTime(offsets[24], object.updatedAt);
 }
 
 PortfolioModel _portfolioModelDeserialize(
@@ -326,26 +338,27 @@ PortfolioModel _portfolioModelDeserialize(
     countryId: reader.readString(offsets[2]),
     createdAt: reader.readDateTimeOrNull(offsets[3]),
     createdBy: reader.readString(offsets[4]),
-    id: reader.readString(offsets[5]),
+    expectedRelationKindWire: reader.readStringOrNull(offsets[5]),
+    id: reader.readString(offsets[6]),
     isarId: id,
-    licenseCheckedAt: reader.readDateTimeOrNull(offsets[6]),
-    licenseExpiryDate: reader.readStringOrNull(offsets[7]),
-    licenseStatus: reader.readStringOrNull(offsets[8]),
-    orgId: reader.readStringOrNull(offsets[9]) ?? '',
-    ownerDocument: reader.readStringOrNull(offsets[10]),
-    ownerDocumentType: reader.readStringOrNull(offsets[11]),
-    ownerName: reader.readStringOrNull(offsets[12]),
-    portfolioName: reader.readString(offsets[13]),
-    portfolioType: reader.readString(offsets[14]),
-    simitCheckedAt: reader.readDateTimeOrNull(offsets[15]),
-    simitComparendosCount: reader.readLongOrNull(offsets[16]),
-    simitDetailJson: reader.readStringOrNull(offsets[17]),
-    simitFinesCount: reader.readLongOrNull(offsets[18]),
-    simitFormattedTotal: reader.readStringOrNull(offsets[19]),
-    simitHasFines: reader.readBoolOrNull(offsets[20]),
-    simitMultasCount: reader.readLongOrNull(offsets[21]),
-    status: reader.readString(offsets[22]),
-    updatedAt: reader.readDateTimeOrNull(offsets[23]),
+    licenseCheckedAt: reader.readDateTimeOrNull(offsets[7]),
+    licenseExpiryDate: reader.readStringOrNull(offsets[8]),
+    licenseStatus: reader.readStringOrNull(offsets[9]),
+    orgId: reader.readStringOrNull(offsets[10]) ?? '',
+    ownerDocument: reader.readStringOrNull(offsets[11]),
+    ownerDocumentType: reader.readStringOrNull(offsets[12]),
+    ownerName: reader.readStringOrNull(offsets[13]),
+    portfolioName: reader.readString(offsets[14]),
+    portfolioType: reader.readString(offsets[15]),
+    simitCheckedAt: reader.readDateTimeOrNull(offsets[16]),
+    simitComparendosCount: reader.readLongOrNull(offsets[17]),
+    simitDetailJson: reader.readStringOrNull(offsets[18]),
+    simitFinesCount: reader.readLongOrNull(offsets[19]),
+    simitFormattedTotal: reader.readStringOrNull(offsets[20]),
+    simitHasFines: reader.readBoolOrNull(offsets[21]),
+    simitMultasCount: reader.readLongOrNull(offsets[22]),
+    status: reader.readString(offsets[23]),
+    updatedAt: reader.readDateTimeOrNull(offsets[24]),
   );
   return object;
 }
@@ -368,42 +381,44 @@ P _portfolioModelDeserializeProp<P>(
     case 4:
       return (reader.readString(offset)) as P;
     case 5:
-      return (reader.readString(offset)) as P;
-    case 6:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 7:
       return (reader.readStringOrNull(offset)) as P;
+    case 6:
+      return (reader.readString(offset)) as P;
+    case 7:
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readStringOrNull(offset) ?? '') as P;
-    case 10:
       return (reader.readStringOrNull(offset)) as P;
+    case 10:
+      return (reader.readStringOrNull(offset) ?? '') as P;
     case 11:
       return (reader.readStringOrNull(offset)) as P;
     case 12:
       return (reader.readStringOrNull(offset)) as P;
     case 13:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 14:
       return (reader.readString(offset)) as P;
     case 15:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 16:
-      return (reader.readLongOrNull(offset)) as P;
-    case 17:
-      return (reader.readStringOrNull(offset)) as P;
-    case 18:
-      return (reader.readLongOrNull(offset)) as P;
-    case 19:
-      return (reader.readStringOrNull(offset)) as P;
-    case 20:
-      return (reader.readBoolOrNull(offset)) as P;
-    case 21:
-      return (reader.readLongOrNull(offset)) as P;
-    case 22:
       return (reader.readString(offset)) as P;
+    case 16:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 17:
+      return (reader.readLongOrNull(offset)) as P;
+    case 18:
+      return (reader.readStringOrNull(offset)) as P;
+    case 19:
+      return (reader.readLongOrNull(offset)) as P;
+    case 20:
+      return (reader.readStringOrNull(offset)) as P;
+    case 21:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 22:
+      return (reader.readLongOrNull(offset)) as P;
     case 23:
+      return (reader.readString(offset)) as P;
+    case 24:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1362,6 +1377,162 @@ extension PortfolioModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'createdBy',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      expectedRelationKindWireIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'expectedRelationKindWire',
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      expectedRelationKindWireIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'expectedRelationKindWire',
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      expectedRelationKindWireEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'expectedRelationKindWire',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      expectedRelationKindWireGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'expectedRelationKindWire',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      expectedRelationKindWireLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'expectedRelationKindWire',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      expectedRelationKindWireBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'expectedRelationKindWire',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      expectedRelationKindWireStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'expectedRelationKindWire',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      expectedRelationKindWireEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'expectedRelationKindWire',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      expectedRelationKindWireContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'expectedRelationKindWire',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      expectedRelationKindWireMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'expectedRelationKindWire',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      expectedRelationKindWireIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'expectedRelationKindWire',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterFilterCondition>
+      expectedRelationKindWireIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'expectedRelationKindWire',
         value: '',
       ));
     });
@@ -3745,6 +3916,20 @@ extension PortfolioModelQuerySortBy
     });
   }
 
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy>
+      sortByExpectedRelationKindWire() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'expectedRelationKindWire', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy>
+      sortByExpectedRelationKindWireDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'expectedRelationKindWire', Sort.desc);
+    });
+  }
+
   QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy> sortById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -4073,6 +4258,20 @@ extension PortfolioModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy>
+      thenByExpectedRelationKindWire() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'expectedRelationKindWire', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy>
+      thenByExpectedRelationKindWireDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'expectedRelationKindWire', Sort.desc);
+    });
+  }
+
   QueryBuilder<PortfolioModel, PortfolioModel, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -4383,6 +4582,14 @@ extension PortfolioModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<PortfolioModel, PortfolioModel, QDistinct>
+      distinctByExpectedRelationKindWire({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'expectedRelationKindWire',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<PortfolioModel, PortfolioModel, QDistinct> distinctById(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -4564,6 +4771,13 @@ extension PortfolioModelQueryProperty
     });
   }
 
+  QueryBuilder<PortfolioModel, String?, QQueryOperations>
+      expectedRelationKindWireProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'expectedRelationKindWire');
+    });
+  }
+
   QueryBuilder<PortfolioModel, String, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
@@ -4733,6 +4947,7 @@ PortfolioModel _$PortfolioModelFromJson(Map<String, dynamic> json) =>
           ? null
           : DateTime.parse(json['licenseCheckedAt'] as String),
       simitDetailJson: json['simitDetailJson'] as String?,
+      expectedRelationKindWire: json['expectedRelationKindWire'] as String?,
     );
 
 Map<String, dynamic> _$PortfolioModelToJson(PortfolioModel instance) =>
@@ -4762,4 +4977,5 @@ Map<String, dynamic> _$PortfolioModelToJson(PortfolioModel instance) =>
       'simitCheckedAt': instance.simitCheckedAt?.toIso8601String(),
       'licenseCheckedAt': instance.licenseCheckedAt?.toIso8601String(),
       'simitDetailJson': instance.simitDetailJson,
+      'expectedRelationKindWire': instance.expectedRelationKindWire,
     };

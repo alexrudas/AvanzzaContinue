@@ -28,6 +28,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import '../../data/vrc/models/vrc_models.dart';
 import '../../domain/entities/integrations/runt_person.dart';
 import '../../domain/entities/integrations/simit_result.dart';
@@ -140,9 +142,16 @@ class OwnerRefreshService {
       );
 
       return RefreshSuccess(simitModel, now);
-    } on Exception catch (e) {
+    } catch (e, st) {
+      // DIAGNÓSTICO TEMPORAL: catch ampliado para atrapar Error (TypeError,
+      // NoSuchMethodError, etc.) además de Exception. Antes era `on Exception`
+      // y los Error se propagaban silenciosamente al await del caller, dejando
+      // _isRefreshing=true permanente en la UI.
+      if (kDebugMode) {
+        debugPrint('[REFRESH_SIMIT] caught (${e.runtimeType}): $e');
+        debugPrint('[REFRESH_SIMIT] stacktrace:\n$st');
+      }
       final msg = e.toString();
-      // Heurística: errores de Dio/HTTP son externos; el resto internos.
       final isExternal = msg.contains('DioException') ||
           msg.contains('SocketException') ||
           msg.contains('TimeoutException') ||
@@ -212,7 +221,12 @@ class OwnerRefreshService {
       );
 
       return RefreshSuccess(runtModel, now);
-    } on Exception catch (e) {
+    } catch (e, st) {
+      // Mismo patrón ampliado que _doRefreshSimit — atrapar Error junto a Exception.
+      if (kDebugMode) {
+        debugPrint('[REFRESH_LICENSE] caught (${e.runtimeType}): $e');
+        debugPrint('[REFRESH_LICENSE] stacktrace:\n$st');
+      }
       final msg = e.toString();
       final isExternal = msg.contains('DioException') ||
           msg.contains('SocketException') ||

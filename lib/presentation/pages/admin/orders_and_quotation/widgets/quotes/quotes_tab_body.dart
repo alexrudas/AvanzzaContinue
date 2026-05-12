@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:avanzza/presentation/controllers/admin/purchase/admin_purchase_controller.dart';
+import 'package:avanzza/presentation/widgets/purchase/asset_type_precontext_sheet.dart';
 import '../shared/section_header.dart';
 import '../orders/purchase_request_card.dart';
 import 'supplier_responses_sheet.dart';
@@ -65,7 +66,7 @@ class QuotesTabBody extends StatelessWidget {
           right: 16,
           bottom: 16,
           child: FloatingActionButton.extended(
-            onPressed: () => controller.createRequest(),
+            onPressed: () => startNewPurchaseRequestFlow(context),
             icon: const Icon(Icons.request_quote_outlined),
             label: const Text('Nueva cotización'),
           ),

@@ -10,23 +10,20 @@ import 'models/runt_vehicle_models.dart';
 
 /// Servicio HTTP para consumir la API del RUNT.
 ///
-/// Proporciona métodos para consultar:
-/// - Información de personas (conductores)
-/// - Información de vehículos
+/// QUÉ HACE:
+/// - Ejecuta llamadas síncronas directas a RUNT Persona y RUNT Vehículo
+///   del módulo Integrations.
 ///
-/// Este servicio NO maneja cache, solo realiza peticiones HTTP.
-/// El cache debe implementarse en la capa de repositorio.
+/// QUÉ NO HACE:
+/// - No construye baseUrl. El [Dio] inyectado ya trae origin; el service
+///   solo pasa el path absoluto con su prefijo (`/api/runt/...`).
+/// - No maneja cache — responsabilidad del repositorio.
 class RuntService {
   final Dio _dio;
-  final String baseUrl;
 
-  /// Constructor que recibe una instancia de Dio ya configurada.
-  ///
-  /// [_dio]: Cliente HTTP Dio con configuración de timeouts, interceptors, etc.
-  /// [baseUrl]: URL base de la API (ej: "https://api.example.com")
-  RuntService(this._dio, {required this.baseUrl}) {
-    print("[RuntService][baseUrl] $baseUrl");
-  }
+  /// Constructor. Recibe el [Dio] con baseUrl = origin de Integrations
+  /// (p.ej. `http://host`) y `ApiKeyInterceptor` ya configurados.
+  RuntService(this._dio);
 
   /// Consulta información de una persona en el RUNT por documento.
   Future<RuntPersonResponse> getPersonConsult({
@@ -34,10 +31,7 @@ class RuntService {
     required String documentType,
   }) async {
     try {
-      final url = '$baseUrl/runt/person/consult/$document/$documentType';
-
-      // 🔍 LOG ANTES DE ENVIAR REQUEST
-      print('[RUNT][HTTP][REQUEST] GET $url');
+      final url = '/api/runt/person/consult/$document/$documentType';
 
       // Realizar petición HTTP
       final response = await _dio.get(url);
@@ -63,12 +57,10 @@ class RuntService {
 
       return parsedResponse;
     } on DioException catch (e) {
-      print(e);
       throw _mapDioException(e, 'Persona');
     } on RuntApiException {
       rethrow;
     } catch (e) {
-      print(e);
       throw RuntApiException.parsing(
         'Error inesperado al procesar respuesta RUNT Persona',
         originalError: e,
@@ -85,10 +77,7 @@ class RuntService {
   }) async {
     try {
       final url =
-          '$baseUrl/runt/vehicle/$portalType/$plate/$ownerDocument/$ownerDocumentType';
-
-      // 🔍 LOG ANTES DE ENVIAR REQUEST
-      print('[RUNT][HTTP][REQUEST] GET $url');
+          '/api/runt/vehicle/$portalType/$plate/$ownerDocument/$ownerDocumentType';
 
       // Realizar petición HTTP
       final response = await _dio.get(url);
@@ -114,12 +103,10 @@ class RuntService {
 
       return parsedResponse;
     } on DioException catch (e) {
-      print(e);
       throw _mapDioException(e, 'Vehículo');
     } on RuntApiException {
       rethrow;
     } catch (e) {
-      print(e);
       throw RuntApiException.parsing(
         'Error inesperado al procesar respuesta RUNT Vehículo',
         originalError: e,

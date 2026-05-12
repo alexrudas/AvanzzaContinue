@@ -407,6 +407,14 @@ class _PortfolioAssetLivePageState extends State<PortfolioAssetLivePage> {
     // un batch fallido puede no tener ownerData válido y sobrescribiría datos buenos.
     // _ownerSnapshotPersisted actúa como guard: una sola escritura por sesión.
     _overallStatusWorker = ever(_batchCtrl.overallStatus, (String status) {
+      if (kDebugMode) {
+        debugPrint(
+          '[LIVE_PAGE] overallStatus=$status '
+          'persisted=$_ownerSnapshotPersisted '
+          'ownerDataNull=${_batchCtrl.ownerData.value == null} '
+          'ownerNull=${_batchCtrl.ownerData.value?.owner == null}',
+        );
+      }
       if (!_ownerSnapshotPersisted &&
           (status == 'completed' || status == 'partially_completed')) {
         _persistOwnerSnapshot();
@@ -513,10 +521,23 @@ class _PortfolioAssetLivePageState extends State<PortfolioAssetLivePage> {
   /// después siempre lee el status correcto (ACTIVE si ya corrió
   /// incrementAssetsCountTx). Nunca puede sobreescribir ACTIVE con DRAFT.
   Future<void> _persistOwnerSnapshot() async {
-    if (_ownerSnapshotPersisted) return;
+    if (_ownerSnapshotPersisted) {
+      if (kDebugMode) {
+        debugPrint('[LIVE_PAGE] ⏭ persist skipped — ya persistido');
+      }
+      return;
+    }
 
     final owner = _batchCtrl.ownerData.value?.owner;
-    if (owner == null) return; // Sin propietario identificado — no persistir
+    if (owner == null) {
+      if (kDebugMode) {
+        debugPrint(
+          '[LIVE_PAGE] ⏭ persist skipped — owner null '
+          '(ownerData=${_batchCtrl.ownerData.value != null})',
+        );
+      }
+      return; // Sin propietario identificado — no persistir
+    }
 
     // Marcar antes del await para evitar concurrencia si ever() dispara de nuevo.
     _ownerSnapshotPersisted = true;
@@ -535,6 +556,33 @@ class _PortfolioAssetLivePageState extends State<PortfolioAssetLivePage> {
     final String? simitBlob =
         simitModel != null ? jsonEncode(simitModel.toJson()) : null;
 
+    // ── Detección "consulta exitosa sin obligaciones" (Fix A) ───────────────
+    // Contrato backend: `simit:{ summary:null, fines:[] }` y también
+    // `simit:{ summary:{hasFines:null, comparendos:0, multas:0}, fines:[] }`
+    // representan CONSULTA EXITOSA con cero obligaciones, NO ausencia de
+    // consulta. Antes ambos patrones colapsaban a `simitHasFines:null` y la
+    // card mostraba "Consultar SIMIT" aunque el VRC ya hubiera scrapeado.
+    //
+    // `simitConsultedEmpty` = SIMIT consultado y SIN obligaciones reales:
+    //   - simitModel presente (hubo respuesta del backend)
+    //   - fines[] vacío
+    //   - counters de comparendos y multas son 0 o null
+    //   - hasFines no es true (puede ser null o false)
+    //
+    // En ese caso forzamos los escalares a sus valores neutros (false/0/$0)
+    // para que la UI distinga claramente:
+    //   simitHasFines == null  → "Consultar SIMIT" (no se consultó)
+    //   simitHasFines == false → "Sin multas" (consultado, sin obligaciones)
+    //   simitHasFines == true  → muestra total/conteo
+    final int? comparendosCount =
+        simit?.byType?.comparendos?.count ?? simit?.comparendos;
+    final int? multasCount = simit?.byType?.multas?.count ?? simit?.multas;
+    final bool simitConsultedEmpty = simitModel != null &&
+        simitModel.fines.isEmpty &&
+        (comparendosCount == null || comparendosCount == 0) &&
+        (multasCount == null || multasCount == 0) &&
+        simit?.hasFines != true;
+
     try {
       await DIContainer().portfolioRepository.updateOwnerSnapshot(
             _portfolioId,
@@ -543,13 +591,18 @@ class _PortfolioAssetLivePageState extends State<PortfolioAssetLivePage> {
             ownerDocumentType: owner.documentType,
             licenseStatus: licStatus,
             licenseExpiryDate: licExpiryDate,
-            simitHasFines: simit?.hasFines,
-            simitFinesCount: simit?.finesCount,
+            simitHasFines:
+                simit?.hasFines ?? (simitConsultedEmpty ? false : null),
+            simitFinesCount:
+                simit?.finesCount ?? (simitConsultedEmpty ? 0 : null),
             simitComparendosCount:
-                simit?.byType?.comparendos?.count ?? simit?.comparendos,
-            simitMultasCount: simit?.byType?.multas?.count ?? simit?.multas,
-            simitFormattedTotal: simit?.formattedTotal,
-            simitCheckedAt: _simitCheckedAt,
+                comparendosCount ?? (simitConsultedEmpty ? 0 : null),
+            simitMultasCount:
+                multasCount ?? (simitConsultedEmpty ? 0 : null),
+            simitFormattedTotal: simit?.formattedTotal ??
+                (simitConsultedEmpty ? '\$ 0' : null),
+            simitCheckedAt:
+                (simit != null || simitConsultedEmpty) ? _simitCheckedAt : null,
             licenseCheckedAt: _simitCheckedAt, // mismo timestamp del batch VRC
             simitDetailJson: simitBlob,
           );
@@ -567,13 +620,16 @@ class _PortfolioAssetLivePageState extends State<PortfolioAssetLivePage> {
       _portfolioRx.value = saved;
 
       if (kDebugMode) {
+        final persistedHasFines =
+            simit?.hasFines ?? (simitConsultedEmpty ? false : null);
         debugPrint(
           '[LIVE_PAGE] ✅ ownerSnapshot persistido — '
           'owner=${owner.name} license=$licStatus '
           'status=${saved?.status} '
-          'simitHasFines=${simit?.hasFines} '
-          'comparendos=${simit?.byType?.comparendos?.count ?? simit?.comparendos} '
-          'multas=${simit?.byType?.multas?.count ?? simit?.multas}',
+          'simitHasFines=$persistedHasFines '
+          '(raw=${simit?.hasFines}, consultedEmpty=$simitConsultedEmpty) '
+          'comparendos=${comparendosCount ?? 0} '
+          'multas=${multasCount ?? 0}',
         );
       }
     } catch (e) {
@@ -924,20 +980,34 @@ class _PortfolioAssetLivePageState extends State<PortfolioAssetLivePage> {
 
   /// Maneja el back del AppBar y el botón de sistema (Android).
   ///
-  /// Destino único: Home. Esta página no tiene un "atrás" legítimo — es un
-  /// punto terminal del flujo de registro batch. Home siempre es la pantalla
-  /// correcta después de finalizar (o abandonar) el batch.
+  /// Destino canónico: **Home** (`AppNavigator.goToHome` →
+  /// `Get.offAllNamed(Routes.home)` → HomeRouter → SplashBootstrapController
+  /// → workspaceShell admin).
+  ///
+  /// **Por qué Home y no `Routes.portfolioAssets` (la lista estática)**:
+  /// post-batch el usuario ya vio el modal "Registro finalizado" con el
+  /// resumen, y los activos registrados ya aparecen en ESTA misma página
+  /// (live page, vía StreamBuilder de Isar). La lista estática
+  /// `portfolio_asset_list_page` muestra exactamente los mismos activos
+  /// con el mismo título de portafolio — es vista redundante. Pasar por
+  /// ahí obliga al usuario a tocar back DOS veces para llegar al
+  /// workspace ("vuelve a la misma vista" — confusión UX confirmada).
+  ///
+  /// El round-trip por splash era preocupante en sesiones anteriores
+  /// porque el splash tenía gates defensivos (createPortfolio, profile,
+  /// countryCity) que podían rebotar al wizard legacy. Esos gates fueron
+  /// retirados (PostBootstrapRouter solo emite `providerMe` o
+  /// `workspaceShell`), así que el round-trip hoy es seguro.
   ///
   /// Comportamiento según el estado del batch:
   /// - Batch completado ([VrcBatchController.isTerminal] == true) → Home directo.
   /// - Batch en curso → diálogo de confirmación antes de salir.
   ///
-  /// [AppNavigator.goToHome] usa Get.offAllNamed, lo que dispara dispose() →
-  /// cancelPolling() + Get.delete<VrcBatchController>(force:true). La cadena
-  /// de limpieza existente funciona sin cambios adicionales.
+  /// `Get.offAllNamed` dispara dispose() → cancelPolling() +
+  /// Get.delete<VrcBatchController>(force:true). La cadena de limpieza
+  /// existente funciona sin cambios adicionales.
   Future<void> _handleBackNavigation() async {
     if (_batchCtrl.isTerminal) {
-      // Batch finalizado — no hay nada en curso que perder.
       AppNavigator.goToHome();
       return;
     }
@@ -1250,9 +1320,11 @@ class _OwnerHeader extends StatelessWidget {
                 child: _SimitCard(
                   summary: simitSummary,
                   checkedAt: simitCheckedAt,
-                  // Condición relajada: basta con que simit exista.
-                  // La página de detalle maneja el caso de summary null.
-                  onTap: (owner?.simit != null)
+                  // Tap depende de summary, no de owner.simit. Antes la card
+                  // podía mostrar "Sin información" pero permitir tap (porque
+                  // owner.simit existía con summary null) → navegaba a una
+                  // página vacía. Ahora display y tap se mueven juntos.
+                  onTap: (simitSummary != null)
                       ? () => Get.toNamed(
                             Routes.simitPersonDetail,
                             arguments: {
@@ -1491,18 +1563,37 @@ class _SimitCard extends StatelessWidget {
       );
     } else {
       final hasFines = summary!.hasFines ?? false;
-      // Valor total: preferir formattedTotal, luego formatear total numérico
-      final totalText = hasFines
-          ? (summary!.formattedTotal ??
-              (summary!.total != null ? _formatCop(summary!.total!) : null) ??
-              'Ver detalle')
-          : 'Sin multas';
 
-      // Conteo total de infracciones
+      // Conteo total de infracciones — calculado ANTES que totalText porque
+      // ahora es uno de los fallbacks cuando faltan total/formattedTotal.
       final finesCount = summary!.finesCount ??
           ((summary!.byType?.comparendos?.count ?? 0) +
               (summary!.byType?.multas?.count ?? 0) +
               (summary!.byType?.acuerdosDePago?.count ?? 0));
+
+      // Valor total: preferir formattedTotal → formatear total numérico →
+      // conteo de infracciones (cuando backend envió hasFines:true sin
+      // total) → "Ver multas" (último recurso, semánticamente más claro
+      // que el antiguo "Ver detalle" que parecía un botón).
+      final totalText = hasFines
+          ? (summary!.formattedTotal ??
+              (summary!.total != null ? _formatCop(summary!.total!) : null) ??
+              (finesCount > 0
+                  ? '$finesCount infracción${finesCount != 1 ? 'es' : ''}'
+                  : 'Ver multas'))
+          : 'Sin multas';
+
+      // Diagnóstico: alertar cuando llegan datos parciales (hasFines true
+      // pero total y formattedTotal null). Sólo en debug — no afecta prod.
+      if (kDebugMode &&
+          hasFines &&
+          summary!.formattedTotal == null &&
+          summary!.total == null) {
+        debugPrint(
+            '[SIMIT_CARD] datos parciales: hasFines=true, total=null, '
+            'formattedTotal=null, finesCount=${summary!.finesCount}');
+      }
+
       final countText = hasFines
           ? '$finesCount infraccion${finesCount != 1 ? 'es' : ''}'
           : null;
@@ -1743,7 +1834,8 @@ class _BatchStatusBar extends StatelessWidget {
 
   String _statusLabel(String status) => switch (status.toLowerCase()) {
         'queued' => 'En cola...',
-        'running' => total == 1 ? 'Consultando vehículo...' : 'Consultando vehículos...',
+        'running' =>
+          total == 1 ? 'Consultando vehículo...' : 'Consultando vehículos...',
         'completed' => 'Consulta completada',
         'partially_completed' => 'Consulta parcial',
         'failed' => 'Consulta fallida',

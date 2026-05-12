@@ -40,7 +40,7 @@ class IntegrationsRemoteDatasource {
     required String document,
     required String type,
   }) async {
-    final url = '/runt/person/consult/$document/$type';
+    final url = '/api/runt/person/consult/$document/$type';
 
     try {
       final response = await _dio.get<Map<String, dynamic>>(url);
@@ -70,6 +70,17 @@ class IntegrationsRemoteDatasource {
 
   // ── SIMIT Multas ───────────────────────────────────────────────────────────
 
+  /// Timeout dedicado para SIMIT — el scrape interactivo en el backend
+  /// (form + submit + waitForResults + Angular pintando) toma 45-55 s
+  /// consistentemente. Con el default de 30 s del Dio integrations, el
+  /// cliente abortaba antes de recibir respuesta y `OwnerRefreshService`
+  /// caía con timeout aunque el backend completara OK y poblara cache
+  /// Redis. 90 s da holgura sin tocar el timeout global.
+  ///
+  /// Mismo valor que `SimitService._simitReceiveTimeout` para el path
+  /// directo — los dos consumen el mismo endpoint backend.
+  static const Duration _simitReceiveTimeout = Duration(seconds: 90);
+
   /// Consulta las multas de una placa o documento en SIMIT.
   ///
   /// Endpoint: GET /simit/multas/:query
@@ -79,10 +90,13 @@ class IntegrationsRemoteDatasource {
   Future<SimitResultResponseModel> fetchSimit({
     required String query,
   }) async {
-    final url = '/simit/multas/$query';
+    final url = '/api/simit/multas/$query';
 
     try {
-      final response = await _dio.get<Map<String, dynamic>>(url);
+      final response = await _dio.get<Map<String, dynamic>>(
+        url,
+        options: Options(receiveTimeout: _simitReceiveTimeout),
+      );
 
       final data = response.data;
       if (data == null) {

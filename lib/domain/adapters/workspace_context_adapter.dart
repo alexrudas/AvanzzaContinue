@@ -124,14 +124,15 @@ class WorkspaceContextAdapter {
 
   /// Construye todos los [WorkspaceContext] disponibles a partir de memberships.
   ///
+  /// Fase 2 (KILL SWITCH ROL LEGACY): cada `Membership` ACTIVE produce un
+  /// único contexto de tipo `assetAdmin` (default canónico). NO se itera
+  /// `m.roles` ni se infiere tipo desde providerProfiles. La existencia del
+  /// shell de proveedor se decide aparte vía `ProviderContextStore.isProvider`
+  /// (resuelto desde `GET /v1/providers/me`).
+  ///
   /// REGLAS:
   /// - Ignora memberships con estatus != 'activo'.
-  /// - Ignora roles vacíos.
-  /// - Deduplica contextos equivalentes por workspaceId+membershipId+type.
-  ///
-  /// NOTA Fase 1: MembershipEntity no tiene campo membershipId propio.
-  /// Se usa '${membership.userId}_${membership.orgId}' como fallback determinista.
-  /// Ver _resolveMembershipId() y ENTERPRISE NOTES del encabezado.
+  /// - Deduplica por workspaceId.
   static List<WorkspaceContext> fromMemberships({
     required List<MembershipEntity> memberships,
     String? providerType,
@@ -145,35 +146,21 @@ class WorkspaceContextAdapter {
 
     for (final membership in memberships) {
       if (!_isMembershipActive(membership.estatus)) continue;
-      if (membership.roles.isEmpty) continue;
 
-      // FASE 1: membershipId construido de forma transicional.
-      // Actualizar cuando MembershipEntity incluya su propio campo membershipId.
       final resolvedMembershipId = _resolveMembershipId(membership);
 
-      for (final rawRole in membership.roles) {
-        final normalizedRole = normalizeRole(rawRole);
-        if (normalizedRole.isEmpty) continue;
+      final context = fromLegacy(
+        orgId: membership.orgId,
+        orgName: membership.orgName,
+        roleCode: '',
+        membershipId: resolvedMembershipId,
+        providerType: normalizedGlobalProviderType,
+        orgType: normalizedGlobalOrgType,
+        source: WorkspaceContextSource.resolvedFromMembership,
+      ).copyWith(type: WorkspaceType.assetAdmin);
 
-        final resolvedProviderType = _resolveProviderTypeForMembership(
-          membership: membership,
-          globalProviderType: normalizedGlobalProviderType,
-        );
-
-        final context = fromLegacy(
-          orgId: membership.orgId,
-          orgName: membership.orgName,
-          roleCode: normalizedRole,
-          membershipId: resolvedMembershipId,
-          providerType: resolvedProviderType,
-          orgType: normalizedGlobalOrgType,
-          source: WorkspaceContextSource.resolvedFromMembership,
-        );
-
-        final dedupeKey = '${context.workspaceId}|${context.membershipId}|${context.type.wireName}';
-        if (seen.add(dedupeKey)) {
-          result.add(context);
-        }
+      if (seen.add(context.workspaceId)) {
+        result.add(context);
       }
     }
 
@@ -315,21 +302,6 @@ class WorkspaceContextAdapter {
     final safeOrgId = membership.orgId.trim();
     if (safeUserId.isEmpty && safeOrgId.isEmpty) return '';
     return '${safeUserId}_$safeOrgId';
-  }
-
-  /// Resuelve providerType para una membership específica.
-  /// Prioridad: global > inferido desde providerProfiles > null.
-  static String? _resolveProviderTypeForMembership({
-    required MembershipEntity membership,
-    required String? globalProviderType,
-  }) {
-    if (globalProviderType != null && globalProviderType.isNotEmpty) {
-      return globalProviderType;
-    }
-    if (membership.providerProfiles.isEmpty) return null;
-    final serialized = membership.providerProfiles.map((p) => p.toString().toLowerCase()).join(' ');
-    if (serialized.contains('articulo') || serialized.contains('repuesto')) return 'articulos';
-    return 'servicios';
   }
 
   static bool _isMembershipActive(String estatus) {

@@ -6,6 +6,9 @@
 //   - Forma serializada de LocalContact para persistencia remota en Firestore.
 //   - Excluye DELIBERADAMENTE notesPrivate y tagsPrivate.
 //   - Expone UNA sola dirección segura: fromEntity(entity) → DTO remoto.
+//   - v2: transporta los campos de perfil estructurado (supplierType,
+//     categorías, geo, alt phone, website, cobertura) para que el proveedor
+//     llegue completo a otros dispositivos del mismo workspace.
 //
 // QUÉ NO HACE:
 //   - NO reconstruye una Entity "lista para guardar" a partir del DTO remoto.
@@ -36,6 +39,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
 import '../../../../domain/entities/core_common/local_contact_entity.dart';
+import '../../../../domain/entities/core_common/provider_branch_entity.dart';
 
 part 'local_contact_remote_dto.g.dart';
 
@@ -67,6 +71,31 @@ class LocalContactRemoteDto {
   final bool isDeleted;
   final DateTime? deletedAt;
 
+  // ── v2 PERFIL ESTRUCTURADO ────────────────────────────────────────────────
+
+  /// Se persiste el `wireName` (products / services / mixed) por contrato
+  /// estable. `null` = sin clasificar.
+  final String? supplierTypeWire;
+
+  final List<String> categories;
+
+  final String? countryId;
+  final String? regionId;
+  final String? cityId;
+  final String? addressLine;
+
+  final String? secondaryPhoneE164;
+  final String? website;
+
+  final List<String> coverageCityIds;
+
+  /// Modo "Envíos a todo el país". Se sincroniza al workspace.
+  final bool coverageAllCountry;
+
+  /// Sedes adicionales del proveedor. Se serializan directamente como
+  /// lista de maps dentro del documento Firestore del proveedor.
+  final List<ProviderBranchEntity> additionalBranches;
+
   LocalContactRemoteDto({
     required this.id,
     required this.workspaceId,
@@ -82,6 +111,17 @@ class LocalContactRemoteDto {
     this.snapshotAdoptedAt,
     this.isDeleted = false,
     this.deletedAt,
+    this.supplierTypeWire,
+    this.categories = const <String>[],
+    this.countryId,
+    this.regionId,
+    this.cityId,
+    this.addressLine,
+    this.secondaryPhoneE164,
+    this.website,
+    this.coverageCityIds = const <String>[],
+    this.coverageAllCountry = false,
+    this.additionalBranches = const <ProviderBranchEntity>[],
   });
 
   /// Crea el DTO desde la Entity. Descarta notesPrivate y tagsPrivate.
@@ -102,6 +142,17 @@ class LocalContactRemoteDto {
         snapshotAdoptedAt: e.snapshotAdoptedAt?.toUtc(),
         isDeleted: e.isDeleted,
         deletedAt: e.deletedAt?.toUtc(),
+        supplierTypeWire: e.supplierType?.wireName,
+        categories: List<String>.from(e.categories),
+        countryId: e.countryId,
+        regionId: e.regionId,
+        cityId: e.cityId,
+        addressLine: e.addressLine,
+        secondaryPhoneE164: e.secondaryPhoneE164,
+        website: e.website,
+        coverageCityIds: List<String>.from(e.coverageCityIds),
+        coverageAllCountry: e.coverageAllCountry,
+        additionalBranches: List<ProviderBranchEntity>.from(e.additionalBranches),
       );
 
   factory LocalContactRemoteDto.fromJson(Map<String, dynamic> json) =>

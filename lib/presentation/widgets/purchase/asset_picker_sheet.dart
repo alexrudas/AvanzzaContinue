@@ -26,16 +26,20 @@ import '../../controllers/purchase_request_controller.dart';
 import '../../controllers/session_context_controller.dart';
 
 class AssetPickerSheet extends StatefulWidget {
-  const AssetPickerSheet({super.key});
+  /// Filtro opcional por tipo de activo. Cuando se provee, solo se listan los
+  /// activos de ese tipo — alineado al precontexto UX de "Nueva solicitud".
+  final AssetType? filterType;
+
+  const AssetPickerSheet({super.key, this.filterType});
 
   /// Abre el sheet. Al seleccionar, el controller recibe el assetId y la
   /// etiqueta humana (assetKey) para mostrarla como chip.
-  static Future<void> show(BuildContext context) {
+  static Future<void> show(BuildContext context, {AssetType? filterType}) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) => const AssetPickerSheet(),
+      builder: (_) => AssetPickerSheet(filterType: filterType),
     );
   }
 
@@ -47,11 +51,25 @@ class _AssetPickerSheetState extends State<AssetPickerSheet> {
   List<AssetEntity>? _assets;
   bool _loading = true;
   String? _error;
+  final _searchCtrl = TextEditingController();
+  String _query = '';
 
   @override
   void initState() {
     super.initState();
+    _searchCtrl.addListener(() {
+      final q = _searchCtrl.text.trim().toLowerCase();
+      if (q != _query) {
+        setState(() => _query = q);
+      }
+    });
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -67,8 +85,13 @@ class _AssetPickerSheetState extends State<AssetPickerSheet> {
       }
       final list = await DIContainer().assetRepository.fetchAssetsByOrg(orgId);
       if (!mounted) return;
+      // Filtro por tipo (UX precontexto): si el caller indicó un tipo,
+      // descartamos los activos de otros tipos antes de renderizar.
+      final filtered = widget.filterType == null
+          ? list
+          : list.where((a) => a.type == widget.filterType).toList();
       setState(() {
-        _assets = list;
+        _assets = filtered;
         _loading = false;
       });
     } catch (e) {
@@ -107,6 +130,24 @@ class _AssetPickerSheetState extends State<AssetPickerSheet> {
                     ?.copyWith(color: theme.hintColor),
               ),
               const SizedBox(height: 12),
+              TextField(
+                key: const Key('asset_picker.search_field'),
+                controller: _searchCtrl,
+                decoration: InputDecoration(
+                  hintText: 'Buscar por placa, identificador...',
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.close, size: 18),
+                          onPressed: () => _searchCtrl.clear(),
+                        ),
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+                textInputAction: TextInputAction.search,
+              ),
+              const SizedBox(height: 12),
               Expanded(child: _buildBody(controller)),
             ],
           ),
@@ -131,15 +172,29 @@ class _AssetPickerSheetState extends State<AssetPickerSheet> {
     if (assets.isEmpty) {
       return const _EmptyAssets();
     }
+    final visible = _query.isEmpty
+        ? assets
+        : assets.where((a) {
+            final key = a.assetKey.toLowerCase();
+            return key.contains(_query);
+          }).toList();
+    if (visible.isEmpty) {
+      return Center(
+        child: Text(
+          'Sin resultados para "${_searchCtrl.text.trim()}"',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      );
+    }
     return ListView.separated(
-      itemCount: assets.length,
+      itemCount: visible.length,
       separatorBuilder: (_, __) => const Divider(height: 1, indent: 56),
       itemBuilder: (_, i) => _AssetTile(
-        asset: assets[i],
+        asset: visible[i],
         onTap: () {
           controller.selectAsset(
-            id: assets[i].id,
-            label: assets[i].assetKey,
+            id: visible[i].id,
+            label: visible[i].assetKey,
           );
           Navigator.of(context).pop();
         },

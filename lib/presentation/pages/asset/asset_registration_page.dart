@@ -97,9 +97,14 @@ class _AssetRegistrationPageState extends State<AssetRegistrationPage> {
   bool _hasShownCrossPortfolioWarning = false;
 
   static const List<_DocTypeOption> _docTypeOptions = [
-    _DocTypeOption(value: 'CC', title: 'Cédula de ciudadanía', icon: Icons.badge_outlined),
-    _DocTypeOption(value: 'CE', title: 'Cédula de extranjería', icon: Icons.badge_outlined),
-    _DocTypeOption(value: 'NIT', title: 'NIT (empresa)', icon: Icons.business_outlined),
+    _DocTypeOption(
+        value: 'CC', title: 'Cédula de ciudadanía', icon: Icons.badge_outlined),
+    _DocTypeOption(
+        value: 'CE',
+        title: 'Cédula de extranjería',
+        icon: Icons.badge_outlined),
+    _DocTypeOption(
+        value: 'NIT', title: 'NIT (empresa)', icon: Icons.business_outlined),
   ];
 
   @override
@@ -355,7 +360,8 @@ class _AssetRegistrationPageState extends State<AssetRegistrationPage> {
               children: [
                 Text(
                   'Selecciona el tipo de documento',
-                  style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  style: textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 12),
                 ..._docTypeOptions.map(
@@ -440,8 +446,8 @@ class _AssetRegistrationPageState extends State<AssetRegistrationPage> {
                   'El máximo de vehículos a registrar por bloque de consulta '
                   'es $max. Si necesitas registrar más, realiza una nueva '
                   'consulta una vez que termines con este lote.',
-                  style: textTheme.bodyMedium?.copyWith(
-                      color: colors.onSurfaceVariant, height: 1.5),
+                  style: textTheme.bodyMedium
+                      ?.copyWith(color: colors.onSurfaceVariant, height: 1.5),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
@@ -479,13 +485,13 @@ class _AssetRegistrationPageState extends State<AssetRegistrationPage> {
     if (_assetRegCtrl.plates.isNotEmpty) {
       HapticFeedback.lightImpact();
 
-      final docType  = _mapDocTypeToVrc(_selectedDocType!);
+      final docType = _mapDocTypeToVrc(_selectedDocType!);
       final docNumber = _docNumberController.text.trim();
 
       unawaited(_vrcBatchCtrl.startBatch(
-        plates:             _assetRegCtrl.plates.toList(),
-        ownerDocumentType:  docType,
-        ownerDocument:      docNumber,
+        plates: _assetRegCtrl.plates.toList(),
+        ownerDocumentType: docType,
+        ownerDocument: docNumber,
       ));
 
       Get.offNamed(Routes.portfolioAssetLive, arguments: ctx);
@@ -625,7 +631,8 @@ class _VehicleFormBody extends StatelessWidget {
           children: [
             Text(
               'Registrar vehículo',
-              style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+              style: textTheme.headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             Text(
@@ -647,7 +654,8 @@ class _VehicleFormBody extends StatelessWidget {
               icon: Icons.badge_outlined,
               onTap: onOpenDocTypeSelector,
               validator: () {
-                if (selectedDocType == null || selectedDocType!.trim().isEmpty) {
+                if (selectedDocType == null ||
+                    selectedDocType!.trim().isEmpty) {
                   return 'Selecciona el tipo de documento';
                 }
                 return null;
@@ -718,7 +726,8 @@ class _VehicleFormBody extends StatelessWidget {
                 const SizedBox(width: 8),
                 // Botón "Agregar" — deshabilitado si el campo está vacío.
                 Obx(() {
-                  final canAdd = assetRegCtrl.draftPlate.value.trim().isNotEmpty;
+                  final canAdd =
+                      assetRegCtrl.draftPlate.value.trim().isNotEmpty;
                   return SizedBox(
                     height: 56,
                     child: OutlinedButton(
@@ -755,10 +764,12 @@ class _VehicleFormBody extends StatelessWidget {
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: items.map((item) => _PlateChip(
-                    plate: item.plate,
-                    onRemove: () => assetRegCtrl.removePlate(item.id),
-                  )).toList(),
+                  children: items
+                      .map((item) => _PlateChip(
+                            plate: item.plate,
+                            onRemove: () => assetRegCtrl.removePlate(item.id),
+                          ))
+                      .toList(),
                 ),
               );
             }),
@@ -767,7 +778,8 @@ class _VehicleFormBody extends StatelessWidget {
             // ── Banner de error VRC (si la consulta falló) ───────────────────
             Obx(() {
               final state = vrcCtrl.viewState;
-              if (state != VrcViewState.failed && state != VrcViewState.timeout) {
+              if (state != VrcViewState.failed &&
+                  state != VrcViewState.timeout) {
                 return const SizedBox.shrink();
               }
               return _ErrorBanner(
@@ -783,9 +795,9 @@ class _VehicleFormBody extends StatelessWidget {
               final isLoading = vrcCtrl.viewState == VrcViewState.loading;
 
               // Habilitado solo si hay placas en la lista y el propietario está completo.
-              final canConsult =
-                  assetRegCtrl.plates.isNotEmpty &&
-                  (assetRegCtrl.draftDocType.value?.trim().isNotEmpty ?? false) &&
+              final canConsult = assetRegCtrl.plates.isNotEmpty &&
+                  (assetRegCtrl.draftDocType.value?.trim().isNotEmpty ??
+                      false) &&
                   assetRegCtrl.draftDocNumber.value.trim().isNotEmpty;
 
               final label = isLoading
@@ -1005,7 +1017,7 @@ class _ErrorBanner extends StatelessWidget {
             child: Text(
               message ??
                   'La consulta anterior no pudo completarse. '
-                  'Verifica los datos e intenta nuevamente.',
+                      'Verifica los datos e intenta nuevamente.',
               style: TextStyle(
                 color: colors.onErrorContainer,
                 fontSize: 13,
@@ -1060,7 +1072,8 @@ class _BottomSheetSelectorField extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: borderColor ?? colors.outlineVariant),
+                  border:
+                      Border.all(color: borderColor ?? colors.outlineVariant),
                 ),
                 child: Row(
                   children: [
@@ -1156,11 +1169,13 @@ class _RuntRecoveryBottomSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 8),
-            Icon(_iconFor(offer.type), size: 52, color: _accentColor(offer.type, colors)),
+            Icon(_iconFor(offer.type),
+                size: 52, color: _accentColor(offer.type, colors)),
             const SizedBox(height: 16),
             Text(
               _titleFor(offer.type),
-              style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              style:
+                  textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
@@ -1209,7 +1224,8 @@ class _RuntRecoveryBottomSheet extends StatelessWidget {
         RuntRecoveryType.runningRecoverable => Icons.sync_rounded,
       };
 
-  Color _accentColor(RuntRecoveryType type, ColorScheme colors) => switch (type) {
+  Color _accentColor(RuntRecoveryType type, ColorScheme colors) =>
+      switch (type) {
         RuntRecoveryType.readyToRegister => colors.primary,
         RuntRecoveryType.partialToReview => colors.tertiary,
         RuntRecoveryType.runningRecoverable => colors.secondary,
@@ -1224,13 +1240,13 @@ class _RuntRecoveryBottomSheet extends StatelessWidget {
   String _bodyFor(RuntRecoveryOffer o) => switch (o.type) {
         RuntRecoveryType.readyToRegister =>
           'La consulta para el vehículo ${o.plate} se completó correctamente.\n'
-          '¿Deseas continuar con el registro?',
+              '¿Deseas continuar con el registro?',
         RuntRecoveryType.partialToReview =>
           'Se obtuvieron datos parciales para el vehículo ${o.plate}.\n'
-          '¿Deseas revisar los datos disponibles?',
+              '¿Deseas revisar los datos disponibles?',
         RuntRecoveryType.runningRecoverable =>
           'La consulta RUNT para ${o.plate} sigue en proceso.\n'
-          '¿Retomamos el seguimiento?',
+              '¿Retomamos el seguimiento?',
       };
 
   String _acceptLabel(RuntRecoveryType type) => switch (type) {
@@ -1301,7 +1317,6 @@ class _CrossPortfolioBottomSheet extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 28),
-
             SizedBox(
               width: double.infinity,
               height: 52,

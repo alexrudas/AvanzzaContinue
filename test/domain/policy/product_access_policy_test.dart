@@ -303,16 +303,17 @@ void main() {
   // ── CreateAccountingEntry ───────────────────────────────────────────────────
 
   group('CreateAccountingEntry', () {
-    test('rol member → deny(roleInsufficient)', () {
+    test('rol member → allow (Fase 2: gating server-side via capabilities)', () {
+      // Fase 2 KILL SWITCH ROL LEGACY: el cliente ya no aplica role-string
+      // gating. El cliente delega: si el contexto pasa los guards
+      // estructurales, allow. El gating fino lo hace Core API server-side
+      // (CAPABILITY_NOT_GRANTED 403 si falta privilegio).
       expect(
         _policy.evaluate(
           feature: const CreateAccountingEntry(),
           context: _ctx(roles: {'member'}),
         ),
-        AccessDecision.deny(
-          const CreateAccountingEntry(),
-          AccessReasonCodes.roleInsufficient,
-        ),
+        AccessDecision.allow(const CreateAccountingEntry()),
       );
     });
 
@@ -350,16 +351,17 @@ void main() {
   // ── ManageOrganization ──────────────────────────────────────────────────────
 
   group('ManageOrganization', () {
-    test('rol viewer → deny(roleInsufficient)', () {
+    test('rol viewer → allow (Fase 2: gating server-side via capabilities)', () {
+      // Fase 2 KILL SWITCH ROL LEGACY: el cliente ya no aplica role-string
+      // gating. El cliente delega: si el contexto pasa los guards
+      // estructurales, allow. El gating fino lo hace Core API server-side
+      // (CAPABILITY_NOT_GRANTED 403 si falta privilegio).
       expect(
         _policy.evaluate(
           feature: const ManageOrganization(),
           context: _ctx(roles: {'viewer'}),
         ),
-        AccessDecision.deny(
-          const ManageOrganization(),
-          AccessReasonCodes.roleInsufficient,
-        ),
+        AccessDecision.allow(const ManageOrganization()),
       );
     });
 
@@ -415,24 +417,24 @@ void main() {
 
   group('Fase 2 transición — registry mode', () {
     test(
-      'strict=false + feature sin evaluator → fallback Fase 1 (NO evaluatorMissing)',
+      'strict=false + feature sin evaluator → fallback Fase 2 allow (NO evaluatorMissing)',
       () {
         const policy = ProductAccessPolicy(
           evaluators: {SyncData: _NoopAllowEvaluator()},
           // strictEvaluators: false por default
         );
         // CreateAccountingEntry no está en el registry → debe caer al switch.
-        // Con rol 'member' (no privilegiado), Fase 1 retorna roleInsufficient.
+        // Fase 2 KILL SWITCH ROL LEGACY: la rama legacy del switch ya no
+        // aplica role-string gating; retorna allow y delega el gating
+        // fino a Core API server-side. Garantía: el fallback NO devuelve
+        // evaluatorMissing (esa razón está reservada para strict=true).
         final decision = policy.evaluate(
           feature: const CreateAccountingEntry(),
           context: _ctx(roles: {'member'}),
         );
         expect(
           decision,
-          AccessDecision.deny(
-            const CreateAccountingEntry(),
-            AccessReasonCodes.roleInsufficient,
-          ),
+          AccessDecision.allow(const CreateAccountingEntry()),
         );
         // Garantía explícita: no retornó evaluatorMissing.
         expect(decision.reasonCode, isNot(AccessReasonCodes.evaluatorMissing));

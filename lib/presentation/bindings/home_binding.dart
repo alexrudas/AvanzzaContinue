@@ -17,6 +17,8 @@
 import 'package:get/get.dart';
 
 import '../../core/di/container.dart';
+import '../../core/session/session_active_org_id_provider.dart';
+import '../../domain/services/session/active_org_id_provider.dart';
 import '../controllers/session_context_controller.dart';
 import '../controllers/splash_bootstrap_controller.dart';
 import '../controllers/workspace_controller.dart';
@@ -32,6 +34,17 @@ class HomeBinding extends Bindings {
           userRepository: di.userRepository,
           connectivity: di.connectivityService,
         ),
+        permanent: true,
+      );
+    }
+
+    // ActiveOrgIdProvider: mismo registro que SplashBinding para paridad.
+    // Routes.home entra aquí en re-routing post-logout/post-delete-workspace,
+    // garantizando que AccessInterceptor/Gateway siempre puedan resolver orgId
+    // aunque el splash no se haya vuelto a visitar en esa navegación.
+    if (!Get.isRegistered<ActiveOrgIdProvider>()) {
+      Get.put<ActiveOrgIdProvider>(
+        SessionActiveOrgIdProvider(Get.find<SessionContextController>()),
         permanent: true,
       );
     }

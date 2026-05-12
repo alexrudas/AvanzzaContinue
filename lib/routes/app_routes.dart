@@ -28,12 +28,19 @@ abstract class Routes {
   static const registerEmail = _Paths.registerEmail;
   static const registerIdScan = _Paths.registerIdScan;
   static const loginUserPass = _Paths.loginUserPass;
+  static const desktopLogin = _Paths.desktopLogin;
   static const loginMfa = _Paths.loginMfa;
   static const registerSummary = _Paths.registerSummary;
   static const holderType = _Paths.holderType;
   static const providerProfile = _Paths.providerProfile;
   static const enhancedRegistration = _Paths.enhancedRegistration;
   static const providerCoverage = _Paths.providerCoverage;
+
+  /// Flujo de onboarding canónico (Demo 2 / FusionadoFlow promovido a real).
+  /// Q1 phone → Q2 OTP → Q3 intent → Q4 identidad → Q5 asset (si aplica) →
+  /// Q6 commit. Reemplaza al flujo legacy de pasos individuales como
+  /// entrada principal desde [welcome].
+  static const registerOnboarding = _Paths.registerOnboarding;
 
   // ══════════════════════════════════════════════════════════════════════════
   // CORE / HOME
@@ -47,6 +54,12 @@ abstract class Routes {
   static const home = _Paths.home;
   static const orgSelect = _Paths.orgSelect;
 
+  /// Pantalla global de Cuenta / Perfil. Accesible desde el icono Perfil
+  /// del AppBar de cualquier workspace. Identidad, seguridad y contexto
+  /// resumido del usuario actual.
+  /// CONTRACT: no requiere arguments.
+  static const account = _Paths.account;
+
   // ══════════════════════════════════════════════════════════════════════════
   // PROVIDER WORKSPACES
   // ══════════════════════════════════════════════════════════════════════════
@@ -55,12 +68,30 @@ abstract class Routes {
   static const providerWorkspaceArticles = _Paths.providerWorkspaceArticles;
   static const providerWorkspaceServices = _Paths.providerWorkspaceServices;
 
+  /// Wizard de auto-onboarding del proveedor (MF1):
+  ///   POST /v1/providers/bootstrap → /provider/me
+  static const providerBootstrap = _Paths.providerBootstrap;
+
+  /// Vista agregada self del proveedor (MF1):
+  ///   GET /v1/providers/me. Si isProvider=false redirige a bootstrap.
+  static const providerMe = _Paths.providerMe;
+
   // ══════════════════════════════════════════════════════════════════════════
   // MÓDULOS OPERATIVOS
   // ══════════════════════════════════════════════════════════════════════════
   static const incidencia = _Paths.incidencia;
   static const purchase = _Paths.purchase;
+
+  /// Detalle de un PurchaseRequest existente con el loop admin-captura
+  /// (register quote → award → emitir OC/OT → cerrar).
+  /// CONTRACT: Get.toNamed(Routes.purchaseDetail, arguments: String requestId)
+  static const purchaseDetail = _Paths.purchaseDetail;
   static const assets = _Paths.assets;
+
+  /// Lista de activos filtrada por tipo (vista dedicada del tipo seleccionado
+  /// desde la pantalla agrupada [assets]).
+  /// CONTRACT: Get.toNamed(Routes.assetsByType, arguments: AssetType)
+  static const assetsByType = _Paths.assetsByType;
   static const tenantHome = _Paths.tenantHome;
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -204,11 +235,78 @@ abstract class Routes {
   /// CONTRACT: Get.toNamed(Routes.ownerDetail, arguments: {'owner': OwnerNetworkVm})
   static const ownerDetail = _Paths.ownerDetail;
 
+  /// Ficha de detalle de un actor de la red operativa (ADR actor-canon §10).
+  /// CONTRACT: Get.toNamed(Routes.actorDetail, arguments: {'actor': NetworkActorVm}).
+  static const actorDetail = _Paths.actorDetail;
+
+  /// Mi Red Operativa v2 (Hito 5b — contrato Core API congelado).
+  /// Pantalla con dos secciones independientes: Red externa + Equipo interno.
+  /// CONTRACT: no requiere arguments. MiRedBinding resuelve repos desde
+  /// DIContainer.
+  static const miRed = _Paths.miRed;
+
+  /// Detalle read-only de un proveedor canónico desde Mi Red.
+  /// Carga via `GET /v1/providers/:providerProfileId`. Independiente del
+  /// stack legacy LocalContact/Isar — no usar para flujos de edición.
+  /// CONTRACT: Get.toNamed(Routes.networkProviderDetail,
+  ///   arguments: {'providerProfileId': '<id>'})
+  static const networkProviderDetail = _Paths.networkProviderDetail;
+
+  /// Directorio dedicado de PROVEEDORES del workspace (primer rostro visible
+  /// del arquetipo transversal comercial/servicio). Fuente de verdad
+  /// compartida con el selector de Pedidos: `LocalContactRepository`.
+  /// CONTRACT: no requiere arguments — `ProvidersDirectoryBinding` resuelve
+  /// orgId desde SessionContextController.
+  static const providersDirectory = _Paths.providersDirectory;
+
+  /// Ficha de detalle de un proveedor (lectura por secciones).
+  /// CONTRACT: Get.toNamed(Routes.providerDetail,
+  ///   arguments: {'providerId': '<id>'})
+  static const providerDetail = _Paths.providerDetail;
+
+  /// Formulario COMPLETO de alta o edición de proveedor.
+  /// CONTRACT:
+  ///   Get.toNamed(Routes.providerForm) → alta
+  ///   Get.toNamed(Routes.providerForm, arguments: {'providerId': '<id>'}) → edición
+  static const providerForm = _Paths.providerForm;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // PROVIDER — CATÁLOGO / SPECIALTIES
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /// Selector multi-select de specialties para proveedores ("¿Qué ofreces?").
+  /// Consume `GET /v1/catalog/specialties` y devuelve los IDs seleccionados.
+  /// CONTRACT:
+  ///   Get.toNamed(Routes.selectSpecialties, arguments: {
+  ///     'assetType': '<assetType-id, p.ej. vehicle.car>',
+  ///   })
+  /// RESULT: `Set<String>` de specialty IDs seleccionados (via Get.back).
+  static const selectSpecialties = _Paths.selectSpecialties;
+
   // ══════════════════════════════════════════════════════════════════════════
   // DEMO / DESARROLLO
   // ══════════════════════════════════════════════════════════════════════════
   static const bottomNavDemo = _Paths.bottomNavDemo;
   static const demoSoat = _Paths.demoSoat;
+
+  // ── DEV-only — Diagnóstico Integrations API (RUNT/SIMIT) ───────────────
+  // Pantallas de consulta directa a Integrations API (sin VRC, sin Isar,
+  // sin Firestore). Visibles únicamente en kDebugMode desde el FAB
+  // "Consultar" del Home admin.
+  static const devRuntPersonDiagnostic = _Paths.devRuntPersonDiagnostic;
+  static const devRuntVehicleDiagnostic = _Paths.devRuntVehicleDiagnostic;
+  static const devSimitPersonDiagnostic = _Paths.devSimitPersonDiagnostic;
+  static const devSimitVehicleDiagnostic = _Paths.devSimitVehicleDiagnostic;
+
+  /// Demo experimental del flujo de registro v2 (RUNT temprano + tabs).
+  /// CONTRACT: no requiere arguments. Variante de QA que coexiste con el
+  /// flujo canónico hasta que el FusionadoFlow esté hardenado.
+  static const demoRegistrationV2 = _Paths.demoRegistrationV2;
+
+  /// TEMPORARY — Variante fusionada del demo de registro (con RUNT temprano +
+  /// "¿Qué quieres hacer?" + relación con activo).
+  /// In-memory. Borrar junto con `demo_registration_v2/fusionado/`.
+  static const demoRegistrationV2Fusionado = _Paths.demoRegistrationV2Fusionado;
 }
 
 /// Paths internos - NO usar directamente, usar Routes.*
@@ -226,6 +324,7 @@ abstract class _Paths {
   static const registerEmail = '/auth/register/email';
   static const registerIdScan = '/auth/register/id-scan';
   static const loginUserPass = '/auth/login';
+  static const desktopLogin = '/auth/desktop-login';
   static const loginMfa = '/auth/login/mfa';
   static const registerSummary = '/auth/register/summary';
   static const holderType = '/auth/holder-type';
@@ -237,6 +336,7 @@ abstract class _Paths {
   static const splash = '/splash';
   static const home = '/home';
   static const orgSelect = '/org_select';
+  static const account = '/account';
 
   // Provider
   static const providerHomeArticles = '/provider/home/articles';
@@ -244,10 +344,16 @@ abstract class _Paths {
   static const providerWorkspaceArticles = '/provider/workspace/articles';
   static const providerWorkspaceServices = '/provider/workspace/services';
 
+  // MF1 — provider self-onboarding.
+  static const providerBootstrap = '/provider/bootstrap';
+  static const providerMe = '/provider/me';
+
   // Módulos
   static const incidencia = '/incidencia';
   static const purchase = '/purchase';
+  static const purchaseDetail = '/purchase/detail';
   static const assets = '/assets';
+  static const assetsByType = '/assets/by-type';
   static const tenantHome = '/tenant/home';
 
   // Consultas
@@ -299,8 +405,30 @@ abstract class _Paths {
   // Red operativa
   static const networkOperational = '/network/operational';
   static const ownerDetail = '/network/owner-detail';
+  static const actorDetail = '/network/actor-detail';
+  static const providersDirectory = '/network/providers';
+  static const providerDetail = '/network/providers/detail';
+  static const providerForm = '/network/providers/form';
+
+  // Mi Red Operativa v2 (Hito 5b)
+  static const miRed = '/mi-red';
+  static const networkProviderDetail = '/mi-red/provider';
+
+  // Provider — Catálogo / Specialties
+  static const selectSpecialties = '/provider/specialties/select';
 
   // Demo
+  // Auth onboarding canónico
+  static const registerOnboarding = '/auth/onboarding';
+
   static const bottomNavDemo = '/demo/bottom-nav';
   static const demoSoat = '/campaign/soat';
+  static const demoRegistrationV2 = '/demo/registration-v2';
+  static const demoRegistrationV2Fusionado = '/demo/registration-v2-fusionado';
+
+  // DEV-only — Diagnóstico Integrations API (RUNT/SIMIT)
+  static const devRuntPersonDiagnostic = '/dev/diagnostics/runt/person';
+  static const devRuntVehicleDiagnostic = '/dev/diagnostics/runt/vehicle';
+  static const devSimitPersonDiagnostic = '/dev/diagnostics/simit/person';
+  static const devSimitVehicleDiagnostic = '/dev/diagnostics/simit/vehicle';
 }

@@ -23,8 +23,14 @@
 //
 // ENTERPRISE NOTES:
 // CREADO (2026-03): parte de Fase 1 de separación Portfolio / Asset Registration.
+// EXTENDIDO (2026-05): +vrcSnapshot +expectedRelationKind para soportar el
+//   handoff onboarding → asset register sin Map<String,dynamic> sueltos.
+//   Ambos opcionales — los entry points legacy (Step1, PortfolioDetail,
+//   PortfolioAssetList, AssetDetail) siguen pasando solo los campos
+//   originales. Backward compatible.
 // ============================================================================
 
+import '../../entities/core_common/value_objects/asset_actor_role.dart';
 import '../../shared/enums/asset_type.dart';
 
 /// Value object que transporta el contexto de un flujo de registro de activo.
@@ -74,6 +80,35 @@ class AssetRegistrationContext {
   /// para evitar que el usuario la ingrese de nuevo.
   final String? initialPlate;
 
+  /// Snapshot de los datos del activo capturados durante onboarding (Q5/P6
+  /// de FusionadoFlow). Pre-llena el formulario RUNT cuando el usuario
+  /// llega aquí justo tras `CompleteOnboardingUC`.
+  ///
+  /// Null en todos los entry points legacy (Step1, PortfolioDetail,
+  /// PortfolioAssetList, AssetDetail "Actualizar información"). Solo el
+  /// onboarding lo emite.
+  ///
+  /// **TEMPORAL** — sigue siendo `Map<String, String>?` porque hoy
+  /// `DemoRegistrationState.assetData` ya es `Map<String, String>` y no hay
+  /// VO canónico para el snapshot pre-RUNT. Cuando exista un VO tipado
+  /// (`AssetIntakeDraft` o similar), reemplazar el tipo aquí. NO usar
+  /// `Map<String, dynamic>` (anti-patrón documentado en memory).
+  final Map<String, String>? vrcSnapshot;
+
+  /// Hint del rol con el que VRC debe crear el primer `AssetActorLink`
+  /// al añadir el primer asset al portfolio. Se propaga desde
+  /// `Portfolio.expectedRelationKind` para evitar re-derivarlo en VRC
+  /// cuando el flujo viene del onboarding.
+  ///
+  /// Null cuando:
+  /// - El portfolio es legacy (creado antes de la feature de
+  ///   expectedRelationKind), o
+  /// - El usuario llega desde un entry point que no captura intent
+  ///   (Step1, PortfolioDetail "Agregar otro activo", AssetDetail
+  ///   "Actualizar información"). En esos casos VRC pregunta el rol
+  ///   al añadir el activo.
+  final AssetActorRole? expectedRelationKind;
+
   const AssetRegistrationContext({
     required this.portfolioId,
     required this.portfolioName,
@@ -82,6 +117,8 @@ class AssetRegistrationContext {
     required this.assetType,
     required this.registrationSessionId,
     this.initialPlate,
+    this.vrcSnapshot,
+    this.expectedRelationKind,
   });
 
   @override
@@ -92,6 +129,8 @@ class AssetRegistrationContext {
       'countryId=$countryId, '
       'cityId=$cityId, '
       'assetType=$assetType, '
-      'registrationSessionId=$registrationSessionId'
+      'registrationSessionId=$registrationSessionId, '
+      'vrcSnapshot=${vrcSnapshot == null ? 'null' : '${vrcSnapshot!.length} keys'}, '
+      'expectedRelationKind=${expectedRelationKind?.wireName}'
       ')';
 }

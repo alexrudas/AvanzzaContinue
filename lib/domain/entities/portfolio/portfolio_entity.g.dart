@@ -42,6 +42,9 @@ _PortfolioEntity _$PortfolioEntityFromJson(Map<String, dynamic> json) =>
           ? null
           : DateTime.parse(json['licenseCheckedAt'] as String),
       simitDetailJson: json['simitDetailJson'] as String? ?? null,
+      expectedRelationKind: $enumDecodeNullable(
+              _$AssetActorRoleEnumMap, json['expectedRelationKind']) ??
+          null,
     );
 
 Map<String, dynamic> _$PortfolioEntityToJson(_PortfolioEntity instance) =>
@@ -70,6 +73,8 @@ Map<String, dynamic> _$PortfolioEntityToJson(_PortfolioEntity instance) =>
       'simitCheckedAt': instance.simitCheckedAt?.toIso8601String(),
       'licenseCheckedAt': instance.licenseCheckedAt?.toIso8601String(),
       'simitDetailJson': instance.simitDetailJson,
+      'expectedRelationKind':
+          _$AssetActorRoleEnumMap[instance.expectedRelationKind],
     };
 
 const _$PortfolioTypeEnumMap = {
@@ -81,4 +86,15 @@ const _$PortfolioTypeEnumMap = {
 const _$PortfolioStatusEnumMap = {
   PortfolioStatus.draft: 'DRAFT',
   PortfolioStatus.active: 'ACTIVE',
+};
+
+const _$AssetActorRoleEnumMap = {
+  AssetActorRole.owner: 'owner',
+  AssetActorRole.tenant: 'tenant',
+  AssetActorRole.operator: 'operator',
+  AssetActorRole.driver: 'driver',
+  AssetActorRole.technician: 'technician',
+  AssetActorRole.workshop: 'workshop',
+  AssetActorRole.legal: 'legal',
+  AssetActorRole.manager: 'manager',
 };

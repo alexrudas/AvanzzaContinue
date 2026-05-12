@@ -112,6 +112,30 @@ class SimitRepository {
     // });
   }
 
+  /// Obtiene el DETALLE profundo de una multa específica.
+  ///
+  /// El backend cachea por (document, comparendoId) en Redis con TTL 24h
+  /// y aplica single-flight, así que llamadas repetidas a la misma multa
+  /// resuelven en milisegundos (cache hit).
+  ///
+  /// [document]: Cédula o placa que originó la consulta principal
+  /// [comparendoId]: Identificador de la multa (= `VrcSimitFineModel.id` del listado)
+  ///
+  /// Retorna [SimitFineDetail] con las 6 secciones (alguna puede venir
+  /// vacía si SIMIT no la expone para esa multa).
+  ///
+  /// Lanza [SimitApiException] (network/businessLogic/parsing) — el caller
+  /// debe envolver en try-catch y mostrar UI de error.
+  Future<SimitFineDetail> obtenerDetalleMulta({
+    required String document,
+    required String comparendoId,
+  }) {
+    return _service.getMultaDetail(
+      document: document,
+      comparendoId: comparendoId,
+    );
+  }
+
   /// Limpia el cache de multas para un documento específico.
   ///
   /// [document]: Número de cédula cuyo cache se desea limpiar

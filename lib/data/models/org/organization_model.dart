@@ -7,7 +7,9 @@ import 'package:isar_community/isar.dart' as isar;
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
+import '../../../core/telemetry/capability_profile_telemetry.dart';
 import '../../../domain/entities/org/organization_entity.dart' as domain;
+import '../../../domain/value/capability/capability_profile.dart';
 import '../../../domain/value/organization_contract/organization_access_contract.dart';
 import '../common/converters/doc_ref_path_converter.dart';
 
@@ -61,6 +63,12 @@ class OrganizationModel {
   /// Expected shape: OrganizationAccessContract.toJson()
   String? contractJson;
 
+  /// Capabilities del workspace serializadas como JSON Array String
+  /// (Isar-safe). Expected shape: List<CapabilityProfile.toJson()>.
+  /// Null o vacío ⇒ workspace sin capabilities declaradas.
+  /// Datos corruptos en lectura ⇒ fallback seguro a [] (no rompe la app).
+  String? capabilityProfilesJson;
+
   @isar.Index()
   bool isActive;
   DateTime? createdAt;
@@ -86,6 +94,7 @@ class OrganizationModel {
     this.ownerRefPath,
     this.metadataJson,
     this.contractJson,
+    this.capabilityProfilesJson,
     this.isActive = true,
     this.createdAt,
     this.updatedAt,
@@ -115,6 +124,15 @@ class OrganizationModel {
     }
   }
 
+  /// Parse seguro de `capabilityProfilesJson` → `List<CapabilityProfile>`.
+  /// Si falla o es null/vacío, retorna lista vacía (workspace sin
+  /// capabilities). Datos parcialmente corruptos ⇒ fallback total a [];
+  /// se prefiere "sin capabilities" sobre "mezclar buenas y malas".
+  @isar.ignore
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  List<CapabilityProfile> get parsedCapabilityProfiles =>
+      _parseCapabilityProfilesJson(capabilityProfilesJson, orgId: id);
+
   static DocumentReference<Map<String, dynamic>>? _refFrom(
       FirebaseFirestore db, dynamic any) {
     if (any is DocumentReference) {
@@ -137,6 +155,176 @@ class OrganizationModel {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Serializa una lista de CapabilityProfile a JSON String (array).
+  /// Retorna null si la lista está vacía — ahorra bytes y mantiene
+  /// semántica: "ausencia" == "sin capabilities declaradas".
+  static String? _encodeCapabilityProfilesJson(
+      List<CapabilityProfile> profiles) {
+    if (profiles.isEmpty) return null;
+    try {
+      return jsonEncode(profiles.map((p) => p.toJson()).toList());
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Parse seguro de un JSON Array String → `List<CapabilityProfile>`.
+  /// Política:
+  /// - null / vacío / no-array ⇒ retorna lista vacía constante.
+  /// - JSON inválido o estructura incorrecta ⇒ fallback [] + telemetría
+  ///   (`capability_profiles_parse_error`).
+  /// - Cualquier item malformado dispara excepción del CapabilityProfile;
+  ///   se atrapa globalmente y se cae a [] + telemetría.
+  ///   Política deliberada: preferimos "sin capabilities" sobre "mezclar
+  ///   datos buenos con corrupción no detectada", pero NUNCA silenciamos —
+  ///   cada degradación deja rastro estructurado.
+  static List<CapabilityProfile> _parseCapabilityProfilesJson(
+    String? raw, {
+    String? orgId,
+  }) {
+    if (raw == null || raw.trim().isEmpty) {
+      return const <CapabilityProfile>[];
+    }
+    final dynamic decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } catch (e) {
+      CapabilityProfileTelemetry.recordParseError(
+        source: CapabilityParseSource.isar,
+        orgId: orgId,
+        rawValue: raw,
+        errorMessage: e.toString(),
+        errorType: 'json_decode',
+      );
+      return const <CapabilityProfile>[];
+    }
+    if (decoded is! List) {
+      CapabilityProfileTelemetry.recordParseError(
+        source: CapabilityParseSource.isar,
+        orgId: orgId,
+        rawValue: raw,
+        errorMessage:
+            'expected JSON array at root, got ${decoded.runtimeType}',
+        errorType: 'structure_invalid',
+      );
+      return const <CapabilityProfile>[];
+    }
+    try {
+      return decoded
+          .map((item) {
+            if (item is Map<String, dynamic>) {
+              return CapabilityProfile.fromJson(item);
+            }
+            if (item is Map) {
+              return CapabilityProfile.fromJson(
+                Map<String, dynamic>.from(item),
+              );
+            }
+            throw ArgumentError(
+              'capabilityProfiles: cada item debe ser Map<String,dynamic>',
+            );
+          })
+          .toList(growable: false);
+    } catch (e) {
+      CapabilityProfileTelemetry.recordParseError(
+        source: CapabilityParseSource.isar,
+        orgId: orgId,
+        rawValue: raw,
+        errorMessage: e.toString(),
+        errorType: 'item_invalid',
+      );
+      return const <CapabilityProfile>[];
+    }
+  }
+
+  /// Normaliza capabilityProfiles desde Firestore: acepta List nativa
+  /// (forma canónica) o String JSON (legacy/edge cases). Retorna JSON
+  /// String para almacenar en Isar, o null si vacío/inválido.
+  ///
+  /// Política de degradación:
+  /// - Lista válida ⇒ re-encode canónico, sin telemetría.
+  /// - Lista con todos sus items no-Map ⇒ retorna null (interpretado como
+  ///   "sin capabilities") + telemetría `capability_profiles_parse_error`.
+  /// - String JSON corrupto ⇒ retorna null + telemetría.
+  /// - Tipo inesperado en raíz ⇒ retorna null + telemetría.
+  /// - null o lista vacía ⇒ silencio (no es degradación, es ausencia legítima).
+  static String? _parseCapabilityProfilesFromFirestore(
+    dynamic raw, {
+    String? orgId,
+  }) {
+    if (raw == null) return null;
+    if (raw is List) {
+      if (raw.isEmpty) return null;
+      try {
+        // Validar shape mínimo y re-encode canónico.
+        final cleaned = raw
+            .whereType<Map>()
+            .map((m) => Map<String, dynamic>.from(m))
+            .toList(growable: false);
+        if (cleaned.isEmpty) {
+          // La lista venía con datos pero ningún elemento era Map.
+          CapabilityProfileTelemetry.recordParseError(
+            source: CapabilityParseSource.firestore,
+            orgId: orgId,
+            rawValue: raw,
+            errorMessage:
+                'firestore capabilityProfiles list had ${raw.length} '
+                'items but none were Map; dropped',
+            errorType: 'structure_invalid',
+          );
+          return null;
+        }
+        return jsonEncode(cleaned);
+      } catch (e) {
+        CapabilityProfileTelemetry.recordParseError(
+          source: CapabilityParseSource.firestore,
+          orgId: orgId,
+          rawValue: raw,
+          errorMessage: e.toString(),
+          errorType: 'list_normalize_failed',
+        );
+        return null;
+      }
+    }
+    if (raw is String && raw.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw.trim());
+        if (decoded is List && decoded.isNotEmpty) return jsonEncode(decoded);
+        // String JSON válido pero no era lista, o lista vacía.
+        CapabilityProfileTelemetry.recordParseError(
+          source: CapabilityParseSource.firestore,
+          orgId: orgId,
+          rawValue: raw,
+          errorMessage:
+              'firestore capabilityProfiles string was valid JSON '
+              'but not a non-empty array (got ${decoded.runtimeType})',
+          errorType: 'structure_invalid',
+        );
+        return null;
+      } catch (e) {
+        CapabilityProfileTelemetry.recordParseError(
+          source: CapabilityParseSource.firestore,
+          orgId: orgId,
+          rawValue: raw,
+          errorMessage: e.toString(),
+          errorType: 'json_decode',
+        );
+        return null;
+      }
+    }
+    // Tipo inesperado (num, bool, Map en raíz, etc.).
+    CapabilityProfileTelemetry.recordParseError(
+      source: CapabilityParseSource.firestore,
+      orgId: orgId,
+      rawValue: raw,
+      errorMessage:
+          'firestore capabilityProfiles had unexpected root type: '
+          '${raw.runtimeType}',
+      errorType: 'structure_invalid',
+    );
+    return null;
   }
 
   /// Normaliza contract desde Firestore (puede venir como Map o String).
@@ -224,6 +412,10 @@ class OrganizationModel {
       ownerRefPath: conv.toPath(oRef),
       metadataJson: json['metadataJson'] as String?,
       contractJson: _parseContractJson(json['contract']),
+      capabilityProfilesJson: _parseCapabilityProfilesFromFirestore(
+        json['capabilityProfiles'],
+        orgId: docId,
+      ),
       isActive: (json['isActive'] as bool?) ?? true,
       createdAt: _parseTimestamp(json['createdAt']),
       updatedAt: _parseTimestamp(json['updatedAt']),
@@ -245,6 +437,9 @@ class OrganizationModel {
         'metadata': jsonDecode(metadataJson!),
       if (contractJson != null && contractJson!.isNotEmpty)
         'contract': jsonDecode(contractJson!),
+      if (capabilityProfilesJson != null &&
+          capabilityProfilesJson!.isNotEmpty)
+        'capabilityProfiles': jsonDecode(capabilityProfilesJson!),
     };
   }
 
@@ -261,6 +456,7 @@ class OrganizationModel {
       'logoUrl': logoUrl,
       'metadataJson': metadataJson,
       'contractJson': contractJson,
+      'capabilityProfilesJson': capabilityProfilesJson,
       'isActive': isActive,
       'countryRefPath': countryRefPath,
       'regionRefPath': regionRefPath,
@@ -299,6 +495,7 @@ class OrganizationModel {
       ownerRefPath: oPath,
       metadataJson: isar['metadataJson'] as String?,
       contractJson: isar['contractJson'] as String?,
+      capabilityProfilesJson: isar['capabilityProfilesJson'] as String?,
       isActive: (isar['isActive'] as bool?) ?? true,
       createdAt: (isar['createdAt'] is String)
           ? DateTime.tryParse(isar['createdAt'] as String)
@@ -321,6 +518,8 @@ class OrganizationModel {
         logoUrl: e.logoUrl,
         metadataJson: e.metadata == null ? null : jsonEncode(e.metadata),
         contractJson: _encodeContractJson(e.contract),
+        capabilityProfilesJson:
+            _encodeCapabilityProfilesJson(e.capabilityProfiles),
         isActive: e.isActive,
         createdAt: e.createdAt,
         updatedAt: e.updatedAt,
@@ -342,6 +541,7 @@ class OrganizationModel {
               ? m
               : Map<String, dynamic>.from(m as Map);
         })(),
+        capabilityProfiles: parsedCapabilityProfiles,
         contract: parsedContract,
         isActive: isActive,
         createdAt: createdAt,

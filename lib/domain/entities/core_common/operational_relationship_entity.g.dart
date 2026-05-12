@@ -96,4 +96,5 @@ const _$RelationshipSuspensionReasonEnumMap = {
   RelationshipSuspensionReason.userRequested: 'userRequested',
   RelationshipSuspensionReason.systemPolicy: 'systemPolicy',
   RelationshipSuspensionReason.unknown: 'unknown',
+  RelationshipSuspensionReason.localRefMerged: 'localRefMerged',
 };

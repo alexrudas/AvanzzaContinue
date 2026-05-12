@@ -474,31 +474,44 @@ class SessionContextController extends GetxController {
         );
       }
 
-      final useCase = DIContainer().switchActiveOrganizationUc;
-      final result = await useCase.execute(
-        organizationId: organizationId,
-        targetWorkspaceRole: targetWorkspaceRole,
-        uid: uid,
+      // Legacy switch-org path retired: la Cloud Function
+      // `switchActiveOrganization` se eliminó server-side y el modelo
+      // canónico delega en AccessGateway re-consultando
+      // `/v1/access/me/context` tras un cambio local de activeContext.
+      // El UC `switchActiveOrganizationUc` no está registrado en el
+      // DIContainer; los archivos en `lib/application/services/session/`
+      // y `lib/data/datasources/organizations/` permanecen como código
+      // huérfano hasta el commit de retiro definitivo. Mientras tanto,
+      // este método lanza una excepción tipada para que cualquier
+      // caller que toque la ruta legacy lo vea explícitamente y migre.
+      throw const SwitchOrganizationException(
+        'Legacy switch-org path retired; use AccessGateway re-query '
+        'after applyLocalActiveContext instead.',
+        SwitchOrganizationFailureReason.notAuthenticated,
       );
-
-      // C-1: persistencia tipada — si falla, estado termina en idle pero la excepción
-      // tipada se propaga. El caller DEBE hacer try-catch; no confiar solo en orgSwitchState.
-      try {
-        await _applyValidatedContext(result.newContext);
-      } catch (e) {
-        debugPrint(
-          '[SessionContext] switchOrganization: persistence failed after '
-          'successful backend switch (orgId=$organizationId): $e',
-        );
-        // Relanzar como excepción tipada con razón persistenceFailed.
-        // El estado irá a idle en el finally — no a failed — porque JWT claims son correctos.
-        throw SwitchOrganizationException(
-          'Local persistence failed after backend switch confirmed: $e',
-          SwitchOrganizationFailureReason.persistenceFailed,
-        );
-      }
-
-      debugPrint('[SessionContext] switchOrganization completed → orgId=$organizationId');
+      // ignore: dead_code
+      // Original block (kept commented for migration reference):
+      //   final useCase = DIContainer().switchActiveOrganizationUc;
+      //   final result = await useCase.execute(
+      //     organizationId: organizationId,
+      //     targetWorkspaceRole: targetWorkspaceRole,
+      //     uid: uid,
+      //   );
+      //
+      //   try {
+      //     await _applyValidatedContext(result.newContext);
+      //   } catch (e) {
+      //     debugPrint(
+      //       '[SessionContext] switchOrganization: persistence failed after '
+      //       'successful backend switch (orgId=$organizationId): $e',
+      //     );
+      //     throw SwitchOrganizationException(
+      //       'Local persistence failed after backend switch confirmed: $e',
+      //       SwitchOrganizationFailureReason.persistenceFailed,
+      //     );
+      //   }
+      //
+      //   debugPrint('[SessionContext] switchOrganization completed → orgId=$organizationId');
     } on SwitchOrganizationException catch (e) {
       // F-3: publicar al observable ANTES de relanzar.
       // Callers que no hacen try/catch pueden observar lastSwitchError con ever() o Obx()
