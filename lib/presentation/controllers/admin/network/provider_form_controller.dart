@@ -145,6 +145,7 @@ class ProviderFormController extends GetxController {
     this.focusedSection,
     this.defaultCountryCallingCode = '57',
     String? assetType,
+    SpecialtyKind? initialOfferKind,
     @visibleForTesting bool? enableCanonicalIntegrationOverride,
   })  : _contacts = contacts,
         _providers = providers,
@@ -154,7 +155,24 @@ class ProviderFormController extends GetxController {
         _editingProviderId = editingProviderId,
         _defaultCountryId = defaultCountryId,
         initialAssetType = assetType,
+        _initialOfferKind = initialOfferKind,
         _canonicalIntegrationOverride = enableCanonicalIntegrationOverride;
+
+  /// Kind precargado desde el FAB / "+ Agregar" de Mi Red. Cuando viene
+  /// no-null:
+  ///   · El field `offerKind` arranca con este valor.
+  ///   · [isOfferKindLocked] devuelve true → la UI bloquea cambio interno
+  ///     (evita inconsistencia entre la opción del FAB y la selección dentro
+  ///     del form).
+  ///   · El título del form se renderiza contextualmente.
+  /// Null implica entrypoint admin clásico: el usuario elige el kind dentro
+  /// del form.
+  final SpecialtyKind? _initialOfferKind;
+
+  /// True si el form se abrió desde un entrypoint que contextualizó el kind
+  /// (FAB "Proveedores de productos" / "Proveedores de servicios"). La UI
+  /// del tile "Tipo de oferta" debe deshabilitar onTap cuando es true.
+  bool get isOfferKindLocked => _initialOfferKind != null && _editingProviderId == null;
 
   /// Effective state of the canonical integration kill-switch.
   /// Production: `AppConfig.enableProviderSpecialtiesUI`.
@@ -334,6 +352,12 @@ class ProviderFormController extends GetxController {
     } else {
       mode.value = ProviderFormMode.edit;
       _hydrateFromExisting(_editingProviderId);
+    }
+    // OfferKind preestablecido desde Mi Red (FAB "Proveedores de productos"
+    // / "Proveedores de servicios"). Si viene, lo aplicamos al field — la
+    // UI bloquea su edición porque [isOfferKindLocked] es true.
+    if (_editingProviderId == null && _initialOfferKind != null) {
+      offerKind.value = _initialOfferKind;
     }
     // Cargar assetTypes del workspace activo para alimentar el dropdown
     // del selector de specialties. Fire-and-forget — la UI muestra
@@ -607,7 +631,14 @@ class ProviderFormController extends GetxController {
   /// del selector vuelva a sembrar el set desde cero.
   ///
   /// Si el valor es idéntico, es no-op (preserva specialties seleccionadas).
+  ///
+  /// **Guard de lock**: si [isOfferKindLocked] es true (form abierto desde
+  /// Mi Red con kind preestablecido), llamadas con un kind distinto al
+  /// inicial se descartan. La regla: el usuario no puede contradecir desde
+  /// dentro del form la opción del FAB que abrió el flujo. Para registrar
+  /// el otro tipo debe volver atrás y elegir la otra opción del FAB.
   void setOfferKind(SpecialtyKind? newKind) {
+    if (isOfferKindLocked && newKind != _initialOfferKind) return;
     if (offerKind.value == newKind) return;
     offerKind.value = newKind;
     specialtyIds.clear();

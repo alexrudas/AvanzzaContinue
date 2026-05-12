@@ -31,6 +31,8 @@
 import 'package:get/get.dart';
 
 import '../../../core/di/container.dart';
+import '../../../domain/entities/catalog/specialty_entity.dart'
+    show SpecialtyKind;
 import '../../controllers/admin/network/provider_form_controller.dart';
 import '../../controllers/admin/network/provider_form_section.dart';
 import '../../controllers/session_context_controller.dart';
@@ -47,6 +49,7 @@ class ProviderFormBinding extends Bindings {
       String? editingId;
       ProviderFormSection? section;
       String? assetType;
+      SpecialtyKind? initialOfferKind;
       if (args is Map) {
         final rawId = args['providerId'];
         if (rawId is String && rawId.isNotEmpty) editingId = rawId;
@@ -61,6 +64,22 @@ class ProviderFormBinding extends Bindings {
         final rawAssetType = args['assetType'];
         if (rawAssetType is String && rawAssetType.isNotEmpty) {
           assetType = rawAssetType;
+        }
+        // initialKind (Mi Red V1): cuando el FAB / "+ Agregar" abre el
+        // form ya contextualizado a productos o servicios. Acepta
+        // `SpecialtyKind` directo o wire string ('product'/'service').
+        // El controller usa esto para inicializar `offerKind` y bloquear
+        // el toggle interno via `isOfferKindLocked`.
+        final rawKind = args['initialKind'];
+        if (rawKind is SpecialtyKind) {
+          initialOfferKind = rawKind;
+        } else if (rawKind is String) {
+          for (final k in SpecialtyKind.values) {
+            if (k.wireName == rawKind) {
+              initialOfferKind = k;
+              break;
+            }
+          }
         }
       }
 
@@ -82,6 +101,7 @@ class ProviderFormBinding extends Bindings {
         defaultCountryId: countryId,
         focusedSection: section,
         assetType: assetType,
+        initialOfferKind: initialOfferKind,
       );
     });
   }
