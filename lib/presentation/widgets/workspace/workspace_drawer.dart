@@ -30,6 +30,7 @@
 // - Reactividad GetX (`Obx`) sobre `RegistrationController`/`SessionContext`/
 //   `SessionCapabilitiesStore`/`ProviderContextStore`.
 // ============================================================================
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -254,6 +255,18 @@ class WorkspaceDrawer extends StatelessWidget {
             Get.toNamed(Routes.countryCity);
           },
         ),
+        // Acceso secundario a la pantalla global de Cuenta. El acceso
+        // principal sigue siendo el icono Perfil del AppBar.
+        ListTile(
+          leading: const Icon(Icons.person_outline_rounded),
+          title: const Text('Cuenta'),
+          subtitle: const Text('Identidad, seguridad y preferencias'),
+          dense: true,
+          onTap: () {
+            Get.back();
+            Get.toNamed(Routes.account);
+          },
+        ),
         ListTile(
           leading: const Icon(Icons.logout),
           title: const Text('Cerrar sesión'),
@@ -288,7 +301,27 @@ class WorkspaceDrawer extends StatelessWidget {
   }
 
   Future<void> _logout(SessionContextController? session) async {
-    Get.offAllNamed(Routes.countryCity);
+    // Cierra la sesión de Firebase. `AuthStateObserver` reacciona a
+    // `authStateChanges(null)` y limpia automáticamente:
+    //   · SessionContextController (resetForLogout)
+    //   · AccessGateway (resetForLogout)
+    //   · AccountingOutboxSyncService (stop + delete)
+    //   · OnboardingSessionService (clearForUser)
+    // No duplicamos esa limpieza aquí; solo disparamos signOut y dejamos
+    // que el observer haga su trabajo.
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (_) {
+      // Si signOut falla por red, igual queremos sacar al usuario de la
+      // UI autenticada. AuthStateObserver no se disparará pero el splash
+      // gate verá `currentUser` aún presente y enrutará al workspace —
+      // ese caso queda como deuda separada (raro en práctica).
+    }
+    // Splash recalcula el destino con el nuevo estado:
+    //   · desktop → Routes.desktopLogin
+    //   · mobile  → Routes.welcome
+    // Cero duplicación de routing en logout.
+    Get.offAllNamed(Routes.splash);
   }
 }
 

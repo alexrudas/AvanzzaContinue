@@ -51,14 +51,14 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
-import '../../core/theme/bottom_nav_theme.dart';
+import '../../core/config/feature_flags.dart';
 import '../../domain/entities/workspace/workspace_type.dart';
 import '../../routes/app_pages.dart';
 import '../auth/controllers/registration_controller.dart';
 import '../controllers/session_context_controller.dart';
 import '../widgets/workspace/workspace_drawer.dart';
-import 'workspace_shell_bootstrap_layer.dart';
 import 'workspace_config.dart';
+import 'workspace_shell_bootstrap_layer.dart';
 
 /// Controller simple para navegación entre tabs dentro del shell.
 class _TabNavigationController extends GetxController {
@@ -82,20 +82,79 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   /// Guard anti-loop para navegación a home.
   bool _isNavigating = false;
 
+  // ── Swipe shell (FeatureFlags.useSwipeableShell) ──────────────────────────
+  // PageController + Worker viven SOLO en el path nuevo. Cuando la flag está
+  // OFF se mantienen en null y el shell sigue usando `_LazyIndexedStack`.
+  PageController? _pageController;
+  Worker? _indexWorker;
+
+  /// Anti-reentrada: `true` mientras un cambio de página originado por
+  /// `onPageChanged` está propagándose a `c.setIndex`. Evita que el worker
+  /// reaccione y vuelva a llamar `animateToPage` sobre la misma página.
+  bool _syncingFromPageView = false;
+
   @override
   void initState() {
     super.initState();
     widget.config.onInit?.call();
     c = Get.put(_TabNavigationController(), permanent: false);
+
+    // Path nuevo: PageView + Worker. Si la flag está OFF, no instanciamos
+    // nada — el `_LazyIndexedStack` no necesita controller ni worker.
+    if (FeatureFlags.useSwipeableShell) {
+      _pageController = PageController(initialPage: c.index.value);
+      _indexWorker = ever<int>(c.index, _syncPageFromIndex);
+    }
+
     _setupReactiveListeners();
   }
 
   @override
   void dispose() {
+    // Orden estricto: cancelar worker → dispose PageController → delete
+    // _TabNavigationController → super. Si el orden se altera (p.ej. delete
+    // antes de cancelar el worker), el worker puede dispararse contra un
+    // controller ya eliminado.
+    _indexWorker?.dispose();
+    _indexWorker = null;
+    _pageController?.dispose();
+    _pageController = null;
     if (Get.isRegistered<_TabNavigationController>()) {
       Get.delete<_TabNavigationController>();
     }
     super.dispose();
+  }
+
+  /// Sincroniza `_pageController` cuando el índice canónico (`c.index`)
+  /// cambia por una vía distinta al propio PageView — típicamente tap en
+  /// el NavigationBar.
+  ///
+  /// Reglas:
+  /// - Salta si el cambio vino del propio PageView (`_syncingFromPageView`).
+  /// - Salta si el shell ya no está montado o el controller no tiene clients.
+  /// - Salta si la página actual ya coincide con el target.
+  /// - Para saltos lejanos (|target - current| > 1) usa `jumpToPage` para no
+  ///   atravesar visualmente las tabs intermedias (y no forzar su lazy build
+  ///   simplemente por estar de paso).
+  /// - Para adyacentes usa `animateToPage` con 220ms / easeOutCubic.
+  void _syncPageFromIndex(int target) {
+    if (_syncingFromPageView) return;
+    if (!mounted) return;
+    final controller = _pageController;
+    if (controller == null || !controller.hasClients) return;
+
+    final current = controller.page?.round() ?? c.index.value;
+    if (current == target) return;
+
+    if ((target - current).abs() > 1) {
+      controller.jumpToPage(target);
+    } else {
+      controller.animateToPage(
+        target,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   /// Configura listeners reactivos para detectar invalidación del shell actual.
@@ -233,11 +292,49 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
   }
 
+  /// Body alternativo bajo `FeatureFlags.useSwipeableShell = true`.
+  ///
+  /// Usa `PageView.builder` para habilitar swipe horizontal entre las tabs
+  /// principales. Estrategia:
+  /// - LAZY NATURAL: `itemBuilder` sólo se invoca cuando la página entra en
+  ///   viewport (visible o adyacente durante swipe). No se montan las 5 tabs
+  ///   upfront. Aceptamos que un peek + cancel construya la adyacente — es
+  ///   el coste del lazy natural y evita el flicker que generaría un
+  ///   placeholder plano.
+  /// - KEEP-ALIVE: cada page se envuelve en `_KeepAliveTab` para preservar
+  ///   estado (scroll, FAB visibility, `bucketsRx` de Mi Red, workers de
+  ///   Home) cuando la página queda fuera del cache window de PageView.
+  /// - SYNC NavigationBar ↔ PageView: `onPageChanged` propaga el índice al
+  ///   `_TabNavigationController`; el worker `_indexWorker` propaga taps
+  ///   del navbar al PageController. El guard `_syncingFromPageView` rompe
+  ///   el ciclo bidireccional.
+  Widget _buildSwipeBody(List<WorkspaceTab> tabs) {
+    final controller = _pageController;
+    // Safety: si la flag se activó mid-build o el controller no se creó por
+    // alguna razón, caer al path estático. No debería ocurrir bajo el flujo
+    // normal, pero evita crash si algún caller manipula la flag en runtime
+    // sin hot-restart.
+    if (controller == null) {
+      return _LazyIndexedStack(
+        index: c.index.value,
+        children: [for (final t in tabs) t.page],
+      );
+    }
+    return PageView.builder(
+      controller: controller,
+      itemCount: tabs.length,
+      onPageChanged: (i) {
+        if (c.index.value == i) return;
+        _syncingFromPageView = true;
+        c.setIndex(i);
+        _syncingFromPageView = false;
+      },
+      itemBuilder: (ctx, i) => _KeepAliveTab(child: tabs[i].page),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final userRole = parseUserRole(widget.config.roleKey);
-    final isAdmin = widget.config.workspaceType == WorkspaceType.assetAdmin;
-
     return Obx(() {
       final idx = c.index.value;
       final tabs = widget.config.tabs;
@@ -262,6 +359,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
               tooltip: 'Perfil',
               onPressed: () {
                 HapticFeedback.lightImpact();
+                Get.toNamed(Routes.account);
               },
             ),
             const SizedBox(width: 4),
@@ -269,121 +367,92 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         ),
         drawer: const WorkspaceDrawer(),
         resizeToAvoidBottomInset: false,
+        // TODO(perf): este `Obx` reconstruye AppBar + drawer + body +
+        // bottomNavigationBar cada vez que cambia `c.index.value`, aunque
+        // sólo el title del AppBar y el `currentIndex` del navbar dependen
+        // realmente del índice. Bajo PageView esto no se agrava (PageView
+        // absorbe los rebuilds del body gracias a KeepAlive), pero si
+        // DevTools muestra costo perceptible en swipe rápido, granularizar
+        // en un PR posterior: mover el reactivo sólo al `title:` del AppBar
+        // y al `currentIndex:` del navbar; sacar el `PageView` del Obx.
         body: WorkspaceShellBootstrapLayer(
-          child: _LazyIndexedStack(
-            index: idx,
-            children: [for (final t in tabs) t.page],
-          ),
-        ),
-        bottomNavigationBar: isAdmin
-            ? SafeArea(
-                child: CustomFloatingNavBar(
-                  currentIndex: idx,
-                  onTap: c.setIndex,
+          child: FeatureFlags.useSwipeableShell
+              ? _buildSwipeBody(tabs)
+              : _LazyIndexedStack(
+                  index: idx,
+                  children: [for (final t in tabs) t.page],
                 ),
-              )
-            : AvanzzaNavigationBar(
-                role: userRole,
-                currentIndex: idx,
-                destinations: [
-                  for (final t in tabs)
-                    NavigationDestination(
-                      icon: Icon(t.icon),
-                      label: t.title,
-                    ),
-                ],
-                onDestinationSelected: c.setIndex,
-              ),
+        ),
+        bottomNavigationBar: WorkspaceBottomNav(
+          tabs: tabs,
+          currentIndex: idx,
+          onTap: c.setIndex,
+        ),
       );
     });
   }
 }
 
 // ============================================================================
-// CUSTOM FLOATING NAV BAR — Premium Ultra Pro (Solo para assetAdmin)
+// WORKSPACE BOTTOM NAV — Enterprise flat navbar (unificado para TODOS los
+// workspaces: admin / owner / renter / provider / insurer / legal / advisor).
+// ----------------------------------------------------------------------------
+// Diseño plano, integrado al sistema. Sin cápsula flotante, sin sombras.
+// Inspiración: Linear / Stripe / Ramp / Notion Mobile / Uber Driver.
+// - Fondo sólido alineado a colorScheme.surface.
+// - Hairline superior 0.5px como única separación visual.
+// - Indicador activo: pill sutil detrás del ícono (primary @ ~12%) +
+//   ícono filled + label semibold. Sin barra superior (evita doble indicador).
+// - SafeArea inferior interna (bottom only) para no fragmentar el layout.
+//
+// DATA-DRIVEN: las tabs (íconos, labels, activeIcon, navLabel) vienen del
+// `WorkspaceConfig` correspondiente. El widget no conoce roles ni hardcodea
+// items; cada workspace declara su contenido y el shell renderiza el mismo
+// componente visual.
 // ============================================================================
 
-class CustomFloatingNavBar extends StatelessWidget {
+class WorkspaceBottomNav extends StatelessWidget {
+  final List<WorkspaceTab> tabs;
   final int currentIndex;
-  final Function(int) onTap;
+  final ValueChanged<int> onTap;
 
-  const CustomFloatingNavBar({
+  const WorkspaceBottomNav({
     super.key,
+    required this.tabs,
     required this.currentIndex,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
-      height: 76,
+    final theme = Theme.of(context);
+
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-            spreadRadius: 0,
+        color: theme.colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: theme.dividerColor.withValues(alpha: 0.6),
+            width: 0.5,
           ),
-          BoxShadow(
-            color: const Color(0xFF4F5CFF).withValues(alpha: 0.05),
-            blurRadius: 30,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Expanded(
-              child: _NavBarItem(
-                icon: Icons.grid_view_rounded,
-                label: 'Inicio',
-                isSelected: currentIndex == 0,
-                onTap: () => onTap(0),
-              ),
-            ),
-            Expanded(
-              child: _NavBarItem(
-                icon: Icons.engineering_rounded,
-                label: 'Mttos.',
-                isSelected: currentIndex == 1,
-                onTap: () => onTap(1),
-              ),
-            ),
-            Expanded(
-              child: _NavBarItem(
-                icon: Icons.account_balance_wallet_rounded,
-                label: 'Contabilidad',
-                isSelected: currentIndex == 2,
-                onTap: () => onTap(2),
-              ),
-            ),
-            Expanded(
-              child: _NavBarItem(
-                icon: Icons.inventory_2_rounded,
-                label: 'Pedidos',
-                isSelected: currentIndex == 3,
-                onTap: () => onTap(3),
-                badgeCount: 0,
-              ),
-            ),
-            Expanded(
-              child: _NavBarItem(
-                icon: Icons.chat_bubble_outline_rounded,
-                label: 'Chat',
-                isSelected: currentIndex == 4,
-                onTap: () => onTap(4),
-                badgeCount: 0,
-              ),
-            ),
-          ],
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 58,
+          child: Row(
+            children: [
+              for (var i = 0; i < tabs.length; i++)
+                Expanded(
+                  child: _NavTab(
+                    tab: tabs[i],
+                    isActive: currentIndex == i,
+                    onTap: () => onTap(i),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -440,114 +509,132 @@ class _LazyIndexedStackState extends State<_LazyIndexedStack> {
 }
 
 // ============================================================================
-// NAV BAR ITEM — Item individual con animaciones y accesibilidad
+// KEEP ALIVE TAB — Preserva estado de la tab cuando sale del viewport
+// ----------------------------------------------------------------------------
+// Wrapper trivial usado SÓLO por el path `FeatureFlags.useSwipeableShell`.
+// Sin este mixin, `PageView` puede descartar la `State` de la página cuando
+// queda fuera de su cache window — eso rehace `initState`, vuelve a llamar
+// `loadInitial()` en Mi Red, resetea scroll, etc.
+//
+// REGLA CRÍTICA: `wantKeepAlive => true` no basta; el `build` debe llamar
+// `super.build(context)` para que el mixin registre el keep-alive con el
+// SliverChildBuilderDelegate de PageView. Olvidarlo es el bug clásico.
 // ============================================================================
 
-class _NavBarItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final int badgeCount;
+class _KeepAliveTab extends StatefulWidget {
+  final Widget child;
 
-  const _NavBarItem({
-    required this.icon,
-    required this.label,
-    required this.isSelected,
+  const _KeepAliveTab({required this.child});
+
+  @override
+  State<_KeepAliveTab> createState() => _KeepAliveTabState();
+}
+
+class _KeepAliveTabState extends State<_KeepAliveTab>
+    with AutomaticKeepAliveClientMixin<_KeepAliveTab> {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
+  }
+}
+
+// ============================================================================
+// NAV TAB — Item individual plano, enterprise
+// ----------------------------------------------------------------------------
+// - Estado inactivo: ícono outlined gris medio + label w500.
+// - Estado activo: pill sutil detrás del ícono (primary @ 12%) + ícono filled
+//   color primario + label w600.
+// - El pill envuelve SÓLO al ícono (no toda la celda). Tamaño contenido,
+//   padding horizontal moderado, bordes muy redondeados.
+// - Sin barra superior, sin glow, sin sombras, sin gradientes.
+// - Transiciones cortas (180ms) y discretas: sólo color de fondo del pill.
+//   La altura de la fila se mantiene estable porque el padding del pill es
+//   constante; sólo cambia el color (transparent ↔ tint) → cero jitter de
+//   layout entre tabs y al alternar selección.
+// - Arquitectura preparada para badges (dot/contador) sin romper limpieza.
+// ============================================================================
+
+class _NavTab extends StatelessWidget {
+  final WorkspaceTab tab;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _NavTab({
+    required this.tab,
+    required this.isActive,
     required this.onTap,
-    this.badgeCount = 0,
   });
 
   @override
   Widget build(BuildContext context) {
-    const selectedColor = Color(0xFF4F5CFF);
-    const unselectedColor = Color(0xFFB0B8C8);
+    final theme = Theme.of(context);
+    final activeColor = theme.colorScheme.primary;
+    const inactiveColor = Color(0xFF6B7280);
+    final color = isActive ? activeColor : inactiveColor;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          HapticFeedback.lightImpact();
-          onTap();
-        },
-        borderRadius: BorderRadius.circular(30),
-        splashColor: selectedColor.withValues(alpha: 0.1),
-        highlightColor: selectedColor.withValues(alpha: 0.05),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 48),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutCubic,
-                    padding: EdgeInsets.all(isSelected ? 6 : 4),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? selectedColor.withValues(alpha: 0.1)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      icon,
-                      color: isSelected ? selectedColor : unselectedColor,
-                      size: isSelected ? 26 : 24,
-                      semanticLabel: label,
-                    ),
+    // Pill tint: derivado del primary del tema, opacidad baja para mantener
+    // tono enterprise. ~12% sobre superficies claras, evita ruido visual.
+    final pillColor =
+        isActive ? activeColor.withValues(alpha: 0.12) : Colors.transparent;
+
+    final label = tab.bottomNavLabel;
+
+    return Semantics(
+      selected: isActive,
+      button: true,
+      label: label,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onTap();
+          },
+          splashColor: activeColor.withValues(alpha: 0.06),
+          highlightColor: activeColor.withValues(alpha: 0.04),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // PILL INDICATOR: fondo sutil alrededor del ícono activo.
+                // Padding constante para que la altura de la fila sea
+                // independiente del estado (no salta al cambiar de tab).
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 4,
                   ),
-                  const SizedBox(height: 4),
-                  AnimatedOpacity(
-                    duration: const Duration(milliseconds: 200),
-                    opacity: isSelected ? 1.0 : 0.6,
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: isSelected ? selectedColor : unselectedColor,
-                        fontSize: isSelected ? 11 : 10,
-                        fontWeight:
-                            isSelected ? FontWeight.w700 : FontWeight.w500,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
+                  decoration: BoxDecoration(
+                    color: pillColor,
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                ],
-              ),
-              if (badgeCount > 0)
-                Positioned(
-                  right: -5,
-                  top: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFF3D00),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 18,
-                      minHeight: 18,
-                    ),
-                    child: Text(
-                      badgeCount > 9 ? '9+' : badgeCount.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        height: 1,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+                  child: Icon(
+                    tab.iconFor(isActive: isActive),
+                    size: 22,
+                    color: color,
                   ),
                 ),
-            ],
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    height: 1.0,
+                    letterSpacing: 0.1,
+                    color: color,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

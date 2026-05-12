@@ -36,6 +36,7 @@
 
 import 'package:avanzza/presentation/pages/admin/accounting/admin_accounting_page.dart';
 import 'package:avanzza/presentation/pages/admin/chat/admin_chat_page.dart';
+import 'package:avanzza/presentation/pages/network/v2/mi_red_page.dart';
 import 'package:avanzza/presentation/pages/admin/home/admin_home_page.dart';
 import 'package:avanzza/presentation/pages/admin/maintenance/admin_maintenance_page.dart';
 import 'package:avanzza/presentation/pages/admin/orders_and_quotation/admin_orders_page.dart';
@@ -49,6 +50,8 @@ import '../../domain/entities/workspace/workspace_type.dart';
 import '../../services/telemetry/telemetry_service.dart';
 import '../bindings/admin/admin_accounting_binding.dart';
 import '../bindings/admin/admin_chat_binding.dart';
+import '../bindings/network/mi_red_binding.dart';
+import '../../core/config/feature_flags.dart';
 import '../bindings/admin/admin_home_binding.dart';
 import '../bindings/admin/admin_maintenance_binding.dart';
 import '../bindings/admin/admin_purchase_binding.dart';
@@ -91,15 +94,38 @@ class WorkspaceConfig {
 }
 
 class WorkspaceTab {
+  /// Título largo (mostrado en el AppBar del shell).
   final String title;
+
+  /// Ícono en estado inactivo (variante outlined).
   final IconData icon;
+
+  /// Ícono en estado activo (variante filled/rounded). Si se omite, se usa
+  /// el mismo `icon` (el pill indicator + color primario siguen distinguiendo
+  /// el estado activo).
+  final IconData? activeIcon;
+
+  /// Label corto opcional para el bottom navbar cuando `title` excede el ancho
+  /// disponible de la celda (típicamente con 5 tabs). Si se omite, se usa
+  /// `title`.
+  final String? navLabel;
+
   final Widget page;
 
   const WorkspaceTab({
     required this.title,
     required this.icon,
     required this.page,
+    this.activeIcon,
+    this.navLabel,
   });
+
+  /// Ícono efectivo a renderizar según el estado.
+  IconData iconFor({required bool isActive}) =>
+      isActive ? (activeIcon ?? icon) : icon;
+
+  /// Label efectivo para el bottom navbar.
+  String get bottomNavLabel => navLabel ?? title;
 }
 
 // ============================================================================
@@ -286,42 +312,73 @@ class NavigationRegistry {
 // ============================================================================
 
 WorkspaceConfig _buildAssetAdminConfig() {
+  // Tab #5 reversible: bajo FeatureFlags.useMiRedInsteadOfChat=true se
+  // reemplaza AdminChatPage por MiRedPage (Mi Red Operativa v2). El módulo
+  // Chat NO se elimina — mantener la flag en false restaura el comportamiento
+  // legacy sin migración de datos.
+  const useMiRed = FeatureFlags.useMiRedInsteadOfChat;
+  const commsTab = useMiRed
+      ? WorkspaceTab(
+          // `title` se usa en el AppBar; `navLabel` es el label corto del
+          // bottom nav (restricción de ancho con 5 tabs).
+          title: 'Mi red operativa',
+          navLabel: 'Mi red',
+          icon: Icons.groups_outlined,
+          activeIcon: Icons.groups_rounded,
+          page: MiRedPage(),
+        )
+      : WorkspaceTab(
+          title: 'Chat',
+          icon: Icons.chat_bubble_outline,
+          activeIcon: Icons.chat_bubble_rounded,
+          page: AdminChatPage(),
+        );
+
   return WorkspaceConfig(
     roleKey: 'admin_activos',
     workspaceType: WorkspaceType.assetAdmin,
-    tabs: const [
-      WorkspaceTab(
+    tabs: [
+      const WorkspaceTab(
         title: 'Inicio',
-        icon: Icons.home_outlined,
+        icon: Icons.dashboard_outlined,
+        activeIcon: Icons.dashboard_rounded,
         page: AdminHomePage(),
       ),
-      WorkspaceTab(
+      const WorkspaceTab(
         title: 'Mantenimientos',
+        navLabel: 'Mttos.',
         icon: Icons.build_outlined,
+        activeIcon: Icons.build_rounded,
         page: AdminMaintenancePage(),
       ),
-      WorkspaceTab(
+      const WorkspaceTab(
         title: 'Contabilidad',
-        icon: Icons.receipt_long_outlined,
+        icon: Icons.account_balance_wallet_outlined,
+        activeIcon: Icons.account_balance_wallet_rounded,
         page: AdminAccountingPage(),
       ),
-      WorkspaceTab(
+      const WorkspaceTab(
         title: 'Pedidos',
-        icon: Icons.shopping_cart_outlined,
+        icon: Icons.inventory_2_outlined,
+        activeIcon: Icons.inventory_2_rounded,
         page: AdminOrdersPage(),
       ),
-      WorkspaceTab(
-        title: 'Chat',
-        icon: Icons.chat_bubble_outline,
-        page: AdminChatPage(),
-      ),
+      commsTab,
     ],
     onInit: () {
       AdminHomeBinding().dependencies();
       AdminMaintenanceBinding().dependencies();
       AdminAccountingBinding().dependencies();
       AdminPurchaseBinding().dependencies();
-      AdminChatBinding().dependencies();
+      // Reversible: registramos el binding correcto según la flag.
+      // Mantener AdminChatBinding registrado cuando flag=false preserva el
+      // ChatRepository disponible para otros workspaces que NO se ven
+      // afectados por esta swap (owner/provider/renter siguen usando Chat).
+      if (useMiRed) {
+        MiRedBinding().dependencies();
+      } else {
+        AdminChatBinding().dependencies();
+      }
     },
   );
 }
@@ -334,26 +391,31 @@ WorkspaceConfig _buildOwnerConfig() {
       WorkspaceTab(
         title: 'Inicio',
         icon: Icons.home_outlined,
+        activeIcon: Icons.home_rounded,
         page: OwnerHomePage(),
       ),
       WorkspaceTab(
         title: 'Portafolio',
         icon: Icons.inventory_2_outlined,
+        activeIcon: Icons.inventory_2_rounded,
         page: OwnerPortfolioPage(),
       ),
       WorkspaceTab(
         title: 'Contratos',
         icon: Icons.description_outlined,
+        activeIcon: Icons.description_rounded,
         page: OwnerContractsPage(),
       ),
       WorkspaceTab(
         title: 'Contabilidad',
         icon: Icons.receipt_long_outlined,
+        activeIcon: Icons.receipt_long_rounded,
         page: AccountingPage(),
       ),
       WorkspaceTab(
         title: 'Chat',
         icon: Icons.chat_bubble_outline,
+        activeIcon: Icons.chat_bubble_rounded,
         page: OwnerChatPage(),
       ),
     ],
@@ -369,26 +431,31 @@ WorkspaceConfig _buildRenterConfig() {
       WorkspaceTab(
         title: 'Inicio',
         icon: Icons.home_outlined,
+        activeIcon: Icons.home_rounded,
         page: TenantHomePage(),
       ),
       WorkspaceTab(
         title: 'Pagos',
         icon: Icons.payments_outlined,
+        activeIcon: Icons.payments_rounded,
         page: RenterPaymentsPage(),
       ),
       WorkspaceTab(
         title: 'Activo',
         icon: Icons.precision_manufacturing_outlined,
+        activeIcon: Icons.precision_manufacturing_rounded,
         page: RenterAssetPage(),
       ),
       WorkspaceTab(
         title: 'Documentos',
         icon: Icons.folder_open_outlined,
+        activeIcon: Icons.folder_rounded,
         page: RenterDocumentsPage(),
       ),
       WorkspaceTab(
         title: 'Chat',
         icon: Icons.chat_bubble_outline,
+        activeIcon: Icons.chat_bubble_rounded,
         page: RenterChatPage(),
       ),
     ],
@@ -419,26 +486,31 @@ WorkspaceConfig _buildProviderConfig({
       WorkspaceTab(
         title: 'Inicio',
         icon: Icons.home_outlined,
+        activeIcon: Icons.home_rounded,
         page: ProviderServicesHomePage(),
       ),
       WorkspaceTab(
         title: 'Solicitudes',
         icon: Icons.assignment_outlined,
+        activeIcon: Icons.assignment_rounded,
         page: ProviderServicesOrdersPage(),
       ),
       WorkspaceTab(
         title: 'Catálogo',
         icon: Icons.view_list_outlined,
+        activeIcon: Icons.view_list_rounded,
         page: ProviderArticlesCatalogPage(),
       ),
       WorkspaceTab(
         title: 'Chat',
         icon: Icons.chat_bubble_outline,
+        activeIcon: Icons.chat_bubble_rounded,
         page: ProviderServicesChatPage(),
       ),
       WorkspaceTab(
         title: 'Perfil',
         icon: Icons.person_outline,
+        activeIcon: Icons.person_rounded,
         page: ProviderMeBody(),
       ),
     ],

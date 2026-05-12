@@ -8,6 +8,9 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/radius.dart';
+import '../../../../core/theme/spacing.dart';
+
 // ============================================================================
 // DESIGN SYSTEM (solo gradiente brand y colores semánticos de red operativa)
 // ============================================================================
@@ -1353,58 +1356,102 @@ class AdminListBlockTile extends StatelessWidget {
 }
 
 // ============================================================================
-// PREMIUM FAB
+// BOTTOM ACTION BUTTON — Acción inferior compartida (primary / secondary)
+// ----------------------------------------------------------------------------
+// Componente reusable para acciones operacionales del shell. Sustituye al
+// antiguo "AdminPremiumFAB" con gradiente flashy.
+//
+// Lenguaje visual: enterprise / Linear / Stripe / Ramp.
+// - Sin gradiente, sin glow, sin pill extremo.
+// - Geometría unificada: AppRadius.md (12), 18px icon, 14sp w600 label.
+// - Primary: solid `cs.primary` + sombra mínima.
+// - Secondary: tonal (`cs.surfaceContainerHighest`) + hairline `outlineVariant`.
+// - Ambas variantes comparten paddings y altura para conversar visualmente.
 // ============================================================================
 
-class AdminPremiumFAB extends StatelessWidget {
-  final VoidCallback? onTap;
+enum AdminBottomActionVariant { primary, secondary }
 
-  const AdminPremiumFAB({super.key, this.onTap});
+class AdminBottomActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final AdminBottomActionVariant variant;
+  final String? tooltip;
+  final String? semanticsLabel;
+
+  const AdminBottomActionButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.variant = AdminBottomActionVariant.primary,
+    this.tooltip,
+    this.semanticsLabel,
+  });
 
   bool get _isEnabled => onTap != null;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isPrimary = variant == AdminBottomActionVariant.primary;
+
+    final bg = isPrimary ? cs.primary : cs.surfaceContainerHighest;
+    final fg = isPrimary ? cs.onPrimary : cs.onSurface;
+    final radius = BorderRadius.circular(AppRadius.md);
+
+    final shadows = isPrimary
+        ? <BoxShadow>[
+            BoxShadow(
+              color: cs.shadow.withValues(alpha: 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ]
+        : const <BoxShadow>[];
 
     return Semantics(
-      label: 'Crear nuevo elemento',
+      label: semanticsLabel ?? label,
       button: _isEnabled,
       enabled: _isEnabled,
       child: Tooltip(
-        message: 'Nuevo',
+        message: tooltip ?? label,
         child: Opacity(
           opacity: _isEnabled ? 1.0 : 0.5,
-          child: Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(30),
-            elevation: 4,
-            shadowColor: cs.shadow,
-            child: Ink(
-              decoration: BoxDecoration(
-                gradient: AdminHomeDS.primaryGradient,
-                borderRadius: BorderRadius.circular(30),
-              ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: radius,
+              border: isPrimary
+                  ? null
+                  : Border.all(color: cs.outlineVariant, width: 1),
+              boxShadow: shadows,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: radius,
               child: InkWell(
                 onTap: onTap,
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: radius,
                 splashColor: _isEnabled ? null : Colors.transparent,
                 highlightColor: _isEnabled ? null : Colors.transparent,
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: 10,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.add, color: cs.onPrimary, size: 22),
-                      const SizedBox(width: 10),
+                      Icon(icon, color: fg, size: 18),
+                      const SizedBox(width: AppSpacing.sm),
                       Text(
-                        'Registrar',
+                        label,
                         style: TextStyle(
-                          color: cs.onPrimary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.3,
+                          color: fg,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.1,
                         ),
                       ),
                     ],
@@ -1415,6 +1462,31 @@ class AdminPremiumFAB extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ============================================================================
+// ADMIN PREMIUM FAB (compatibilidad) → ahora delega en AdminBottomActionButton
+// ----------------------------------------------------------------------------
+// Se mantiene el nombre para no romper call-sites. El gradiente y el glow
+// quedaron retirados; visualmente es una acción "Registrar" sobria.
+// ============================================================================
+
+class AdminPremiumFAB extends StatelessWidget {
+  final VoidCallback? onTap;
+
+  const AdminPremiumFAB({super.key, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return AdminBottomActionButton(
+      icon: Icons.add_rounded,
+      label: 'Registrar',
+      onTap: onTap,
+      variant: AdminBottomActionVariant.primary,
+      tooltip: 'Nuevo',
+      semanticsLabel: 'Crear nuevo elemento',
     );
   }
 }

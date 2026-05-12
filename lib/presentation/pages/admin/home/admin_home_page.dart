@@ -12,6 +12,7 @@ import 'dart:ui';
 
 import 'package:avanzza/domain/shared/enums/asset_type.dart';
 import 'package:avanzza/presentation/widgets/modal/action_sheet_pro.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -103,11 +104,27 @@ class _AdminHomePageState extends State<AdminHomePage> {
         Positioned(
           bottom: 16,
           right: 16,
-          child: AdminPremiumFAB(
-            onTap: () {
-              HapticFeedback.mediumImpact();
-              _showNewOperationSheet(context);
-            },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 2º FAB "Consultar" — solo en debug builds (kDebugMode).
+              // No existe en release builds (compile-time stripped).
+              if (kDebugMode) ...[
+                _DiagnosticsFAB(
+                  onTap: () {
+                    HapticFeedback.mediumImpact();
+                    _showDiagnosticsSheet(context);
+                  },
+                ),
+                const SizedBox(width: 10),
+              ],
+              AdminPremiumFAB(
+                onTap: () {
+                  HapticFeedback.mediumImpact();
+                  _showNewOperationSheet(context);
+                },
+              ),
+            ],
           ),
         ),
 
@@ -1375,6 +1392,138 @@ class _AdminHomePageState extends State<AdminHomePage> {
           ),
         ),
       ),
+    );
+  }
+
+  /// DEV-only — Sheet de diagnóstico Integrations API (RUNT/SIMIT).
+  /// Visible únicamente en kDebugMode. Las pantallas de destino consumen
+  /// los endpoints individuales sin VRC, sin caché Isar y sin Firestore.
+  void _showDiagnosticsSheet(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => SafeArea(
+        child: Container(
+          decoration: BoxDecoration(
+            color: cs.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 8),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: cs.onSurface.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Diagnóstico Integrations API',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () => Navigator.of(ctx).pop(),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'DEV · consulta directa sin VRC ni persistencia.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(height: 1, color: cs.outline.withValues(alpha: 0.12)),
+                _DirectoryOption(
+                  icon: Icons.person_search_outlined,
+                  title: 'RUNT Persona',
+                  subtitle: 'Licencias y estado del conductor',
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    Get.toNamed(Routes.devRuntPersonDiagnostic);
+                  },
+                ),
+                _DirectoryOption(
+                  icon: Icons.directions_car_outlined,
+                  title: 'RUNT Vehículo',
+                  subtitle: 'Identificación, SOAT, RTM, limitaciones',
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    Get.toNamed(Routes.devRuntVehicleDiagnostic);
+                  },
+                ),
+                _DirectoryOption(
+                  icon: Icons.account_balance_outlined,
+                  title: 'SIMIT Persona',
+                  subtitle: 'Comparendos y multas por documento',
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    Get.toNamed(Routes.devSimitPersonDiagnostic);
+                  },
+                ),
+                _DirectoryOption(
+                  icon: Icons.receipt_long_outlined,
+                  title: 'SIMIT Vehículo',
+                  subtitle: 'Comparendos y multas por placa',
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    Get.toNamed(Routes.devSimitVehicleDiagnostic);
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// FAB compacto DEV-only para el sheet de diagnóstico Integrations API.
+/// Vive a la izquierda del FAB principal "Registrar".
+///
+/// Reutiliza [AdminBottomActionButton] en variante secondary para compartir
+/// la geometría y el lenguaje visual con "Registrar". Antes era un widget
+/// con estilos hardcodeados (radius 30, elevation 4, w700/0.3) que rompía
+/// la conversación visual con el navbar nuevo.
+class _DiagnosticsFAB extends StatelessWidget {
+  final VoidCallback onTap;
+  const _DiagnosticsFAB({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return AdminBottomActionButton(
+      icon: Icons.search_rounded,
+      label: 'Consultar',
+      onTap: onTap,
+      variant: AdminBottomActionVariant.secondary,
+      tooltip: 'Consultar (DEV)',
+      semanticsLabel: 'Diagnóstico Integrations API (DEV)',
     );
   }
 }
